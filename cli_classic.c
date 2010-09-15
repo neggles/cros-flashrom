@@ -916,6 +916,11 @@ int main(int argc, char *argv[])
 
 	fill_flash->flags.force = force;
 
+	/* FIXME: We should issue an unconditional chip reset here. This can be
+	 * done once we have a .reset function in struct flashchip.
+	 * Give the chip time to settle.
+	 */
+	programmer_delay(100000);
 	if (read_it || write_it || erase_it || verify_it || extract_it) {
 		ret = doit(fill_flash, force, filename,
 		          read_it, write_it, erase_it, verify_it,
