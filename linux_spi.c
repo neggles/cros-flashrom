@@ -210,7 +210,7 @@ static int linux_spi_send_command(const struct flashctx *flash, unsigned int wri
 				  const unsigned char *txbuf,
 				  unsigned char *rxbuf)
 {
-	int msg_start = 0, msg_count = 0;
+	int iocontrol_code;
 	struct spi_ioc_transfer msg[2] = {
 		{
 			.tx_buf = (uint64_t)(uintptr_t)txbuf,
@@ -224,25 +224,19 @@ static int linux_spi_send_command(const struct flashctx *flash, unsigned int wri
 
 	if (fd == -1)
 		return -1;
+	/* The implementation currently does not support requests that
+	   don't start with sending a command. */
+	if (writecnt == 0)
+		return SPI_INVALID_LENGTH;
 
-	/* Only pass necessary msg[] to ioctl() to avoid the empty message
-	 * which drives an un-expected CS line and clocks. */
-	if (writecnt) {
-		msg_start = 0;  /* tx: msg[0] */
-		msg_count++;
-		if (readcnt) {
-			msg_count++;
-		}
-	} else if (readcnt) {
-		msg_start = 1;  /* rx: msg[1] */
-		msg_count++;
-	} else {
-		msg_cerr("%s: both writecnt and readcnt are 0.\n",
-			 __func__);
-		return -1;
-	}
+	/* Just submit the first (write) request in case there is nothing
+	   to read. Otherwise submit both requests. */
+	if (readcnt == 0)
+		iocontrol_code = SPI_IOC_MESSAGE(1);
+	else
+		iocontrol_code = SPI_IOC_MESSAGE(2);
 
-	if (ioctl(fd, SPI_IOC_MESSAGE(msg_count), &msg[msg_start]) == -1) {
+	if (ioctl(fd, iocontrol_code, msg) == -1) {
 		msg_cerr("%s: ioctl: %s\n", __func__, strerror(errno));
 		return -1;
 	}
