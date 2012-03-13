@@ -14,6 +14,8 @@
  *
  */
 
+#if CONFIG_LINUX_SPI == 1
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -21,6 +23,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <linux/types.h>
 #include <linux/spi/spidev.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -266,3 +269,5 @@ static int linux_spi_write_256(struct flashctx *flash, const uint8_t *buf,
 	return spi_write_chunked(flash, buf, start, len,
 				 SPI_DMA_SIZE - 5 /* WREN, Page Program */);
 }
+
+#endif // CONFIG_LINUX_SPI == 1
