@@ -552,7 +552,8 @@ void chip_readn(const struct flashctx *flash, uint8_t *buf, chipaddr addr, size_
 
 void programmer_delay(unsigned int usecs)
 {
-	programmer_table[programmer].delay(usecs);
+	if (usecs > 0)
+		programmer_table[programmer].delay(usecs);
 }
 
 void map_flash_registers(struct flashctx *flash)
