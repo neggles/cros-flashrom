@@ -142,6 +142,7 @@ void data_polling_jedec(struct flashctx *flash, chipaddr dst, uint8_t data);
 int write_byte_program_jedec(struct flashctx *flash, chipaddr bios, uint8_t *src,
 			     chipaddr dst);
 int probe_jedec(struct flashctx *flash);
+int probe_jedec_29gl(struct flashctx *flash);
 int write_jedec(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 int write_jedec_1(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 int erase_sector_jedec(struct flashctx *flash, unsigned int page, unsigned int pagesize);
