@@ -152,8 +152,7 @@ static int compare_id(const struct flashctx *flash, uint32_t id1, uint32_t id2)
 		return 1;
 
 	/* Test if there is any vendor ID. */
-	if (GENERIC_MANUF_ID == flash->chip->manufacture_id &&
-	    id1 != 0xff)
+	if (GENERIC_MANUF_ID == chip->manufacture_id && id1 != 0xff && id1 != 0x00)
 		return 1;
 
 	return 0;
