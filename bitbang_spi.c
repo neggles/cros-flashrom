@@ -65,7 +65,6 @@ static int bitbang_spi_send_command(const struct flashctx *flash,
 				    unsigned char *readarr);
 
 static const struct spi_master spi_master_bitbang = {
-	.type		= SPI_CONTROLLER_BITBANG,
 	.features	= SPI_MASTER_4BA,
 	.max_data_read	= MAX_DATA_READ_UNLIMITED,
 	.max_data_write	= MAX_DATA_WRITE_UNLIMITED,
@@ -77,11 +76,8 @@ static const struct spi_master spi_master_bitbang = {
 
 int register_spi_bitbang_master(const struct bitbang_spi_master *master)
 {
-	/* BITBANG_SPI_INVALID is 0, so if someone forgot to initialize ->type,
-	 * we catch it here. Same goes for missing initialization of bitbanging
-	 * functions.
-	 */
-	if (!master || master->type == BITBANG_SPI_INVALID || !master->set_cs ||
+	/* If someone forgot to initialize a bitbang function, we catch it here. */
+	if (!master || !master->set_cs ||
 	    !master->set_sck || !master->set_mosi || !master->get_miso) {
 		msg_perr("Incomplete SPI bitbang master setting!\n"
 			 "Please report a bug at flashrom@flashrom.org\n");
