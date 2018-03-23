@@ -4789,6 +4789,52 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Macronix",
+		.name		= "MX25L25635F",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25L25635F,
+		.total_size	= 32768,
+		.page_size	= 256,
+		.feature_bits	=
+			FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ | FEATURE_4BA_SUPPORT,
+		.four_bytes_addr_funcs =
+		{
+			.set_4ba = spi_enter_4ba_b7,
+			.read_nbyte = spi_nbyte_read_4ba_direct,
+			.program_byte = spi_byte_program_4ba_direct,
+			.program_nbyte = spi_nbyte_program_4ba_direct
+		},
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 8192} },
+				.block_erase = spi_block_erase_21_4ba_direct,
+			}, {
+				.eraseblocks = { {32 * 1024, 1024} },
+				.block_erase = spi_block_erase_5c_4ba_direct,
+			}, {
+				.eraseblocks = { {64 * 1024, 512} },
+				.block_erase = spi_block_erase_dc_4ba_direct,
+			}, {
+				.eraseblocks = { {32768 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {32768 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
+		.wp		= &wp_generic,
+	},
+
+	{
+		.vendor		= "Macronix",
 		.name		= "MX25L512(E)/MX25V512(C)",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= MACRONIX_ID,

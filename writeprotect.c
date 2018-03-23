@@ -1788,6 +1788,48 @@ static struct generic_wp mx25l6495f_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 };
 
+struct generic_range mx25l25635f_tb0_ranges[] = {
+	{ { }, 0, {0, 0} },	/* none */
+	{ { }, 0x1, {0x1ff0000, 64 * 1 * 1024} },	/* block 511 */
+	{ { }, 0x2, {0x1fe0000, 64 * 2 * 1024} },	/* blocks 510-511 */
+	{ { }, 0x3, {0x1fc0000, 64 * 4 * 1024} },	/* blocks 508-511 */
+	{ { }, 0x4, {0x1f80000, 64 * 8 * 1024} },	/* blocks 504-511 */
+	{ { }, 0x5, {0x1f00000, 64 * 16 * 1024} },	/* blocks 496-511 */
+	{ { }, 0x6, {0x1e00000, 64 * 32 * 1024} },	/* blocks 480-511 */
+	{ { }, 0x7, {0x1c00000, 64 * 64 * 1024} },	/* blocks 448-511 */
+	{ { }, 0x8, {0x1800000, 64 * 128 * 1024} },	/* blocks 384-511 */
+	{ { }, 0x9, {0x1000000, 64 * 256 * 1024} },	/* blocks 256-511 */
+	{ { }, 0xa, {0x0000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xb, {0x0000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xc, {0x0000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xd, {0x0000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xe, {0x0000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xf, {0x0000000, 64 * 512 * 1024} },	/* all */
+};
+
+struct generic_range mx25l25635f_tb1_ranges[] = {
+	{ { }, 0, {0, 0} },	/* none */
+	{ { }, 0x1, {0x000000, 64 * 1 * 1024} },	/* block 0 */
+	{ { }, 0x2, {0x000000, 64 * 2 * 1024} },	/* blocks 0-1 */
+	{ { }, 0x3, {0x000000, 64 * 4 * 1024} },	/* blocks 0-3 */
+	{ { }, 0x4, {0x000000, 64 * 8 * 1024} },	/* blocks 0-7 */
+	{ { }, 0x5, {0x000000, 64 * 16 * 1024} },	/* blocks 0-15 */
+	{ { }, 0x6, {0x000000, 64 * 32 * 1024} },	/* blocks 0-31 */
+	{ { }, 0x7, {0x000000, 64 * 64 * 1024} },	/* blocks 0-63 */
+	{ { }, 0x8, {0x000000, 64 * 128 * 1024} },	/* blocks 0-127 */
+	{ { }, 0x9, {0x000000, 64 * 256 * 1024} },	/* blocks 0-255 */
+	{ { }, 0xa, {0x000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xb, {0x000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xc, {0x000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xd, {0x000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xe, {0x000000, 64 * 512 * 1024} },	/* all */
+	{ { }, 0xf, {0x000000, 64 * 512 * 1024} },	/* all */
+};
+
+static struct generic_wp mx25l25635f_wp = {
+	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
+};
+
 struct generic_range s25fs128s_ranges[] = {
 	{ { .tb = 1 }, 0, {0, 0} },	/* none */
 	{ { .tb = 1 }, 0x1, {0x000000, 256 * 1024} },	/* lower 64th */
@@ -1908,6 +1950,19 @@ static int generic_range_table(const struct flashctx *flash,
 			} else {		/* T/B == 1 */
 				(*wp)->ranges = &mx25l6495f_tb1_ranges[0];
 				*num_entries = ARRAY_SIZE(mx25l6495f_tb1_ranges);
+			}
+			break;
+		 }
+		case MACRONIX_MX25L25635F: {
+			uint8_t cr = mx25l_read_config_register(flash);
+
+			*wp = &mx25l25635f_wp;
+			if (!(cr & (1 << 3))) {	/* T/B == 0 */
+				(*wp)->ranges = &mx25l25635f_tb0_ranges[0];
+				*num_entries = ARRAY_SIZE(mx25l25635f_tb0_ranges);
+			} else {		/* T/B == 1 */
+				(*wp)->ranges = &mx25l25635f_tb1_ranges[0];
+				*num_entries = ARRAY_SIZE(mx25l25635f_tb1_ranges);
 			}
 			break;
 		 }
