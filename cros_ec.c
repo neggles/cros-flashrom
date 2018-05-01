@@ -251,25 +251,6 @@ static int ec_get_cmd_versions(int cmd, uint32_t *pmask)
 	return rc;
 }
 
-/**
- * Return non-zero if the EC supports the command and version
- *
- * @param cmd		Command to check
- * @param ver		Version to check
- * @return non-zero if command version supported; 0 if not.
- */
-static int ec_cmd_version_supported(int cmd, int ver)
-{
-	uint32_t mask = 0;
-	int rc;
-
-	rc = ec_get_cmd_versions(cmd, &mask);
-	if (rc < 0)
-		return rc;
-
-	return (mask & EC_VER_MASK(ver)) ? 1 : 0;
-}
-
 /* Perform a cold reboot.
  *
  * @param flags		flags to pass to EC_CMD_REBOOT_EC.
