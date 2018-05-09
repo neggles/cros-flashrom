@@ -78,7 +78,11 @@ struct search_info;
 /*
  * fmap_find - find FMAP signature at offset in an image and copy it to buffer
  *
- * @flash:	flash structure containing read function
+ * @handle:	opaque pointer to be used by the callback function
+ * @read_chunk: callback function which given 'handle', 'offset' and 'size'
+ *              will read into the provided memory space 'dest' 'size' bytes
+ *              starting from 'offset'. Returns zero on success and non-zero
+ *              on failure.
  * @fmap:	pointer to fmap header
  * @offset:	offset of fmap header in image
  * @buf:	unallocated buffer to store fmap struct
@@ -89,7 +93,13 @@ struct search_info;
  *
  * returns 1 if found, 0 if not found, <0 to indicate failure
  */
-int fmap_find(struct flashctx *flash, struct fmap *fmap, loff_t offset,
+int fmap_find(void *source_handle,
+	      int (*read_chunk)(void *handle,
+				void *dest,
+				size_t offset,
+				size_t size),
+	      struct fmap *fmap,
+	      loff_t offset,
 	      uint8_t **buf);
 
 /* Like fmap_find, but give a memory location to search FMAP. */

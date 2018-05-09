@@ -71,13 +71,11 @@ static long int ceiling(long int v) {
 
 int search_find_next(struct search_info *search, off_t *offsetp)
 {
-	long int flash_size;
 	int ret;
 
-	flash_size = search->flash->chip->total_size * 1024;
 	switch (search->state) {
 	case SEARCH_STATE_START:
-		search->ceiling_size = ceiling(flash_size);
+		search->ceiling_size = ceiling(search->total_size);
 		search->state = SEARCH_STATE_USE_HANDLER;
 		search->stride = search->ceiling_size / 2;
 		search->offset = search->ceiling_size - search->stride;
@@ -87,8 +85,10 @@ int search_find_next(struct search_info *search, off_t *offsetp)
 		search->offset = search->ceiling_size - search->stride;
 		if (search->handler) {
 			ret = search->handler(search, offsetp);
-			if (!ret && *offsetp < flash_size - search->min_size &&
-					*offsetp >= 0)
+			if (!ret &&
+			    (*offsetp <
+			     (search->total_size - search->min_size)) &&
+			    (*offsetp >= 0))
 				return 0;
 		}
 		/* no break */
@@ -127,20 +127,22 @@ int search_find_next(struct search_info *search, off_t *offsetp)
 		if (search->offset < 0) {
 			search->stride /= 2;
 			search->offset = search->ceiling_size - search->stride;
-			while (search->offset > flash_size - search->min_size)
+			while (search->offset >
+			       (search->total_size - search->min_size))
 				search->offset -= search->stride;
 			if (search->stride < 16) {
 				search->state = SEARCH_STATE_FULL_SEARCH;
-				search->offset = flash_size - 1;
-				search->image = malloc(flash_size);
+				search->offset = search->total_size - 1;
+				search->image = malloc(search->total_size);
 				if (!search->image) {
-					msg_gdbg("%s: failed to allocate %ld "
+					msg_gdbg("%s: failed to allocate %zd "
 						 "bytes for search->image",
-						 __func__, flash_size);
+						 __func__, search->total_size);
 					return -1;
 				}
-				if (read_flash(search->flash, search->image,
-							0, flash_size)) {
+				if (search->read_chunk(search->source_handle,
+						       search->image,
+						       0, search->total_size)) {
 					msg_gdbg("[L%d] failed to read flash contents\n",
 						__LINE__);
 					return -1;
@@ -161,7 +163,7 @@ int search_find_next(struct search_info *search, off_t *offsetp)
 		 */
 		do {
 			*offsetp = search->offset--;
-		} while (*offsetp > flash_size - search->min_size);
+		} while (*offsetp > search->total_size - search->min_size);
 		if (search->offset < 0)
 			search->state = SEARCH_STATE_DONE;
 		return 0;
@@ -173,12 +175,20 @@ int search_find_next(struct search_info *search, off_t *offsetp)
 	return -1;
 }
 
-void search_init(struct search_info *search, struct flashctx *flash,
-		 int min_size)
+void search_init(struct search_info *search,
+		 void *source_handle,
+		 size_t image_size,
+		 size_t min_size,
+		 int (*read_chunk)(void *handle,
+				   void *dest,
+				   size_t offset,
+				   size_t size))
 {
 	memset(search, '\0', sizeof(*search));
-	search->flash = flash;
 	search->min_size = min_size;
+	search->total_size = image_size;
+	search->source_handle = source_handle;
+	search->read_chunk = read_chunk;
 }
 
 void search_free(struct search_info *search)

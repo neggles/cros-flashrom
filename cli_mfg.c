@@ -882,7 +882,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* add entries for regions specified in flashmap */
-	if (!set_ignore_fmap && add_fmap_entries(fill_flash) < 0) {
+	if (!set_ignore_fmap && get_fmap_entries(filename, fill_flash) < 0) {
 		rc = 1;
 		goto cli_mfg_silent_exit;
 	}

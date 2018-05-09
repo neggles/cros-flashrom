@@ -41,7 +41,7 @@ int read_romlayout(char *name);
 int find_romentry(char *name);
 int fill_romentry(romlayout_t *entry, int n);
 int handle_romentries(struct flashctx *flash, uint8_t *oldcontents, uint8_t *newcontents);
-int add_fmap_entries(struct flashctx *flash);
+int get_fmap_entries(const char *filename, struct flashctx *flash);
 int get_num_include_args(void);
 int register_include_arg(char *name);
 int process_include_args(void);

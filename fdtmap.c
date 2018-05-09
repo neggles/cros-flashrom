@@ -217,8 +217,13 @@ int fdtmap_add_entries_from_buf(const void *blob, romlayout_t *rom_entries,
 	return count;
 }
 
-int fdtmap_find(struct flashctx *flash, struct fdtmap_hdr *hdr, loff_t offset,
-		uint8_t **buf)
+int fdtmap_find(void *source_handle,
+		int (*read_chunk)(void *handle,
+				  void *dest,
+				  size_t offset,
+				  size_t size),
+		struct fdtmap_hdr *hdr,
+		loff_t offset, uint8_t **buf)
 {
 	int fmap_size;
 	uint32_t crc;
@@ -233,8 +238,7 @@ int fdtmap_find(struct flashctx *flash, struct fdtmap_hdr *hdr, loff_t offset,
 	*buf = malloc(fmap_size);
 	msg_gdbg("%s: fdtmap size %#x\n", __func__, fmap_size);
 
-	/* We may as well just read it here, to simplify the code */
-	if (flash->chip->read(flash, *buf, offset + sizeof(*hdr), fmap_size)) {
+	if (read_chunk(source_handle, *buf, offset + sizeof(*hdr), fmap_size)) {
 		msg_gdbg("[L%d] failed to read %d bytes at offset %#lx\n",
 			 __LINE__, fmap_size, (unsigned long)offset);
 		return 0;

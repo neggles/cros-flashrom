@@ -49,13 +49,16 @@ enum search_state_t {
 
 /* Keeps track of the state of our search */
 struct search_info {
-	struct flashctx *flash;	/* Flash information */
+	void *source_handle;		/* Pointer for read_chunk() below. */
+	int (*read_chunk)(void *handle, /* Callback to read chunk of data. */
+			  void *dest, size_t offset, size_t size);
+	size_t total_size;		/* Total size of the flash chip. */
 	enum search_state_t state;	/* Current state */
-	long int ceiling_size;		/* Lowest power of 2 >= flash size */
-	long int stride;		/* Current binary search stride */
+	size_t ceiling_size;		/* Lowest power of 2 >= flash size */
+	size_t stride;			/* Current binary search stride */
 	off_t offset;			/* Next offset to return */
 	uint8_t *image;			/* Cache of entire flash image */
-	int min_size;			/* Minimum size of data to find */
+	size_t min_size;		/* Minimum size of data to find */
 	/*
 	* Utility wrapper for using external programs to aid in our search.
 	* @search: Pointer to search information
@@ -85,8 +88,14 @@ int search_find_next(struct search_info *search, off_t *offsetp);
  * @flash: Information about the flash chip
  * @min_size: Minimum size of region that we want to find
  */
-void search_init(struct search_info *search, struct flashctx *flash,
-		 int min_size);
+void search_init(struct search_info *search,
+		 void *source_handle,
+		 size_t image_size,
+		 size_t min_size,
+		 int (*read_chunk)(void *handle,
+				   void *dest,
+				   size_t offset,
+				   size_t size));
 
 /** search_free() - Free memory allocated by search
  *

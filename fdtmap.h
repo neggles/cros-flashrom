@@ -62,7 +62,11 @@ int fdtmap_add_entries_from_buf(const void *blob,
 /*
  * fdtmap_find - find FDTMAP at offset in an image and copy it to buffer
  *
- * @flash:	flash structure containing read function
+ * @handle:	opaque pointer to be used by the callback function
+ * @read_chunk: callback function which given 'handle', 'offset' and 'size'
+ *              will read into the provided memory space 'dest' 'size' bytes
+ *              starting from 'offset'. Returns zero on success and non-zero
+ *              on failure.
  * @hdr:	pointer to fmap header
  * @offset:	offset of fmap header in image
  * @buf:	unallocated buffer to store fmap struct
@@ -71,7 +75,12 @@ int fdtmap_add_entries_from_buf(const void *blob,
  *
  * returns 1 if found, 0 if not found, <0 to indicate failure
  */
-int fdtmap_find(struct flashctx *flash, struct fdtmap_hdr *hdr,
+int fdtmap_find(void *source_handle,
+		int (*read_chunk)(void *handle,
+				  void *dest,
+				  size_t offset,
+				  size_t size),
+		struct fdtmap_hdr *hdr,
 		loff_t offset, uint8_t **buf);
 
 #endif

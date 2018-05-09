@@ -269,19 +269,19 @@ static int get_crossystem_fmap_base(struct search_info *search, off_t *offset)
 	 */
 
 	fmap_base = (unsigned long)strtoll(buf, (char **) NULL, 0);
-	msg_gdbg("%s: fmap_base: %#lx, ROM size: 0x%x\n",
-		__func__, fmap_base, search->flash->chip->total_size * 1024);
+	msg_gdbg("%s: fmap_base: %#lx, ROM size: 0x%zx\n",
+		__func__, fmap_base, search->total_size);
 
 	if (fmap_base & (1 << 31)) {
 		from_top = 0xFFFFFFFF - fmap_base + 1;
 		msg_gdbg("%s: fmap is located in shadow ROM, from_top: %#lx\n",
 				__func__, from_top);
-		if (from_top > search->flash->chip->total_size * 1024)
+		if (from_top > search->total_size)
 			return -1;
-		*offset = (search->flash->chip->total_size * 1024) - from_top;
+		*offset = search->total_size - from_top;
 	} else {
 		msg_gdbg("%s: fmap is located in physical ROM\n", __func__);
-		if (fmap_base > search->flash->chip->total_size * 1024)
+		if (fmap_base > search->total_size)
 			return -1;
 		*offset = fmap_base;
 	}
@@ -290,8 +290,7 @@ static int get_crossystem_fmap_base(struct search_info *search, off_t *offset)
 	return 0;
 }
 
-static int add_fmap_entries_from_buf(struct flashctx *flash,
-				     const uint8_t *buf)
+static int add_fmap_entries_from_buf(const uint8_t *buf)
 {
 	struct fmap *fmap;
 	int i;
@@ -344,7 +343,12 @@ enum found_t {
 };
 
 /* returns the number of entries added, or <0 to indicate error */
-int add_fmap_entries(struct flashctx *flash)
+static int add_fmap_entries(void *source_handle,
+			    size_t image_size,
+			    int (*read_chunk)(void *handle,
+					      void *dest,
+					      size_t offset,
+					      size_t size))
 {
 	static enum found_t found = FOUND_NONE;
 	int ret = -1;
@@ -361,24 +365,27 @@ int add_fmap_entries(struct flashctx *flash)
 		return 0;
 	}
 
-	search_init(&search, flash, sizeof(hdr));
+	search_init(&search, source_handle,
+		    image_size, sizeof(hdr), read_chunk);
 	search.handler = get_crossystem_fmap_base;
 	while (found == FOUND_NONE && !search_find_next(&search, &offset)) {
 		if (search.image)
 			memcpy(&hdr, search.image + offset, sizeof(hdr));
-		else if (read_flash(flash, (uint8_t *)&hdr, offset,
-				sizeof(hdr))) {
+		else if (read_chunk(source_handle, (uint8_t *)&hdr, offset,
+				    sizeof(hdr))) {
 			msg_gdbg("[L%d] failed to read flash at offset %#jx\n",
 				__LINE__, (intmax_t)offset);
 			return -1;
 		}
-		ret = fmap_find(flash, &hdr.fmap, offset, &buf);
+		ret = fmap_find(source_handle, read_chunk,
+				&hdr.fmap, offset, &buf);
 		if (ret == 1) {
 			found = FOUND_FMAP;
 		}
 #ifdef CONFIG_FDTMAP
 		if (ret == 0) {
-			ret = fdtmap_find(flash, &hdr.fdtmap, offset, &buf);
+			ret = fdtmap_find(source_handle, read_chunk,
+					  &hdr.fdtmap, offset, &buf);
 			if (ret == 1)
 				found = FOUND_FDTMAP;
 		}
@@ -396,7 +403,7 @@ int add_fmap_entries(struct flashctx *flash)
 		break;
 #endif
 	case FOUND_FMAP:
-		romimages = add_fmap_entries_from_buf(flash, buf);
+		romimages = add_fmap_entries_from_buf(buf);
 		break;
 	default:
 		msg_gdbg("%s: no fmap present\n", __func__);
@@ -910,4 +917,65 @@ out_free:
 	else
 		msg_cdbg("done.");
 	return ret;
+}
+
+/*
+ * read_chunk() callback used when reading contents from a file.
+ */
+static int read_from_file(void *fhandle,
+			  void *dest,
+			  size_t offset,
+			  size_t size)
+{
+	FILE *handle = fhandle;
+
+	if (fseek(handle, offset, SEEK_SET)) {
+		msg_cerr("%s failed to seek to position %zd\n",
+			 __func__, offset);
+		return 1;
+	}
+
+	if (fread(dest, 1, size, handle) != size) {
+		msg_cerr("%s failed to read %zd bytes\n",
+			 __func__, offset);
+		return 1;
+	}
+
+	return 0;
+}
+
+/*
+ * read_chunk() callback used when reading contents from the flash device.
+ */
+static int read_from_flash(void *handle,
+			   void *dest,
+			   size_t offset,
+			   size_t size)
+{
+	struct flashctx *flash = handle;
+
+	return read_flash(flash, dest, offset, size);
+}
+
+int get_fmap_entries(const char *filename, struct flashctx *flash)
+{
+	int rv;
+	size_t image_size = flash->chip->total_size * 1024;
+
+	/* Let's try retrieving entries from file. */
+	if (filename) {
+		FILE *handle;
+
+		handle = fopen(filename, "r");
+		if (handle) {
+			rv = add_fmap_entries(handle,
+					      image_size, read_from_file);
+			fclose(handle);
+			if (rv > 0)
+				return rv;
+			msg_cerr("No fmap entries found in %s\n", filename);
+		}
+	}
+
+	return add_fmap_entries(flash, image_size, read_from_flash);
 }

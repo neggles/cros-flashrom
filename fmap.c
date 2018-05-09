@@ -43,7 +43,13 @@
 #include "fmap.h"
 #include "search.h"
 
-int fmap_find(struct flashctx *flash, struct fmap *fmap, loff_t offset,
+int fmap_find(void *source_handle,
+	      int (*read_chunk)(void *handle,
+				void *dest,
+				size_t offset,
+				size_t size),
+	      struct fmap *fmap,
+	      loff_t offset,
 	      uint8_t **buf)
 {
 	int fmap_size;
@@ -54,7 +60,7 @@ int fmap_find(struct flashctx *flash, struct fmap *fmap, loff_t offset,
 	fmap_size = sizeof(*fmap) + fmap->nareas * sizeof(struct fmap_area);
 	*buf = malloc(fmap_size);
 
-	if (read_flash(flash, *buf, offset, fmap_size)) {
+	if (read_chunk(source_handle, *buf, offset, fmap_size)) {
 		msg_gdbg("[L%d] failed to read %d bytes at offset 0x%lx\n",
 			 __LINE__, fmap_size, (unsigned long)offset);
 		return -1;
