@@ -873,7 +873,9 @@ TAROPTIONS = $(shell LC_ALL=C tar --version|grep -q GNU && echo "--owner=root --
 # This includes all frontends and libflashrom.
 # We don't use EXEC_SUFFIX here because we want to clean everything.
 clean:
-	rm -f $(PROGRAM) $(PROGRAM).exe libflashrom.a *.o *.d $(PROGRAM).8 $(PROGRAM).8.html $(BUILD_DETAILS_FILE)
+	rm -f $(PROGRAM) $(PROGRAM).exe flashrom-* \
+		libflashrom.a *.o *.d $(PROGRAM).8 $(PROGRAM).8.html \
+		tests/*.o tests/*.d $(BUILD_DETAILS_FILE)
 	@+$(MAKE) -C util/ich_descriptors_tool/ clean
 
 distclean: clean
@@ -1218,7 +1220,23 @@ djgpp-dos: clean
 libpayload: clean
 	make CC="CC=i386-elf-gcc lpgcc" AR=i386-elf-ar RANLIB=i386-elf-ranlib
 
-.PHONY: all install clean distclean compiler hwlibs features export tarball djgpp-dos featuresavailable libpayload
+tests/test%.o: CFLAGS += -I.
+
+test: flashrom-test$(EXEC_SUFFIX)
+	./flashrom-test$(EXEC_SUFFIX)
+
+TEST_OBJS =
+TEST_OBJS += action_descriptor.o
+TEST_OBJS += cli_output.o
+TEST_OBJS += tests/test.o
+TEST_OBJS += tests/test_action_descriptor.o
+
+flashrom-test$(EXEC_SUFFIX): $(TEST_OBJS)
+	$(CC) $(LDFLAGS) -DTEST_MODE -o $@ $^ $(LIBS) $(PCILIBS) \
+		$(FEATURE_LIBS)	$(USBLIBS) $(USB1LIBS)
+
+.PHONY: all clean compiler distclean djgpp-dos export features featuresavailable
+.PHONY: hwlibs install libpayload tarball test
 
 # Disable implicit suffixes and built-in rules (for performance and profit)
 .SUFFIXES:
