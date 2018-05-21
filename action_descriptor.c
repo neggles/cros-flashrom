@@ -520,7 +520,7 @@ struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 	size_t i;
 	size_t num_erasers;
 	int max_units;
-	size_t block_size;
+	size_t block_size = 0;
 	struct action_descriptor *descriptor;
 	size_t chip_size = flash->chip->total_size * 1024;
 

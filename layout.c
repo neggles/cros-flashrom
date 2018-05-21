@@ -42,6 +42,13 @@ static int romimages = 0;
 #define MAX_ROMLAYOUT	64
 
 /*
+ * This variable is set to the lowest erase granularity; it is used when
+ * deciding if the layout map needs to be adjusted such that erase boundaries
+ * match this granularity.
+ */
+static unsigned int required_erase_size;
+
+/*
  * include_args lists arguments specified at the command line with -i. They
  * must be processed at some point so that desired regions are marked as
  * "included" in the master rom_entries list.
@@ -419,6 +426,22 @@ int get_num_include_args(void) {
   return num_include_args;
 }
 
+size_t top_section_offset(void)
+{
+	size_t top = 0;
+	int i;
+
+	for (i = 0; i < romimages; i++) {
+
+		if (!rom_entries[i].included)
+			continue;
+
+		if (rom_entries[i].end > top)
+			top = rom_entries[i].end;
+	}
+
+	return top;
+}
 /* register an include argument (-i) for later processing */
 int register_include_arg(char *name)
 {
@@ -531,7 +554,7 @@ int process_include_args() {
 	return 0;
 }
 
-romlayout_t *get_next_included_romentry(unsigned int start)
+static romlayout_t *get_next_included_romentry(unsigned int start)
 {
 	int i;
 	unsigned int best_start = UINT_MAX;
@@ -638,7 +661,8 @@ static int read_content_from_file(romlayout_t *entry, uint8_t *newcontents) {
 	return 0;
 }
 
-int handle_romentries(struct flashctx *flash, uint8_t *oldcontents, uint8_t *newcontents)
+int handle_romentries(struct flashctx *flash, uint8_t *oldcontents,
+		      uint8_t *newcontents, int erase_mode)
 {
 	unsigned int start = 0;
 	romlayout_t *entry;
@@ -667,7 +691,9 @@ int handle_romentries(struct flashctx *flash, uint8_t *oldcontents, uint8_t *new
 			msg_gerr("Layout entry \"%s\" begins beyond ROM size.\n",
 						entry->name);
 			return 1;
-		} else if (entry->end > (size - 1)) {
+		}
+
+		if (entry->end > (size - 1)) {
 			msg_gerr("Layout entry \"%s\" ends beyond ROM size.\n",
 						entry->name);
 			return 1;
@@ -683,8 +709,12 @@ int handle_romentries(struct flashctx *flash, uint8_t *oldcontents, uint8_t *new
 		if (entry->start > start)
 			memcpy(newcontents + start, oldcontents + start,
 			       entry->start - start);
-		/* For included region, copy from file if specified. */
-		if (read_content_from_file(entry, newcontents) < 0) return -1;
+
+		if (!erase_mode) {
+			/* For included region, copy from file if specified. */
+			if (read_content_from_file(entry, newcontents) < 0)
+				return -1;
+		}
 
 		/* Skip to location after current romentry. */
 		start = entry->end + 1;
@@ -717,7 +747,7 @@ static int write_content_to_file(romlayout_t *entry, uint8_t *buf) {
 	return 0;
 }
 
-/* sets required_erase_size (global variable), returns 0 if successful */
+/* sets required_erase_size, returns 0 if successful */
 static int set_required_erase_size(struct flashctx *flash)
 {
 	int i, erase_size_found = 0;

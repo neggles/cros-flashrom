@@ -35,6 +35,8 @@
 #include <sys/utsname.h>
 #endif
 #include <unistd.h>
+
+#include "action_descriptor.h"
 #include "flash.h"
 #include "flashchips.h"
 #include "layout.h"
@@ -44,8 +46,6 @@ const char flashrom_version[] = FLASHROM_VERSION;
 char *chip_to_probe = NULL;
 int verbose_screen = MSG_ERROR;
 int verbose_logfile = MSG_DEBUG2;
-
-unsigned int required_erase_size = 0;	/* see comment in flash.h */
 
 /* Set if any erase/write operation is to be done. This will be used to
  * decide if final verification is needed. */
@@ -686,7 +686,7 @@ int verify_range(struct flashctx *flash, uint8_t *cmpbuf, unsigned int start, un
 	}
 	if (!message)
 		message = "VERIFY";
-
+	msg_gdbg("%#06x..%#06x ", start, start + len -1);
 	if (programmer_table[programmer].paranoid) {
 		unsigned int i, chunksize;
 
@@ -1174,15 +1174,28 @@ notfound:
 	return flash - flash_list;
 }
 
-int verify_flash(struct flashctx *flash, uint8_t *buf, int verify_it)
+static int verify_flash(struct flashctx *flash,
+			struct action_descriptor *descriptor,
+			int verify_it)
 {
 	int ret;
 	unsigned int total_size = flash->chip->total_size * 1024;
+	uint8_t *buf = descriptor->newcontents;
 
 	msg_cinfo("Verifying flash... ");
 
-	if (specified_partition() && verify_it == VERIFY_PARTIAL) {
-		ret = handle_partial_verify(flash, buf, verify_range);
+	if (verify_it == VERIFY_PARTIAL) {
+		struct processing_unit *pu = descriptor->processing_units;
+
+		/* Verify only areas which were written. */
+		while (pu->num_blocks) {
+			ret = verify_range(flash, buf + pu->offset, pu->offset,
+					   pu->block_size * pu->num_blocks,
+					   NULL);
+			if (ret)
+				break;
+			pu++;
+		}
 	} else {
 		ret = verify_range(flash, buf, 0, total_size, NULL);
 	}
@@ -1290,6 +1303,8 @@ int read_flash(struct flashctx *flash, uint8_t *buf,
 
 	if (!flash || !flash->chip->read)
 		return -1;
+
+	msg_cdbg("%#06x-%#06x:R ", start, start + len - 1);
 
 	ret = flash->chip->read(flash, buf, start, len);
 	if (ret) {
@@ -1469,11 +1484,16 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	int block_was_erased = 0;
 	enum write_granularity gran = write_gran_256bytes; /* FIXME */
 
-	/* curcontents and newcontents are opaque to walk_eraseregions, and
-	 * need to be adjusted here to keep the impression of proper abstraction
+	/*
+	 * curcontents and newcontents are opaque to walk_eraseregions, and
+	 * need to be adjusted here to keep the impression of proper
+	 * abstraction
 	 */
+
 	curcontents += start;
+
 	newcontents += start;
+
 	msg_cdbg(":");
 	/* FIXME: Assume 256 byte granularity for now to play it safe. */
 	if (need_erase(flash, curcontents, newcontents, len, gran)) {
@@ -1537,7 +1557,22 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	return ret;
 }
 
-static int walk_eraseregions(struct flashctx *flash, int erasefunction,
+/*
+ * Function to process processing units accumulated in the action descriptor.
+ *
+ * @flash         pointer to the flash context to operate on
+ * @do_something  helper function which can erase and program a section of the
+ *                flash chip. It receives the flash context, offset and length
+ *                of the area to erase/program, before and after contents (to
+ *                decide what exactly needs to be erased and or programmed)
+ *                and a pointer to the erase function which can operate on the
+ *                proper granularity.
+ * @descriptor    action descriptor including pointers to before and after
+ *		  contents and an array of processing actions to take.
+ *
+ * Returns zero on success or an error code.
+ */
+static int walk_eraseregions(struct flashctx *flash,
 			     int (*do_something) (struct flashctx *flash,
 						  unsigned int addr,
 						  unsigned int len,
@@ -1547,42 +1582,38 @@ static int walk_eraseregions(struct flashctx *flash, int erasefunction,
 							struct flashctx *flash,
 							unsigned int addr,
 							unsigned int len)),
-			     void *param1, void *param2)
+			     struct action_descriptor *descriptor)
 {
-	int i, j, rc = -1;
-	unsigned int start = 0;
-	unsigned int len;
-	struct block_eraser eraser = flash->chip->block_erasers[erasefunction];
+	struct processing_unit *pu;
+	int rc = 0;
+	static int print_comma;
 
-	for (i = 0; i < NUM_ERASEREGIONS; i++) {
-		/* count==0 and size==0 for all automatically initialized array
-		 * members so the loop below won't be executed for them.
-		 */
-		len = eraser.eraseblocks[i].size;
-		if (!len)
-			continue;
+	for (pu = descriptor->processing_units; pu->num_blocks; pu++) {
+		unsigned base = pu->offset;
+		unsigned top = pu->offset + pu->block_size * pu->num_blocks;
 
-		if (required_erase_size && (len != required_erase_size)) {
-			msg_cdbg("%u does not meet erase alignment", len);
-			rc = -1;
-			break;
-		}
+		while (base < top) {
 
-		for (j = 0; j < eraser.eraseblocks[i].count; j++) {
-			/* Print this for every block except the first one. */
-			if (i || j)
+			if (print_comma)
 				msg_cdbg(", ");
-			msg_cdbg("0x%06x-0x%06x", start,
-				     start + len - 1);
-			rc = do_something(flash, start, len, param1, param2,
-			                  eraser.block_erase);
+			else
+				print_comma = 1;
+
+			msg_cdbg("0x%06x-0x%06zx", base, base + pu->block_size - 1);
+
+			rc = do_something(flash, base,
+					  pu->block_size,
+					  descriptor->oldcontents,
+					  descriptor->newcontents,
+					  flash->chip->block_erasers[pu->block_eraser_index].block_erase);
+
 			if (rc) {
 				if (ignore_error(rc))
 					rc = 0;
 				else
 					return rc;
 			}
-			start += len;
+			base += pu->block_size;
 		}
 	}
 	msg_cdbg("\n");
@@ -1613,61 +1644,14 @@ static int check_block_eraser(const struct flashctx *flash, int k, int log)
 	return 0;
 }
 
-int erase_and_write_flash(struct flashctx *flash, uint8_t *oldcontents,
-			  uint8_t *newcontents)
+int erase_and_write_flash(struct flashctx *flash,
+			  struct action_descriptor *descriptor)
 {
-	int k, ret = 1;
-	uint8_t *curcontents;
-	unsigned long size = flash->chip->total_size * 1024;
-	unsigned int usable_erasefunctions = count_usable_erasers(flash);
+	int ret = 1;
 
 	msg_cinfo("Erasing and writing flash chip... ");
-	curcontents = malloc(size);
-	if (!curcontents) {
-		msg_gerr("Out of memory!\n");
-		exit(1);
-	}
-	/* Copy oldcontents to curcontents to avoid clobbering oldcontents. */
-	memcpy(curcontents, oldcontents, size);
 
-	for (k = 0; k < NUM_ERASEFUNCTIONS; k++) {
-		if (k != 0)
-			msg_cdbg("Looking for another erase function.\n");
-		if (!usable_erasefunctions) {
-			msg_cdbg("No usable erase functions left.\n");
-			break;
-		}
-		msg_cdbg("Trying erase function %i... ", k);
-		if (check_block_eraser(flash, k, 1))
-			continue;
-		usable_erasefunctions--;
-		ret = walk_eraseregions(flash, k, &erase_and_write_block_helper,
-					curcontents, newcontents);
-		/* If everything is OK, don't try another erase function. */
-		if (!ret)
-			break;
-		/* Write/erase failed, so try to find out what the current chip
-		 * contents are. If no usable erase functions remain, we can
-		 * skip this: the next iteration will break immediately anyway.
-		 */
-		if (!usable_erasefunctions)
-			continue;
-		/* Reading the whole chip may take a while, inform the user even
-		 * in non-verbose mode.
-		 */
-		msg_cinfo("Reading current flash chip contents... ");
-		if (read_flash(flash, curcontents, 0, size)) {
-			/* Now we are truly screwed. Read failed as well. */
-			msg_cerr("Can't read anymore! Aborting.\n");
-			/* We have no idea about the flash chip contents, so
-			 * retrying with another erase function is pointless.
-			 */
-			break;
-		}
-		msg_cdbg("done. ");
-	}
-	/* Free the scratchpad. */
-	free(curcontents);
+	ret = walk_eraseregions(flash, &erase_and_write_block_helper, descriptor);
 
 	if (ret) {
 		msg_cerr("FAILED!\n");
@@ -1984,6 +1968,44 @@ int chip_safety_check(struct flashctx *flash, int force, int read_it, int write_
 	return 0;
 }
 
+/*
+ * Function to erase entire flash chip.
+ *
+ * @flashctx     pointer to the flash context to use
+ * @oldcontents  pointer to the buffer including current chip contents, to
+ *		 decide which areas do in fact need to be erased
+ * @size         the size of the flash chip, in bytes.
+ *
+ * Returns zero on success or an error code.
+ */
+static int erase_chip(struct flashctx *flash, void *oldcontents,
+		      void *newcontents, size_t size)
+{
+	/*
+	 * To make sure that the chip is fully erased, let's cheat and create
+	 * a descriptor where the new contents are all erased.
+	 */
+	struct action_descriptor *fake_descriptor;
+	int ret = 0;
+
+	fake_descriptor = prepare_action_descriptor(flash, oldcontents,
+						    newcontents, 1);
+	/* FIXME: Do we really want the scary warning if erase failed? After
+	 * all, after erase the chip is either blank or partially blank or it
+	 * has the old contents. A blank chip won't boot, so if the user
+	 * wanted erase and reboots afterwards, the user knows very well that
+	 * booting won't work.
+	 */
+	if (erase_and_write_flash(flash, fake_descriptor)) {
+		emergency_help_message();
+		ret = 1;
+	}
+
+	free(fake_descriptor);
+
+	return ret;
+}
+
 /* This function signature is horrible. We need to design a better interface,
  * but right now it allows us to split off the CLI code.
  * Besides that, the function itself is a textbook example of abysmal code flow.
@@ -1996,6 +2018,7 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	uint8_t *newcontents;
 	int ret = 0;
 	unsigned long size = flash->chip->total_size * 1024;
+	struct action_descriptor *descriptor = NULL;
 
 	if (chip_safety_check(flash, force, read_it, write_it, erase_it, verify_it)) {
 		msg_cerr("Aborting.\n");
@@ -2134,32 +2157,26 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 		memset(oldcontents, flash_erase_value(flash), size);
 	}
 
+
 	/*
 	 * Note: This must be done after reading the file specified for the
 	 * -w/-v argument, if any, so that files specified using -i end up
 	 * in the "newcontents" buffer before being written.
 	 * See http://crbug.com/263495.
 	 */
-	if (handle_romentries(flash, oldcontents, newcontents)) {
+	if (handle_romentries(flash, oldcontents, newcontents, erase_it)) {
 		ret = 1;
 		msg_cerr("Error handling ROM entries.\n");
 		goto out;
 	}
 
 	if (erase_it) {
-		/* FIXME: Do we really want the scary warning if erase failed?
-		 * After all, after erase the chip is either blank or partially
-		 * blank or it has the old contents. A blank chip won't boot,
-		 * so if the user wanted erase and reboots afterwards, the user
-		 * knows very well that booting won't work.
-		 */
-		if (erase_and_write_flash(flash, oldcontents, newcontents)) {
-			emergency_help_message();
-			ret = 1;
-		}
-		goto out;
+		erase_chip(flash, oldcontents, newcontents, size);
+		goto verify;
 	}
 
+	descriptor = prepare_action_descriptor(flash, oldcontents,
+					       newcontents, do_diff);
 	if (write_it) {
 		// parse the new fmap and disable soft WP if necessary
 		if ((ret = cros_ec_prepare(newcontents, size))) {
@@ -2167,7 +2184,7 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 			goto out;
 		}
 
-		if (erase_and_write_flash(flash, oldcontents, newcontents)) {
+		if (erase_and_write_flash(flash, descriptor)) {
 			msg_cerr("Uh oh. Erase/write failed. Checking if "
 				 "anything changed.\n");
 			if (!read_flash(flash, newcontents, 0, size)) {
@@ -2194,15 +2211,22 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 		} else if (ret > 0) {
 			// Need 2nd pass. Get the just written content.
 			msg_pdbg("CROS_EC needs 2nd pass.\n");
+
 			if (read_flash(flash, oldcontents, 0, size)) {
 				msg_cerr("Uh oh. Cannot get latest content.\n");
 				emergency_help_message();
 				ret = 1;
 				goto out;
 			}
+
+			/* Get a new descriptor. */
+			free(descriptor);
+			descriptor = prepare_action_descriptor(flash,
+							       oldcontents,
+							       newcontents,
+							       do_diff);
 			// write 2nd pass
-			if (erase_and_write_flash(flash, oldcontents,
-			                          newcontents)) {
+			if (erase_and_write_flash(flash, descriptor)) {
 				msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
 				emergency_help_message();
 				ret = 1;
@@ -2219,6 +2243,7 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 		}
 	}
 
+ verify:
 	if (verify_it) {
 		if ((write_it || erase_it) && !content_has_changed) {
 			msg_gdbg("Nothing was erased or written, skipping "
@@ -2228,7 +2253,7 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 			if (write_it && verify_it != VERIFY_PARTIAL)
 				programmer_delay(1000*1000);
 
-			ret = verify_flash(flash, newcontents, verify_it);
+			ret = verify_flash(flash, descriptor, verify_it);
 
 			/* If we tried to write, and verification now fails, we
 			 * might have an emergency situation.
@@ -2239,6 +2264,9 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	}
 
 out:
+	if (descriptor)
+		free(descriptor);
+
 	free(oldcontents);
 	free(newcontents);
 out_nofree:
