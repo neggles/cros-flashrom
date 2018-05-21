@@ -295,9 +295,40 @@ void print_buildinfo(void);
 void print_banner(void);
 void list_programmers_linebreak(int startcol, int cols, int paren);
 int selfcheck(void);
+
+/*
+ *
+ * The main processing function of flashrom utility; it is invoked once
+ * command line parameters are processed and verified, and the type of the
+ * flash chip the programmer operates on has been determined.
+ *
+ * @flash	  pointer to the flash context matching the chip detected
+ *		  during initialization.
+ * @force         when set proceed even if the chip is not known to work
+ * @filename      pointer to the name of the file to read from or write to
+ * @read_it       when true, flash contents are read into 'filename'
+ * @write_it      when true, flash is programmed with 'filename' contents
+ * @erase_it      when true, flash chip is erased
+ * @verify_it	  depending on the value verify the full chip, only changed
+ *		  areas, or none
+ * @extract_it    extract all known flash chip regions into separate files
+ * @diff_file	  when deciding what areas to program, use this file's
+ *                contents instead of reading the current chip contents
+ * @do_diff	  when true - compare result of the operation with either the
+ *		  original chip contents for 'diff_file' contents, is present.
+ *		  When false - do not diff, consider the chip erased before
+ *		  operation starts.
+ *
+ * Only one of 'read_it', 'write_it', and 'erase_it' is expected to be set,
+ * but this is not enforced.
+ *
+ * 'do_diff' must be set if 'diff_file' is set. If 'do_diff' is set, but
+ * 'diff_file' is not - comparison is done against the pre-operation chip
+ * contents.
+ */
 int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	 int write_it, int erase_it, int verify_it, int extract_it,
-	 const char *diff_file);
+	 const char *diff_file, int do_diff);
 int read_buf_from_file(unsigned char *buf, unsigned long size, const char *filename);
 int write_buf_to_file(unsigned char *buf, unsigned long size, const char *filename);
 

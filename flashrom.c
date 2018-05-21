@@ -1990,7 +1990,7 @@ int chip_safety_check(struct flashctx *flash, int force, int read_it, int write_
  */
 int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	 int write_it, int erase_it, int verify_it, int extract_it,
-	 const char *diff_file)
+	 const char *diff_file, int do_diff)
 {
 	uint8_t *oldcontents;
 	uint8_t *newcontents;
@@ -2090,36 +2090,49 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 #endif
 	}
 
-	/* Obtain a reference image so that we can check whether regions need
-	 * to be erased and to give better diagnostics in case write fails.
-	 * If --fast-verify is used then only the regions which are included
-	 * using -i will be read.
-	 */
-	if (diff_file) {
-		msg_cdbg("Reading old contents from file... ");
-		if (read_buf_from_file(oldcontents, size, diff_file)) {
-			ret = 1;
-			msg_cdbg("FAILED.\n");
-			goto out;
-		}
-	} else {
-		msg_cdbg("Reading old contents from flash chip... ");
-		if (verify_it == VERIFY_PARTIAL) {
-			if (handle_partial_read(flash, oldcontents,
-						read_flash, 0) < 0) {
+	if (do_diff) {
+		/*
+		 * Obtain a reference image so that we can check whether
+		 * regions need to be erased and to give better diagnostics in
+		 * case write fails. If --fast-verify is used then only the
+		 * regions which are included using -i will be read.
+		 */
+		if (diff_file) {
+			msg_cdbg("Reading old contents from file... ");
+			if (read_buf_from_file(oldcontents, size, diff_file)) {
 				ret = 1;
 				msg_cdbg("FAILED.\n");
 				goto out;
 			}
 		} else {
-			if (read_flash(flash, oldcontents, 0, size)) {
-				ret = 1;
-				msg_cdbg("FAILED.\n");
-				goto out;
+			msg_cdbg("Reading old contents from flash chip... ");
+			if (((verify_it == VERIFY_OFF) ||
+			     (verify_it == VERIFY_PARTIAL)) &&
+			    get_num_include_args()) {
+				/*
+				 * If no full verification is required and not
+				 * the entire chip is about to be programmed,
+				 * read only the areas which might change.
+				 */
+				if (handle_partial_read(flash, oldcontents,
+							read_flash, 0) < 0) {
+					ret = 1;
+					msg_cdbg("FAILED.\n");
+					goto out;
+				}
+			} else {
+				if (read_flash(flash, oldcontents, 0, size)) {
+					ret = 1;
+					msg_cdbg("FAILED.\n");
+					goto out;
+				}
 			}
 		}
+		msg_cdbg("done.\n");
+	} else if (!erase_it) {
+		msg_pinfo("No diff performed, considering the chip erased.\n");
+		memset(oldcontents, flash_erase_value(flash), size);
 	}
-	msg_cdbg("done.\n");
 
 	/*
 	 * Note: This must be done after reading the file specified for the

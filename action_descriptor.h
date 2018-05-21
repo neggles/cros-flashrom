@@ -38,7 +38,8 @@ struct flashctx;
  */
 struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 						    void *oldcontents,
-						    void *newcontents);
+						    void *newcontents,
+						    int do_diff);
 
 /*
  * A function to test action descriptor implementation, returns number of

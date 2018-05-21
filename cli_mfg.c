@@ -168,7 +168,9 @@ void cli_mfg_usage(const char *name)
 
 	msg_ginfo("Long-options:\n"
 	       "   --diff <file>                     diff from file instead of ROM\n"
-	       "   --fast-verify                     only verify -i part\n"
+	       "   --do-not-diff                     do not diff with chip"
+		  " contents (should be used with erased chips only)\n"
+	       "   --fast-verify                     only verify written part\n"
 	       "   --flash-name                      flash vendor and device name\n"
 	       "   --get-size                        get chip size (bytes)\n"
 	       "   --ignore-fmap                     ignore fmap structure\n"
@@ -222,6 +224,7 @@ enum LONGOPT_RETURN_VALUES {
 	LONGOPT_IGNORE_FMAP,
 	LONGOPT_FAST_VERIFY,
 	LONGOPT_IGNORE_LOCK,
+	LONGOPT_DO_NOT_DIFF,
 };
 
 int main(int argc, char *argv[])
@@ -240,7 +243,7 @@ int main(int argc, char *argv[])
 	int force = 0;
 	int read_it = 0, write_it = 0, erase_it = 0, verify_it = 0,
 		get_size = 0, dont_verify_it = 0, list_supported = 0,
-		extract_it = 0, flash_name = 0;
+		extract_it = 0, flash_name = 0, do_diff = 1;
 	int set_wp_range = 0, set_wp_region = 0, set_wp_enable = 0,
 	    set_wp_disable = 0, wp_status = 0, wp_list = 0;
 	int set_ignore_fmap = 0;
@@ -275,6 +278,7 @@ int main(int argc, char *argv[])
 		{"get-size", 		0, 0, LONGOPT_GET_SIZE},
 		{"flash-name", 		0, 0, LONGOPT_FLASH_NAME},
 		{"diff", 		1, 0, LONGOPT_DIFF},
+		{"do-not-diff",		0, 0, LONGOPT_DO_NOT_DIFF},
 		{"wp-status", 		0, 0, LONGOPT_WP_STATUS},
 		{"wp-range", 		0, 0, LONGOPT_WP_SET_RANGE},
 		{"wp-region",		1, 0, LONGOPT_WP_SET_REGION},
@@ -541,6 +545,9 @@ int main(int argc, char *argv[])
 		case LONGOPT_GET_SIZE:
 			get_size = 1;
 			break;
+		case LONGOPT_DO_NOT_DIFF:
+			do_diff = 0;
+			break;
 		case LONGOPT_WP_STATUS:
 			wp_status = 1;
 			break;
@@ -611,6 +618,12 @@ int main(int argc, char *argv[])
 		cli_mfg_abort_usage(argv[0]);
 	}
 
+
+	if (!do_diff && diff_file) {
+		msg_gerr("Both --diff and --do-not-diff set, "
+			 "what do you want to do?\n");
+		cli_mfg_abort_usage(argv[0]);
+	}
 
 #ifndef STANDALONE
 	if (logfile && check_filename(logfile, "log"))
@@ -1010,7 +1023,7 @@ int main(int argc, char *argv[])
 	if (read_it || write_it || erase_it || verify_it || extract_it) {
 		rc = doit(fill_flash, force, filename,
 		          read_it, write_it, erase_it, verify_it,
-		          extract_it, diff_file);
+		          extract_it, diff_file, do_diff);
 	}
 
 	msg_ginfo("%s\n", rc ? "FAILED" : "SUCCESS");
