@@ -65,4 +65,10 @@ int handle_partial_verify(
     /* RETURN: ==0 means all identical.
                !=0 means buf and flash are different. */
 
+/*
+ * In case layout is used, return the largest offset of the end of all
+ * included sections. If layout is not used, return zero.
+ */
+size_t top_section_offset(void);
+
 #endif
