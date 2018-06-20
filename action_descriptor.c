@@ -100,6 +100,22 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 	size_t j, k;
 	size_t chip_eraser;
 	size_t chip_region;
+	/*
+	 * In case chip description does not include any functions covering
+	 * the entire space (this could happen when the description comes from
+	 * the Chrome OS TP driver for instance), use the best effort.
+	 *
+	 * The structure below saves information about the eraser which covers
+	 * the most of the chip space, it is used if no valid functions were
+	 * found, which allows programming to succeed.
+	 *
+	 * The issue be further investigated under b/110474116.
+	 */
+	struct {
+		int max_total;
+		int alt_function;
+		int alt_region;
+	} fallback = {};
 
 	/* Iterate over all available erase functions/block sizes. */
 	for (j = k = 0; k < NUM_ERASEFUNCTIONS; k++) {
@@ -111,14 +127,26 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 			continue;
 
 		/*
-		 * Make sure there is a block size * count combination which
+		 * Make sure there is a (block size * count) combination which
 		 * would erase up to required offset into the chip.
+		 *
+		 * If this is not the case, but the current total size exceeds
+		 * the previously saved fallback total size, make the current
+		 * block the best available fallback case.
 		 */
 		for (n = 0; n < NUM_ERASEREGIONS; n++) {
 			const struct eraseblock *eb =
 				chip->block_erasers[k].eraseblocks + n;
-			if ((eb->size * eb->count) >= erase_size)
+			int total = eb->size * eb->count;
+
+			if (total >= erase_size)
 				break;
+
+			if (total > fallback.max_total) {
+				fallback.max_total = total;
+				fallback.alt_region = n;
+				fallback.alt_function = k;
+			}
 		}
 
 		if (n == NUM_ERASEREGIONS) {
@@ -163,13 +191,25 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 		j++;
         }
 
-	if (!j) {
+	if (j) {
+		msg_pdbg("%s: found %zd valid erasers\n", __func__, j);
+		return j;
+	}
+
+	if (!fallback.max_total) {
 		msg_cerr("No erasers found for this chip (%s:%s)!\n",
 			 chip->vendor, chip->name);
 		exit(1);
 	}
 
-	return j;
+	sorted_erasers[0].eraser_index = fallback.alt_function;
+	sorted_erasers[0].region_index = fallback.alt_region;
+	msg_pwarn("%s: using fallback eraser: "
+		  "region %d, function %d total %#x vs %#zx\n",
+		  __func__, fallback.alt_region, fallback.alt_function,
+		  fallback.max_total, erase_size);
+
+	return 1;
 }
 
 /*
