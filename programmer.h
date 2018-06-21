@@ -604,6 +604,12 @@ enum ich_chipset {
 };
 
 #if CONFIG_INTERNAL == 1
+
+/*
+ * This global variable is used to communicate the type of ICH found on the
+ * device. When running on non-intel platforms default value of
+ * CHIPSET_ICH_UNKNOWN is used.
+*/
 enum ich_chipset ich_generation;
 extern uint32_t ichspi_bbar;
 int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,

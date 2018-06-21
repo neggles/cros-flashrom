@@ -8,8 +8,10 @@
 #include <string.h>
 
 #include "action_descriptor.h"
+#include "chipdrivers.h"
 #include "flash.h"
 #include "layout.h"
+#include "programmer.h"
 
 /*
  * This module analyses the contents of 'before' and 'after' flash images and
@@ -83,6 +85,61 @@ static void dump_descriptor(struct action_descriptor *descriptor)
 }
 
 /*
+ * Do not allow use of unsupported erasers functions.
+ *
+ * On some Intel platforms the ICH SPI controller is restricting the set of
+ * SPI command codes the AP can issue, in particular limiting the set of erase
+ * functions to just two of them.
+ *
+ * This function creates a local copy of the flash chip descriptor found in
+ * the main table, filtering out unsupported erase function pointers, when
+ * necessary.
+ *
+ * base_chip: pointer to the master chip descriptor
+ * chip: pointer to the copy, potentially with just a subset of erasers
+ *            included.
+ */
+static void fix_erasers_if_needed(struct flashchip *chip,
+				  const struct flashchip *base_chip)
+{
+	int i;
+	const void *allowed_erasers [] = {
+		spi_block_erase_20,
+		spi_block_erase_d8
+	};
+
+	/* Need to copy no matter what. */
+	*chip = *base_chip;
+
+	switch (ich_generation) {
+	case CHIPSET_BAYTRAIL:
+		break;
+	default:
+		msg_pdbg("%s: kept all erasers\n",  __func__);
+		return;
+	}
+
+	for (i = 0; i < NUM_ERASEFUNCTIONS; i++) {
+		uint32_t j;
+
+		/* Assume it is not allowed. */
+		chip->block_erasers[i].block_erase = NULL;
+
+		for (j = 0; j < ARRAY_SIZE(allowed_erasers); j++) {
+			if (base_chip->block_erasers[i].block_erase ==
+			    allowed_erasers[j]) {
+				msg_pdbg("%s: kept eraser at %d\n",
+					 __func__, i);
+
+				chip->block_erasers[i].block_erase =
+					base_chip->block_erasers[i].block_erase;
+				break;
+			}
+		}
+	}
+}
+
+/*
  * Prepare a list of erasers available on this chip, sorted by the block size,
  * from lower to higher.
  *
@@ -93,13 +150,14 @@ static void dump_descriptor(struct action_descriptor *descriptor)
  *
  * Returns number of elements put into the 'sorted_erasers' array.
  */
-static size_t fill_sorted_erasers(const struct flashchip *chip,
+static size_t fill_sorted_erasers(const struct flashchip *ch,
 				  size_t erase_size,
 				  struct eraser *sorted_erasers)
 {
 	size_t j, k;
 	size_t chip_eraser;
 	size_t chip_region;
+	struct flashchip chip; /* Local copy, potentially altered. */
 	/*
 	 * In case chip description does not include any functions covering
 	 * the entire space (this could happen when the description comes from
@@ -117,13 +175,15 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 		int alt_region;
 	} fallback = {};
 
+	fix_erasers_if_needed(&chip, ch);
+
 	/* Iterate over all available erase functions/block sizes. */
 	for (j = k = 0; k < NUM_ERASEFUNCTIONS; k++) {
 		size_t new_block_size;
 		int m, n;
 
 		/* Make sure there is a function in is slot */
-		if (!chip->block_erasers[k].block_erase)
+		if (!chip.block_erasers[k].block_erase)
 			continue;
 
 		/*
@@ -136,7 +196,7 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 		 */
 		for (n = 0; n < NUM_ERASEREGIONS; n++) {
 			const struct eraseblock *eb =
-				chip->block_erasers[k].eraseblocks + n;
+				chip.block_erasers[k].eraseblocks + n;
 			int total = eb->size * eb->count;
 
 			if (total >= erase_size)
@@ -157,7 +217,7 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 			continue;
 		}
 
-		new_block_size = chip->block_erasers[k].eraseblocks[n].size;
+		new_block_size = chip.block_erasers[k].eraseblocks[n].size;
 
 		/*
 		 * Place this block in the sorted position in the
@@ -169,7 +229,7 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 			chip_eraser = sorted_erasers[m].eraser_index;
 			chip_region = sorted_erasers[m].region_index;
 
-			old_block_size = chip->block_erasers
+			old_block_size = chip.block_erasers
 				[chip_eraser].eraseblocks[chip_region].size;
 
 			if (old_block_size < new_block_size)
@@ -198,7 +258,7 @@ static size_t fill_sorted_erasers(const struct flashchip *chip,
 
 	if (!fallback.max_total) {
 		msg_cerr("No erasers found for this chip (%s:%s)!\n",
-			 chip->vendor, chip->name);
+			 chip.vendor, chip.name);
 		exit(1);
 	}
 
