@@ -1926,13 +1926,18 @@ int get_target_bus_from_chipset(enum chipbustype *bus)
 				   enable_flash_baytrail) {
 				/* Baytrail has 2 bit BBS at different offset */
 				is_new_ich = 3;
-			} else if ((chipset_enables[i].doit ==
-				   enable_flash_sunrisepoint) ||
-				   (chipset_enables[i].doit ==
-				    enable_flash_apl)) {
+			} else if (chipset_enables[i].doit ==
+				   enable_flash_sunrisepoint) {
 				/* Sunrise point has 1 bit BBS
 				 * in GCS register */
 				is_new_ich = 4;
+			} else if (chipset_enables[i].doit ==
+				   enable_flash_apl) {
+				/* APL/GLK has 1 bit BBS in GCS register and
+				 * needs to perform mmio read/write instead of
+				 * pci read/write ops.
+				 */
+				is_new_ich = 5;
 			}
 			break;
 		}
@@ -1941,6 +1946,7 @@ int get_target_bus_from_chipset(enum chipbustype *bus)
 
 	switch (is_new_ich) {
 	case 4:
+	case 5:
 		break;
 	default:
 		/* Get physical address of Root Complex Register Block */
@@ -1953,6 +1959,23 @@ int get_target_bus_from_chipset(enum chipbustype *bus)
 	}
 
 	switch (is_new_ich) {
+	case 5:
+		/* APL/GLK BBS (Boot Bios Straps) field of GCS register.
+		 *   0b: SPI
+		 *   1b: LPC
+		 */
+		gcs = mmio_readl((void *)dev + 0xdc);
+		switch ((gcs & 0x40) >> 6) {
+		case 0x0:
+			/* Return BUS_PROG as HWSEQ is used */
+			*bus = BUS_PROG;
+			break;
+		case 0x1:
+			*bus = BUS_LPC;
+			break;
+		}
+		ret = 0;
+		break;
 	case 4:
 		/* Sunrise Point BBS (Boot BIOS Straps) field of GCS register.
 		 *   0b: SPI
