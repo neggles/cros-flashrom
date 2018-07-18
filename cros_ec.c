@@ -442,16 +442,18 @@ int cros_ec_prepare(uint8_t *image, int size) {
 
 	// Parse the fmap in the image file and cache the firmware ranges.
 	fmap = fmap_find_in_memory(image, size);
-	if (!fmap) return 0;
-
-	// Lookup RO/A/B sections in FMAP.
-	for (i = 0; i < fmap->nareas; i++) {
-		struct fmap_area *fa = &fmap->areas[i];
-		for (j = EC_IMAGE_RO; j < ARRAY_SIZE(sections); j++) {
-			if (!strcmp(sections[j], (const char *)fa->name)) {
-				msg_pdbg("Found '%s' in image.\n", fa->name);
-				memcpy(&fwcopy[j], fa, sizeof(*fa));
-				fwcopy[j].flags = 1;  // mark as new
+	if (fmap) {
+		// Lookup RO/A/B sections in FMAP.
+		for (i = 0; i < fmap->nareas; i++) {
+			struct fmap_area *fa = &fmap->areas[i];
+			for (j = EC_IMAGE_RO; j < ARRAY_SIZE(sections); j++) {
+				if (!strcmp(sections[j],
+						(const char *)fa->name)) {
+					msg_pdbg("Found '%s' in image.\n",
+						fa->name);
+					memcpy(&fwcopy[j], fa, sizeof(*fa));
+					fwcopy[j].flags = 1;  // mark as new
+				}
 			}
 		}
 	}
