@@ -981,7 +981,7 @@ static int w25_range_table(const struct flashctx *flash,
 			*num_entries = ARRAY_SIZE(gd25q64_ranges);
 			break;
 		case GIGADEVICE_GD25Q128:
-		case GIGADEVICE_GD25LQ128C:
+		case GIGADEVICE_GD25LQ128CD:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
 				*w25q_ranges = w25rq128_cmp1_ranges;
@@ -1911,7 +1911,7 @@ static int generic_range_table(const struct flashctx *flash,
 			break;
 		}
 		case GIGADEVICE_GD25Q128:
-		case GIGADEVICE_GD25LQ128C: {
+		case GIGADEVICE_GD25LQ128CD: {
 			uint8_t sr1 = w25q_read_status_register_2(flash);
 			*wp = &gd25q128_wp;
 
