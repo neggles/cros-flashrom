@@ -91,7 +91,7 @@ static struct spi_master spi_master_yangtze = {
 	.max_data_write = FIFO_SIZE_YANGTZE - 3,
 	.command = spi100_spi_send_command,
 	.multicommand = default_spi_send_multicommand,
-	.read = default_spi_read,
+	.read = read_memmapped,
 	.write_256 = default_spi_write_256,
 };
 
