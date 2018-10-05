@@ -149,20 +149,17 @@ static int send_command(const struct flashctx *flash,
 /*
  * Unfortunately there doesn't seem to be a way to specify the maximum number
  * of bytes that your SPI device can read/write, these values are the maximum
- * data chunk size that flashrom will package up with an additional four bytes
+ * data chunk size that flashrom will package up with an additional five bytes
  * of command for the flash device, resulting in a 62 byte packet, that we then
  * add two bytes to in either direction, making our way up to the 64 byte
  * maximum USB packet size for the device.
  *
  * The largest command that flashrom generates is the byte program command, so
- * we use that command header maximum size here.  The definition of
- * JEDEC_BYTE_PROGRAM_OUTSIZE includes enough space for a single byte of data
- * to write, so we add one byte of space back.
+ * we use that command header maximum size here.
  */
 #define MAX_DATA_SIZE	(MAX_PACKET_SIZE -			\
 			 PACKET_HEADER_SIZE -			\
-			 JEDEC_BYTE_PROGRAM_OUTSIZE +		\
-			 1)
+			 JEDEC_BYTE_PROGRAM_OUTSIZE)
 
 static const struct spi_master spi_master_raiden_debug = {
 	.type		= SPI_CONTROLLER_RAIDEN_DEBUG,
