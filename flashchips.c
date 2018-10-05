@@ -9588,7 +9588,7 @@ const struct flashchip flashchips[] = {
 		/* supports SFDP */
 		/* OTP: 1024B total, 256B reserved; read 0x48; write 0x42, erase 0x44, read ID 0x4B */
 		/* FOUR_BYTE_ADDR: supports 4-bytes addressing mode */
-		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP | FEATURE_4BA_SUPPORT,
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ | FEATURE_OTP | FEATURE_4BA_SUPPORT,
 		.four_bytes_addr_funcs =
 		{
 			.set_4ba = spi_enter_4ba_b7_we, /* enter 4-bytes addressing mode by CMD B7 + WREN */
@@ -9596,7 +9596,7 @@ const struct flashchip flashchips[] = {
 			.program_byte = spi_byte_program_4ba, /* write from 4-bytes addressing mode */
 			.program_nbyte = spi_nbyte_program_4ba /* write from 4-bytes addressing mode */
 		},
-		.tested		= TEST_OK_PREW,
+		.tested		= TEST_OK_PREWU,
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.block_erasers	=
@@ -10022,7 +10022,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= WINBOND_NEX_W25Q256JV,
 		.total_size	= 32768,
 		.page_size	= 256,
-		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP | FEATURE_4BA_SUPPORT,
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ | FEATURE_OTP | FEATURE_4BA_SUPPORT,
 		.four_bytes_addr_funcs =
 		{
 			.set_4ba = spi_enter_4ba_b7_we, /* enter 4-bytes addressing mode by CMD B7 + WREN */
