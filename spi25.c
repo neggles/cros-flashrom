@@ -1057,7 +1057,13 @@ int spi_read_unbound(struct flashctx *flash, uint8_t *buf, unsigned int start, u
 		int chunk_status = 0;
 		unsigned int toread = min(chunksize, start + len - i);
 
-		chunk_status = spi_nbyte_read(flash, i, buf + (i - start), toread);
+		if (flash->chip->feature_bits & FEATURE_4BA_SUPPORT) {
+			chunk_status = flash->chip->four_bytes_addr_funcs.read_nbyte(
+				flash, i, buf + (i - start), toread);
+		} else {
+			chunk_status = spi_nbyte_read(flash, i, buf + (i - start), toread);
+		}
+
 		if (chunk_status) {
 			if (ignore_error(chunk_status)) {
 				/* fill this chunk with 0xff bytes and
