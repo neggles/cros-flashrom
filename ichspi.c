@@ -1040,11 +1040,17 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 }
 
 #define DEFAULT_NUM_FD_REGIONS	5
+
+/*
+ * APL/GLK have the Device Expansion region as well. Hence, the number of
+ * regions is 6.
+ */
+#define APL_GLK_NUM_FD_REGIONS	6
 static int num_fd_regions;
 
 const char *const region_names[] = {
 	"Flash Descriptor", "BIOS", "Management Engine",
-	"Gigabit Ethernet", "Platform Data"
+	"Gigabit Ethernet", "Platform Data", "Device Expansion",
 };
 
 enum fd_access_level {
@@ -1082,6 +1088,7 @@ struct fd_region {
 	{ .name = "Management Engine" },
 	{ .name = "Gigabit Ethernet" },
 	{ .name = "Platform Data" },
+	{ .name = "Device Expansion" },
 };
 
 static int check_fd_permissions_hwseq(int op_type, uint32_t addr, int count)
@@ -2254,7 +2261,10 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 			 "Range (PR) restrictions still apply.\n");
 
 		if (desc_valid) {
-			num_fd_regions = DEFAULT_NUM_FD_REGIONS;
+			if (ich_generation == CHIPSET_APL)
+				num_fd_regions = APL_GLK_NUM_FD_REGIONS;
+			else
+				num_fd_regions = DEFAULT_NUM_FD_REGIONS;
 		}
 		tmp = mmio_readl(ich_spibar + PCH100_REG_FADDR);
 		msg_pdbg("0x08: 0x%08x (FADDR)\n", tmp);
