@@ -1,7 +1,7 @@
 /*
  * This file is part of the flashrom project.
  *
- * Copyright (C) 2007, 2008, 2009 Carl-Daniel Hailfinger
+ * Copyright (C) 2007, 2008, 2009, 2010, 2011 Carl-Daniel Hailfinger
  * Copyright (C) 2008 coresystems GmbH
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,42 +27,30 @@
 #include "programmer.h"
 #include "spi.h"
 
-const struct spi_master spi_master_none = {
-	.type = SPI_CONTROLLER_NONE,
-	.max_data_read = MAX_DATA_UNSPECIFIED,
-	.max_data_write = MAX_DATA_UNSPECIFIED,
-	.command = NULL,
-	.multicommand = NULL,
-	.read = NULL,
-	.write_256 = NULL,
-};
-
-const struct spi_master *spi_master = &spi_master_none;
-
 int spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
 		const unsigned char *writearr, unsigned char *readarr)
 {
-	if (!spi_master->command) {
+	if (!flash->mst->spi.command) {
 		msg_pdbg("%s called, but SPI is unsupported on this "
 			 "hardware. Please report a bug at "
 			 "flashrom@flashrom.org\n", __func__);
 		return 1;
 	}
 
-	return spi_master->command(flash, writecnt, readcnt,
+	return flash->mst->spi.command(flash, writecnt, readcnt,
 						      writearr, readarr);
 }
 
 int spi_send_multicommand(const struct flashctx *flash, struct spi_command *cmds)
 {
-	if (!spi_master->multicommand) {
+	if (!flash->mst->spi.multicommand) {
 		msg_pdbg("%s called, but SPI is unsupported on this "
 			 "hardware. Please report a bug at "
 			 "flashrom@flashrom.org\n", __func__);
 		return 1;
 	}
 
-	return spi_master->multicommand(flash, cmds);
+	return flash->mst->spi.multicommand(flash, cmds);
 }
 
 int default_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
@@ -96,7 +84,7 @@ int default_spi_send_multicommand(const struct flashctx *flash, struct spi_comma
 
 int default_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len)
 {
-	unsigned int max_data = spi_master->max_data_read;
+	unsigned int max_data = flash->mst->spi.max_data_read;
 	int rc;
 	if (max_data == MAX_DATA_UNSPECIFIED) {
 		msg_perr("%s called, but SPI read chunk size not defined "
@@ -116,7 +104,7 @@ int default_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, u
 
 int default_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
 {
-	unsigned int max_data = spi_master->max_data_write;
+	unsigned int max_data = flash->mst->spi.max_data_write;
 	int rc;
 	if (max_data == MAX_DATA_UNSPECIFIED) {
 		msg_perr("%s called, but SPI write chunk size not defined "
@@ -134,7 +122,7 @@ int default_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsigned i
 int spi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len)
 {
 	unsigned int addrbase = 0;
-	if (!spi_master->read) {
+	if (!flash->mst->spi.read) {
 		msg_perr("%s called, but SPI read is unsupported on this "
 			 "hardware. Please report a bug at "
 			 "flashrom@flashrom.org\n", __func__);
@@ -163,7 +151,7 @@ int spi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsi
 			 "access window.\n");
 		msg_perr("Read will probably return garbage.\n");
 	}
-	return spi_master->read(flash, buf, addrbase + start, len);
+	return flash->mst->spi.read(flash, buf, addrbase + start, len);
 }
 
 /*
@@ -175,14 +163,14 @@ int spi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsi
 /* real chunksize is up to 256, logical chunksize is 256 */
 int spi_chip_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
 {
-	if (!spi_master->write_256) {
+	if (!flash->mst->spi.write_256) {
 		msg_perr("%s called, but SPI page write is unsupported on this "
 			 "hardware. Please report a bug at "
 			 "flashrom@flashrom.org\n", __func__);
 		return 1;
 	}
 
-	return spi_master->write_256(flash, buf, start, len);
+	return flash->mst->spi.write_256(flash, buf, start, len);
 }
 
 /*
@@ -192,7 +180,7 @@ int spi_chip_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int 
  */
 uint32_t spi_get_valid_read_addr(struct flashctx *flash)
 {
-	switch (spi_master->type) {
+	switch (flash->mst->spi.type) {
 #if CONFIG_INTERNAL == 1
 #if defined(__i386__) || defined(__x86_64__)
 	case SPI_CONTROLLER_ICH7:
@@ -205,8 +193,21 @@ uint32_t spi_get_valid_read_addr(struct flashctx *flash)
 	}
 }
 
-void register_spi_master(const struct spi_master *pgm)
+int register_spi_master(const struct spi_master *mst)
 {
-	spi_master = pgm;
-	buses_supported |= BUS_SPI;
+	struct registered_master rmst;
+
+	if (!mst->write_256 || !mst->read || !mst->command ||
+	    !mst->multicommand ||
+	    ((mst->command == default_spi_send_command) &&
+	     (mst->multicommand == default_spi_send_multicommand))) {
+		msg_perr("%s called with incomplete master definition. "
+			 "Please report a bug at flashrom@flashrom.org\n", __func__);
+		return ERROR_FLASHROM_BUG;
+	}
+
+	rmst.buses_supported = BUS_SPI;
+	rmst.spi = *mst;
+
+	return register_master(&rmst);
 }
