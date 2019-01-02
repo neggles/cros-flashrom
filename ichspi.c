@@ -2188,7 +2188,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 	uint32_t tmp;
 	char *arg;
 	int desc_valid = 0;
-	struct ich_descriptors desc = {{ 0 }};
+	struct ich_descriptors desc;
 	enum ich_spi_mode {
 		ich_auto,
 		ich_hwseq,
@@ -2199,6 +2199,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 	msg_pdbg("ich_ generation %d\n", ich_generation);
 
 	ich_spibar = spibar;
+	memset(&desc, 0x00, sizeof(struct ich_descriptors));
 
 	switch (ich_generation) {
 	case CHIPSET_ICH7:
