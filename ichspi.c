@@ -1046,11 +1046,21 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
  * regions is 6.
  */
 #define APL_GLK_NUM_FD_REGIONS	6
+
+/*
+ * Sunrisepoint have reserved regions and a region for Embedded Controller.
+ * Hence, the number of regions is 9.
+ */
+#define SUNRISEPOINT_NUM_FD_REGIONS	9
+
+#define EMBEDDED_CONTROLLER_REGION	8
+
 static int num_fd_regions;
 
 const char *const region_names[] = {
 	"Flash Descriptor", "BIOS", "Management Engine",
 	"Gigabit Ethernet", "Platform Data", "Device Expansion",
+	"Reserved 1", "Reserved 2", "Embedded Controller",
 };
 
 enum fd_access_level {
@@ -1089,6 +1099,9 @@ struct fd_region {
 	{ .name = "Gigabit Ethernet" },
 	{ .name = "Platform Data" },
 	{ .name = "Device Expansion" },
+	{ .name = "Reserved 1" },
+	{ .name = "Reserved 2" },
+	{ .name = "Embedded Controller" },
 };
 
 static int check_fd_permissions_hwseq(int op_type, uint32_t addr, int count)
@@ -2013,6 +2026,14 @@ static void do_ich9_spi_frap(uint32_t frap, int i)
 
 	fd_regions[i].base  = ICH_FREG_BASE(freg);
 	fd_regions[i].limit = ICH_FREG_LIMIT(freg) | 0x0fff;
+	/*
+	 * Get Region 0 - 7 Permission bits, region 8 and above don't have
+	 * bits to indicate permissions in Flash Region Access Permissions
+	 * register.
+	 */
+	if ( i >= EMBEDDED_CONTROLLER_REGION )
+		rwperms = FD_REGION_READ_WRITE;
+
 	fd_regions[i].permission = &fd_region_permissions[rwperms];
 	if (fd_regions[i].base > fd_regions[i].limit) {
 		/* this FREG is disabled */
@@ -2263,6 +2284,8 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 		if (desc_valid) {
 			if (ich_generation == CHIPSET_APL)
 				num_fd_regions = APL_GLK_NUM_FD_REGIONS;
+			else if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT)
+				num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
 			else
 				num_fd_regions = DEFAULT_NUM_FD_REGIONS;
 		}
