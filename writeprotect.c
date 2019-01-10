@@ -1711,7 +1711,7 @@ uint8_t mx25l_read_config_register(const struct flashctx *flash)
 
 	ret = spi_send_command(flash, sizeof(cmd), sizeof(readarr), cmd, readarr);
 	if (ret) {
-		msg_cerr("RDCR failed!\n");
+		msg_cdbg("RDCR failed!\n");
 		readarr[0] = 0x00;
 	}
 

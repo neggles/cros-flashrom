@@ -46,7 +46,7 @@ int spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsign
 		const unsigned char *writearr, unsigned char *readarr)
 {
 	if (!spi_master->command) {
-		msg_perr("%s called, but SPI is unsupported on this "
+		msg_pdbg("%s called, but SPI is unsupported on this "
 			 "hardware. Please report a bug at "
 			 "flashrom@flashrom.org\n", __func__);
 		return 1;
@@ -59,7 +59,7 @@ int spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsign
 int spi_send_multicommand(const struct flashctx *flash, struct spi_command *cmds)
 {
 	if (!spi_master->multicommand) {
-		msg_perr("%s called, but SPI is unsupported on this "
+		msg_pdbg("%s called, but SPI is unsupported on this "
 			 "hardware. Please report a bug at "
 			 "flashrom@flashrom.org\n", __func__);
 		return 1;
