@@ -87,10 +87,10 @@ struct generic_wp {
  * sec: This bit indicates the units (sectors vs. blocks)
  * tb: The top-bottom bit indicates if the affected range is at the top of
  *     the flash memory's address space or at the bottom.
- * bp[2:0]: The number of affected sectors/blocks.
+ * bp: Bitmask representing the number of affected sectors/blocks.
  */
 struct w25q_range {
-	enum bit_state sec;		/* if 1, bp[2:0] describe sectors */
+	enum bit_state sec;		/* if 1, bp bits describe sectors */
 	enum bit_state tb;		/* top/bottom select */
 	int bp;				/* block protect bitfield */
 	struct wp_range range;
@@ -101,10 +101,12 @@ struct w25q_range {
  *   Status register 1:
  *     SRP0:           bit 7
  *     range(BP2-BP0): bit 4-2
+ *     range(BP3-BP0): bit 5-2 (large chips)
  *   Status register 2:
  *     SRP1:           bit 1
  */
 #define MASK_WP_AREA (0x9C)
+#define MASK_WP_AREA_LARGE (0x9C)
 #define MASK_WP2_AREA (0x01)
 
 struct w25q_range en25f40_ranges[] = {
@@ -611,6 +613,68 @@ static struct w25q_range w25rq128_cmp1_ranges[] = {
 	{ 1, 1, 0x5, {0x008000, 16352 * 1024} },	/* Upper 511/512 */
 };
 
+static struct w25q_range w25rq256_cmp0_ranges[] = {
+	{ X, X, 0x0, {0x0000000, 0x0000000} },		/* NONE */
+
+	{ X, 0, 0x1, {0x1ff0000, 64 * 1 * 1024} },	/* Upper 1/512 */
+	{ X, 0, 0x2, {0x1fe0000, 64 * 2 * 1024} },	/* Upper 1/256 */
+	{ X, 0, 0x3, {0x1fc0000, 64 * 4 * 1024} },	/* Upper 1/128 */
+	{ X, 0, 0x4, {0x1f80000, 64 * 8 * 1024} },	/* Upper 1/64 */
+	{ X, 0, 0x5, {0x1f00000, 64 * 16 * 1024} },	/* Upper 1/32 */
+	{ X, 0, 0x6, {0x1e00000, 64 * 32 * 1024} },	/* Upper 1/16 */
+	{ X, 0, 0x7, {0x1c00000, 64 * 64 * 1024} },	/* Upper 1/8 */
+	{ X, 0, 0x8, {0x1800000, 64 * 128 * 1024} },	/* Upper 1/4 */
+	{ X, 0, 0x9, {0x1000000, 64 * 256 * 1024} },	/* Upper 1/2 */
+
+	{ X, 1, 0x1, {0x0000000, 64 * 1 * 1024} },	/* Lower 1/512 */
+	{ X, 1, 0x2, {0x0000000, 64 * 2 * 1024} },	/* Lower 1/256 */
+	{ X, 1, 0x3, {0x0000000, 64 * 4 * 1024} },	/* Lower 1/128 */
+	{ X, 1, 0x4, {0x0000000, 64 * 8 * 1024} },	/* Lower 1/64 */
+	{ X, 1, 0x5, {0x0000000, 64 * 16 * 1024} },	/* Lower 1/32 */
+	{ X, 1, 0x6, {0x0000000, 64 * 32 * 1024} },	/* Lower 1/16 */
+	{ X, 1, 0x7, {0x0000000, 64 * 64 * 1024} },	/* Lower 1/8 */
+	{ X, 1, 0x8, {0x0000000, 64 * 128 * 1024} },	/* Lower 1/4 */
+	{ X, 1, 0x9, {0x0000000, 64 * 256 * 1024} },	/* Lower 1/2 */
+
+	{ X, X, 0xa, {0x0000000, 64 * 512 * 1024} },	/* ALL */
+	{ X, X, 0xb, {0x0000000, 64 * 512 * 1024} },	/* ALL */
+	{ X, X, 0xc, {0x0000000, 64 * 512 * 1024} },	/* ALL */
+	{ X, X, 0xd, {0x0000000, 64 * 512 * 1024} },	/* ALL */
+	{ X, X, 0xe, {0x0000000, 64 * 512 * 1024} },	/* ALL */
+	{ X, X, 0xf, {0x0000000, 64 * 512 * 1024} },	/* ALL */
+};
+
+static struct w25q_range w25rq256_cmp1_ranges[] = {
+	{ X, X, 0x0, {0x0000000, 64 * 512 * 1024} },	/* ALL */
+
+	{ X, 0, 0x1, {0x0000000, 64 * 511 * 1024} },	/* Lower 511/512 */
+	{ X, 0, 0x2, {0x0000000, 64 * 510 * 1024} },	/* Lower 255/256 */
+	{ X, 0, 0x3, {0x0000000, 64 * 508 * 1024} },	/* Lower 127/128 */
+	{ X, 0, 0x4, {0x0000000, 64 * 504 * 1024} },	/* Lower 63/64 */
+	{ X, 0, 0x5, {0x0000000, 64 * 496 * 1024} },	/* Lower 31/32 */
+	{ X, 0, 0x6, {0x0000000, 64 * 480 * 1024} },	/* Lower 15/16 */
+	{ X, 0, 0x7, {0x0000000, 64 * 448 * 1024} },	/* Lower 7/8 */
+	{ X, 0, 0x8, {0x0000000, 64 * 384 * 1024} },	/* Lower 3/4 */
+	{ X, 0, 0x9, {0x0000000, 64 * 256 * 1024} },	/* Lower 1/2 */
+
+	{ X, 1, 0x1, {0x0010000, 64 * 511 * 1024} },	/* Upper 511/512 */
+	{ X, 1, 0x2, {0x0020000, 64 * 510 * 1024} },	/* Upper 255/256 */
+	{ X, 1, 0x3, {0x0040000, 64 * 508 * 1024} },	/* Upper 127/128 */
+	{ X, 1, 0x4, {0x0080000, 64 * 504 * 1024} },	/* Upper 63/64 */
+	{ X, 1, 0x5, {0x0100000, 64 * 496 * 1024} },	/* Upper 31/32 */
+	{ X, 1, 0x6, {0x0200000, 64 * 480 * 1024} },	/* Upper 15/16 */
+	{ X, 1, 0x7, {0x0400000, 64 * 448 * 1024} },	/* Upper 7/8 */
+	{ X, 1, 0x8, {0x0800000, 64 * 384 * 1024} },	/* Upper 3/4 */
+	{ X, 1, 0x9, {0x1000000, 64 * 256 * 1024} },	/* Upper 1/2 */
+
+	{ X, X, 0xa, {0x0000000, 0x0000000} },		/* NONE */
+	{ X, X, 0xb, {0x0000000, 0x0000000} },		/* NONE */
+	{ X, X, 0xc, {0x0000000, 0x0000000} },		/* NONE */
+	{ X, X, 0xd, {0x0000000, 0x0000000} },		/* NONE */
+	{ X, X, 0xe, {0x0000000, 0x0000000} },		/* NONE */
+	{ X, X, 0xf, {0x0000000, 0x0000000} },		/* NONE */
+};
+
 struct w25q_range w25x10_ranges[] = {
 	{ X, X, 0, {0, 0} },    /* none */
 	{ 0, 0, 0x1, {0x010000, 64 * 1024} },
@@ -852,6 +916,17 @@ static int w25_range_table(const struct flashctx *flash,
 				/* CMP == 0 */
 				*w25q_ranges = w25rq128_cmp0_ranges;
 				*num_entries = ARRAY_SIZE(w25rq128_cmp0_ranges);
+			}
+			break;
+		case WINBOND_NEX_W25Q256JV:
+			if (w25q_read_status_register_2(flash) & (1 << 6)) {
+				/* CMP == 1 */
+				*w25q_ranges = w25rq256_cmp1_ranges;
+				*num_entries = ARRAY_SIZE(w25rq256_cmp1_ranges);
+			} else {
+				/* CMP == 0 */
+				*w25q_ranges = w25rq256_cmp0_ranges;
+				*num_entries = ARRAY_SIZE(w25rq256_cmp0_ranges);
 			}
 			break;
 		default:
@@ -1171,6 +1246,153 @@ static int w25_wp_status(const struct flashctx *flash)
 
 	msg_cinfo("WP: write protect range: ");
 	if (w25_status_to_range(flash, &status, &start, &len)) {
+		msg_cinfo("(cannot resolve the range)\n");
+		ret = -1;
+	} else {
+		msg_cinfo("start=0x%08x, len=0x%08x\n", start, len);
+	}
+
+	return ret;
+}
+
+static int w25q_large_range_to_status(const struct flashctx *flash,
+				      unsigned int start, unsigned int len,
+				      struct w25q_status_large *status)
+{
+	struct w25q_range *w25q_ranges;
+	int i, range_found = 0;
+	int num_entries;
+
+	if (w25_range_table(flash, &w25q_ranges, &num_entries))
+		return -1;
+	for (i = 0; i < num_entries; i++) {
+		struct wp_range *r = &w25q_ranges[i].range;
+
+		msg_cspew("comparing range 0x%x 0x%x / 0x%x 0x%x\n",
+			  start, len, r->start, r->len);
+		if ((start == r->start) && (len == r->len)) {
+			status->bp0 = w25q_ranges[i].bp & 1;
+			status->bp1 = w25q_ranges[i].bp >> 1;
+			status->bp2 = w25q_ranges[i].bp >> 2;
+			status->bp3 = w25q_ranges[i].bp >> 3;
+			status->tb = w25q_ranges[i].tb;
+
+			range_found = 1;
+			break;
+		}
+	}
+
+	if (!range_found) {
+		msg_cerr("matching range not found\n");
+		return -1;
+	}
+	return 0;
+}
+
+static int w25_large_status_to_range(const struct flashctx *flash,
+				     const struct w25q_status_large *status,
+				     unsigned int *start, unsigned int *len)
+{
+	struct w25q_range *w25q_ranges;
+	int i, status_found = 0;
+	int num_entries;
+
+	if (w25_range_table(flash, &w25q_ranges, &num_entries))
+		return -1;
+	for (i = 0; i < num_entries; i++) {
+		int bp;
+		int table_bp, table_tb;
+
+		bp = status->bp0 | (status->bp1 << 1) | (status->bp2 << 2) |
+			(status->bp3 << 3);
+		msg_cspew("comparing  0x%x 0x%x / 0x%x 0x%x\n",
+		          bp, w25q_ranges[i].bp,
+		          status->tb, w25q_ranges[i].tb);
+		table_bp = w25q_ranges[i].bp;
+		table_tb = w25q_ranges[i].tb;
+		if ((bp == table_bp || table_bp == X) &&
+		    (status->tb == table_tb || table_tb == X)) {
+			*start = w25q_ranges[i].range.start;
+			*len = w25q_ranges[i].range.len;
+
+			status_found = 1;
+			break;
+		}
+	}
+
+	if (!status_found) {
+		msg_cerr("matching status not found\n");
+		return -1;
+	}
+	return 0;
+}
+
+/* Given a [start, len], this function calls w25_range_to_status() to convert
+ * it to flash-chip-specific range bits, then sets into status register.
+ * Returns 0 if successful, -1 on error, and 1 if reading back was different.
+ */
+static int w25q_large_set_range(const struct flashctx *flash,
+				unsigned int start, unsigned int len)
+{
+	struct w25q_status_large status;
+	int tmp;
+	int expected = 0;
+
+	memset(&status, 0, sizeof(status));
+	tmp = do_read_status(flash);
+	memcpy(&status, &tmp, 1);
+	msg_cdbg("%s: old status: 0x%02x\n", __func__, tmp);
+
+	if (w25q_large_range_to_status(flash, start, len, &status))
+		return -1;
+
+	msg_cdbg("status.busy: %x\n", status.busy);
+	msg_cdbg("status.wel: %x\n", status.wel);
+	msg_cdbg("status.bp0: %x\n", status.bp0);
+	msg_cdbg("status.bp1: %x\n", status.bp1);
+	msg_cdbg("status.bp2: %x\n", status.bp2);
+	msg_cdbg("status.bp3: %x\n", status.bp3);
+	msg_cdbg("status.tb: %x\n", status.tb);
+	msg_cdbg("status.srp0: %x\n", status.srp0);
+
+	memcpy(&expected, &status, sizeof(status));
+	do_write_status(flash, expected);
+
+	tmp = do_read_status(flash);
+	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
+	if ((tmp & MASK_WP_AREA_LARGE) == (expected & MASK_WP_AREA_LARGE)) {
+		return 0;
+	} else {
+		msg_cerr("expected=0x%02x, but actual=0x%02x.\n",
+		          expected, tmp);
+		return 1;
+	}
+}
+
+static int w25q_large_wp_status(const struct flashctx *flash)
+{
+	struct w25q_status_large sr1;
+	struct w25q_status_2 sr2;
+	uint8_t tmp[2];
+	unsigned int start, len;
+	int ret = 0;
+
+	memset(&sr1, 0, sizeof(sr1));
+	tmp[0] = do_read_status(flash);
+	memcpy(&sr1, &tmp[0], 1);
+
+	memset(&sr2, 0, sizeof(sr2));
+	tmp[1] = w25q_read_status_register_2(flash);
+	memcpy(&sr2, &tmp[1], 1);
+
+	msg_cinfo("WP: status: 0x%02x%02x\n", tmp[1], tmp[0]);
+	msg_cinfo("WP: status.srp0: %x\n", sr1.srp0);
+	msg_cinfo("WP: status.srp1: %x\n", sr2.srp1);
+	msg_cinfo("WP: write protect is %s.\n",
+	          (sr1.srp0 || sr2.srp1) ? "enabled" : "disabled");
+
+	msg_cinfo("WP: write protect range: ");
+	if (w25_large_status_to_range(flash, &sr1, &start, &len)) {
 		msg_cinfo("(cannot resolve the range)\n");
 		ret = -1;
 	} else {
@@ -1517,6 +1739,20 @@ struct wp wp_w25q = {
 	 */
 	.disable	= w25q_disable_writeprotect_default,
 	.wp_status	= w25q_wp_status,
+};
+
+/* W25Q large series has 4 block-protect bits */
+struct wp wp_w25q_large = {
+	.list_ranges	= w25_list_ranges,
+	.set_range	= w25q_large_set_range,
+	.enable		= w25q_enable_writeprotect,
+	/*
+	 * By default, disable hardware write-protection. We may change
+	 * this later if we want to add fine-grained write-protect disable
+	 * as a command-line option.
+	 */
+	.disable	= w25q_disable_writeprotect_default,
+	.wp_status	= w25q_large_wp_status,
 };
 
 struct generic_range gd25q32_cmp0_ranges[] = {

@@ -42,7 +42,7 @@ struct wp {
 /* winbond w25-series */
 extern struct wp wp_w25;	/* older winbond chips (w25p, w25x, etc) */
 extern struct wp wp_w25q;
-extern struct wp wp_w25r;
+extern struct wp wp_w25q_large; /* large winbond chips (>= 32MB) */
 
 extern struct wp wp_generic;
 extern struct wp wp_wpce775x;
@@ -56,6 +56,18 @@ struct w25q_status {
 	unsigned char bp2 : 1;
 	unsigned char tb : 1;
 	unsigned char sec : 1;
+	unsigned char srp0 : 1;
+} __attribute__ ((packed));
+
+/* Status register for large flash layouts with 4 BP bits */
+struct w25q_status_large {
+	unsigned char busy : 1;
+	unsigned char wel : 1;
+	unsigned char bp0 : 1;
+	unsigned char bp1 : 1;
+	unsigned char bp2 : 1;
+	unsigned char bp3 : 1;
+	unsigned char tb : 1;
 	unsigned char srp0 : 1;
 } __attribute__ ((packed));
 
