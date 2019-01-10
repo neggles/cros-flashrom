@@ -1689,6 +1689,7 @@ static int pch_hwseq_get_flash_id(struct flashctx *flash)
 		flash->chip->page_size = entry->page_size;
 		flash->chip->feature_bits = entry->feature_bits;
 		flash->chip->tested = entry->tested;
+		flash->chip->wp = entry->wp;
 	}
 
 	return 1;
