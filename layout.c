@@ -672,7 +672,7 @@ static int read_content_from_file(romlayout_t *entry, uint8_t *newcontents) {
 	return 0;
 }
 
-int handle_romentries(struct flashctx *flash, uint8_t *oldcontents,
+int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode)
 {
 	unsigned int start = 0;

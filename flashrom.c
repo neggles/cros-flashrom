@@ -1073,9 +1073,9 @@ int check_max_decode(enum chipbustype buses, uint32_t size)
 }
 
 int probe_flash(struct registered_master *mst, int startchip,
-		struct flashctx *fill_flash, int force)
+		struct flashctx *flash, int force)
 {
-	const struct flashchip *flash, *flash_list;
+	const struct flashchip *chip, *flash_list;
 	unsigned long base = 0;
 	char location[64];
 	uint32_t size;
@@ -1096,17 +1096,17 @@ int probe_flash(struct registered_master *mst, int startchip,
 		break;
 	}
 
-	for (flash = flash_list + startchip; flash && flash->name; flash++) {
-		if (chip_to_probe && strcmp(flash->name, chip_to_probe) != 0)
+	for (chip = flash_list + startchip; chip && chip->name; chip++) {
+		if (chip_to_probe && strcmp(chip->name, chip_to_probe) != 0)
 			continue;
-		buses_common = buses_supported & flash->bustype;
+		buses_common = buses_supported & chip->bustype;
 		if (!buses_common) {
 			msg_gspew("Probing for %s %s, %d kB: skipped. ",
-			         flash->vendor, flash->name, flash->total_size);
+			         chip->vendor, chip->name, chip->total_size);
 			tmp = flashbuses_to_text(buses_supported);
 			msg_gspew("Host bus type %s ", tmp);
 			free(tmp);
-			tmp = flashbuses_to_text(flash->bustype);
+			tmp = flashbuses_to_text(chip->bustype);
 			msg_gspew("and chip bus type %s are incompatible.",
 				  tmp);
 			free(tmp);
@@ -1114,35 +1114,35 @@ int probe_flash(struct registered_master *mst, int startchip,
 			continue;
 		}
 		/* Only probe for SPI25 chips by default. */
-		if (flash->bustype == BUS_SPI && !chip_to_probe && flash->spi_cmd_set != SPI25)
+		if (chip->bustype == BUS_SPI && !chip_to_probe && chip->spi_cmd_set != SPI25)
 			continue;
 		msg_gdbg("Probing for %s %s, %d kB: ",
-			     flash->vendor, flash->name, flash->total_size);
-		if (!flash->probe && !force) {
+			     chip->vendor, chip->name, chip->total_size);
+		if (!chip->probe && !force) {
 			msg_gdbg("failed! flashrom has no probe function for "
 				 "this flash chip.\n");
 			continue;
 		}
 
-		size = flash->total_size * 1024;
+		size = chip->total_size * 1024;
 		check_max_decode(buses_common, size);
 
 		/* Start filling in the dynamic data. */
-		fill_flash->chip = calloc(1, sizeof(struct flashchip));
-		if (!fill_flash->chip) {
+		flash->chip = calloc(1, sizeof(struct flashchip));
+		if (!flash->chip) {
 			msg_gerr("Out of memory!\n");
 			exit(1);
 		}
-		memcpy(fill_flash->chip, flash, sizeof(struct flashchip));
-		fill_flash->mst = mst;
+		memcpy(flash->chip, chip, sizeof(struct flashchip));
+		flash->mst = mst;
 
 		base = flashbase ? flashbase : (0xffffffff - size + 1);
-		fill_flash->virtual_memory = (chipaddr)programmer_map_flash_region("flash chip", base, size);
+		flash->virtual_memory = (chipaddr)programmer_map_flash_region("flash chip", base, size);
 
 		if (force)
 			break;
 
-		if (fill_flash->chip->probe(fill_flash) != 1)
+		if (flash->chip->probe(flash) != 1)
 			goto notfound;
 
 		/* If this is the first chip found, accept it.
@@ -1153,16 +1153,16 @@ int probe_flash(struct registered_master *mst, int startchip,
 		 * probe_flash() is the first one and thus no chip has been
 		 * found before.
 		 */
-		if (startchip == 0 || fill_flash->chip->model_id != GENERIC_DEVICE_ID)
+		if (startchip == 0 || flash->chip->model_id != GENERIC_DEVICE_ID)
 			break;
 
 notfound:
-		programmer_unmap_flash_region((void *)fill_flash->virtual_memory, size);
-		free(fill_flash->chip);
-		fill_flash->chip = NULL;
+		programmer_unmap_flash_region((void *)flash->virtual_memory, size);
+		free(flash->chip);
+		flash->chip = NULL;
 	}
 
-	if (!flash || !flash->name)
+	if (!chip || !chip->name)
 		return -1;
 
 #if CONFIG_INTERNAL == 1
@@ -1172,10 +1172,10 @@ notfound:
 #endif
 		snprintf(location, sizeof(location), "on %s", programmer_table[programmer].name);
 
-	tmp = flashbuses_to_text(flash->bustype);
+	tmp = flashbuses_to_text(chip->bustype);
 	msg_cdbg("%s %s flash chip \"%s\" (%d kB, %s) %s.\n",
-		 force ? "Assuming" : "Found", fill_flash->chip->vendor,
-		 fill_flash->chip->name, fill_flash->chip->total_size, tmp,
+		 force ? "Assuming" : "Found", flash->chip->vendor,
+		 flash->chip->name, flash->chip->total_size, tmp,
 		 location);
 	free(tmp);
 
@@ -1183,11 +1183,11 @@ notfound:
 	 * may be stored in registers, so avoid lock info printing.
 	 */
 	if (!force)
-		if (fill_flash->chip->printlock)
-			fill_flash->chip->printlock(fill_flash);
+		if (flash->chip->printlock)
+			flash->chip->printlock(flash);
 
 	/* Return position of matching chip. */
-	return flash - flash_list;
+	return chip - flash_list;
 }
 
 static int verify_flash(struct flashctx *flash,
@@ -1422,14 +1422,14 @@ out_free:
  * walk_eraseregions().
  * Even if an error is found, the function will keep going and check the rest.
  */
-static int selfcheck_eraseblocks(const struct flashchip *flash)
+static int selfcheck_eraseblocks(const struct flashchip *chip)
 {
 	int i, j, k;
 	int ret = 0;
 
 	for (k = 0; k < NUM_ERASEFUNCTIONS; k++) {
 		unsigned int done = 0;
-		struct block_eraser eraser = flash->block_erasers[k];
+		struct block_eraser eraser = chip->block_erasers[k];
 
 		for (i = 0; i < NUM_ERASEREGIONS; i++) {
 			/* Blocks with zero size are bugs in flashchips.c. */
@@ -1438,7 +1438,7 @@ static int selfcheck_eraseblocks(const struct flashchip *flash)
 				msg_gerr("ERROR: Flash chip %s erase function "
 					"%i region %i has size 0. Please report"
 					" a bug at flashrom@flashrom.org\n",
-					flash->name, k, i);
+					chip->name, k, i);
 				ret = 1;
 			}
 			/* Blocks with zero count are bugs in flashchips.c. */
@@ -1447,7 +1447,7 @@ static int selfcheck_eraseblocks(const struct flashchip *flash)
 				msg_gerr("ERROR: Flash chip %s erase function "
 					"%i region %i has count 0. Please report"
 					" a bug at flashrom@flashrom.org\n",
-					flash->name, k, i);
+					chip->name, k, i);
 				ret = 1;
 			}
 			done += eraser.eraseblocks[i].count *
@@ -1459,12 +1459,12 @@ static int selfcheck_eraseblocks(const struct flashchip *flash)
 				  "non-empty erase function. Not an error.\n");
 		if (!done)
 			continue;
-		if (done != flash->total_size * 1024) {
+		if (done != chip->total_size * 1024) {
 			msg_gerr("ERROR: Flash chip %s erase function %i "
 				"region walking resulted in 0x%06x bytes total,"
 				" expected 0x%06x bytes. Please report a bug at"
-				" flashrom@flashrom.org\n", flash->name, k,
-				done, flash->total_size * 1024);
+				" flashrom@flashrom.org\n", chip->name, k,
+				done, chip->total_size * 1024);
 			ret = 1;
 		}
 		if (!eraser.block_erase)
@@ -1475,11 +1475,11 @@ static int selfcheck_eraseblocks(const struct flashchip *flash)
 		 */
 		for (j = k + 1; j < NUM_ERASEFUNCTIONS; j++) {
 			if (eraser.block_erase ==
-			    flash->block_erasers[j].block_erase) {
+			    chip->block_erasers[j].block_erase) {
 				msg_gerr("ERROR: Flash chip %s erase function "
 					"%i and %i are identical. Please report"
 					" a bug at flashrom@flashrom.org\n",
-					flash->name, k, j);
+					chip->name, k, j);
 				ret = 1;
 			}
 		}
@@ -1848,7 +1848,7 @@ int selfcheck(void)
 /* FIXME: This function signature needs to be improved once doit() has a better
  * function signature.
  */
-int chip_safety_check(struct flashctx *flash, int force, int read_it, int write_it, int erase_it, int verify_it)
+int chip_safety_check(const struct flashctx *flash, int force, int read_it, int write_it, int erase_it, int verify_it)
 {
 	const struct flashchip *chip = flash->chip;
 

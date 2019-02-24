@@ -83,7 +83,7 @@ size_t top_section_offset(void);
  * If flashrom was invoked for erasing - leave the sections in question
  * untouched, they have been set to flash erase value already.
  */
-int handle_romentries(struct flashctx *flash, uint8_t *oldcontents,
+int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode);
 
 #endif

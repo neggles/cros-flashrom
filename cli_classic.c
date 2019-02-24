@@ -227,8 +227,8 @@ int main(int argc, char *argv[])
 {
 	unsigned long size;
 	/* Probe for up to three flash chips. */
-	const struct flashchip *flash;
-	struct flashctx flashes[3];
+	const struct flashchip *chip = NULL;
+	struct flashctx flashes[3] = {{0}};
 	struct flashctx *fill_flash;
 	int startchip = 0;
 	int chipcount = 0;
@@ -649,15 +649,15 @@ int main(int argc, char *argv[])
 	}
 
 	if (chip_to_probe) {
-		for (flash = flashchips; flash && flash->name; flash++) {
-			if (!strcmp(flash->name, chip_to_probe)) {
+		for (chip = flashchips; chip && chip->name; chip++) {
+			if (!strcmp(chip->name, chip_to_probe)) {
 				found_chip = 1;
 				break;
 			}
 		}
-		for (flash = flashchips_hwseq; flash && flash->name &&
-				!found_chip; flash++) {
-			if (!strcmp(flash->name, chip_to_probe)) {
+		for (chip = flashchips_hwseq; chip && chip->name &&
+				!found_chip; chip++) {
+			if (!strcmp(chip->name, chip_to_probe)) {
 				found_chip = 1;
 				break;
 			}
@@ -669,8 +669,7 @@ int main(int argc, char *argv[])
 				"in this flashrom version.\n");
 			exit(1);
 		}
-		/* Clean up after the check. */
-		flash = NULL;
+		/* Keep chip around for later usage in case a forced read is requested. */
 	}
 
 	if (prog == PROGRAMMER_INVALID)
