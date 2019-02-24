@@ -2415,7 +2415,7 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 			tmp = mmio_readl(ich_spibar + ICH8_REG_VSCC);
 			msg_pdbg("0xC1: 0x%08x (VSCC)\n", tmp);
 			msg_pdbg("VSCC: ");
-			prettyprint_ich_reg_vscc(tmp, MSG_DEBUG);
+			prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG);
 		} else {
 			ichspi_bbar = mmio_readl(ich_spibar + ICH9_REG_BBAR);
 			msg_pdbg("0xA0: 0x%08x (BBAR)\n",
@@ -2425,12 +2425,12 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 				tmp = mmio_readl(ich_spibar + ICH9_REG_LVSCC);
 				msg_pdbg("0xC4: 0x%08x (LVSCC)\n", tmp);
 				msg_pdbg("LVSCC: ");
-				prettyprint_ich_reg_vscc(tmp, MSG_DEBUG);
+				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG);
 
 				tmp = mmio_readl(ich_spibar + ICH9_REG_UVSCC);
 				msg_pdbg("0xC8: 0x%08x (UVSCC)\n", tmp);
 				msg_pdbg("UVSCC: ");
-				prettyprint_ich_reg_vscc(tmp, MSG_DEBUG);
+				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG);
 
 				tmp = mmio_readl(ich_spibar + ICH9_REG_FPB);
 				msg_pdbg("0xD0: 0x%08x (FPB)\n", tmp);

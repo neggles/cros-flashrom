@@ -28,7 +28,7 @@
 /* #define MSG_TRACE_4BA_FUNCS 1 */
 
 #ifdef MSG_TRACE_4BA_FUNCS
-#define msg_trace(...) print(MSG_DEBUG, __VA_ARGS__)
+#define msg_trace(...) print(FLASHROM_MSG_DEBUG, __VA_ARGS__)
 #else
 #define msg_trace(...)
 #endif

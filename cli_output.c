@@ -58,33 +58,33 @@ void start_logging(void)
 	int oldverbose_screen = verbose_screen;
 
 	/* Shut up the console. */
-	verbose_screen = MSG_ERROR;
+	verbose_screen = FLASHROM_MSG_ERROR;
 	print_version();
 	verbose_screen = oldverbose_screen;
 }
 #endif /* !STANDALONE */
 
 /* Please note that level is the verbosity, not the importance of the message. */
-int print(enum msglevel level, const char *fmt, ...)
+int print(enum flashrom_log_level level, const char *fmt, ...)
 {
 	va_list ap;
 	int ret;
 	FILE *output_type;
 
 	switch (level) {
-	case MSG_ERROR:
+	case FLASHROM_MSG_ERROR:
 		output_type = stderr;
 		break;
-	case MSG_SPEW:
+	case FLASHROM_MSG_SPEW:
 		if (verbose_screen < 3)
 			return 0;
-	case MSG_DEBUG2:
+	case FLASHROM_MSG_DEBUG2:
 		if (verbose_screen < 2)
 			return 0;
-	case MSG_DEBUG:
+	case FLASHROM_MSG_DEBUG:
 		if (verbose_screen < 1)
 			return 0;
-	case MSG_INFO:
+	case FLASHROM_MSG_INFO:
 	default:
 		output_type = stdout;
 		break;
@@ -100,7 +100,7 @@ int print(enum msglevel level, const char *fmt, ...)
 		va_start(ap, fmt);
 		ret = vfprintf(logfile, fmt, ap);
 		va_end(ap);
-		if (level != MSG_SPEW)
+		if (level != FLASHROM_MSG_SPEW)
 			fflush(logfile);
 	}
 #endif /* !STANDALONE */

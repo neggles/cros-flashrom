@@ -16,7 +16,7 @@
  */
 char *logfile; /* No logging into a file. */
 int verbose_logfile; /* Does not matter if there is no logging into a file. */
-int verbose_screen = MSG_ERROR;
+enum flashrom_log_level verbose_screen = FLASHROM_MSG_ERROR;
 
 void print_version(void)
 {
