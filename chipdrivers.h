@@ -219,4 +219,10 @@ int spi_block_erase_21_4ba_direct(struct flashctx *flash, unsigned int addr, uns
 int spi_block_erase_5c_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 int spi_block_erase_dc_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 
+/* edi.c */
+int edi_chip_block_erase(struct flashctx *flash, unsigned int page, unsigned int size);
+int edi_chip_write(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+int edi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
+int edi_probe_kb9012(struct flashctx *flash);
+
 #endif /* !__CHIPDRIVERS_H__ */

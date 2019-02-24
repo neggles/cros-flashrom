@@ -2499,7 +2499,30 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
-		.vendor		= "EMST",
+		.vendor		= "ENE",
+		.name		= "KB9012 (EDI)",
+		.bustype	= BUS_SPI,
+		.spi_cmd_set	= SPI_EDI,
+		.total_size	= 128,
+		.page_size	= 128,
+		.feature_bits	= FEATURE_ERASE_TO_ZERO,
+		.tested		= TEST_OK_PREW,
+		.probe		= edi_probe_kb9012,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {128, 1024} },
+				.block_erase = edi_chip_block_erase,
+			},
+		},
+		.write		= edi_chip_write,
+		.read		= edi_chip_read,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "ESMT",
 		.name		= "F49B002UA",
 		.bustype	= BUS_PARALLEL,
 		.manufacture_id	= ESMT_ID,
