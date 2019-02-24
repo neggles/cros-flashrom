@@ -1062,6 +1062,9 @@ int probe_flash(int startchip, struct flashctx *fill_flash, int force)
 			msg_gspew("\n");
 			continue;
 		}
+		/* Only probe for SPI25 chips by default. */
+		if (flash->bustype == BUS_SPI && !chip_to_probe && flash->spi_cmd_set != SPI25)
+			continue;
 		msg_gdbg("Probing for %s %s, %d kB: ",
 			     flash->vendor, flash->name, flash->total_size);
 		if (!flash->probe && !force) {
