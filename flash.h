@@ -269,11 +269,27 @@ char *strcat_realloc(char *dest, const char *src);
 void tolower_string(char *str);
 
 /* flashrom.c */
+/*
+ * The following enum defines possible write granularities of flash chips. These tend to reflect the properties
+ * of the actual hardware not necesserily the write function(s) defined by the respective struct flashchip.
+ * The latter might (and should) be more precisely specified, e.g. they might bail out early if their execution
+ * would result in undefined chip contents.
+ */
 enum write_granularity {
-	write_gran_1bit,
-	write_gran_1byte,
-	write_gran_256bytes,
+	/* We assume 256 byte granularity by default. */
+	write_gran_256bytes = 0,/* If less than 256 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1bit,	/* Each bit can be cleared individually. */
+	write_gran_1byte,	/* A byte can be written once. Further writes to an already written byte cause
+				 * its contents to be either undefined or to stay unchanged. */
+	write_gran_128bytes,	/* If less than 128 bytes are written, the unwritten bytes are undefined. */
+	write_gran_264bytes,	/* If less than 264 bytes are written, the unwritten bytes are undefined. */
+	write_gran_512bytes,	/* If less than 512 bytes are written, the unwritten bytes are undefined. */
+	write_gran_528bytes,	/* If less than 528 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1024bytes,	/* If less than 1024 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1056bytes,	/* If less than 1056 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1byte_implicit_erase, /* EEPROMs and other chips with implicit erase and 1-byte writes. */
 };
+
 extern enum chipbustype buses_supported;
 extern enum flashrom_log_level verbose_screen;
 extern enum flashrom_log_level verbose_logfile;
