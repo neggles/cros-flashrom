@@ -142,6 +142,17 @@ enum dediprog_standalone_mode {
 	LEAVE_STANDALONE_MODE = 1,
 };
 
+/*
+ * These are not official designations; they are for use in flashrom only.
+ * Order must be preserved so that comparison operators work.
+ */
+enum protocol {
+	PROTOCOL_UNKNOWN,
+	PROTOCOL_V1,
+	PROTOCOL_V2,
+	PROTOCOL_V3,
+};
+
 const struct dev_entry devs_dediprog[] = {
 	{0x0483, 0xDADA, OK, "Dediprog", "SF100/SF200/SF600"},
 
@@ -160,16 +171,21 @@ const char *libusb_error_name(int error_code)
 }
 #endif
 
-/* Returns true if firmware (and thus hardware) supports the "new" protocol */
-static int is_new_prot(void)
+static enum protocol protocol(void)
 {
+	/* Firmware version < 5.0.0 is handled explicitly in some cases. */
 	switch (dediprog_devicetype) {
 	case DEV_SF100:
 		return dediprog_firmwareversion >= FIRMWARE_VERSION(5, 5, 0);
 	case DEV_SF600:
-		return dediprog_firmwareversion >= FIRMWARE_VERSION(6, 9, 0);
+		if (dediprog_firmwareversion < FIRMWARE_VERSION(6, 9, 0))
+			return PROTOCOL_V1;
+		else if (dediprog_firmwareversion <= FIRMWARE_VERSION(7, 2, 21))
+			return PROTOCOL_V2;
+		else
+			return PROTOCOL_V3;
 	default:
-		return 0;
+		return PROTOCOL_UNKNOWN;
 	}
 }
 
@@ -239,7 +255,7 @@ static int dediprog_set_leds(int leds)
 	 * FIXME: take IO pins into account
 	 */
 	int target_leds, ret;
-	if (is_new_prot()) {
+	if (protocol() >= PROTOCOL_V2) {
 		target_leds = (leds ^ 7) << 8;
 		ret = dediprog_write(CMD_SET_IO_LED, target_leds, 0, NULL, 0);
 	} else {
@@ -296,6 +312,41 @@ static int dediprog_set_spi_speed(unsigned int spispeed_idx)
 	return 0;
 }
 
+static void fill_rw_cmd_payload(uint8_t *data_packet, unsigned int count, uint8_t dedi_spi_cmd,
+		unsigned int *value, unsigned int *idx, unsigned int start, int is_read) {
+	/* First 5 bytes are common in both generations. */
+	data_packet[0] = count & 0xff;
+	data_packet[1] = (count >> 8) & 0xff;
+	data_packet[2] = 0; /* RFU */
+	data_packet[3] = dedi_spi_cmd; /* Read/Write Mode (currently READ_MODE_STD, WRITE_MODE_PAGE_PGM or WRITE_MODE_2B_AAI) */
+	data_packet[4] = 0; /* "Opcode". Specs imply necessity only for READ_MODE_4B_ADDR_FAST and WRITE_MODE_4B_ADDR_256B_PAGE_PGM */
+
+	if (protocol() >= PROTOCOL_V2) {
+		*value = *idx = 0;
+		data_packet[5] = 0; /* RFU */
+		data_packet[6] = (start >>  0) & 0xff;
+		data_packet[7] = (start >>  8) & 0xff;
+		data_packet[8] = (start >> 16) & 0xff;
+		data_packet[9] = (start >> 24) & 0xff;
+		if (protocol() >= PROTOCOL_V3) {
+			if (is_read) {
+				data_packet[10] = 0x00;	/* address length (3 or 4) */
+				data_packet[11] = 0x00;	/* dummy cycle / 2 */
+			} else {
+				/* 16 LSBs and 16 HSBs of page size */
+				/* FIXME: This assumes page size of 256. */
+				data_packet[10] = 0x00;
+				data_packet[11] = 0x01;
+				data_packet[12] = 0x00;
+				data_packet[13] = 0x00;
+			}
+		}
+	} else {
+		*value = start % 0x10000;
+		*idx = start / 0x10000;
+	}
+}
+
 /* Bulk read interface, will read multiple 512 byte chunks aligned to 512 bytes.
  * @start	start address
  * @len		length
@@ -304,15 +355,18 @@ static int dediprog_set_spi_speed(unsigned int spispeed_idx)
 static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
 				  unsigned int start, unsigned int len)
 {
-	int ret, err = 1;
-	unsigned int i;
+	int err = 1;
+
 	/* chunksize must be 512, other sizes will NOT work at all. */
 	const unsigned int chunksize = 0x200;
 	const unsigned int count = len / chunksize;
-	unsigned int cmd_len;
+
 	struct dediprog_transfer_status status = { 0, 0, 0 };
 	struct libusb_transfer *transfers[DEDIPROG_ASYNC_TRANSFERS] = { NULL, };
 	struct libusb_transfer *transfer;
+
+	if (len == 0)
+		return 0;
 
 	if ((start % chunksize) || (len % chunksize)) {
 		msg_perr("%s: Unaligned start=%i, len=%i! Please report a bug "
@@ -320,36 +374,27 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
 		return 1;
 	}
 
-	/* No idea if the hardware can handle empty reads, so chicken out. */
-	if (!len)
-		return 0;
-	/* Command Read SPI Bulk. */
-	if (is_new_prot()) {
-		const uint8_t read_cmd[] = {
-			count & 0xff,
-			(count >> 8) & 0xff,
-			0,
-			READ_MODE_FAST,
-			0,
-			0,
-			start & 0xff,
-			(start >> 8) & 0xff,
-			(start >> 16) & 0xff,
-			(start >> 24) & 0xff,
-			};
-
-		cmd_len = sizeof(read_cmd);
-		ret = dediprog_write(CMD_READ, 0, 0, read_cmd, cmd_len);
-	} else {
-		const uint8_t read_cmd[] = {count & 0xff,
-					(count >> 8) & 0xff,
-					chunksize & 0xff,
-					(chunksize >> 8) & 0xff};
-
-		cmd_len = sizeof(read_cmd);
-		ret = dediprog_write(CMD_READ, start % 0x10000, start / 0x10000, read_cmd, cmd_len);
+	int command_packet_size;
+	switch (protocol()) {
+	case PROTOCOL_V1:
+		command_packet_size = 5;
+		break;
+	case PROTOCOL_V2:
+		command_packet_size = 10;
+		break;
+	case PROTOCOL_V3:
+		command_packet_size = 12;
+		break;
+	default:
+		return 1;
 	}
-	if (ret != cmd_len) {
+
+	uint8_t data_packet[command_packet_size];
+	unsigned int value, idx;
+	fill_rw_cmd_payload(data_packet, count, READ_MODE_STD, &value, &idx, start, 1);
+
+	int ret = dediprog_write(CMD_READ, value, idx, data_packet, sizeof(data_packet));
+	if (ret != sizeof(data_packet)) {
 		msg_perr("Command Read SPI Bulk failed, %i %s!\n", ret, libusb_error_name(ret));
 		return 1;
 	}
@@ -361,6 +406,7 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
 	 */
 
 	/* Allocate bulk transfers. */
+	unsigned int i;
 	for (i = 0; i < min(DEDIPROG_ASYNC_TRANSFERS, count); ++i) {
 		transfers[i] = libusb_alloc_transfer(0);
 		if (!transfers[i]) {
@@ -371,7 +417,9 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
 
 	/* Now transfer requested chunks using libusb's asynchronous interface. */
 	while (!status.error && (status.queued_idx < count)) {
-		while ((status.queued_idx - status.finished_idx) < DEDIPROG_ASYNC_TRANSFERS) {
+		while ((status.queued_idx < count) &&
+		       (status.queued_idx - status.finished_idx) < DEDIPROG_ASYNC_TRANSFERS)
+		{
 			transfer = transfers[status.queued_idx % DEDIPROG_ASYNC_TRANSFERS];
 			libusb_fill_bulk_transfer(transfer, dediprog_handle, 0x80 | dediprog_in_endpoint,
 					(unsigned char *)buf + status.queued_idx * chunksize, chunksize,
@@ -410,7 +458,7 @@ static int dediprog_spi_read(struct flashctx *flash, uint8_t *buf,
 	int ret;
 	/* chunksize must be 512, other sizes will NOT work at all. */
 	const unsigned int chunksize = 0x200;
-	unsigned int residue = start % chunksize ? chunksize - start % chunksize : 0;
+	unsigned int residue = start % chunksize ? min(len, chunksize - start % chunksize) : 0;
 	unsigned int bulklen;
 
 	dediprog_set_leds(LED_BUSY);
@@ -431,7 +479,7 @@ static int dediprog_spi_read(struct flashctx *flash, uint8_t *buf,
 		goto err;
 
 	len -= residue + bulklen;
-	if (len) {
+	if (len != 0) {
 		msg_pdbg("Slow read for partial block from 0x%x, length 0x%x\n",
 			 start, len);
 		ret = spi_read_chunked(flash, buf + residue + bulklen,
@@ -457,27 +505,11 @@ err:
 static int dediprog_spi_bulk_write(struct flashctx *flash, const uint8_t *buf, unsigned int chunksize,
 				   unsigned int start, unsigned int len, uint8_t dedi_spi_cmd)
 {
-	int ret, transferred;
-	unsigned int i;
 	/* USB transfer size must be 512, other sizes will NOT work at all.
 	 * chunksize is the real data size per USB bulk transfer. The remaining
 	 * space in a USB bulk transfer must be filled with 0xff padding.
 	 */
 	const unsigned int count = len / chunksize;
-	const unsigned char count_and_cmd_old[] = {count & 0xff, (count >> 8) & 0xff, 0x00, dedi_spi_cmd};
-	const unsigned char count_and_cmd_new[] = {
-		count & 0xff,
-		(count >> 8) & 0xff,
-		0,			/* used for 24-bit address support? */
-		dedi_spi_cmd,
-		JEDEC_BYTE_PROGRAM,	/* FIXME: needs to be determined based on byte 3? */
-		0,
-		start & 0xff,
-		(start >> 8) & 0xff,
-		(start >> 16) & 0xff,
-		(start >> 24) & 0xff,
-	};
-	unsigned char usbbuf[512];
 
 	/*
 	 * We should change this check to
@@ -497,37 +529,41 @@ static int dediprog_spi_bulk_write(struct flashctx *flash, const uint8_t *buf, u
 	}
 
 	/* No idea if the hardware can handle empty writes, so chicken out. */
-	if (!len)
+	if (len == 0)
 		return 0;
-	if (!is_new_prot()) {
-		/* Command Write SPI Bulk. No idea which write command is used on the
-		 * SPI side.
-		 */
-		ret = dediprog_write(CMD_WRITE, start % 0x10000, start / 0x10000,
-				      count_and_cmd_old, sizeof(count_and_cmd_old));
-		if (ret != sizeof(count_and_cmd_old)) {
-			msg_perr("Command Write SPI Bulk failed, %i %s!\n", ret,
-				 libusb_error_name(ret));
-			return 1;
-		}
-	} else {
-		/* Command Write SPI Bulk. No idea which write command is used on the
-		 * SPI side.
-		 */
-		ret = dediprog_write(CMD_WRITE, 0, 0,
-				      count_and_cmd_new, sizeof(count_and_cmd_new));
-		if (ret != sizeof(count_and_cmd_new)) {
-			msg_perr("Command Write SPI Bulk failed, %i %s!\n", ret,
-				 libusb_error_name(ret));
-			return 1;
-		}
+
+	int command_packet_size;
+	switch (protocol()) {
+	case PROTOCOL_V1:
+		command_packet_size = 5;
+		break;
+	case PROTOCOL_V2:
+		command_packet_size = 10;
+		break;
+	case PROTOCOL_V3:
+		command_packet_size = 14;
+		break;
+	default:
+		return 1;
 	}
 
+	uint8_t data_packet[command_packet_size];
+	unsigned int value, idx;
+	fill_rw_cmd_payload(data_packet, count, dedi_spi_cmd, &value, &idx, start, 0);
+	int ret = dediprog_write(CMD_WRITE, value, idx, data_packet, sizeof(data_packet));
+	if (ret != sizeof(data_packet)) {
+		msg_perr("Command Write SPI Bulk failed, %s!\n", libusb_error_name(ret));
+		return 1;
+	}
+
+	unsigned int i;
 	for (i = 0; i < count; i++) {
-		memset(usbbuf, 0xff, sizeof(usbbuf));
+		unsigned char usbbuf[512];
 		memcpy(usbbuf, buf + i * chunksize, chunksize);
-		ret = libusb_bulk_transfer(dediprog_handle, dediprog_out_endpoint,
-					   usbbuf, 512, &transferred, DEFAULT_TIMEOUT);
+		memset(usbbuf + chunksize, 0xff, sizeof(usbbuf) - chunksize); // fill up with 0xFF
+		int transferred;
+		ret = libusb_bulk_transfer(dediprog_handle, dediprog_out_endpoint, usbbuf, 512, &transferred,
+					   DEFAULT_TIMEOUT);
 		if ((ret < 0) || (transferred != 512)) {
 			msg_perr("SPI bulk write failed, expected %i, got %i %s!\n",
 				 512, ret, libusb_error_name(ret));
@@ -620,12 +656,17 @@ static int dediprog_spi_send_command(const struct flashctx *flash, unsigned int 
 		return 1;
 	}
 	
-	/* New protocol has the read flag as value while the old protocol had it in the index field. */
-	if (is_new_prot()) {
-		ret = dediprog_write(CMD_TRANSCEIVE, readcnt ? 1 : 0, 0, writearr, writecnt);
+	unsigned int idx, value;
+	/* New protocol has options and timeout combined as value while the old one used the value field for
+	 * timeout and the index field for options. */
+	if (protocol() >= PROTOCOL_V2) {
+		idx = 0;
+		value = readcnt ? 0x1 : 0x0; // Indicate if we require a read
 	} else {
-		ret = dediprog_write(CMD_TRANSCEIVE, 0, readcnt ? 1 : 0, writearr, writecnt);
+		idx = readcnt ? 0x1 : 0x0; // Indicate if we require a read
+		value = 0;
 	}
+	ret = dediprog_write(CMD_TRANSCEIVE, value, idx, writearr, writecnt);
 	if (ret != writecnt) {
 		msg_perr("Send SPI failed, expected %i, got %i %s!\n",
 			 writecnt, ret, libusb_error_name(ret));
@@ -634,6 +675,24 @@ static int dediprog_spi_send_command(const struct flashctx *flash, unsigned int 
 	if (readcnt == 0)
 		return 0;
 
+	/* The specifications do state the possibility to set a timeout for transceive transactions.
+	 * Apparently the "timeout" is a delay, and you can use long delays to accelerate writing - in case you
+	 * can predict the time needed by the previous command or so (untested). In any case, using this
+	 * "feature" to set sane-looking timouts for the read below will completely trash performance with
+	 * SF600 and/or firmwares >= 6.0 while they seem to be benign on SF100 with firmwares <= 5.5.2. *shrug*
+	 *
+	 * The specification also uses only 0 in its examples, so the lesson to learn here:
+	 * "Never trust the description of an interface in the documentation but use the example code and pray."
+	const uint8_t read_timeout = 10 + readcnt/512;
+	if (protocol() >= PROTOCOL_V2) {
+		idx = 0;
+		value = min(read_timeout, 0xFF) | (0 << 8) ; // Timeout in lower byte, option in upper byte
+	} else {
+		idx = (0 & 0xFF);  // Lower byte is option (0x01 = require SR, 0x02 keep CS low)
+		value = min(read_timeout, 0xFF); // Possibly two bytes but we play safe here
+	}
+	ret = dediprog_read(CMD_TRANSCEIVE, value, idx, readarr, readcnt);
+	*/
 	ret = dediprog_read(CMD_TRANSCEIVE, 0, 0, readarr, readcnt);
 	if (ret != readcnt) {
 		msg_perr("Receive SPI failed, expected %i, got %i %s!\n",
@@ -646,8 +705,6 @@ static int dediprog_spi_send_command(const struct flashctx *flash, unsigned int 
 static int dediprog_check_devicestring(void)
 {
 	int ret;
-	int fw[3];
-	int sfnum;
 	char buf[0x11];
 
 	/* Command Receive Device String. */
@@ -666,8 +723,11 @@ static int dediprog_check_devicestring(void)
 		msg_perr("Device not a SF100 or SF600!\n");
 		return 1;
 	}
-	if (sscanf(buf, "SF%d V:%d.%d.%d ", &sfnum, &fw[0], &fw[1], &fw[2])
-	    != 4 || sfnum != dediprog_devicetype) {
+
+	int sfnum;
+	int fw[3];
+	if (sscanf(buf, "SF%d V:%d.%d.%d ", &sfnum, &fw[0], &fw[1], &fw[2]) != 4 ||
+	    sfnum != dediprog_devicetype) {
 		msg_perr("Unexpected firmware version string '%s'\n", buf);
 		return 1;
 	}
@@ -676,7 +736,12 @@ static int dediprog_check_devicestring(void)
 		msg_perr("Unexpected firmware version %d.%d.%d!\n", fw[0], fw[1], fw[2]);
 		return 1;
 	}
+
 	dediprog_firmwareversion = FIRMWARE_VERSION(fw[0], fw[1], fw[2]);
+	if (protocol() == PROTOCOL_UNKNOWN) {
+		msg_perr("Internal error: Unable to determine protocol version.\n");
+		return 1;
+	}
 
 	return 0;
 }
@@ -920,7 +985,6 @@ static int dediprog_shutdown(void *data)
 {
 	msg_pspew("%s\n", __func__);
 
-	dediprog_firmwareversion = FIRMWARE_VERSION(0, 0, 0);
 	dediprog_devicetype = DEV_UNKNOWN;
 
 	/* URB 28. Command Set SPI Voltage to 0. */
@@ -1075,7 +1139,7 @@ int dediprog_init(void)
 
 	/* Set some LEDs as soon as possible to indicate activity.
 	 * Because knowing the firmware version is required to set the LEDs correctly we need to this after
-	 * dediprog_setup() has queried the device and set dediprog_firmwareversion. */
+	 * dediprog_setup() has queried the device. */
 	dediprog_set_leds(LED_PASS | LED_BUSY);
 
 	/* FIXME: need to do this so buses_supported gets SPI */
