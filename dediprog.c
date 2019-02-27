@@ -1015,7 +1015,7 @@ int dediprog_init(void)
 	int spispeed_idx = 1;
 	int millivolt = 0;
 	long usedevice = 0;
-	long target = 1;
+	long target = FLASH_TYPE_APPLICATION_FLASH_1;
 	int i, ret;
 
 	msg_pspew("%s\n", __func__);
@@ -1089,7 +1089,18 @@ int dediprog_init(void)
 			free(target_str);
 			return 1;
 		}
-		msg_pinfo("Using target %li.\n", target);
+		switch (target) {
+		case 1:
+			msg_pinfo("Using target %s.\n", "FLASH_TYPE_APPLICATION_FLASH_1");
+			target = FLASH_TYPE_APPLICATION_FLASH_1;
+			break;
+		case 2:
+			msg_pinfo("Using target %s.\n", "FLASH_TYPE_APPLICATION_FLASH_2");
+			target = FLASH_TYPE_APPLICATION_FLASH_2;
+			break;
+		default:
+			break;
+		}
 	}
 	free(target_str);
 
@@ -1157,7 +1168,7 @@ int dediprog_init(void)
 	register_spi_master(&spi_master_dediprog);
 
 	/* Select target/socket, frequency and VCC. */
-	if (set_target_flash(FLASH_TYPE_APPLICATION_FLASH_1) ||
+	if (set_target_flash(target) ||
 	    dediprog_set_spi_speed(spispeed_idx) ||
 	    dediprog_set_spi_voltage(millivolt, voltage ? 0 : 1)) {
 		dediprog_set_leds(LED_ERROR);
