@@ -142,6 +142,12 @@ enum dediprog_standalone_mode {
 	LEAVE_STANDALONE_MODE = 1,
 };
 
+const struct dev_entry devs_dediprog[] = {
+	{0x0483, 0xDADA, OK, "Dediprog", "SF100/SF200/SF600"},
+
+	{0},
+};
+
 #ifndef LIBUSB_HAVE_ERROR_NAME
 /* Quick and dirty replacement for missing libusb_error_name in older libusb 1.0. */
 const char *libusb_error_name(int error_code)
@@ -215,72 +221,6 @@ static int dediprog_read_other(enum dediprog_cmds cmd, unsigned int value, unsig
 {
 	return libusb_control_transfer(dediprog_handle, REQTYPE_OTHER_IN, cmd, value, idx,
 				      (unsigned char *)bytes, size, DEFAULT_TIMEOUT);
-}
-
-#if 0
-/* Might be useful for other USB devices as well. static for now. */
-/* device parameter allows user to specify one device of multiple installed */
-static struct usb_device *get_device_by_vid_pid(uint16_t vid, uint16_t pid, unsigned int device)
-{
-	struct usb_bus *bus;
-	struct usb_device *dev;
-
-	for (bus = usb_get_busses(); bus; bus = bus->next)
-		for (dev = bus->devices; dev; dev = dev->next)
-			if ((dev->descriptor.idVendor == vid) &&
-			    (dev->descriptor.idProduct == pid)) {
-				if (device == 0)
-					return dev;
-				device--;
-			}
-
-	return NULL;
-}
-#endif
-
-/* Might be useful for other USB devices as well. static for now. */
-/* device parameter allows user to specify one device of multiple installed */
-static struct libusb_device_handle *get_device_by_vid_pid_number(uint16_t vid, uint16_t pid, unsigned int num)
-{
-	struct libusb_device **list;
-	ssize_t i = 0;
-	int err = 0;
-	struct libusb_device_handle *handle = NULL;
-	struct libusb_device_descriptor desc = {};
-	ssize_t count = libusb_get_device_list(usb_ctx, &list);
-
-	if (count < 0) {
-		msg_perr("Getting the USB device list failed (%s)!\n", libusb_error_name(count));
-		return NULL;
-	}
-
-	for (i = 0; i < count; i++) {
-		struct libusb_device *dev = list[i];
-		err = libusb_get_device_descriptor(dev, &desc);
-		if (err != 0) {
-			msg_perr("Reading the USB device descriptor failed (%s)!\n", libusb_error_name(err));
-			libusb_free_device_list(list, 1);
-			return NULL;
-		}
-		if ((desc.idVendor == vid) && (desc.idProduct == pid)) {
-			msg_pdbg("Found USB device %04hx:%04hx at address %hhx-%hhx.\n", desc.idVendor,
-				 desc.idProduct, libusb_get_bus_number(dev), libusb_get_device_address(dev));
-			if (num == 0) {
-				err = libusb_open(dev, &handle);
-				if (err != 0) {
-					msg_perr("Opening the USB device failed (%s)!\n",
-						 libusb_error_name(err));
-					libusb_free_device_list(list, 1);
-					return NULL;
-				}
-				break;
-			}
-			num--;
-		}
-	}
-	libusb_free_device_list(list, 1);
-
-	return handle;
 }
 
 /* This function sets the GPIOs connected to the LEDs as well as IO1-IO4. */
@@ -1088,7 +1028,9 @@ int dediprog_init(void)
 		msg_perr("Could not initialize libusb!\n");
 		return 1;
 	}
-	dediprog_handle = get_device_by_vid_pid_number(0x0483, 0xdada, (unsigned int) usedevice);
+	const uint16_t vid = devs_dediprog[0].vendor_id;
+	const uint16_t pid = devs_dediprog[0].device_id;
+	dediprog_handle = usb_dev_get_by_vid_pid_number(usb_ctx, vid, pid, (unsigned int) usedevice);
 	if (!dediprog_handle) {
 		msg_perr("Could not find a Dediprog programmer on USB!\n");
 		libusb_exit(usb_ctx);

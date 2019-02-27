@@ -739,4 +739,12 @@ int serialport_shutdown(void *data);
 int serialport_write(unsigned char *buf, unsigned int writecnt);
 int serialport_read(unsigned char *buf, unsigned int readcnt);
 
+/* usbdev.c */
+struct libusb_device_handle;
+struct libusb_context;
+struct libusb_device_handle *usb_dev_get_by_vid_pid_serial(
+		struct libusb_context *usb_ctx, uint16_t vid, uint16_t pid, const char *serialno);
+struct libusb_device_handle *usb_dev_get_by_vid_pid_number(
+		struct libusb_context *usb_ctx, uint16_t vid, uint16_t pid, unsigned int num);
+
 #endif				/* !__PROGRAMMER_H__ */
