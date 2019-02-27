@@ -125,16 +125,16 @@ enum dediprog_readmode {
 };
 
 enum dediprog_writemode {
-	WRITE_MODE_PAGE_PGM 			= 1,
+	WRITE_MODE_PAGE_PGM			= 1,
 	WRITE_MODE_PAGE_WRITE			= 2,
 	WRITE_MODE_1B_AAI			= 3,
 	WRITE_MODE_2B_AAI			= 4,
 	WRITE_MODE_128B_PAGE			= 5,
 	WRITE_MODE_PAGE_AT26DF041		= 6,
 	WRITE_MODE_SILICON_BLUE_FPGA		= 7,
-	WRITE_MODE_64B_PAGE_NUMONYX_PCM		= 8,	/* unit of length 512 bytes */
+	WRITE_MODE_64B_PAGE_NUMONYX_PCM		= 8,	/* unit of 512 bytes */
 	WRITE_MODE_4B_ADDR_256B_PAGE_PGM	= 9,
-	WRITE_MODE_32B_PAGE_PGM_MXIC_512K	= 10,	/* unit of length 512 bytes */
+	WRITE_MODE_32B_PAGE_PGM_MXIC_512K	= 10,	/* unit of 512 bytes */
 	WRITE_MODE_4B_ADDR_256B_PAGE_PGM_0x12	= 11,
 	WRITE_MODE_4B_ADDR_256B_PAGE_PGM_FLAGS	= 12,
 };
@@ -357,13 +357,12 @@ static void fill_rw_cmd_payload(uint8_t *data_packet, unsigned int count, uint8_
  * @len		length
  * @return	0 on success, 1 on failure
  */
-static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
-				  unsigned int start, unsigned int len)
+static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len)
 {
 	int err = 1;
 
 	/* chunksize must be 512, other sizes will NOT work at all. */
-	const unsigned int chunksize = 0x200;
+	const unsigned int chunksize = 512;
 	const unsigned int count = len / chunksize;
 
 	struct dediprog_transfer_status status = { 0, 0, 0 };
@@ -374,8 +373,8 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
 		return 0;
 
 	if ((start % chunksize) || (len % chunksize)) {
-		msg_perr("%s: Unaligned start=%i, len=%i! Please report a bug "
-			 "at flashrom@flashrom.org\n", __func__, start, len);
+		msg_perr("%s: Unaligned start=%i, len=%i! Please report a bug at flashrom@flashrom.org\n",
+			 __func__, start, len);
 		return 1;
 	}
 
@@ -416,9 +415,9 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
 		transfers[i] = libusb_alloc_transfer(0);
 		if (!transfers[i]) {
 			msg_perr("Allocating libusb transfer %i failed: %s!\n", i, libusb_error_name(ret));
-			goto _err_free;
- 		}
- 	}
+			goto err_free;
+		}
+	}
 
 	/* Now transfer requested chunks using libusb's asynchronous interface. */
 	while (!status.error && (status.queued_idx < count)) {
@@ -432,33 +431,32 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf,
 			transfer->flags |= LIBUSB_TRANSFER_SHORT_NOT_OK;
 			ret = libusb_submit_transfer(transfer);
 			if (ret < 0) {
-				msg_perr("Submitting SPI bulk read %i failed: %i %s!\n",
-					 status.queued_idx, ret, libusb_error_name(ret));
-				goto _err_free;
+				msg_perr("Submitting SPI bulk read %i failed: %s!\n",
+					 status.queued_idx, libusb_error_name(ret));
+				goto err_free;
 			}
 			++status.queued_idx;
 		}
 		if (dediprog_bulk_read_poll(&status, 0))
-			goto _err_free;
+			goto err_free;
 	}
 	/* Wait for transfers to finish. */
 	if (dediprog_bulk_read_poll(&status, 1))
-		goto _err_free;
+		goto err_free;
 	/* Check if everything has been transmitted. */
 	if ((status.finished_idx < count) || status.error)
-		goto _err_free;
+		goto err_free;
 
 	err = 0;
 
-_err_free:
+err_free:
 	dediprog_bulk_read_poll(&status, 1);
 	for (i = 0; i < DEDIPROG_ASYNC_TRANSFERS; ++i)
 		if (transfers[i]) libusb_free_transfer(transfers[i]);
 	return err;
 }
 
-static int dediprog_spi_read(struct flashctx *flash, uint8_t *buf,
-			     unsigned int start, unsigned int len)
+static int dediprog_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len)
 {
 	int ret;
 	/* chunksize must be 512, other sizes will NOT work at all. */
@@ -478,8 +476,7 @@ static int dediprog_spi_read(struct flashctx *flash, uint8_t *buf,
 
 	/* Round down. */
 	bulklen = (len - residue) / chunksize * chunksize;
-	ret = dediprog_spi_bulk_read(flash, buf + residue, start + residue,
-				     bulklen);
+	ret = dediprog_spi_bulk_read(flash, buf + residue, start + residue, bulklen);
 	if (ret)
 		goto err;
 
@@ -570,8 +567,7 @@ static int dediprog_spi_bulk_write(struct flashctx *flash, const uint8_t *buf, u
 		ret = libusb_bulk_transfer(dediprog_handle, dediprog_out_endpoint, usbbuf, 512, &transferred,
 					   DEFAULT_TIMEOUT);
 		if ((ret < 0) || (transferred != 512)) {
-			msg_perr("SPI bulk write failed, expected %i, got %i %s!\n",
-				 512, ret, libusb_error_name(ret));
+			msg_perr("SPI bulk write failed, expected %i, got %s!\n", 512, libusb_error_name(ret));
 			return 1;
 		}
 	}
@@ -643,8 +639,8 @@ static int dediprog_spi_write_aai(struct flashctx *flash, const uint8_t *buf, un
 }
 #endif
 
-//static int dediprog_spi_send_command(struct flashctx *flash,
-static int dediprog_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+static int dediprog_spi_send_command(const struct flashctx *flash,
+				     unsigned int writecnt,
 				     unsigned int readcnt,
 				     const unsigned char *writearr,
 				     unsigned char *readarr)
@@ -677,7 +673,7 @@ static int dediprog_spi_send_command(const struct flashctx *flash, unsigned int 
 			 writecnt, ret, libusb_error_name(ret));
 		return 1;
 	}
-	if (readcnt == 0)
+	if (readcnt == 0) // If we don't require a response, we are done here
 		return 0;
 
 	/* The specifications do state the possibility to set a timeout for transceive transactions.
@@ -700,8 +696,7 @@ static int dediprog_spi_send_command(const struct flashctx *flash, unsigned int 
 	*/
 	ret = dediprog_read(CMD_TRANSCEIVE, 0, 0, readarr, readcnt);
 	if (ret != readcnt) {
-		msg_perr("Receive SPI failed, expected %i, got %i %s!\n",
-			 readcnt, ret, libusb_error_name(ret));
+		msg_perr("Receive SPI failed, expected %i, got %i %s!\n", readcnt, ret, libusb_error_name(ret));
 		return 1;
 	}
 	return 0;
@@ -865,10 +860,10 @@ static int dediprog_set_voltage(void)
 	int ret = libusb_control_transfer(dediprog_handle, REQTYPE_OTHER_IN, CMD_SET_VOLTAGE, 0x0, 0x0,
 			      buf, 0x1, DEFAULT_TIMEOUT);
 	if (ret < 0) {
-		msg_perr("Command A failed (%s)!\n", libusb_error_name(ret));
+		msg_perr("Command Set Voltage failed (%s)!\n", libusb_error_name(ret));
 		return 1;
 	}
-	if ((ret != 0x1) || (buf[0] != 0x6f)) {
+	if ((ret != 1) || (buf[0] != 0x6f)) {
 		msg_perr("Unexpected response to init!\n");
 		return 1;
 	}
@@ -876,17 +871,17 @@ static int dediprog_set_voltage(void)
 	return 0;
 }
 
-static int dediprog_leave_standalone_mode(void)
+static int dediprog_standalone_mode(void)
 {
 	int ret;
 
 	if (dediprog_devicetype != DEV_SF600)
 		return 0;
 
-	msg_pdbg("Leaving standalone mode\n");
+	msg_pdbg2("Disabling standalone mode.\n");
 	ret = dediprog_write(CMD_SET_STANDALONE, LEAVE_STANDALONE_MODE, 0, NULL, 0);
 	if (ret) {
-		msg_perr("Failed to leave standalone mode (%s)!\n", libusb_error_name(ret));
+		msg_perr("Failed to disable standalone mode: %s\n", libusb_error_name(ret));
 		return 1;
 	}
 
@@ -1175,7 +1170,7 @@ int dediprog_init(void)
 		return 1;
 	}
 
-	if (dediprog_leave_standalone_mode())
+	if (dediprog_standalone_mode())
 		return 1;
 
 
