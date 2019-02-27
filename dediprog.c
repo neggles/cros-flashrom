@@ -22,18 +22,19 @@
 #include <string.h>
 #include <limits.h>
 #include <errno.h>
-
-#if IS_WINDOWS
-#include <lusb0_usb.h>
-#else
 #include <libusb.h>
-#endif
-
 #include "flash.h"
 #include "flashchips.h"
 #include "chipdrivers.h"
 #include "programmer.h"
 #include "spi.h"
+
+/* LIBUSB_CALL ensures the right calling conventions on libusb callbacks.
+ * However, the macro is not defined everywhere. m(
+ */
+#ifndef LIBUSB_CALL
+#define LIBUSB_CALL
+#endif
 
 #define FIRMWARE_VERSION(x,y,z) ((x << 16) | (y << 8) | z)
 #define DEFAULT_TIMEOUT 3000
@@ -160,15 +161,19 @@ const struct dev_entry devs_dediprog[] = {
 	{0},
 };
 
-#ifndef LIBUSB_HAVE_ERROR_NAME
-/* Quick and dirty replacement for missing libusb_error_name in older libusb 1.0. */
-const char *libusb_error_name(int error_code)
+#if defined(LIBUSB_MAJOR) && defined(LIBUSB_MINOR) && defined(LIBUSB_MICRO) && \
+    LIBUSB_MAJOR <= 1 && LIBUSB_MINOR == 0 && LIBUSB_MICRO < 9
+/* Quick and dirty replacement for missing libusb_error_name in libusb < 1.0.9 */
+const char * LIBUSB_CALL libusb_error_name(int error_code)
 {
-	/* 18 chars for text, rest for number, sign, nullbyte. */
-	static char my_libusb_error[18 + 6];
-
-	sprintf(my_libusb_error, "libusb error code %i", error_code);
-	return my_libusb_error;
+	if (error_code >= INT16_MIN && error_code <= INT16_MAX) {
+		/* 18 chars for text, rest for number (16 b should be enough), sign, nullbyte. */
+		static char my_libusb_error[18 + 5 + 2];
+		sprintf(my_libusb_error, "libusb error code %i", error_code);
+		return my_libusb_error;
+	} else {
+		return "UNKNOWN";
+	}
 }
 #endif
 
@@ -200,7 +205,7 @@ struct dediprog_transfer_status {
 	unsigned int finished_idx;
 };
 
-static void dediprog_bulk_read_cb(struct libusb_transfer *const transfer)
+static void LIBUSB_CALL dediprog_bulk_read_cb(struct libusb_transfer *const transfer)
 {
 	struct dediprog_transfer_status *const status = (struct dediprog_transfer_status *)transfer->user_data;
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
@@ -217,7 +222,7 @@ static int dediprog_bulk_read_poll(const struct dediprog_transfer_status *const 
 
 	do {
 		struct timeval timeout = { 10, 0 };
-		const int ret = libusb_handle_events_timeout_completed(usb_ctx, &timeout, NULL);
+		const int ret = libusb_handle_events_timeout(usb_ctx, &timeout);
 		if (ret < 0) {
 			msg_perr("Polling read events failed: %i %s!\n", ret, libusb_error_name(ret));
 			return 1;
@@ -904,7 +909,7 @@ static bool dediprog_get_button(void)
 	int ret = usb_control_msg(dediprog_handle, REQTYPE_EP_IN, CMD_GET_BUTTON, 0, 0,
 			      buf, 0x1, DEFAULT_TIMEOUT);
 	if (ret != 0) {
-		msg_perr("Could not get button state (%s)!\n", usb_strerror());
+		msg_perr("Could not get button state (%s)!\n", libusb_error_name(ret));
 		return 1;
 	}
 	return buf[0] != 1;
