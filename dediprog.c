@@ -860,9 +860,7 @@ static int dediprog_set_spi_voltage(int millivolt, int probe)
 static int dediprog_set_voltage(void)
 {
 	int ret;
-	unsigned char buf[0x1];
-
-	memset(buf, 0, sizeof(buf));
+	unsigned char buf[1] = {0};
 	ret = dediprog_read_other(CMD_SET_VOLTAGE, 0x0, 0x0, buf, 0x1);
 	if (ret < 0) {
 		msg_perr("Command A failed (%s)!\n", libusb_error_name(ret));
