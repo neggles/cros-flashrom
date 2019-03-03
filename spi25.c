@@ -159,14 +159,8 @@ static int compare_id(struct flashctx *flash, uint32_t id1, uint32_t id2)
 {
 	msg_cdbg("id1 0x%02x, id2 0x%02x\n", id1, id2);
 
-	if (id1 == flash->chip->manufacture_id && id2 == flash->chip->model_id) {
-		/* Print the status register to tell the
-		 * user about possible write protection.
-		 */
-		spi_prettyprint_status_register(flash);
-
+	if (id1 == flash->chip->manufacture_id && id2 == flash->chip->model_id)
 		return 1;
-	}
 
 	/* Test if this is a pure vendor match. */
 	if (id1 == flash->chip->manufacture_id &&
@@ -277,10 +271,6 @@ int probe_spi_res1(struct flashctx *flash)
 	if (id2 != flash->chip->model_id)
 		return 0;
 
-	/* Print the status register to tell the
-	 * user about possible write protection.
-	 */
-	spi_prettyprint_status_register(flash);
 	return 1;
 }
 
@@ -301,160 +291,7 @@ int probe_spi_res2(struct flashctx *flash)
 	if (id1 != flash->chip->manufacture_id || id2 != flash->chip->model_id)
 		return 0;
 
-	/* Print the status register to tell the
-	 * user about possible write protection.
-	 */
-	spi_prettyprint_status_register(flash);
 	return 1;
-}
-
-uint8_t spi_read_status_register(const struct flashctx *flash)
-{
-	static const unsigned char cmd[JEDEC_RDSR_OUTSIZE] = { JEDEC_RDSR };
-	/* FIXME: No workarounds for driver/hardware bugs in generic code. */
-	unsigned char readarr[2]; /* JEDEC_RDSR_INSIZE=1 but wbsio needs 2 */
-	int ret = 0;
-
-	/* Read Status Register */
-	if (flash->chip->read_status)
-		readarr[0] = flash->chip->read_status(flash);
-	else
-		ret = spi_send_command(flash, sizeof(cmd), sizeof(readarr), cmd, readarr);
-	if (ret)
-		msg_cerr("RDSR failed!\n");
-
-	return readarr[0];
-}
-
-/* Prettyprint the status register. Common definitions. */
-void spi_prettyprint_status_register_welwip(uint8_t status)
-{
-	msg_cdbg("Chip status register: Write Enable Latch (WEL) is "
-		     "%sset\n", (status & (1 << 1)) ? "" : "not ");
-	msg_cdbg("Chip status register: Write In Progress (WIP/BUSY) is "
-		     "%sset\n", (status & (1 << 0)) ? "" : "not ");
-}
-
-/* Prettyprint the status register. Common definitions. */
-void spi_prettyprint_status_register_bp3210(uint8_t status, int bp)
-{
-	switch (bp) {
-	/* Fall through. */
-	case 3:
-		msg_cdbg("Chip status register: Bit 5 / Block Protect 3 (BP3) "
-			     "is %sset\n", (status & (1 << 5)) ? "" : "not ");
-	case 2:
-		msg_cdbg("Chip status register: Bit 4 / Block Protect 2 (BP2) "
-			     "is %sset\n", (status & (1 << 4)) ? "" : "not ");
-	case 1:
-		msg_cdbg("Chip status register: Bit 3 / Block Protect 1 (BP1) "
-			     "is %sset\n", (status & (1 << 3)) ? "" : "not ");
-	case 0:
-		msg_cdbg("Chip status register: Bit 2 / Block Protect 0 (BP0) "
-			     "is %sset\n", (status & (1 << 2)) ? "" : "not ");
-	}
-}
-
-/* Prettyprint the status register. Unnamed bits. */
-void spi_prettyprint_status_register_bit(uint8_t status, int bit)
-{
-	msg_cdbg("Chip status register: Bit %i "
-		 "is %sset\n", bit, (status & (1 << bit)) ? "" : "not ");
-}
-
-static void spi_prettyprint_status_register_common(uint8_t status)
-{
-	spi_prettyprint_status_register_bp3210(status, 3);
-	spi_prettyprint_status_register_welwip(status);
-}
-
-/* Prettyprint the status register. Works for
- * ST M25P series
- * MX MX25L series
- */
-void spi_prettyprint_status_register_st_m25p(uint8_t status)
-{
-	msg_cdbg("Chip status register: Status Register Write Disable "
-		     "(SRWD) is %sset\n", (status & (1 << 7)) ? "" : "not ");
-	msg_cdbg("Chip status register: Bit 6 is "
-		     "%sset\n", (status & (1 << 6)) ? "" : "not ");
-	spi_prettyprint_status_register_common(status);
-}
-
-void spi_prettyprint_status_register_sst25(uint8_t status)
-{
-	msg_cdbg("Chip status register: Block Protect Write Disable "
-		     "(BPL) is %sset\n", (status & (1 << 7)) ? "" : "not ");
-	msg_cdbg("Chip status register: Auto Address Increment Programming "
-		     "(AAI) is %sset\n", (status & (1 << 6)) ? "" : "not ");
-	spi_prettyprint_status_register_common(status);
-}
-
-/* Prettyprint the status register. Works for
- * SST 25VF016
- */
-void spi_prettyprint_status_register_sst25vf016(uint8_t status)
-{
-	static const char *const bpt[] = {
-		"none",
-		"1F0000H-1FFFFFH",
-		"1E0000H-1FFFFFH",
-		"1C0000H-1FFFFFH",
-		"180000H-1FFFFFH",
-		"100000H-1FFFFFH",
-		"all", "all"
-	};
-	spi_prettyprint_status_register_sst25(status);
-	msg_cdbg("Resulting block protection : %s\n",
-		     bpt[(status & 0x1c) >> 2]);
-}
-
-void spi_prettyprint_status_register_sst25vf040b(uint8_t status)
-{
-	static const char *const bpt[] = {
-		"none",
-		"0x70000-0x7ffff",
-		"0x60000-0x7ffff",
-		"0x40000-0x7ffff",
-		"all blocks", "all blocks", "all blocks", "all blocks"
-	};
-	spi_prettyprint_status_register_sst25(status);
-	msg_cdbg("Resulting block protection : %s\n",
-		bpt[(status & 0x1c) >> 2]);
-}
-
-int spi_prettyprint_status_register(struct flashctx *flash)
-{
-	uint8_t status;
-
-	status = spi_read_status_register(flash);
-	msg_cdbg("Chip status register is %02x\n", status);
-	switch (flash->chip->manufacture_id) {
-	case ST_ID:
-		if (((flash->chip->model_id & 0xff00) == 0x2000) ||
-		    ((flash->chip->model_id & 0xff00) == 0x2500))
-			spi_prettyprint_status_register_st_m25p(status);
-		break;
-	case MACRONIX_ID:
-		if ((flash->chip->model_id & 0xff00) == 0x2000)
-			spi_prettyprint_status_register_st_m25p(status);
-		break;
-	case SST_ID:
-		switch (flash->chip->model_id) {
-		case 0x2541:
-			spi_prettyprint_status_register_sst25vf016(status);
-			break;
-		case 0x8d:
-		case 0x258d:
-			spi_prettyprint_status_register_sst25vf040b(status);
-			break;
-		default:
-			spi_prettyprint_status_register_sst25(status);
-			break;
-		}
-		break;
-	}
-	return 0;
 }
 
 int spi_chip_erase_60(struct flashctx *flash)
@@ -724,72 +561,6 @@ int spi_block_erase_c7(struct flashctx *flash, unsigned int addr, unsigned int b
 	return spi_chip_erase_c7(flash);
 }
 
-int spi_write_status_enable(struct flashctx *flash)
-{
-	static const unsigned char cmd[JEDEC_EWSR_OUTSIZE] = { JEDEC_EWSR };
-	int result;
-
-	/* Send EWSR (Enable Write Status Register). */
-	result = spi_send_command(flash, sizeof(cmd), JEDEC_EWSR_INSIZE, cmd, NULL);
-
-	if (result)
-		msg_cerr("%s failed\n", __func__);
-
-	return result;
-}
-
-/*
- * This is according the SST25VF016 datasheet, who knows it is more
- * generic that this...
- */
-static int spi_write_status_register_ewsr(const struct flashctx *flash, int status)
-{
-	int result;
-	int i = 0;
-	struct spi_command cmds[] = {
-	{
-	/* WRSR requires either EWSR or WREN depending on chip type. */
-		.writecnt	= JEDEC_EWSR_OUTSIZE,
-		.writearr	= (const unsigned char[]){ JEDEC_EWSR },
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}, {
-		.writecnt	= JEDEC_WRSR_OUTSIZE,
-		.writearr	= (const unsigned char[]){ JEDEC_WRSR, (unsigned char) status },
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}, {
-		.writecnt	= 0,
-		.writearr	= NULL,
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}};
-
-	result = spi_send_multicommand(flash, cmds);
-	if (result) {
-		msg_cerr("%s failed during command execution\n",
-			__func__);
-		/* No point in waiting for the command to complete if execution
-		 * failed.
-		 */
-		return result;
-	}
-	/* WRSR performs a self-timed erase before the changes take effect.
-	 * This may take 50-85 ms in most cases, and some chips apparently
-	 * allow running RDSR only once. Therefore pick an initial delay of
-	 * 100 ms, then wait in 10 ms steps until a total of 5 s have elapsed.
-	 */
-	programmer_delay(100 * 1000);
-	while (spi_read_status_register(flash) & SPI_SR_WIP) {
-		if (++i > 490) {
-			msg_cerr("Error: WIP bit after WRSR never cleared\n");
-			return TIMEOUT_ERROR;
-		}
-		programmer_delay(10 * 1000);
-	}
-	return 0;
-}
-
 int spi_write_status_register_wren(const struct flashctx *flash, int status)
 {
 	int result;
@@ -836,22 +607,6 @@ int spi_write_status_register_wren(const struct flashctx *flash, int status)
 		programmer_delay(10 * 1000);
 	}
 	return 0;
-}
-
-int spi_write_status_register(const struct flashctx *flash, int status)
-{
-	int ret = 1;
-
-	if (flash->chip->write_status) {
-		ret = flash->chip->write_status(flash, status);
-	} else {
-		if (flash->chip->feature_bits & FEATURE_WRSR_WREN)
-			ret = spi_write_status_register_wren(flash, status);
-		if (ret && (flash->chip->feature_bits & FEATURE_WRSR_EWSR))
-			ret = spi_write_status_register_ewsr(flash, status);
-	}
-
-	return ret;
 }
 
 int spi_byte_program(struct flashctx *flash, unsigned int addr, uint8_t databyte)
@@ -942,37 +697,6 @@ int spi_restore_status(struct flashctx *flash, uint8_t status)
 {
 	msg_cdbg("restoring chip status (0x%02x)\n", status);
 	return spi_write_status_register(flash, status);
-}
-
-/* A generic brute-force block protection disable works like this:
- * Write 0x00 to the status register. Check if any locks are still set (that
- * part is chip specific). Repeat once.
- */
-int spi_disable_blockprotect(struct flashctx *flash)
-{
-	uint8_t status;
-	int result;
-
-	status = spi_read_status_register(flash);
-	/* If block protection is disabled, stop here. */
-	if ((status & 0x3c) == 0)
-		return 0;
-
-	/* restore status register content upon exit */
-	register_chip_restore(spi_restore_status, flash, status);
-
-	msg_cdbg("Some block protection in effect, disabling\n");
-	result = spi_write_status_register(flash, status & ~0x3c);
-	if (result) {
-		msg_cerr("spi_write_status_register failed\n");
-		return result;
-	}
-	status = spi_read_status_register(flash);
-	if ((status & 0x3c) != 0) {
-		msg_cerr("Block protection could not be disabled!\n");
-		return 1;
-	}
-	return 0;
 }
 
 int spi_nbyte_read(struct flashctx *flash, unsigned int address, uint8_t *bytes, unsigned int len)
