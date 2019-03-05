@@ -1878,7 +1878,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
-		.printlock	= spi_prettyprint_status_register_atmel_at26df081a,
+		.printlock	= spi_prettyprint_status_register_at26df081a,
 		.unlock		= spi_disable_blockprotect_at25df,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -1952,7 +1952,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
-		.printlock	= spi_prettyprint_status_register_atmel_at26df081a,
+		.printlock	= spi_prettyprint_status_register_at26df081a,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -1971,7 +1971,7 @@ const struct flashchip flashchips[] = {
 		.tested		= TEST_UNTESTED,
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
-		.printlock	= spi_prettyprint_status_register_atmel_at26df081a,
+		.printlock	= spi_prettyprint_status_register_at26df081a,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,

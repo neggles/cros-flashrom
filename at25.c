@@ -144,7 +144,7 @@ int spi_prettyprint_status_register_at25fs040(struct flashctx *flash)
 	return 0;
 }
 
-int spi_prettyprint_status_register_atmel_at26df081a(struct flashctx *flash)
+int spi_prettyprint_status_register_at26df081a(struct flashctx *flash)
 {
 	uint8_t status;
 

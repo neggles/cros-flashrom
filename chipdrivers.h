@@ -77,7 +77,7 @@ int spi_prettyprint_status_register_at25df_sec(struct flashctx *flash);
 int spi_prettyprint_status_register_at25f(struct flashctx *flash);
 int spi_prettyprint_status_register_at25fs010(struct flashctx *flash);
 int spi_prettyprint_status_register_at25fs040(struct flashctx *flash);
-int spi_prettyprint_status_register_atmel_at26df081a(struct flashctx *flash);
+int spi_prettyprint_status_register_at26df081a(struct flashctx *flash);
 int spi_disable_blockprotect_at25df(struct flashctx *flash);
 int spi_disable_blockprotect_at25df_sec(struct flashctx *flash);
 int spi_disable_blockprotect_at25f(struct flashctx *flash);
