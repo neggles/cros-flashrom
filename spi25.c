@@ -488,7 +488,7 @@ int spi_chip_erase_60(struct flashctx *flash)
 	 * This usually takes 1-85 s, so wait in 1 s steps.
 	 */
 	/* FIXME: We assume spi_read_status_register will never fail. */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(1000 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -524,7 +524,7 @@ int spi_chip_erase_c7(struct flashctx *flash)
 	 * This usually takes 1-85 s, so wait in 1 s steps.
 	 */
 	/* FIXME: We assume spi_read_status_register will never fail. */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(1000 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -565,7 +565,7 @@ int spi_block_erase_52(struct flashctx *flash, unsigned int addr, unsigned int b
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -611,7 +611,7 @@ int spi_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int b
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -655,7 +655,7 @@ int spi_block_erase_d7(struct flashctx *flash, unsigned int addr, unsigned int b
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -698,7 +698,7 @@ int spi_block_erase_20(struct flashctx *flash, unsigned int addr, unsigned int b
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 15-800 ms, so wait in 10 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(10 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -780,7 +780,7 @@ static int spi_write_status_register_ewsr(const struct flashctx *flash, int stat
 	 * 100 ms, then wait in 10 ms steps until a total of 5 s have elapsed.
 	 */
 	programmer_delay(100 * 1000);
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP) {
+	while (spi_read_status_register(flash) & SPI_SR_WIP) {
 		if (++i > 490) {
 			msg_cerr("Error: WIP bit after WRSR never cleared\n");
 			return TIMEOUT_ERROR;
@@ -828,7 +828,7 @@ int spi_write_status_register_wren(const struct flashctx *flash, int status)
 	 * 100 ms, then wait in 10 ms steps until a total of 5 s have elapsed.
 	 */
 	programmer_delay(100 * 1000);
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP) {
+	while (spi_read_status_register(flash) & SPI_SR_WIP) {
 		if (++i > 490) {
 			msg_cerr("Error: WIP bit after WRSR never cleared\n");
 			return TIMEOUT_ERROR;
@@ -1117,7 +1117,7 @@ int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int s
 					buf + starthere - start + j, towrite);
 			if (rc)
 				break;
-			while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+			while (spi_read_status_register(flash) & SPI_SR_WIP)
 				programmer_delay(10);
 		}
 		if (rc)
@@ -1145,7 +1145,7 @@ int spi_chip_write_1(struct flashctx *flash, const uint8_t *buf, unsigned int st
 			: flash->chip->four_bytes_addr_funcs.program_byte(flash, i, buf[i - start]);
 		if (result)
 			return 1;
-		while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+		while (spi_read_status_register(flash) & SPI_SR_WIP)
 			programmer_delay(10);
 	}
 
@@ -1239,7 +1239,7 @@ int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start
 		 */
 		return result;
 	}
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(10);
 
 	/* We already wrote 2 bytes in the multicommand step. */
@@ -1250,7 +1250,7 @@ int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start
 		cmd[1] = buf[pos++ - start];
 		cmd[2] = buf[pos++ - start];
 		spi_send_command(flash, JEDEC_AAI_WORD_PROGRAM_CONT_OUTSIZE, 0, cmd, NULL);
-		while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+		while (spi_read_status_register(flash) & SPI_SR_WIP)
 			programmer_delay(10);
 	}
 

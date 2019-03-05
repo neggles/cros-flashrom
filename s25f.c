@@ -154,7 +154,7 @@ static int s25f_poll_status(const struct flashctx *flash)
 {
 	uint8_t tmp = spi_read_status_register(flash);
 
-	while (tmp & JEDEC_RDSR_BIT_WIP) {
+	while (tmp & SPI_SR_WIP) {
 		/*
 		 * The WIP bit on S25F chips remains set to 1 if erase or
 		 * programming errors occur, so we must check for those

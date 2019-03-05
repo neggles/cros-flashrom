@@ -261,7 +261,7 @@ int spi_block_erase_20_4ba(struct flashctx *flash, unsigned int addr, unsigned i
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 15-800 ms, so wait in 10 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(10 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -306,7 +306,7 @@ int spi_block_erase_52_4ba(struct flashctx *flash, unsigned int addr, unsigned i
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -352,7 +352,7 @@ int spi_block_erase_d8_4ba(struct flashctx *flash, unsigned int addr,
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -580,7 +580,7 @@ int spi_block_erase_20_4ba_ereg(struct flashctx *flash, unsigned int addr,
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 15-800 ms, so wait in 10 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(10 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -630,7 +630,7 @@ int spi_block_erase_52_4ba_ereg(struct flashctx *flash, unsigned int addr,
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -680,7 +680,7 @@ int spi_block_erase_d8_4ba_ereg(struct flashctx *flash, unsigned int addr,
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -847,7 +847,7 @@ int spi_block_erase_21_4ba_direct(struct flashctx *flash, unsigned int addr,
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 15-800 ms, so wait in 10 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(10 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -896,7 +896,7 @@ int spi_block_erase_5c_4ba_direct(struct flashctx *flash, unsigned int addr,
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
@@ -945,7 +945,7 @@ int spi_block_erase_dc_4ba_direct(struct flashctx *flash, unsigned int addr,
 	/* Wait until the Write-In-Progress bit is cleared.
 	 * This usually takes 100-4000 ms, so wait in 100 ms steps.
 	 */
-	while (spi_read_status_register(flash) & JEDEC_RDSR_BIT_WIP)
+	while (spi_read_status_register(flash) & SPI_SR_WIP)
 		programmer_delay(100 * 1000);
 	/* FIXME: Check the status register for errors. */
 	return 0;
