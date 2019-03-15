@@ -249,6 +249,14 @@ char *flashbuses_to_text(enum chipbustype bustype);
 void print_supported(void);
 void print_supported_wiki(void);
 
+/* helpers.c */
+uint32_t address_to_bits(uint32_t addr);
+int bitcount(unsigned long a);
+int min(int a, int b);
+int max(int a, int b);
+char *strcat_realloc(char *dest, const char *src);
+void tolower_string(char *str);
+
 /* flashrom.c */
 enum write_granularity {
 	write_gran_1bit,
@@ -267,12 +275,8 @@ int probe_flash(int startchip, struct flashctx *fill_flash, int force);
 int read_flash(struct flashctx *flash, uint8_t *buf,
 			unsigned int start, unsigned int len);
 int read_flash_to_file(struct flashctx *flash, const char *filename);
-int min(int a, int b);
-int max(int a, int b);
-void tolower_string(char *str);
 char *extract_param(char **haystack, const char *needle, const char *delim);
 int verify_range(struct flashctx *flash, uint8_t *cmpbuf, unsigned int start, unsigned int len, const char *message);
-char *strcat_realloc(char *dest, const char *src);
 void print_version(void);
 void print_buildinfo(void);
 void print_banner(void);

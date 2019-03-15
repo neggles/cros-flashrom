@@ -422,7 +422,7 @@ FEATURE_CFLAGS += -D'USE_BIG_LOCK=1' -D'USE_CROS_EC_LOCK=1'
 
 CLI_OBJS = action_descriptor.o cli_mfg.o cli_output.o flashrom.o print.o
 
-PROGRAMMER_OBJS = udelay.o programmer.o
+PROGRAMMER_OBJS = udelay.o programmer.o helpers.o
 
 # Set the flashrom version string from the highest revision number of the checked out flashrom files.
 # Note to packagers: Any tree exported with "make export" or "make tarball"
