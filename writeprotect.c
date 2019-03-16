@@ -1079,6 +1079,10 @@ static int w25_range_table(const struct flashctx *flash,
 				*num_entries = ARRAY_SIZE(w25rq128_cmp0_ranges);
 			}
 			break;
+		case GIGADEVICE_GD25Q256D:
+			*w25q_ranges = w25rq256_cmp0_ranges;
+			*num_entries = ARRAY_SIZE(w25rq256_cmp0_ranges);
+			break;
 		default:
 			msg_cerr("%s() %d: GigaDevice flash chip mismatch"
 				 " (0x%04x), aborting\n", __func__, __LINE__,
