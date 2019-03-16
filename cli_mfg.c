@@ -888,8 +888,13 @@ int main(int argc, char *argv[])
 		set_ignore_fmap = 1;
 	}
 
-	/* add entries for regions specified in flashmap */
-	if (!set_ignore_fmap && get_fmap_entries(filename, fill_flash) < 0) {
+	/*
+	 * Add entries for regions specified in flashmap, unless the user
+	 * explicitly requested not to look for fmap, or provided a layout
+	 * file.
+	 */
+	if (!set_ignore_fmap && !layoutfile &&
+	    get_fmap_entries(filename, fill_flash) < 0) {
 		rc = 1;
 		goto cli_mfg_silent_exit;
 	}
