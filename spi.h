@@ -92,11 +92,11 @@
 #define JEDEC_RDSR		0x05
 #define JEDEC_RDSR_OUTSIZE	0x01
 #define JEDEC_RDSR_INSIZE	0x01
-#define JEDEC_RDSR_BIT_ERASE_ERR (0x01 << 5)
 
 /* Status Register Bits */
 #define SPI_SR_WIP	(0x01 << 0)
 #define SPI_SR_WEL	(0x01 << 1)
+#define SPI_SR_ERA_ERR	(0x01 << 5)
 #define SPI_SR_AAI	(0x01 << 6)
 
 /* Write Status Enable */

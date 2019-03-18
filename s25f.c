@@ -162,7 +162,7 @@ static int s25f_poll_status(const struct flashctx *flash)
 		 * reset to clear WIP and other volatile bits, otherwise
 		 * the chip will be unresponsive to further commands.
 		 */
-		if (tmp & JEDEC_RDSR_BIT_ERASE_ERR) {
+		if (tmp & SPI_SR_ERA_ERR) {
 			msg_cerr("Erase error occurred\n");
 			s25f_legacy_software_reset(flash);
 			return -1;
