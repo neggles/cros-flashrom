@@ -238,11 +238,6 @@ static int dediprog_write(enum dediprog_cmds cmd, unsigned int value, unsigned i
 				      (unsigned char *)bytes, size, DEFAULT_TIMEOUT);
 }
 
-static int dediprog_read_other(enum dediprog_cmds cmd, unsigned int value, unsigned int idx, const uint8_t *bytes, size_t size)
-{
-	return libusb_control_transfer(dediprog_handle, REQTYPE_OTHER_IN, cmd, value, idx,
-				      (unsigned char *)bytes, size, DEFAULT_TIMEOUT);
-}
 
 /* This function sets the GPIOs connected to the LEDs as well as IO1-IO4. */
 static int dediprog_set_leds(int leds)
@@ -859,9 +854,9 @@ static int dediprog_set_spi_voltage(int millivolt, int probe)
  */
 static int dediprog_set_voltage(void)
 {
-	int ret;
 	unsigned char buf[1] = {0};
-	ret = dediprog_read_other(CMD_SET_VOLTAGE, 0x0, 0x0, buf, 0x1);
+	int ret = libusb_control_transfer(dediprog_handle, REQTYPE_OTHER_IN, CMD_SET_VOLTAGE, 0x0, 0x0,
+			      buf, 0x1, DEFAULT_TIMEOUT);
 	if (ret < 0) {
 		msg_perr("Command A failed (%s)!\n", libusb_error_name(ret));
 		return 1;
