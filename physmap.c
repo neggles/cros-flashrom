@@ -36,6 +36,7 @@
 #include <dpmi.h>
 #include <sys/nearptr.h>
 
+#define ONE_MEGABYTE (1024 * 1024)
 #define MEM_DEV "dpmi"
 
 static void *realmem_map;
@@ -45,12 +46,12 @@ static void *map_first_meg(uintptr_t phys_addr, size_t len)
 	if (realmem_map)
 		return realmem_map + phys_addr;
 
-	realmem_map = valloc(1024 * 1024);
+	realmem_map = valloc(ONE_MEGABYTE);
 
 	if (!realmem_map)
 		return ERROR_PTR;
 
-	if (__djgpp_map_physical_memory(realmem_map, (1024 * 1024), 0)) {
+	if (__djgpp_map_physical_memory(realmem_map, ONE_MEGABYTE, 0)) {
 		free(realmem_map);
 		realmem_map = NULL;
 		return ERROR_PTR;
@@ -68,7 +69,7 @@ static void *sys_physmap(uintptr_t phys_addr, size_t len)
 	if (!__djgpp_nearptr_enable())
 		return ERROR_PTR;
 
-	if ((phys_addr + len - 1) < (1024 * 1024)) {
+	if ((phys_addr + len - 1) < ONE_MEGABYTE) {
 		/* We need to use another method to map first 1MB. */
 		return map_first_meg(phys_addr, len);
 	}
@@ -94,7 +95,7 @@ void physunmap(void *virt_addr, size_t len)
 	 * do this for us on exit.
 	 */
 	if ((virt_addr >= realmem_map) &&
-	    ((virt_addr + len) <= (realmem_map + (1024 * 1024)))) {
+	    ((virt_addr + len) <= (realmem_map + ONE_MEGABYTE))) {
 		return;
 	}
 
