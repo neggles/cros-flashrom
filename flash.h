@@ -39,6 +39,8 @@ struct flashctx; /* forward declare */
 /* Error codes */
 #define TIMEOUT_ERROR	-101
 
+#define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
+
 /* for verify_it variable in flashrom.c and cli_mfg.c */
 enum {
 	VERIFY_OFF = 0,

@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include "flash.h"
 
 /* Do we need any file access or ioctl for physmap or MSR? */
@@ -29,7 +30,6 @@
 /* No file access needed/possible to get mmap access permissions or access MSR. */
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <errno.h>
 #endif
 
 #ifdef __DJGPP__
@@ -170,8 +170,8 @@ static void *sys_physmap_rw_uncached(uintptr_t phys_addr, size_t len)
 	if (-1 == fd_mem) {
 		/* Open the memory device UNCACHED. Important for MMIO. */
 		if (-1 == (fd_mem = open(MEM_DEV, O_RDWR | O_SYNC))) {
-			perror("Critical error: open(" MEM_DEV ")");
-			exit(2);
+			msg_perr("Critical error: open(" MEM_DEV "): %s\n", strerror(errno));
+			return ERROR_PTR;
 		}
 	}
 
@@ -190,9 +190,8 @@ static void *sys_physmap_ro_cached(uintptr_t phys_addr, size_t len)
 	if (-1 == fd_mem_cached) {
 		/* Open the memory device CACHED. */
 		if (-1 == (fd_mem_cached = open(MEM_DEV, O_RDWR))) {
-			msg_perr("Critical error: open(" MEM_DEV "): %s",
-				 strerror(errno));
-			exit(2);
+			msg_perr("Critical error: open(" MEM_DEV "): %s\n", strerror(errno));
+			return ERROR_PTR;
 		}
 	}
 
@@ -241,8 +240,7 @@ static void *physmap_common(const char *descr, uintptr_t phys_addr, size_t len, 
 	void *virt_addr;
 
 	if (len == 0) {
-		msg_pspew("Not mapping %s, zero size at 0x%" PRIxPTR ".\n",
-			  descr, phys_addr);
+		msg_pspew("Not mapping %s, zero size at 0x%0*" PRIxPTR ".\n", descr, PRIxPTR_WIDTH, phys_addr);
 		return ERROR_PTR;
 	}
 
@@ -264,9 +262,9 @@ static void *physmap_common(const char *descr, uintptr_t phys_addr, size_t len, 
 	if (ERROR_PTR == virt_addr) {
 		if (NULL == descr)
 			descr = "memory";
-		msg_perr("Error accessing %s, 0x%lx bytes at 0x%" PRIxPTR "\n", descr,
-			 (unsigned long)len, phys_addr);
-		perror(MEM_DEV " mmap failed");
+		msg_perr("Error accessing %s, 0x%zx bytes at 0x%0*" PRIxPTR "\n",
+			 descr, len, PRIxPTR_WIDTH, phys_addr);
+		msg_perr(MEM_DEV " mmap failed: %s\n", strerror(errno));
 #ifdef __linux__
 		if (EINVAL == errno) {
 			msg_perr("In Linux this error can be caused by the CONFIG_NONPROMISC_DEVMEM (<2.6.27),\n");
@@ -341,7 +339,7 @@ msr_t rdmsr(int addr)
 	msr_t msr = { 0xffffffff, 0xffffffff };
 
 	if (lseek(fd_msr, (off_t) addr, SEEK_SET) == -1) {
-		perror("Could not lseek() to MSR");
+		msg_perr("Could not lseek() MSR: %s\n", strerror(errno));
 		close(fd_msr);
 		exit(1);
 	}
@@ -354,7 +352,7 @@ msr_t rdmsr(int addr)
 
 	if (errno != EIO) {
 		// A severe error.
-		perror("Could not read() MSR");
+		msg_perr("Could not read() MSR: %s\n", strerror(errno));
 		close(fd_msr);
 		exit(1);
 	}
@@ -369,13 +367,13 @@ int wrmsr(int addr, msr_t msr)
 	buf[1] = msr.hi;
 
 	if (lseek(fd_msr, (off_t) addr, SEEK_SET) == -1) {
-		perror("Could not lseek() to MSR");
+		msg_perr("Could not lseek() MSR: %s\n", strerror(errno));
 		close(fd_msr);
 		exit(1);
 	}
 
 	if (write(fd_msr, buf, 8) != 8 && errno != EIO) {
-		perror("Could not write() MSR");
+		msg_perr("Could not write() MSR: %s\n", strerror(errno));
 		close(fd_msr);
 		exit(1);
 	}
@@ -401,7 +399,7 @@ int setup_cpu_msr(int cpu)
 	fd_msr = open(msrfilename, O_RDWR);
 
 	if (fd_msr < 0) {
-		perror("Error while opening /dev/cpu/0/msr");
+		msg_perr("Error while opening %s: %s\n", msrfilename, strerror(errno));
 		msg_pinfo("Did you run 'modprobe msr'?\n");
 		return -1;
 	}
@@ -443,7 +441,7 @@ msr_t rdmsr(int addr)
 	args.msr = addr;
 
 	if (ioctl(fd_msr, CPU_RDMSR, &args) < 0) {
-		perror("CPU_RDMSR");
+		msg_perr("Error while executing CPU_RDMSR ioctl: %s\n", strerror(errno));
 		close(fd_msr);
 		exit(1);
 	}
@@ -462,7 +460,7 @@ int wrmsr(int addr, msr_t msr)
 	args.data = (((uint64_t)msr.hi) << 32) | msr.lo;
 
 	if (ioctl(fd_msr, CPU_WRMSR, &args) < 0) {
-		perror("CPU_WRMSR");
+		msg_perr("Error while executing CPU_WRMSR ioctl: %s\n", strerror(errno));
 		close(fd_msr);
 		exit(1);
 	}
@@ -484,7 +482,7 @@ int setup_cpu_msr(int cpu)
 	fd_msr = open(msrfilename, O_RDWR);
 
 	if (fd_msr < 0) {
-		perror("Error while opening /dev/cpu0");
+		msg_perr("Error while opening %s: %s\n", msrfilename, strerror(errno));
 		msg_pinfo("Did you install ports/sysutils/devcpu?\n");
 		return -1;
 	}
