@@ -14,7 +14,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <inttypes.h>
@@ -27,6 +26,7 @@
 
 /* Do we need any file access or ioctl for physmap or MSR? */
 #if !defined(__DJGPP__) && !defined(__LIBPAYLOAD__)
+/* No file access needed/possible to get mmap access permissions or access MSR. */
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -505,9 +505,8 @@ void cleanup_cpu_msr(void)
 	fd_msr = -1;
 }
 
-#else
-
-#if defined(__MACH__) && defined(__APPLE__)
+#elif defined(__MACH__) && defined(__APPLE__)
+/* rdmsr() and wrmsr() are provided by DirectHW which needs neither setup nor cleanup. */
 int setup_cpu_msr(int cpu)
 {
 	// Always succeed for now
@@ -534,6 +533,7 @@ int libpayload_wrmsr(int addr, msr_t msr)
 	return 0;
 }
 #else
+/* default MSR implementation */
 msr_t rdmsr(int addr)
 {
 	msr_t ret = { 0xffffffff, 0xffffffff };
@@ -557,8 +557,7 @@ void cleanup_cpu_msr(void)
 	// Nothing, yet.
 }
 #endif
-#endif
-#endif
-#else
+#endif // OS switches for MSR code
+#else // x86
 /* Does MSR exist on non-x86 architectures? */
-#endif
+#endif // arch switches for MSR code
