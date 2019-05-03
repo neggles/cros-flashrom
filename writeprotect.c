@@ -1105,6 +1105,7 @@ static int w25_range_table(const struct flashctx *flash,
 		break;
 	case ATMEL_ID:
 		switch(flash->chip->model_id) {
+		case ATMEL_AT25SF128A:
 		case ATMEL_AT25SL128A:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */

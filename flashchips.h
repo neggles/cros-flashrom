@@ -151,6 +151,7 @@
 #define ATMEL_AT25FS010		0x6601
 #define ATMEL_AT25FS040		0x6604
 #define ATMEL_AT25SL128A	0x4218
+#define ATMEL_AT25SF128A	0x8901 /* Adesto AT25SF128A */
 #define ATMEL_AT26DF041		0x4400
 #define ATMEL_AT26DF081		0x4500	/* guessed, no datasheet available */
 #define ATMEL_AT26DF081A	0x4501
