@@ -300,7 +300,7 @@ static int linux_mtd_erase(struct flashctx *flash,
 	return 0;
 }
 
-static struct opaque_programmer programmer_linux_mtd = {
+static struct opaque_master programmer_linux_mtd = {
 	/* max_data_{read,write} don't have any effect for this programmer */
 	.max_data_read	= MAX_DATA_UNSPECIFIED,
 	.max_data_write	= MAX_DATA_UNSPECIFIED,
@@ -400,7 +400,7 @@ int linux_mtd_init(void)
 	if (register_shutdown(linux_mtd_shutdown, NULL))
 		goto linux_mtd_init_exit;
 
-	register_opaque_programmer(&programmer_linux_mtd);
+	register_opaque_master(&programmer_linux_mtd);
 
 	ret = 0;
 linux_mtd_init_exit:

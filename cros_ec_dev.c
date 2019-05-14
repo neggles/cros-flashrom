@@ -330,7 +330,7 @@ static struct cros_ec_priv cros_ec_dev_priv = {
 	.dev = "ec",
 };
 
-static struct opaque_programmer opaque_programmer_cros_ec_dev = {
+static struct opaque_master opaque_master_cros_ec_dev = {
 	.max_data_read	= 128,
 	.max_data_write	= 128,
 	.probe		= cros_ec_probe_size,
@@ -371,10 +371,10 @@ int cros_ec_probe_dev(void)
 	if (cros_ec_test(&cros_ec_dev_priv))
 		return 1;
 
-	cros_ec_set_max_size(&cros_ec_dev_priv, &opaque_programmer_cros_ec_dev);
+	cros_ec_set_max_size(&cros_ec_dev_priv, &opaque_master_cros_ec_dev);
 
 	msg_pdbg("CROS_EC detected at %s\n", dev_path);
-	register_opaque_programmer(&opaque_programmer_cros_ec_dev);
+	register_opaque_master(&opaque_master_cros_ec_dev);
 	register_shutdown(cros_ec_dev_shutdown, NULL);
 	cros_ec_dev_priv.detected = 1;
 	cros_ec_priv = &cros_ec_dev_priv;

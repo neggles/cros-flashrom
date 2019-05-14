@@ -27,7 +27,7 @@
 #include "chipdrivers.h"
 #include "programmer.h"
 
-struct opaque_programmer opaque_programmer_none = {
+struct opaque_master opaque_master_none = {
 	.max_data_read = MAX_DATA_UNSPECIFIED,
 	.max_data_write = MAX_DATA_UNSPECIFIED,
 	.probe = NULL,
@@ -39,83 +39,83 @@ struct opaque_programmer opaque_programmer_none = {
 	.check_access = NULL,
 };
 
-struct opaque_programmer *opaque_programmer = &opaque_programmer_none;
+struct opaque_master *opaque_master = &opaque_master_none;
 
 int probe_opaque(struct flashctx *flash)
 {
-	if (!opaque_programmer->probe) {
-		msg_perr("%s called before register_opaque_programmer. "
+	if (!opaque_master->probe) {
+		msg_perr("%s called before register_opaque_master. "
 			 "Please report a bug at flashrom@flashrom.org\n",
 			 __func__);
 		return 0;
 	}
 
-	return opaque_programmer->probe(flash);
+	return opaque_master->probe(flash);
 }
 
 int read_opaque(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len)
 {
-	if (!opaque_programmer->read) {
-		msg_perr("%s called before register_opaque_programmer. "
+	if (!opaque_master->read) {
+		msg_perr("%s called before register_opaque_master. "
 			 "Please report a bug at flashrom@flashrom.org\n",
 			 __func__);
 		return 1;
 	}
-	return opaque_programmer->read(flash, buf, start, len);
+	return opaque_master->read(flash, buf, start, len);
 }
 
 int write_opaque(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
 {
-	if (!opaque_programmer->write) {
-		msg_perr("%s called before register_opaque_programmer. "
+	if (!opaque_master->write) {
+		msg_perr("%s called before register_opaque_master. "
 			 "Please report a bug at flashrom@flashrom.org\n",
 			 __func__);
 		return 1;
 	}
-	return opaque_programmer->write(flash, buf, start, len);
+	return opaque_master->write(flash, buf, start, len);
 }
 
 int erase_opaque(struct flashctx *flash, unsigned int blockaddr, unsigned int blocklen)
 {
-	if (!opaque_programmer->erase) {
-		msg_perr("%s called before register_opaque_programmer. "
+	if (!opaque_master->erase) {
+		msg_perr("%s called before register_opaque_master. "
 			 "Please report a bug at flashrom@flashrom.org\n",
 			 __func__);
 		return 1;
 	}
-	return opaque_programmer->erase(flash, blockaddr, blocklen);
+	return opaque_master->erase(flash, blockaddr, blocklen);
 }
 
 uint8_t read_status_opaque(const struct flashctx *flash)
 {
-	if (!opaque_programmer->read_status) {
-		msg_perr("%s called before register_opaque_programmer. "
+	if (!opaque_master->read_status) {
+		msg_perr("%s called before register_opaque_master. "
 			 "Please report a bug at flashrom@flashrom.org\n",
 			 __func__);
 		return 1;
 	}
-	return opaque_programmer->read_status(flash);
+	return opaque_master->read_status(flash);
 }
 
 int write_status_opaque(const struct flashctx *flash, int status)
 {
-	if (!opaque_programmer->write_status) {
-		msg_perr("%s called before register_opaque_programmer. "
+	if (!opaque_master->write_status) {
+		msg_perr("%s called before register_opaque_master. "
 			 "Please report a bug at flashrom@flashrom.org\n",
 			 __func__);
 		return 1;
 	}
-	return opaque_programmer->write_status(flash, status);
+	return opaque_master->write_status(flash, status);
 }
 
 int check_access_opaque(const struct flashctx *flash, unsigned int start, unsigned int len, int rw)
 {
-	if (opaque_programmer->check_access)
-		return opaque_programmer->check_access(flash, start, len, rw);
+	if (opaque_master->check_access)
+		return opaque_master->check_access(flash, start, len, rw);
 	return 1;
 }
 
-void register_opaque_programmer(struct opaque_programmer *pgm)
+void register_opaque_master(struct opaque_master *pgm)
 {
 	if (!pgm->probe || !pgm->read || !pgm->write || !pgm->erase) {
 		msg_perr("%s called with one of probe/read/write/erase being "
@@ -123,6 +123,6 @@ void register_opaque_programmer(struct opaque_programmer *pgm)
 			 __func__);
 		return;
 	}
-	opaque_programmer = pgm;
+	opaque_master = pgm;
 	buses_supported |= BUS_PROG;
 }

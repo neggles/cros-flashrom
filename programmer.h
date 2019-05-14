@@ -657,7 +657,7 @@ int wbsio_check_for_spi(void);
 #endif
 
 /* opaque.c */
-struct opaque_programmer {
+struct opaque_master {
 	int max_data_read;
 	int max_data_write;
 	/* Specific functions for this programmer */
@@ -670,8 +670,8 @@ struct opaque_programmer {
 	int (*check_access) (const struct flashctx *flash, unsigned int start, unsigned int len, int read);
 	const void *data;
 };
-extern struct opaque_programmer *opaque_programmer;
-void register_opaque_programmer(struct opaque_programmer *pgm);
+extern struct opaque_master *opaque_master;
+void register_opaque_master(struct opaque_master *pgm);
 
 /* programmer.c */
 int noop_shutdown(void);
@@ -703,7 +703,7 @@ struct registered_master {
 	union {
 		struct par_master par;
 		struct spi_master spi;
-		struct opaque_programmer opaque;
+		struct opaque_master opaque;
 	};
 };
 extern struct registered_master registered_masters[];

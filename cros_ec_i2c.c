@@ -254,7 +254,7 @@ static struct cros_ec_priv cros_ec_i2c_priv = {
 	.ec_command	= cros_ec_command_i2c,
 };
 
-static struct opaque_programmer opaque_programmer_cros_ec_i2c = {
+static struct opaque_master opaque_master_cros_ec_i2c = {
 	/* These should be EC_PROTO2_MAX_PARAM_SIZE but for now we
 	 * use values from earlier on to be safe. */
 	.max_data_read	= 128,
@@ -335,10 +335,10 @@ int cros_ec_probe_i2c(const char *name)
 	if (register_shutdown(cros_ec_i2c_shutdown, NULL))
 		goto cros_ec_probe_i2c_done;
 
-	cros_ec_set_max_size(&cros_ec_i2c_priv, &opaque_programmer_cros_ec_i2c);
+	cros_ec_set_max_size(&cros_ec_i2c_priv, &opaque_master_cros_ec_i2c);
 
 	msg_pdbg("CROS_EC detected on I2C bus\n");
-	register_opaque_programmer(&opaque_programmer_cros_ec_i2c);
+	register_opaque_master(&opaque_master_cros_ec_i2c);
 	cros_ec_i2c_priv.detected = 1;
 	cros_ec_priv = &cros_ec_i2c_priv;
 	ret = 0;

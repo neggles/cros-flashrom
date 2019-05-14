@@ -390,7 +390,7 @@ static struct cros_ec_priv cros_ec_lpc_priv = {
 	.ec_command	= cros_ec_command_lpc_lm4,
 };
 
-static struct opaque_programmer cros_ec = {
+static struct opaque_master cros_ec = {
 	.max_data_read	= EC_HOST_CMD_REGION_SIZE,
 	.max_data_write	= 64,
 	.probe		= cros_ec_probe_size,
@@ -539,7 +539,7 @@ int cros_ec_probe_lpc(const char *name) {
 			__func__, __LINE__);
 		buses_supported &= ~BUS_SPI;
 	}
-	register_opaque_programmer(&cros_ec);
+	register_opaque_master(&cros_ec);
 	buses_supported |= BUS_LPC;
 
 	if (register_shutdown(cros_ec_lpc_shutdown, NULL)) {

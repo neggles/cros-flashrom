@@ -1517,7 +1517,7 @@ int ich_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
 
 	while (len > 0) {
-		block_len = min(len, opaque_programmer->max_data_read);
+		block_len = min(len, opaque_master->max_data_read);
 		ich_hwseq_set_addr(addr);
 		hsfc = REGREAD16(ICH9_REG_HSFC);
 		hsfc &= ~HSFC_FCYCLE; /* set read operation */
@@ -1556,7 +1556,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 
 	while (len > 0) {
 		ich_hwseq_set_addr(addr);
-		block_len = min(len, opaque_programmer->max_data_write);
+		block_len = min(len, opaque_master->max_data_write);
 		ich_fill_data(buf, block_len, ICH9_REG_FDATA0);
 		hsfc = REGREAD16(ICH9_REG_HSFC);
 		hsfc &= ~HSFC_FCYCLE; /* clear operation */
@@ -1809,7 +1809,7 @@ int pch100_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 	REGWRITE32(PCH100_REG_HSFSC, REGREAD32(PCH100_REG_HSFSC));
 
 	while (len > 0) {
-		block_len = min(len, opaque_programmer->max_data_read);
+		block_len = min(len, opaque_master->max_data_read);
 		/* Check flash region permissions before reading */
 		op_type = HWSEQ_READ;
 		chunk_status = check_fd_permissions_hwseq(op_type,
@@ -1896,7 +1896,7 @@ int pch100_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int 
 
 	while (len > 0) {
 		pch100_hwseq_set_addr(addr);
-		block_len = min(len, opaque_programmer->max_data_write);
+		block_len = min(len, opaque_master->max_data_write);
 		/* Check flash region permissions before writing */
 		op_type = HWSEQ_WRITE;
 		result = check_fd_permissions_hwseq(op_type, addr, block_len);
@@ -2160,7 +2160,7 @@ static const struct spi_master spi_master_ich9 = {
 	.write_256 = default_spi_write_256,
 };
 
-static struct opaque_programmer opaque_programmer_pch100_hwseq = {
+static struct opaque_master opaque_master_pch100_hwseq = {
 	.max_data_read = 64,
 	.max_data_write = 64,
 	.probe = pch100_hwseq_probe,
@@ -2172,7 +2172,7 @@ static struct opaque_programmer opaque_programmer_pch100_hwseq = {
 	.check_access = pch100_hwseq_check_access,
 };
 
-static struct opaque_programmer opaque_programmer_ich_hwseq = {
+static struct opaque_master opaque_master_ich_hwseq = {
 	.max_data_read = 64,
 	.max_data_write = 64,
 	.probe = ich_hwseq_probe,
@@ -2354,7 +2354,7 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 		}
 		hwseq_data.size_comp0 = getFCBA_component_density(&desc, 0);
 		hwseq_data.size_comp1 = getFCBA_component_density(&desc, 1);
-		register_opaque_programmer(&opaque_programmer_pch100_hwseq);
+		register_opaque_master(&opaque_master_pch100_hwseq);
 		break;
 	case CHIPSET_ICH8:
 	default:		/* Future version might behave the same */
@@ -2505,7 +2505,7 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 			}
 			hwseq_data.size_comp0 = getFCBA_component_density(&desc, 0);
 			hwseq_data.size_comp1 = getFCBA_component_density(&desc, 1);
-			register_opaque_programmer(&opaque_programmer_ich_hwseq);
+			register_opaque_master(&opaque_master_ich_hwseq);
 		} else {
 			register_spi_master(&spi_master_ich9);
 		}
