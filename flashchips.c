@@ -5504,7 +5504,7 @@ const struct flashchip flashchips[] = {
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {1650, 2000},
-		.wp		= &wp_w25,
+		.wp		= &wp_w25q_large,
 	},
 
 	{
