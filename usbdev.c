@@ -42,7 +42,7 @@ struct libusb_device_handle *usb_dev_get_by_vid_pid_serial(
 			continue;
 		}
 
-		if ((desc.idVendor != vid) && (desc.idProduct != pid))
+		if ((desc.idVendor != vid) || (desc.idProduct != pid))
 			continue;
 
 		msg_pdbg("Found USB device %04"PRIx16":%04"PRIx16" at address %d-%d.\n",
