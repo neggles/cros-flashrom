@@ -68,33 +68,22 @@ void start_logging(void)
 int print(enum flashrom_log_level level, const char *fmt, ...)
 {
 	va_list ap;
-	int ret;
-	FILE *output_type;
+	int ret = 0;
+	FILE *output_type = stdout;
 
-	switch (level) {
-	case FLASHROM_MSG_ERROR:
+	if (level == FLASHROM_MSG_ERROR)
 		output_type = stderr;
-		break;
-	case FLASHROM_MSG_SPEW:
-		if (verbose_screen < 3)
-			return 0;
-	case FLASHROM_MSG_DEBUG2:
-		if (verbose_screen < 2)
-			return 0;
-	case FLASHROM_MSG_DEBUG:
-		if (verbose_screen < 1)
-			return 0;
-	case FLASHROM_MSG_INFO:
-	default:
-		output_type = stdout;
-		break;
+
+	if (level <= verbose_screen) {
+		va_start(ap, fmt);
+		ret = vfprintf(output_type, fmt, ap);
+		va_end(ap);
+		/* msg_*spew usually happens inside chip accessors in possibly
+		 * time-critical operations. Don't slow them down by flushing.
+		 */
+		if (level != FLASHROM_MSG_SPEW)
+			fflush(output_type);
 	}
-
-	va_start(ap, fmt);
-	ret = vfprintf(output_type, fmt, ap);
-	va_end(ap);
-	fflush(output_type);
-
 #ifndef STANDALONE
 	if ((level <= verbose_logfile) && logfile) {
 		va_start(ap, fmt);
