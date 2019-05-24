@@ -42,7 +42,7 @@
 
 const char flashrom_version[] = FLASHROM_VERSION;
 char *chip_to_probe = NULL;
-enum flashrom_log_level verbose_screen = FLASHROM_MSG_ERROR;
+enum flashrom_log_level verbose_screen = FLASHROM_MSG_INFO;
 enum flashrom_log_level verbose_logfile = FLASHROM_MSG_DEBUG2;
 
 /* Set if any erase/write operation is to be done. This will be used to
