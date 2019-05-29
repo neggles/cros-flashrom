@@ -40,10 +40,14 @@ use std::fs::File;
 use std::process::Command;
 use std::io::{Error, ErrorKind};
 
+//TODO(quasisec): Use drain_filter feature when we can.
 //pub fn vgrep<'a>(s: &'a str, m: &str) -> &'a str {
+//    let v: Vec<&str> = s.split('\n').collect();
+//    v.drain_filter(|&x| x == m).collect::<Vec<_>>();
+//    return drained.iter().fold("".to_string(), |x, xs| x + xs);
+//}
 pub fn vgrep(s: &str, m: &str) -> String {
     let v: Vec<&str> = s.split('\n').collect();
-    //v.drain_filter(|&x| x == m).collect::<Vec<_>>();
     let (drained, _v): (Vec<_>, Vec<_>) = v.into_iter().partition(|&x| x.find(m).is_none());
 
     return drained.iter().fold("".to_string(), |x, xs| x + xs);

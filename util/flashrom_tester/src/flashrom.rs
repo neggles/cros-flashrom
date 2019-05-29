@@ -159,7 +159,6 @@ pub fn wp_list(cmd: &cmd::FlashromCmd) -> Result<String, std::io::Error> {
     if output.len() == 0 {
         return Err(Error::new(ErrorKind::Other, "wp_list isn't supported on platforms using the Linux kernel SPI driver wp_list"));
     }
-    debug!("wp_list(): {}", output);
     Ok(output.to_string())
 }
 

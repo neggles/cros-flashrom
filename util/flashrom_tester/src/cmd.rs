@@ -127,7 +127,7 @@ fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<std::string::String>
         params.push("-V".to_string());
     }
 
-    params //.join(" ")
+    params
 }
 
 fn flashrom_dispatch(path: &str, params: Vec<std::string::String>, fc: types::FlashChip)
@@ -139,18 +139,9 @@ fn flashrom_dispatch(path: &str, params: Vec<std::string::String>, fc: types::Fl
 
     debug!("flashrom_dispatch() running: {} {:?}", path, args);
 
-    //let child = Command::new(path)
     let output = Command::new(path)
         .args(&args)
-//        .stdin(Stdio::null())
-        // PATH setup as per the default CrOS dev mode enviroment.
-//        .env("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin")
-//        .current_dir("/root")
-//        .stdout(Stdio::piped())
-//        .stderr(Stdio::piped())
-        //.spawn()?;
         .output()?;
-    //let output = child.wait_with_output()?;
     if !output.status.success() {
         // There is two cases on failure;
         //  i. ) A bad exit code,
@@ -163,7 +154,6 @@ fn flashrom_dispatch(path: &str, params: Vec<std::string::String>, fc: types::Fl
             None => return Err(Error::new(ErrorKind::Other, "Process terminated by a signal".to_string()))
         }
     }
-//    println!("XXX {:#?}", output.stdout);
 
     Ok((output.stdout, output.stderr))
 }

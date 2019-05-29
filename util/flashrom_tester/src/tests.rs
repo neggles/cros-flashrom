@@ -81,7 +81,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         // NOTE: This is not strictly a 'test' as it is allowed to fail on some platforms.
         //       However, we will warn when it does fail.
         match flashrom::wp_list(&param.cmd) {
-            Ok(list_str) => info!("{}", list_str),
+            Ok(list_str) => info!("\n{}", list_str),
             Err(e) => warn!("{:?}", e),
         };
 
@@ -149,7 +149,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         println!("Remove battery to de-assert hardware write-protect.");
         utils::toggle_hw_wp(true);
 
-        // Don't assume and so toggle soft write-protect back on.
+        // Don't assume soft write-protect state, and so toggle back on.
         flashrom::wp_toggle(&param.cmd, true)?;
 
         // TODO(quasisec): Should this be in generic() ?
@@ -218,12 +218,12 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         let rom_sz: i64 = param.cmd.get_size()?;
         let layout_sizes = utils::get_layout_sizes(rom_sz)?;
 
-        let (n, _, _) = utils::layout_section(&layout_sizes, utils::LayoutNames::TopQuad);
+        let (name, _, _) = utils::layout_section(&layout_sizes, utils::LayoutNames::TopQuad);
 
         let rws = flashrom::ROMWriteSpecifics {
             layout_file: Some("/tmp/layout.file"),
             write_file:  Some("/tmp/random_content.bin"),
-            name_file:   Some(n),
+            name_file:   Some(name),
         };
         flashrom::write_file_with_layout(&param.cmd, None, &rws)?;
         if flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat").is_ok() {
@@ -233,7 +233,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         let rws_ = flashrom::ROMWriteSpecifics {
             layout_file: Some("/tmp/layout.file"),
             write_file:  Some("/tmp/flashrom_tester_read.dat"),
-            name_file:   Some(n),
+            name_file:   Some(name),
         };
         flashrom::write_file_with_layout(&param.cmd, None, &rws_)?;
         flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")
