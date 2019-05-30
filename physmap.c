@@ -316,7 +316,7 @@ void *rphysmap(const char *descr, uintptr_t phys_addr, size_t len)
 	return physmap_common(descr, phys_addr, len, PHYSMAP_NOFAIL, PHYSMAP_RW, PHYSMAP_CLEANUP);
 }
 
-void *physmap_try_ro(const char *descr, unsigned long phys_addr, size_t len)
+void *physmap_ro(const char *descr, uintptr_t phys_addr, size_t len)
 {
 	return physmap_common(descr, phys_addr, len, PHYSMAP_MAYFAIL, PHYSMAP_RO, PHYSMAP_NOCLEANUP);
 }

@@ -178,7 +178,7 @@ static struct lb_header *find_lb_table_remap(unsigned long start_addr,
 	offset = start_addr % getpagesize();
 	start_addr -= offset;
 
-	base = physmap_try_ro("high tables", start_addr, mapping_size);
+	base = physmap_ro("high tables", start_addr, mapping_size);
 	if (ERROR_PTR == base) {
 		msg_perr("Failed getting access to coreboot high tables.\n");
 		return NULL;
@@ -204,7 +204,7 @@ static struct lb_header *find_lb_table_remap(unsigned long start_addr,
 			mapping_size += getpagesize() -
 				(mapping_size % getpagesize());
 			physunmap(base, prev_mapping_size);
-			base = physmap_try_ro("high tables", start_addr,
+			base = physmap_ro("high tables", start_addr,
 						mapping_size);
 			if (ERROR_PTR == base) {
 				msg_perr("Failed getting access to coreboot high tables.\n");
@@ -289,7 +289,7 @@ int coreboot_init(void)
 #else
 	start = 0x0;
 #endif
-	table_area = physmap_try_ro("low megabyte", start, BYTES_TO_MAP - start);
+	table_area = physmap_ro("low megabyte", start, BYTES_TO_MAP - start);
 	if (ERROR_PTR == table_area) {
 		msg_perr("Failed getting access to coreboot low tables.\n");
 		return -1;
