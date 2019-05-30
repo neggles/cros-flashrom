@@ -291,6 +291,7 @@ void *physmap(const char *descr, uintptr_t phys_addr, size_t len);
 void *rphysmap(const char *descr, uintptr_t phys_addr, size_t len);
 void *physmap_ro(const char *descr, uintptr_t phys_addr, size_t len);
 void physunmap(void *virt_addr, size_t len);
+void physunmap_unaligned(void *virt_addr, size_t len);
 #if CONFIG_INTERNAL == 1
 int setup_cpu_msr(int cpu);
 void cleanup_cpu_msr(void);
