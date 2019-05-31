@@ -30,10 +30,6 @@
 #include "programmer.h"
 #include "search.h"
 
-#if CONFIG_INTERNAL == 1
-char *mainboard_vendor = NULL;
-char *mainboard_part = NULL;
-#endif
 static int romimages = 0;
 
 #define MAX_ROMLAYOUT	64
@@ -55,7 +51,6 @@ static int num_include_args = 0;  /* the number of valid entries. */
 static romlayout_t rom_entries[MAX_ROMLAYOUT];
 
 #if CONFIG_INTERNAL == 1 /* FIXME: Move the whole block to cbtable.c? */
-static char *def_name = "DEFAULT";
 
 
 /* Return TRUE if user specifies any -i argument. */
@@ -63,52 +58,15 @@ int specified_partition() {
 	return num_include_args != 0;
 }
 
-int show_id(uint8_t *bios, int size, int force)
+// FIXME(quasisec): Currently we have global state of cb_{vendor,part} woven
+//  in here however show_id() isn't even called as it is currently dead code!
+//  Thus work out if we actually need it before spending too much time unraveling it.
+#if 0
+static char *def_name = "DEFAULT";
+static int validate_mb_vidpid(const char * mb_vendor, const char * mb_part)
 {
-	unsigned int *walk;
-	unsigned int mb_part_offset, mb_vendor_offset;
-	char *mb_part, *mb_vendor;
-
-	mainboard_vendor = def_name;
-	mainboard_part = def_name;
-
-	walk = (unsigned int *)(bios + size - 0x10);
-	walk--;
-
-	if ((*walk) == 0 || ((*walk) & 0x3ff) != 0) {
-		/* We might have an NVIDIA chipset BIOS which stores the ID
-		 * information at a different location.
-		 */
-		walk = (unsigned int *)(bios + size - 0x80);
-		walk--;
-	}
-
-	/*
-	 * Check if coreboot last image size is 0 or not a multiple of 1k or
-	 * bigger than the chip or if the pointers to vendor ID or mainboard ID
-	 * are outside the image of if the start of ID strings are nonsensical
-	 * (nonprintable and not \0).
-	 */
-	mb_part_offset = *(walk - 1);
-	mb_vendor_offset = *(walk - 2);
-	if ((*walk) == 0 || ((*walk) & 0x3ff) != 0 || (*walk) > size ||
-	    mb_part_offset > size || mb_vendor_offset > size) {
-		msg_pdbg("Flash image seems to be a legacy BIOS. "
-		         "Disabling coreboot-related checks.\n");
-		return 0;
-	}
-
-	mb_part = (char *)(bios + size - mb_part_offset);
-	mb_vendor = (char *)(bios + size - mb_vendor_offset);
-	if (!isprint((unsigned char)*mb_part) ||
-	    !isprint((unsigned char)*mb_vendor)) {
-		msg_pdbg("Flash image seems to have garbage in the ID location."
-		       " Disabling checks.\n");
-		return 0;
-	}
-
-	msg_pdbg("coreboot last image size "
-		     "(not ROM size) is %d bytes.\n", *walk);
+	char *mainboard_vendor = def_name;
+	char *mainboard_part = def_name;
 
 	mainboard_part = strdup(mb_part);
 	mainboard_vendor = strdup(mb_vendor);
@@ -148,9 +106,65 @@ int show_id(uint8_t *bios, int size, int force)
 				  "\n\n",
 				  mainboard_vendor, mainboard_part, cb_vendor,
 				  cb_model);
-			exit(1);
+			return -1;
 		}
 	}
+
+	return 0;
+}
+#endif
+
+int show_id(uint8_t *bios, int size, int force)
+{
+	unsigned int *walk;
+	unsigned int mb_part_offset, mb_vendor_offset;
+	char *mb_part, *mb_vendor;
+
+	walk = (unsigned int *)(bios + size - 0x10);
+	walk--;
+
+	if ((*walk) == 0 || ((*walk) & 0x3ff) != 0) {
+		/* We might have an NVIDIA chipset BIOS which stores the ID
+		 * information at a different location.
+		 */
+		walk = (unsigned int *)(bios + size - 0x80);
+		walk--;
+	}
+
+	/*
+	 * Check if coreboot last image size is 0 or not a multiple of 1k or
+	 * bigger than the chip or if the pointers to vendor ID or mainboard ID
+	 * are outside the image of if the start of ID strings are nonsensical
+	 * (nonprintable and not \0).
+	 */
+	mb_part_offset = *(walk - 1);
+	mb_vendor_offset = *(walk - 2);
+	if ((*walk) == 0 || ((*walk) & 0x3ff) != 0 || (*walk) > size ||
+	    mb_part_offset > size || mb_vendor_offset > size) {
+		msg_pdbg("Flash image seems to be a legacy BIOS. "
+		         "Disabling coreboot-related checks.\n");
+		return 0;
+	}
+
+	mb_part = (char *)(bios + size - mb_part_offset);
+	mb_vendor = (char *)(bios + size - mb_vendor_offset);
+	if (!isprint((unsigned char)*mb_part) ||
+	    !isprint((unsigned char)*mb_vendor)) {
+		msg_pdbg("Flash image seems to have garbage in the ID location."
+		       " Disabling checks.\n");
+		return 0;
+	}
+
+	msg_pdbg("coreboot last image size "
+		     "(not ROM size) is %d bytes.\n", *walk);
+
+// FIXME(quasisec): Currently we have global state of cb_{vendor,part} woven
+//  in here however show_id() isn't even called as it is currently dead code!
+//  Thus work out if we actually need it before spending too much time unraveling it.
+#if 0
+	if (validate_mb_vidpid(mb_vendor, mb_part) < 0)
+		exit(1);
+#endif
 
 	return 0;
 }

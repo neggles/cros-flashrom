@@ -26,7 +26,7 @@
 #include "programmer.h"
 #include "coreboot_tables.h"
 
-char *cb_vendor = NULL, *cb_model = NULL;
+static char *cb_vendor = NULL, *cb_model = NULL;
 int partvendor_from_cbtable = 0;
 
 /* Parse the [<vendor>:]<board> string specified by the user as part of
@@ -273,7 +273,8 @@ static void search_lb_records(struct lb_record *rec, struct lb_record *last, uns
 }
 
 #define BYTES_TO_MAP (1024*1024)
-int coreboot_init(void)
+/* returns 0 if the table was parsed successfully and cb_vendor/cb_model have been set. */
+int cb_parse_table(const char **vendor, const char **model)
 {
 	uint8_t *table_area;
 	unsigned long addr, start;
@@ -322,6 +323,7 @@ int coreboot_init(void)
 	     lb_table->table_bytes, lb_table->table_checksum,
 	     lb_table->table_entries);
 	search_lb_records(rec, last, addr + lb_table->header_bytes);
-
+	*vendor = cb_vendor;
+	*model = cb_model;
 	return 0;
 }

@@ -213,8 +213,12 @@ int internal_init(void)
 #endif
 	int force_laptop = 0;
 	int not_a_laptop = 0;
+	const char *board_vendor = NULL;
+	const char *board_model = NULL;
 	char *arg;
 #if IS_X86 || IS_ARM
+	const char *cb_vendor = NULL;
+	const char *cb_model = NULL;
 	int probe_target_bus_later = 0;
 #endif
 
@@ -377,12 +381,23 @@ int internal_init(void)
 		return 1;
 	}
 
-#if IS_X86
+#if IS_X86 || IS_ARM
 	/* We look at the cbtable first to see if we need a
 	 * mainboard specific flash enable sequence.
 	 */
-	coreboot_init();
+	if ((cb_parse_table(&cb_vendor, &cb_model) == 0) && (board_vendor != NULL) && (board_model != NULL)) {
+		if (strcasecmp(board_vendor, cb_vendor) || strcasecmp(board_model, cb_model)) {
+			msg_pwarn("Warning: The mainboard IDs set by -p internal:mainboard (%s:%s) do not\n"
+				  "         match the current coreboot IDs of the mainboard (%s:%s).\n",
+				  board_vendor, board_model, cb_vendor, cb_model);
+			if (!force_boardmismatch)
+				return 1;
+			msg_pinfo("Continuing anyway.\n");
+		}
+	}
+#endif
 
+#if IS_X86
 	dmi_init();
 
 	if (probe_target_bus_later) {
@@ -400,13 +415,6 @@ int internal_init(void)
 
 	/* Probe for the Super I/O chip and fill global struct superio. */
 	probe_superio();
-
-#elif IS_ARM
-	/* We look at the cbtable first to see if we need a
-	 * mainboard specific flash enable sequence.
-	 */
-	coreboot_init();
-
 #else
 	/* FIXME: Enable cbtable searching on all non-x86 platforms supported
 	 *        by coreboot.
