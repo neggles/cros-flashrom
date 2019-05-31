@@ -484,7 +484,7 @@ int internal_init(void)
 
 #endif
 
-	board_flash_enable(lb_vendor, lb_part);
+	board_flash_enable(cb_vendor, cb_model);
 
 	if (!(buses_supported & target_bus) &&
 		(!alias || (alias && alias->type == ALIAS_NONE))) {

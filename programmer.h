@@ -299,7 +299,7 @@ void cleanup_cpu_msr(void);
 /* cbtable.c */
 void lb_vendor_dev_from_string(const char *boardstring);
 int coreboot_init(void);
-extern char *lb_part, *lb_vendor;
+extern char *cb_model, *cb_vendor;
 extern int partvendor_from_cbtable;
 
 /* dmi.c */

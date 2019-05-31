@@ -119,7 +119,7 @@ int show_id(uint8_t *bios, int size, int force)
 	 * If lb_vendor is not set, the coreboot table was
 	 * not found. Nor was -p internal:mainboard=VENDOR:PART specified.
 	 */
-	if (!lb_vendor || !lb_part) {
+	if (!cb_vendor || !cb_model) {
 		msg_pdbg("Note: If the following flash access fails, try"
 		       "-p internal:mainboard= <vendor>:<mainboard>.\n");
 		return 0;
@@ -128,8 +128,8 @@ int show_id(uint8_t *bios, int size, int force)
 	/* These comparisons are case insensitive to make things
 	 * a little less user error prone.
 	 */
-	if (!strcasecmp(mainboard_vendor, lb_vendor) &&
-	    !strcasecmp(mainboard_part, lb_part)) {
+	if (!strcasecmp(mainboard_vendor, cb_vendor) &&
+	    !strcasecmp(mainboard_part, cb_model)) {
 		msg_pdbg("This firmware image matches this mainboard.\n");
 	} else {
 		if (force_boardmismatch) {
@@ -146,8 +146,8 @@ int show_id(uint8_t *bios, int size, int force)
 				  "mainboard with\n"
 				  "-p internal:mainboard=<vendor>:<mainboard>."
 				  "\n\n",
-				  mainboard_vendor, mainboard_part, lb_vendor,
-				  lb_part);
+				  mainboard_vendor, mainboard_part, cb_vendor,
+				  cb_model);
 			exit(1);
 		}
 	}

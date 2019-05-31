@@ -16,7 +16,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <unistd.h>
@@ -27,14 +26,14 @@
 #include "programmer.h"
 #include "coreboot_tables.h"
 
-char *lb_part = NULL, *lb_vendor = NULL;
+char *cb_vendor = NULL, *cb_model = NULL;
 int partvendor_from_cbtable = 0;
 
 /* Parse the [<vendor>:]<board> string specified by the user as part of
- * -p internal:mainboard=[<vendor>:]<board> and set lb_vendor and lb_part
+ * -p internal:mainboard=[<vendor>:]<board> and set cb_vendor and cb_model
  * to the extracted values.
  * Note: strtok modifies the original string, so we work on a copy and allocate
- * memory for lb_vendor and lb_part with strdup.
+ * memory for cb_vendor and cb_model with strdup.
  */
 void lb_vendor_dev_from_string(const char *boardstring)
 {
@@ -44,11 +43,11 @@ void lb_vendor_dev_from_string(const char *boardstring)
 	strtok(tempstr, ":");
 	tempstr2 = strtok(NULL, ":");
 	if (tempstr2) {
-		lb_vendor = strdup(tempstr);
-		lb_part = strdup(tempstr2);
+		cb_vendor = strdup(tempstr);
+		cb_model = strdup(tempstr2);
 	} else {
-		lb_vendor = NULL;
-		lb_part = strdup(tempstr);
+		cb_vendor = NULL;
+		cb_model = strdup(tempstr);
 	}
 	free(tempstr);
 }
@@ -242,12 +241,12 @@ static void find_mainboard(struct lb_record *ptr, unsigned long addr)
 	snprintf(vendor, 255, "%.*s", max_size - rec->vendor_idx, rec->strings + rec->vendor_idx);
 	snprintf(part, 255, "%.*s", max_size - rec->part_number_idx, rec->strings + rec->part_number_idx);
 
-	if (lb_part) {
-		msg_pdbg("Overwritten by command line, vendor ID: %s, part ID: %s.\n", lb_vendor, lb_part);
+	if (cb_model) {
+		msg_pdbg("Overwritten by command line, vendor ID: %s, part ID: %s.\n", cb_vendor, cb_model);
 	} else {
 		partvendor_from_cbtable = 1;
-		lb_part = strdup(part);
-		lb_vendor = strdup(vendor);
+		cb_model = strdup(part);
+		cb_vendor = strdup(vendor);
 	}
 }
 
