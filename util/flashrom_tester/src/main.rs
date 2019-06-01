@@ -39,6 +39,8 @@ extern crate log;
 extern crate chrono;
 extern crate env_logger;
 
+extern crate built;
+
 mod tests;
 mod tester;
 mod types;
@@ -101,6 +103,22 @@ fn parse_args(args: Vec<String>) -> Result<(), std::io::Error> {
     }
 }
 
+pub mod built_info {
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
+fn compiletime_info() {
+    info!("This is version {}{}, built for {} by {}.",
+          built_info::PKG_VERSION,
+          built_info::GIT_VERSION.map_or_else(|| "".to_owned(),
+                                             |v| format!(" (git {})", v)),
+                                             built_info::TARGET, built_info::RUSTC_VERSION);
+
+    trace!("I was built with profile \"{}\", features \"{}\" on {}.",
+           built_info::PROFILE, built_info::FEATURES_STR,
+           built_info::BUILT_TIME_UTC);
+}
+
 fn main() {
     Builder::new()
         .format(|buf, record| {
@@ -113,6 +131,8 @@ fn main() {
     .filter(None, LevelFilter::Info)
     .parse_filters(&env::var("FLASHROM_TESTER_LOG").unwrap_or_default())
     .init();
+
+    compiletime_info();
 
     let args: Vec<String> = env::args().map(|x| x.to_string()).collect();
     match parse_args(args) {

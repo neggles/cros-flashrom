@@ -3,9 +3,14 @@ name = "flashrom_tester"
 version = "1.6.0"
 authors = ["Edward O'Callaghan <quasisec@chromium.org>"]
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 rand = "0.6.4"
 chrono = "0.4"
 log = "0.4"
 env_logger = "0.6"
+built = "0.3"
+
+[build-dependencies]
+built = "0.3"
