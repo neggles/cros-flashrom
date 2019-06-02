@@ -12,7 +12,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include "platform.h"
@@ -156,22 +155,22 @@ void mmio_writel(uint32_t val, void *addr)
 	sync_primitive();
 }
 
-uint8_t mmio_readb(void *addr)
+uint8_t mmio_readb(const void *addr)
 {
-	return *(volatile uint8_t *) addr;
+	return *(volatile const uint8_t *) addr;
 }
 
-uint16_t mmio_readw(void *addr)
+uint16_t mmio_readw(const void *addr)
 {
-	return *(volatile uint16_t *) addr;
+	return *(volatile const uint16_t *) addr;
 }
 
-uint32_t mmio_readl(void *addr)
+uint32_t mmio_readl(const void *addr)
 {
-	return *(volatile uint32_t *) addr;
+	return *(volatile const uint32_t *) addr;
 }
 
-void mmio_readn(void *addr, uint8_t *buf, size_t len)
+void mmio_readn(const void *addr, uint8_t *buf, size_t len)
 {
 	memcpy(buf, addr, len);
 	return;
