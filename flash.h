@@ -259,7 +259,6 @@ uint32_t chip_readl(const struct flashctx *flash, const chipaddr addr);
 void chip_readn(const struct flashctx *flash, uint8_t *buf, const chipaddr addr, size_t len);
 
 /* print.c */
-char *flashbuses_to_text(enum chipbustype bustype);
 void print_supported(void);
 void print_supported_wiki(void);
 
@@ -294,8 +293,6 @@ enum write_granularity {
 };
 
 extern enum chipbustype buses_supported;
-extern enum flashrom_log_level verbose_screen;
-extern enum flashrom_log_level verbose_logfile;
 extern const char flashrom_version[];
 extern char *chip_to_probe;
 void map_flash_registers(struct flashctx *flash);
@@ -371,7 +368,13 @@ extern enum error_action access_denied_action;
 /* convenience function for checking return codes */
 extern int ignore_error(int x);
 
+/* cli_common.c */
+char *flashbuses_to_text(enum chipbustype bustype);
+void print_chip_support_status(const struct flashctx *flash);
+
 /* cli_output.c */
+extern enum flashrom_log_level verbose_screen;
+extern enum flashrom_log_level verbose_logfile;
 #ifndef STANDALONE
 int open_logfile(const char * const filename);
 int close_logfile(void);

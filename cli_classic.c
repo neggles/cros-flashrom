@@ -760,7 +760,7 @@ int main(int argc, char *argv[])
 
 	fill_flash = &flashes[0];
 
-	check_chip_supported(fill_flash);
+	print_chip_support_status(fill_flash);
 
 	size = fill_flash->chip->total_size * 1024;
 	if (check_max_decode((buses_supported & fill_flash->chip->bustype), size) &&

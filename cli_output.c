@@ -22,6 +22,9 @@
 #include <errno.h>
 #include "flash.h"
 
+enum flashrom_log_level verbose_screen = FLASHROM_MSG_INFO;
+enum flashrom_log_level verbose_logfile = FLASHROM_MSG_DEBUG2;
+
 #ifndef STANDALONE
 static FILE *logfile = NULL;
 

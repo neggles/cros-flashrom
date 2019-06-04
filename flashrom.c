@@ -42,8 +42,6 @@
 
 const char flashrom_version[] = FLASHROM_VERSION;
 char *chip_to_probe = NULL;
-enum flashrom_log_level verbose_screen = FLASHROM_MSG_INFO;
-enum flashrom_log_level verbose_logfile = FLASHROM_MSG_DEBUG2;
 
 /* Set if any erase/write operation is to be done. This will be used to
  * decide if final verification is needed. */
@@ -68,7 +66,6 @@ int ignore_error(int err) {
 }
 
 static enum programmer programmer = PROGRAMMER_INVALID;
-
 static char *programmer_param = NULL;
 
 /* Supported buses for the current programmer. */
@@ -1844,75 +1841,6 @@ int selfcheck(void)
 			ret = 1;
 
 	return ret;
-}
-
-void check_chip_supported(const struct flashctx *flash)
-{
-	if (flash->chip->feature_bits & FEATURE_OTP) {
-		msg_cdbg("This chip may contain one-time programmable memory. "
-			 "flashrom cannot read\nand may never be able to write "
-			 "it, hence it may not be able to completely\n"
-			 "clone the contents of this chip (see man page for "
-			 "details).\n");
-	}
-	if ((flash->chip->tested.probe != OK) ||
-	    (flash->chip->tested.read != OK) ||
-	    (flash->chip->tested.erase != OK) ||
-	    (flash->chip->tested.write != OK) ||
-	    (flash->chip->tested.uread != OK)) {
-		msg_cdbg("===\n");
-		if ((flash->chip->tested.probe == BAD) ||
-		    (flash->chip->tested.read == BAD) ||
-		    (flash->chip->tested.erase == BAD) ||
-		    (flash->chip->tested.write == BAD) ||
-		    (flash->chip->tested.uread == BAD)) {
-			msg_cdbg("This flash part has status NOT WORKING for operations:");
-			if (flash->chip->tested.probe == BAD)
-				msg_cdbg(" PROBE");
-			if (flash->chip->tested.read == BAD)
-				msg_cdbg(" READ");
-			if (flash->chip->tested.erase == BAD)
-				msg_cdbg(" ERASE");
-			if (flash->chip->tested.write == BAD)
-				msg_cdbg(" WRITE");
-			if (flash->chip->tested.uread == BAD)
-				msg_cdbg(" UNBOUNDED READ");
-			msg_cdbg("\n");
-		}
-		if ((flash->chip->tested.probe == NT) ||
-		    (flash->chip->tested.read == NT) ||
-		    (flash->chip->tested.erase == NT) ||
-		    (flash->chip->tested.write == NT) ||
-		    (flash->chip->tested.uread == NT)) {
-			msg_cdbg("This flash part has status UNTESTED for operations:");
-			if (flash->chip->tested.probe == NT)
-				msg_cdbg(" PROBE");
-			if (flash->chip->tested.read == NT)
-				msg_cdbg(" READ");
-			if (flash->chip->tested.erase == NT)
-				msg_cdbg(" ERASE");
-			if (flash->chip->tested.write == NT)
-				msg_cdbg(" WRITE");
-			if (flash->chip->tested.uread == NT)
-				msg_cdbg(" UNBOUNDED READ");
-			msg_cdbg("\n");
-		}
-		/* FIXME: This message is designed towards CLI users. */
-		msg_cdbg("The test status of this chip may have been updated "
-			    "in the latest development\n"
-			  "version of flashrom. If you are running the latest "
-			    "development version,\n"
-			  "please email a report to flashrom@flashrom.org if "
-			    "any of the above operations\n"
-			  "work correctly for you with this flash part. Please "
-			    "include the flashrom\n"
-			  "output with the additional -V option for all "
-			    "operations you tested (-V, -Vr,\n"
-			  "-VE, -Vw), and mention which mainboard or "
-			    "programmer you tested.\n"
-			  "Please mention your board in the subject line. "
-			    "Thanks for your help!\n");
-	}
 }
 
 /* FIXME: This function signature needs to be improved once doit() has a better
