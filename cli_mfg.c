@@ -298,9 +298,8 @@ int main(int argc, char *argv[])
 	char *wp_mode_opt = NULL;
 	char *wp_region = NULL;
 
-#ifdef STANDALONE
 	print_version();
-#endif
+
 	if (selfcheck())
 		exit(1);
 
