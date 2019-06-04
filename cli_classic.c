@@ -15,7 +15,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <stdio.h>
@@ -109,7 +108,7 @@ static enum programmer default_programmer =
 ;
 #endif
 
-void cli_mfg_usage(const char *name)
+void cli_classic_usage(const char *name)
 {
 
 	msg_ginfo("Usage: flashrom [-n] [-V] [-f] [-h|-R|-L|"
@@ -189,7 +188,7 @@ void cli_mfg_usage(const char *name)
 	         "flash chips.\n\n");
 }
 
-void cli_mfg_abort_usage(const char *name)
+void cli_classic_abort_usage(const char *name)
 {
 	msg_gerr("Please run \"%s --help\" for usage info.\n", name);
 	exit(1);
@@ -314,7 +313,7 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			read_it = 1;
 #if CONFIG_USE_OS_TIMER == 0
@@ -327,7 +326,7 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			write_it = 1;
 #if CONFIG_USE_OS_TIMER == 0
@@ -341,12 +340,12 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			if (dont_verify_it) {
 				msg_gerr("--verify and --noverify are"
 					"mutually exclusive. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			if (!verify_it) verify_it = VERIFY_FULL;
 #if CONFIG_USE_OS_TIMER == 0
@@ -359,7 +358,7 @@ int main(int argc, char *argv[])
 			if (verify_it) {
 				msg_gerr("--verify and --noverify are"
 					"mutually exclusive. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			dont_verify_it = 1;
 			break;
@@ -375,7 +374,7 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			erase_it = 1;
 #if CONFIG_USE_OS_TIMER == 0
@@ -390,7 +389,7 @@ int main(int argc, char *argv[])
 		case 'l':
 			if (layoutfile) {
 				fprintf(stderr, "Error: --layout specified more than once. Aborting\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			layoutfile = strdup(optarg);
 			break;
@@ -403,7 +402,7 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			list_supported = 1;
 			break;
@@ -411,7 +410,7 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			extract_it = 1;
 			break;
@@ -420,13 +419,13 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			list_supported_wiki = 1;
 #else
 			msg_gerr("Error: Wiki output was not compiled "
 				"in. Aborting.\n");
-			cli_mfg_abort_usage(argv[0]);
+			cli_classic_abort_usage(argv[0]);
 #endif
 			break;
 		case 'p':
@@ -436,7 +435,7 @@ int main(int argc, char *argv[])
 					"multiple\nparameters for a programmer "
 					"with \",\". Please see the man page "
 					"for details.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			for (prog = 0; prog < PROGRAMMER_INVALID; prog++) {
 				name = programmer_table[prog].name;
@@ -499,13 +498,13 @@ int main(int argc, char *argv[])
 			if ((prog == PROGRAMMER_INVALID) && !alias) {
 				msg_gerr("Error: Unknown programmer "
 					"%s.\n", optarg);
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 
 			if ((prog != PROGRAMMER_INVALID) && alias) {
 				msg_gerr("Error: Alias cannot be used "
 					"with programmer name.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			break;
 		case 'R':
@@ -513,7 +512,7 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 			exit(0);
 			break;
@@ -521,20 +520,20 @@ int main(int argc, char *argv[])
 			if (++operation_specified > 1) {
 				msg_gerr("More than one operation "
 					"specified. Aborting.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
-			cli_mfg_usage(argv[0]);
+			cli_classic_usage(argv[0]);
 			exit(0);
 			break;
 		case 'o':
 #ifdef STANDALONE
 			fprintf(stderr, "Log file not supported in standalone mode. Aborting.\n");
-			cli_mfg_abort_usage(argv[0]);
+			cli_classic_abort_usage(argv[0]);
 #else /* STANDALONE */
 			logfile = strdup(optarg);
 			if (logfile[0] == '\0') {
 				fprintf(stderr, "No log filename specified.\n");
-				cli_mfg_abort_usage(argv[0]);
+				cli_classic_abort_usage(argv[0]);
 			}
 #endif /* STANDALONE */
 			break;
@@ -584,7 +583,7 @@ int main(int argc, char *argv[])
 			set_ignore_lock = 1;
 			break;
 		default:
-			cli_mfg_abort_usage(argv[0]);
+			cli_classic_abort_usage(argv[0]);
 			break;
 		}
 	}
@@ -606,24 +605,24 @@ int main(int argc, char *argv[])
 #if 0
 	if (optind < argc) {
 		msg_gerr("Error: Extra parameter found.\n");
-		cli_mfg_abort_usage(argv[0]);
+		cli_classic_abort_usage(argv[0]);
 	}
 #endif
 
 	if (layoutfile && check_filename(layoutfile, "layout")) {
-		cli_mfg_abort_usage(argv[0]);
+		cli_classic_abort_usage(argv[0]);
 	}
 
 
 	if (!do_diff && diff_file) {
 		msg_gerr("Both --diff and --do-not-diff set, "
 			 "what do you want to do?\n");
-		cli_mfg_abort_usage(argv[0]);
+		cli_classic_abort_usage(argv[0]);
 	}
 
 #ifndef STANDALONE
 	if (logfile && check_filename(logfile, "log"))
-		cli_mfg_abort_usage(argv[0]);
+		cli_classic_abort_usage(argv[0]);
 	if (logfile && open_logfile(logfile))
 		return 1;
 #endif /* !STANDALONE */
@@ -646,7 +645,7 @@ int main(int argc, char *argv[])
 	msg_gdbg("\n");
 
 	if (layoutfile && read_romlayout(layoutfile)) {
-		cli_mfg_abort_usage(argv[0]);
+		cli_classic_abort_usage(argv[0]);
 	}
 
 	if (chip_to_probe) {
@@ -719,7 +718,7 @@ int main(int argc, char *argv[])
 	if (programmer_init(prog, pparam)) {
 		msg_gerr("Error: Programmer initialization failed.\n");
 		rc = 1;
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	/* FIXME: Delay calibration should happen in programmer code. */
@@ -749,14 +748,14 @@ int main(int argc, char *argv[])
 			if (startchip == -1) {
 				msg_gerr("Probing for flash chip '%s' failed.\n", chip_to_probe);
 				rc = 1;
-				goto cli_mfg_silent_exit;
+				goto cli_classic_silent_exit;
 			}
 			msg_ginfo("Please note that forced reads most likely contain garbage.\n");
 			return read_flash_to_file(&flashes[0], filename);
 		}
 		// FIXME: flash writes stay enabled!
 		rc = 1;
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	fill_flash = &flashes[0];
@@ -769,7 +768,7 @@ int main(int argc, char *argv[])
 		msg_gerr("Chip is too big for this programmer "
 			"(-V gives details). Use --force to override.\n");
 		rc = 1;
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	if (!(read_it | write_it | verify_it | erase_it | flash_name |
@@ -778,13 +777,13 @@ int main(int argc, char *argv[])
 		msg_gerr("No operations were specified.\n");
 		// FIXME: flash writes stay enabled!
 		rc = 0;
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	if (set_wp_enable && set_wp_disable) {
 		msg_ginfo("Error: --wp-enable and --wp-disable are mutually exclusive\n");
 		rc = 1;
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	/*
@@ -832,7 +831,7 @@ int main(int argc, char *argv[])
 		else {
 			msg_gerr("Error: Unknown file operation\n");
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		if (!filename) {
@@ -840,14 +839,14 @@ int main(int argc, char *argv[])
 				msg_gerr("Error: No file specified for -%c.\n",
 						op);
 				rc = 1;
-				goto cli_mfg_silent_exit;
+				goto cli_classic_silent_exit;
 			}
 
 			if (num_include_files() != get_num_include_args()) {
 				msg_gerr("Error: One or more -i arguments is "
 					" missing a filename.\n");
 				rc = 1;
-				goto cli_mfg_silent_exit;
+				goto cli_classic_silent_exit;
 			}
 		}
 	}
@@ -864,7 +863,7 @@ int main(int argc, char *argv[])
 			msg_gerr("Error: write protect is not supported "
 			       "on this flash chip.\n");
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 	}
 
@@ -873,10 +872,10 @@ int main(int argc, char *argv[])
 			msg_ginfo("vendor=\"%s\" name=\"%s\"\n",
 			       fill_flash->chip->vendor,
 			       fill_flash->chip->name);
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		} else {
 			rc = -1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 	}
 
@@ -895,7 +894,7 @@ int main(int argc, char *argv[])
 	if (!set_ignore_fmap && !layoutfile &&
 	    get_fmap_entries(filename, fill_flash) < 0) {
 		rc = 1;
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	if (set_wp_range || set_wp_region) {
@@ -903,14 +902,14 @@ int main(int argc, char *argv[])
 			msg_gerr("Error: Cannot use both --wp-range and "
 				"--wp-region simultaneously.\n");
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		if (!fill_flash->chip->wp || !fill_flash->chip->wp->set_range) {
 			msg_gerr("Error: write protect is not supported "
 			       "on this flash chip.\n");
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 	}
 
@@ -922,7 +921,7 @@ int main(int argc, char *argv[])
 		if ((argc - optind) != 2) {
 			msg_gerr("Error: invalid number of arguments\n");
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		/* FIXME: add some error checking */
@@ -930,14 +929,14 @@ int main(int argc, char *argv[])
 		if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
 			msg_gerr("Error: value \"%s\" invalid\n", argv[optind]);
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		len = strtoul(argv[optind + 1], &endptr, 0);
 		if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
 			msg_gerr("Error: value \"%s\" invalid\n", argv[optind + 1]);
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		rc |= fill_flash->chip->wp->set_range(fill_flash, start, len);
@@ -952,12 +951,12 @@ int main(int argc, char *argv[])
 			msg_gerr("Error: Unable to find region \"%s\"\n",
 					wp_region);
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		if (fill_romentry(&entry, n)) {
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		rc |= fill_flash->chip->wp->set_range(fill_flash,
@@ -976,7 +975,7 @@ int main(int argc, char *argv[])
 		if (wp_mode == WP_MODE_UNKNOWN) {
 			msg_gerr("Error: Invalid WP mode: \"%s\"\n", wp_mode_opt);
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 
 		if (fill_flash->chip->wp && fill_flash->chip->wp->enable) {
@@ -985,13 +984,13 @@ int main(int argc, char *argv[])
 			msg_gerr("Error: write protect is not supported "
 			       "on this flash chip.\n");
 			rc = 1;
-			goto cli_mfg_silent_exit;
+			goto cli_classic_silent_exit;
 		}
 	}
-	
+
 	if (get_size) {
 		msg_ginfo("%d\n", fill_flash->chip->total_size * 1024);
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	if (wp_status) {
@@ -1002,9 +1001,9 @@ int main(int argc, char *argv[])
 			       "on this flash chip.\n");
 			rc = 1;
 		}
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
-	
+
 	if (wp_list) {
 		msg_ginfo("Valid write protection ranges:\n");
 		if (fill_flash->chip->wp && fill_flash->chip->wp->list_ranges) {
@@ -1014,7 +1013,7 @@ int main(int argc, char *argv[])
 			       "on this flash chip.\n");
 			rc = 1;
 		}
-		goto cli_mfg_silent_exit;
+		goto cli_classic_silent_exit;
 	}
 
 	if (read_it || write_it || erase_it || verify_it || extract_it) {
@@ -1024,7 +1023,7 @@ int main(int argc, char *argv[])
 	}
 
 	msg_ginfo("%s\n", rc ? "FAILED" : "SUCCESS");
-cli_mfg_silent_exit:
+cli_classic_silent_exit:
 	programmer_shutdown();  /* must be done after chip_restore() */
 #if USE_BIG_LOCK == 1
 	if (!set_ignore_lock)

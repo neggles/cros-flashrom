@@ -41,7 +41,7 @@ struct flashctx; /* forward declare */
 
 #define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
 
-/* for verify_it variable in flashrom.c and cli_mfg.c */
+/* for verify_it variable in flashrom.c and cli_classic.c */
 enum {
 	VERIFY_OFF = 0,
 	VERIFY_FULL,

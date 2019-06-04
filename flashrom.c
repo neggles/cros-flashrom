@@ -2292,7 +2292,7 @@ out:
 out_nofree:
 	chip_restore();	/* must be done before programmer_shutdown() */
 	/*
-	 * programmer_shutdown() call is moved to cli_mfg() in chromium os
+	 * programmer_shutdown() call is moved to cli_classic() in chromium os
 	 * tree. This is because some operations, such as write protection,
 	 * requires programmer_shutdown() but does not call doit().
 	 */
