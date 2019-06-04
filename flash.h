@@ -370,7 +370,7 @@ extern int ignore_error(int x);
 
 /* cli_common.c */
 char *flashbuses_to_text(enum chipbustype bustype);
-void print_chip_support_status(const struct flashctx *flash);
+void print_chip_support_status(const struct flashchip *chip);
 
 /* cli_output.c */
 extern enum flashrom_log_level verbose_screen;
