@@ -33,6 +33,8 @@
 // Software Foundation.
 //
 
+extern crate sys_info;
+
 use super::flashrom;
 use super::flashrom::{Flashrom};
 use super::cmd;
@@ -346,7 +348,12 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     // Run all the tests and collate the findings:
     let results = tester::run_all_tests(&tests);
 
-    tester::collate_all_test_runs(results)
+    let os_rel = sys_info::os_release().unwrap_or("<Unknown OS>".to_string());
+    let meta_data = tester::ReportMetaData{
+        chip_name: chip_name,
+        os_release: os_rel,
+    };
+    tester::collate_all_test_runs(results, meta_data)
 }
 
 fn test_section(cmd: &cmd::FlashromCmd, section: (&'static str, i64, i64)) -> Result<(), std::io::Error> {

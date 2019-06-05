@@ -11,6 +11,7 @@ chrono = "0.4"
 log = "0.4"
 env_logger = "0.6"
 built = "0.3"
+sys-info = "0.5.7"
 
 [build-dependencies]
 built = "0.3"

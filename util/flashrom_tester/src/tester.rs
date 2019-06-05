@@ -64,6 +64,11 @@ pub struct TestCase<'a> {
     pub conclusion: TestConclusion,
 }
 
+pub struct ReportMetaData {
+    pub chip_name: std::string::String,
+    pub os_release: std::string::String,
+}
+
 fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, Option<std::io::Error>) {
     if res.is_ok() && con == TestConclusion::Fail {
         return (TestConclusion::UnexpectedPass, None);
@@ -110,11 +115,16 @@ macro_rules! style {
 macro_rules! style_ {
     ($s: expr, $c: expr) => { format!("{}{}{}", $c, $s, types::RESET) }
 }
-pub fn collate_all_test_runs<'a>(truns: Vec<(&'a str, (TestConclusion, Option<std::io::Error>))>) -> Result<(), std::io::Error> {
+pub fn collate_all_test_runs<'a>(truns: Vec<(&'a str, (TestConclusion, Option<std::io::Error>))>, meta_data: ReportMetaData) -> Result<(), std::io::Error> {
     println!("");
     println!("  =============================");
     println!("  =====  AVL qual RESULTS  ====");
     println!("  =============================");
+    println!("");
+    println!("  %---------------------------%");
+    println!("   os release: {}", meta_data.os_release);
+    println!("   chip name: {}", meta_data.chip_name);
+    println!("  %---------------------------%");
     println!("");
     for trun in truns.iter() {
         let (name, (result, error)) = trun;
