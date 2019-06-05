@@ -137,7 +137,7 @@ fn flashrom_dispatch(path: &str, params: Vec<std::string::String>, fc: types::Fl
     let mut args: Vec<String> = vec!["-p".to_string(), types::FlashChip::to(fc).to_string()];
     args.extend(params);
 
-    debug!("flashrom_dispatch() running: {} {:?}", path, args);
+    info!("flashrom_dispatch() running: {} {:?}", path, args);
 
     let output = Command::new(path)
         .args(&args)
