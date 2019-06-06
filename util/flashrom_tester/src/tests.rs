@@ -35,6 +35,7 @@
 
 extern crate sys_info;
 
+use super::mosys;
 use super::flashrom;
 use super::flashrom::{Flashrom};
 use super::cmd;
@@ -349,9 +350,13 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     let results = tester::run_all_tests(&tests);
 
     let os_rel = sys_info::os_release().unwrap_or("<Unknown OS>".to_string());
+    let system_info = mosys::system_info().unwrap_or("<Unknown System>".to_string());
+    let bios_info = mosys::bios_info().unwrap_or("<Unknown BIOS>".to_string());
     let meta_data = tester::ReportMetaData{
         chip_name: chip_name,
         os_release: os_rel,
+        system_info: system_info,
+        bios_info: bios_info,
     };
     tester::collate_all_test_runs(results, meta_data)
 }

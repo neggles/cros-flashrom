@@ -48,6 +48,7 @@ mod cmd;
 mod rand;
 mod utils;
 mod flashrom;
+mod mosys;
 
 use std::env;
 use std::io::Write;

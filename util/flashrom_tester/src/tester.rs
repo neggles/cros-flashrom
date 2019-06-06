@@ -67,6 +67,8 @@ pub struct TestCase<'a> {
 pub struct ReportMetaData {
     pub chip_name: std::string::String,
     pub os_release: std::string::String,
+    pub system_info: std::string::String,
+    pub bios_info: std::string::String,
 }
 
 fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, Option<std::io::Error>) {
@@ -124,6 +126,8 @@ pub fn collate_all_test_runs<'a>(truns: Vec<(&'a str, (TestConclusion, Option<st
     println!("  %---------------------------%");
     println!("   os release: {}", meta_data.os_release);
     println!("   chip name: {}", meta_data.chip_name);
+    println!("   system info: {}", meta_data.system_info);
+    println!("   bios info: {}", meta_data.bios_info);
     println!("  %---------------------------%");
     println!("");
     for trun in truns.iter() {
