@@ -4439,79 +4439,79 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
-			.vendor		= "GigaDevice",
-			.name		= "GD25LQ64",
-			.bustype	= BUS_SPI,
-			.manufacture_id	= GIGADEVICE_ID,
-			.model_id	= GIGADEVICE_GD25LQ64,
-			.total_size	= 8192,
-			.page_size	= 256,
-			/* OTP: 1024B total, 256B reserved; read 0x48; write 0x42 */
-			.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ | FEATURE_OTP,
-			.tested		= TEST_OK_PREWU,
-			.probe		= probe_spi_rdid,
-			.probe_timing	= TIMING_ZERO,
-			.block_erasers	=
-			{
-				{
-					.eraseblocks = { {4 * 1024, 2048} },
-					.block_erase = spi_block_erase_20,
-				}, {
-					.eraseblocks = { {32 * 1024, 256} },
-					.block_erase = spi_block_erase_52,
-				}, {
-					.eraseblocks = { {64 * 1024, 128} },
-					.block_erase = spi_block_erase_d8,
-				}, {
-					.eraseblocks = { {8 * 1024 * 1024, 1} },
-					.block_erase = spi_block_erase_60,
-				}, {
-					.eraseblocks = { {8 * 1024 * 1024, 1} },
-					.block_erase = spi_block_erase_c7,
-				}
-			},
-			.unlock		= spi_disable_blockprotect,
-			.write		= spi_chip_write_256,
-			.read		= spi_chip_read,
-			.wp		= &wp_w25,
-		},
-
+		.vendor		= "GigaDevice",
+		.name		= "GD25LQ64",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= GIGADEVICE_ID,
+		.model_id	= GIGADEVICE_GD25LQ64,
+		.total_size	= 8192,
+		.page_size	= 256,
+		/* OTP: 1024B total, 256B reserved; read 0x48; write 0x42 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ | FEATURE_OTP,
+		.tested		= TEST_OK_PREWU,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
 		{
-			.vendor		= "GigaDevice",
-			.name		= "GD25LQ128C/GD25LQ128D",
-			.bustype	= BUS_SPI,
-			.manufacture_id	= GIGADEVICE_ID,
-			.model_id	= GIGADEVICE_GD25LQ128CD,
-			.total_size	= 16384,
-			.page_size	= 256,
-			.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ,
-			.tested		= TEST_OK_PREWU,
-			.probe		= probe_spi_rdid,
-			.probe_timing	= TIMING_ZERO,
-			.block_erasers	=
 			{
-				{
-					.eraseblocks = { {4 * 1024, 4096} },
-					.block_erase = spi_block_erase_20,
-				}, {
-					.eraseblocks = { {32 * 1024, 512} },
-					.block_erase = spi_block_erase_52,
-				}, {
-					.eraseblocks = { {64 * 1024, 256} },
-					.block_erase = spi_block_erase_d8,
-				}, {
-					.eraseblocks = { {16 * 1024 * 1024, 1} },
-					.block_erase = spi_block_erase_60,
-				}, {
-					.eraseblocks = { {16 * 1024 * 1024, 1} },
-					.block_erase = spi_block_erase_c7,
-				}
-			},
-			.unlock		= spi_disable_blockprotect,
-			.write		= spi_chip_write_256,
-			.read		= spi_chip_read,
-			.wp		= &wp_generic,
+				.eraseblocks = { {4 * 1024, 2048} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 256} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
 		},
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,
+		.wp		= &wp_w25,
+	},
+
+	{
+		.vendor		= "GigaDevice",
+		.name		= "GD25LQ128C/GD25LQ128D",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= GIGADEVICE_ID,
+		.model_id	= GIGADEVICE_GD25LQ128CD,
+		.total_size	= 16384,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ,
+		.tested		= TEST_OK_PREWU,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 4096} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 512} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 256} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {16 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {16 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,
+		.wp		= &wp_generic,
+	},
 
 	{
 		.vendor		= "Hyundai",
@@ -5467,7 +5467,6 @@ const struct flashchip flashchips[] = {
 		.voltage	= {1650, 2000},
 		.wp		= &wp_w25,
 	},
-
 
 	{
 		.vendor		= "Macronix",
@@ -9001,6 +9000,7 @@ const struct flashchip flashchips[] = {
 		.read		= read_memmapped,
 		.voltage	= {4500, 5500},
 	},
+
 	{
 		/* FIXME: this has WORD/BYTE sequences; 2AA for word, 555 for byte */
 		.vendor		= "ST",
@@ -9088,29 +9088,29 @@ const struct flashchip flashchips[] = {
 		.voltage	= {2700, 3600},
 	},
 
-        {
-                .vendor         = "ST",
-                .name           = "M29W512B",
+	{
+		.vendor		= "ST",
+		.name		= "M29W512B",
 		.bustype	= BUS_PARALLEL,
-                .manufacture_id = ST_ID,
-                .model_id       = ST_M29W512B,
-                .total_size     = 64,
-                .page_size      = 64 * 1024,
-                .feature_bits   = FEATURE_ADDR_2AA | FEATURE_EITHER_RESET,
+		.manufacture_id	= ST_ID,
+		.model_id	= ST_M29W512B,
+		.total_size		= 64,
+		.page_size		= 64 * 1024,
+		.feature_bits		= FEATURE_ADDR_2AA | FEATURE_EITHER_RESET,
 		.tested		= TEST_OK_PRE,
-                .probe          = probe_jedec,
-                .probe_timing   = TIMING_ZERO,
-                .block_erasers  =
-                {
-                        {
-                                .eraseblocks = { {64 * 1024, 1} },
-                                .block_erase = erase_chip_block_jedec,
-                        }
-                },
-                .write          = write_jedec_1,
-                .read           = read_memmapped,
+		.probe		= probe_jedec,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			}
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
 		.voltage	= {2700, 3600},
-        },
+	},
 
 	{
 		.vendor		= "ST",
@@ -10438,7 +10438,8 @@ const struct flashchip flashchips[] = {
 		.read		= read_memmapped,
 	},
 
-	{/* W29EE011, W29EE012, W29C010M, W29C011A do not support probe_jedec according to the datasheet, but it works for newer(?) steppings. */
+	/* W29EE011, W29EE012, W29C010M, W29C011A do not support probe_jedec according to the datasheet, but it works for newer(?) steppings. */
+	{
 		.vendor		= "Winbond",
 		.name		= "W29C010(M)/W29C011A/W29EE011/W29EE012",
 		.bustype	= BUS_PARALLEL,
