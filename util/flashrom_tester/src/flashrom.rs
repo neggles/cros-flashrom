@@ -121,8 +121,8 @@ pub fn write_file_with_layout(cmd: &cmd::FlashromCmd, range: Option<(i64, i64)>,
     let (stdout, stderr) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
     let eoutput = String::from_utf8_lossy(stderr.as_slice());
-    debug!("write_file_with_layout()'stdout: {:#?}.", output);
-    debug!("write_file_with_layout()'stderr: {:#?}.", eoutput);
+    debug!("write_file_with_layout()'stdout:\n{}.", output);
+    debug!("write_file_with_layout()'stderr:\n{}.", eoutput);
     Ok(true)
 }
 
@@ -139,8 +139,8 @@ pub fn wp_range(cmd: &cmd::FlashromCmd, range: (i64, i64), wp_enable: bool) -> R
     let (stdout, stderr) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
     let eoutput = String::from_utf8_lossy(stderr.as_slice());
-    debug!("wp_range()'stdout: {:#?}.", output);
-    debug!("wp_range()'stderr: {:#?}.", eoutput);
+    debug!("wp_range()'stdout:\n{}.", output);
+    debug!("wp_range()'stderr:\n{}.", eoutput);
     Ok(true)
 }
 
@@ -177,7 +177,7 @@ pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Erro
     let (stdout, _) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
 
-    debug!("wp_status(): {}", output);
+    debug!("wp_status():\n{}", output);
 
     let s = std::format!("write protect is {}abled", status);
     Ok(utils::qgrep(&output, &s))
@@ -199,8 +199,8 @@ pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Erro
     let output = String::from_utf8_lossy(stdout.as_slice());
     let eoutput = String::from_utf8_lossy(stderr.as_slice());
 
-    debug!("wp_toggle()'stdout: {:#?}.", output);
-    debug!("wp_toggle()'stderr: {:#?}.", eoutput);
+    debug!("wp_toggle()'stdout:\n{}.", output);
+    debug!("wp_toggle()'stderr:\n{}.", eoutput);
 
     match wp_status(&cmd, true) {
         Ok(_ret) => {
@@ -225,7 +225,7 @@ pub fn read(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> {
 
     let (stdout, _) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
-    debug!("read(): {}", output);
+    debug!("read():\n{}", output);
     Ok(())
 }
 
@@ -240,7 +240,7 @@ pub fn write(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> {
 
     let (stdout, _) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
-    debug!("write(): {}", output);
+    debug!("write():\n{}", output);
     Ok(())
 }
 
@@ -255,7 +255,7 @@ pub fn verify(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> 
 
     let (stdout, _) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
-    debug!("verify(): {}", output);
+    debug!("verify():\n{}", output);
     Ok(())
 }
 
@@ -270,6 +270,6 @@ pub fn erase(cmd: &cmd::FlashromCmd) -> Result<(), std::io::Error> {
 
     let (stdout, _) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
-    debug!("erase(): {}", output);
+    debug!("erase():\n{}", output);
     Ok(())
 }

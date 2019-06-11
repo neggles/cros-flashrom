@@ -126,8 +126,8 @@ pub fn collate_all_test_runs<'a>(truns: Vec<(&'a str, (TestConclusion, Option<st
     println!("  %---------------------------%");
     println!("   os release: {}", meta_data.os_release);
     println!("   chip name: {}", meta_data.chip_name);
-    println!("   system info: {}", meta_data.system_info);
-    println!("   bios info: {}", meta_data.bios_info);
+    println!("   system info: \n{}", meta_data.system_info);
+    println!("   bios info: \n{}", meta_data.bios_info);
     println!("  %---------------------------%");
     println!("");
     for trun in truns.iter() {
@@ -136,7 +136,7 @@ pub fn collate_all_test_runs<'a>(truns: Vec<(&'a str, (TestConclusion, Option<st
             println!(" {} {}", style_!(format!(" <+> {} test:", name), types::BOLD), style!(result, types::RED));
             match error {
                 None => {},
-                Some(e) => debug!(" - {} failure details: {}", name, e.to_string()),
+                Some(e) => info!(" - {} failure details:\n{}", name, e.to_string()),
             };
         } else {
             println!(" {} {}", style_!(format!(" <+> {} test:", name), types::BOLD), style!(result, types::GREEN));
