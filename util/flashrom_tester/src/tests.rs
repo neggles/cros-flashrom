@@ -124,8 +124,11 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     let erase_write_test_fn = |param: &tester::TestParams| {
         flashrom::read(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
         flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+        flashrom::wp_toggle(&param.cmd, false)?;
         flashrom::erase(&param.cmd)?;
-        flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")
+        flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+        flashrom::wp_toggle(&param.cmd, true);
+        Ok(())
     };
     let erase_write_test = tester::TestCase {
         name: "Erase/Write",
