@@ -92,6 +92,12 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
             warn!("ROM is write protected.  Attempting to disable..");
             flashrom::wp_toggle(&param.cmd, false)?;
         }
+        if wpen && flashrom::wp_status(&param.cmd, true)? {
+            warn!("Hardware write protect seems to be asserted, attempt to get user to de-assert it.");
+            utils::toggle_hw_wp(true);
+            warn!("ROM is write protected.  Attempting to disable..");
+            flashrom::wp_toggle(&param.cmd, false)?;
+        }
         if flashrom::wp_status(&param.cmd, true)? {
             return Err(Error::new(ErrorKind::Other, "Cannot disable write protect.  Cannot continue."));
         }
