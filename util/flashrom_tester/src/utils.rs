@@ -99,10 +99,10 @@ pub fn get_layout_sizes(rom_sz: i64) -> Result<LayoutSizes, std::io::Error> {
 
 pub fn layout_section(ls: &LayoutSizes, ln: LayoutNames) -> (&'static str, i64, i64) {
     match ln {
-        LayoutNames::TopQuad => ("TOP_QUAD", ls.top_quad_bottom, ls.rom_top),
-        LayoutNames::TopHalf => ("TOP_HALF", ls.half_sz, ls.rom_top),
-        LayoutNames::BottomHalf => ("BOTTOM_HALF", 0, ls.bottom_half_top),
-        LayoutNames::BottomQuad => ("BOTTOM_QUAD", 0, ls.bottom_quad_top),
+        LayoutNames::TopQuad => ("TOP_QUAD", ls.top_quad_bottom, ls.quad_sz),
+        LayoutNames::TopHalf => ("TOP_HALF", ls.half_sz, ls.half_sz),
+        LayoutNames::BottomHalf => ("BOTTOM_HALF", 0, ls.half_sz),
+        LayoutNames::BottomQuad => ("BOTTOM_QUAD", 0, ls.quad_sz),
     }
 }
 
