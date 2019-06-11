@@ -228,6 +228,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
             write_file:  Some("/tmp/random_content.bin"),
             name_file:   Some(name),
         };
+        flashrom::wp_toggle(&param.cmd, false)?;
         flashrom::write_file_with_layout(&param.cmd, None, &rws)?;
         if flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat").is_ok() {
             return Err(Error::new(ErrorKind::Other, "Original flash image should not match when overwritten top_quad with random data"));
@@ -368,7 +369,10 @@ fn consistent_flash_checks(cmd: &cmd::FlashromCmd) -> Result<(), std::io::Error>
 fn test_section(cmd: &cmd::FlashromCmd, section: (&'static str, i64, i64)) -> Result<(), std::io::Error> {
     let (name, start, len) = section;
 
-    debug!("test_section() ..");
+    debug!("test_section() :: name = '{}' ..", name);
+    debug!("-------------------------------------------");
+
+    consistent_flash_checks(&cmd)?;
 
     let rws = flashrom::ROMWriteSpecifics {
         layout_file: Some("/tmp/layout.file"),
@@ -376,26 +380,22 @@ fn test_section(cmd: &cmd::FlashromCmd, section: (&'static str, i64, i64)) -> Re
         name_file:   Some(name),
     };
 
-    utils::toggle_hw_wp(true);
+    utils::toggle_hw_wp(true); // disconnect battery.
     flashrom::wp_toggle(&cmd, false)?;
-    utils::toggle_hw_wp(false);
+    utils::toggle_hw_wp(false); // connect battery.
     flashrom::wp_status(&cmd, false)?;
 
     flashrom::wp_range(&cmd, (start, len), true)?;
-    flashrom::wp_toggle(&cmd, false)?;
     flashrom::wp_status(&cmd, false)?;
-    flashrom::write_file_with_layout(&cmd, None, &rws)?;
-    if flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat").is_ok() {
-        return Err(Error::new(ErrorKind::Other, "Original flash image should not match when overwritten half or quad with random data"));
+
+    if flashrom::write_file_with_layout(&cmd, None, &rws).is_ok() {
+        return Err(Error::new(ErrorKind::Other, "Section should be locked, should not have been overwritable with random data"));
     }
 
-    let rws_ = flashrom::ROMWriteSpecifics {
-        layout_file: Some("/tmp/layout.file"),
-        write_file:  Some("/tmp/flashrom_tester_read.dat"),
-        name_file:   Some(name),
-    };
-    flashrom::write_file_with_layout(&cmd, None, &rws_)?;
-    flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat")
+    if flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat").is_err() {
+        return Err(Error::new(ErrorKind::Other, "Section didn't locked, has been overwritable with random data!"));
+    }
+    Ok(())
 }
 
 // ================================================
