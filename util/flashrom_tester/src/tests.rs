@@ -226,40 +226,6 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
 
     //  ================================================
     //
-    let overwrite_top_quad_test_fn = |param: &tester::TestParams| {
-        let rom_sz: i64 = param.cmd.get_size()?;
-        let layout_sizes = utils::get_layout_sizes(rom_sz)?;
-
-        let (name, _, _) = utils::layout_section(&layout_sizes, utils::LayoutNames::TopQuad);
-
-        let rws = flashrom::ROMWriteSpecifics {
-            layout_file: Some("/tmp/layout.file"),
-            write_file:  Some("/tmp/random_content.bin"),
-            name_file:   Some(name),
-        };
-        flashrom::wp_toggle(&param.cmd, false)?;
-        flashrom::write_file_with_layout(&param.cmd, None, &rws)?;
-        if flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat").is_ok() {
-            return Err(Error::new(ErrorKind::Other, "Original flash image should not match when overwritten top_quad with random data"));
-        }
-
-        let rws_ = flashrom::ROMWriteSpecifics {
-            layout_file: Some("/tmp/layout.file"),
-            write_file:  Some("/tmp/flashrom_tester_read.dat"),
-            name_file:   Some(name),
-        };
-        flashrom::write_file_with_layout(&param.cmd, None, &rws_)?;
-        flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")
-    };
-    let overwrite_top_quad_test = tester::TestCase {
-        name: "Overwrite top quad",
-        params: &default_test_params,
-        test_fn: overwrite_top_quad_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
     let lock_top_quad_test_fn = |param: &tester::TestParams| {
         let rom_sz: i64 = param.cmd.get_size()?;
         let layout_sizes = utils::get_layout_sizes(rom_sz)?;
@@ -344,7 +310,6 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     tests.push( &erase_write_test );
     tests.push( &verify_fail_test );
     tests.push( &lock_test );
-    tests.push( &overwrite_top_quad_test );
     tests.push( &lock_top_quad_test );
     tests.push( &lock_bottom_quad_test );
     tests.push( &lock_bottom_half_test );
