@@ -315,12 +315,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     //  ================================================
     //
     let consistent_exit_test_fn = |param: &tester::TestParams| {
-        if flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat").is_ok() {
-            return Ok(());
-        }
-        warn!("flash image in an inconsistent state! Attempting to restore..");
-        flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-        flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")
+        consistent_flash_checks(&param.cmd)
     };
     let consistent_exit_test = tester::TestCase {
         name: "Flash image consistency check at end of tests",
@@ -359,6 +354,15 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         bios_info: bios_info,
     };
     tester::collate_all_test_runs(results, meta_data)
+}
+
+fn consistent_flash_checks(cmd: &cmd::FlashromCmd) -> Result<(), std::io::Error> {
+    if flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat").is_ok() {
+        return Ok(());
+    }
+    warn!("flash image in an inconsistent state! Attempting to restore..");
+    flashrom::write(&cmd, "/tmp/flashrom_tester_read.dat")?;
+    flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat")
 }
 
 fn test_section(cmd: &cmd::FlashromCmd, section: (&'static str, i64, i64)) -> Result<(), std::io::Error> {
