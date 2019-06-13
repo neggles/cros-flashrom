@@ -694,9 +694,21 @@ struct par_master {
 	uint16_t (*chip_readw) (const struct flashctx *flash, const chipaddr addr);
 	uint32_t (*chip_readl) (const struct flashctx *flash, const chipaddr addr);
 	void (*chip_readn) (const struct flashctx *flash, uint8_t *buf, const chipaddr addr, size_t len);
+	const void *data;
 };
 extern const struct par_master *par_master;
 void register_par_master(const struct par_master *pgm, const enum chipbustype buses);
+struct registered_master {
+	enum chipbustype buses_supported;
+	union {
+		struct par_master par;
+		struct spi_master spi;
+		struct opaque_programmer opaque;
+	};
+};
+extern struct registered_master registered_masters[];
+extern int registered_master_count;
+int register_master(const struct registered_master *mst);
 
 /* serprog.c */
 #if CONFIG_SERPROG == 1

@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
 	int list_supported_wiki = 0;
 #endif
 	int operation_specified = 0;
-	int i;
+	int i, j;
 	enum programmer prog = PROGRAMMER_INVALID;
 	int rc = 0;
 	int found_chip = 0;
@@ -721,13 +721,20 @@ int main(int argc, char *argv[])
 		goto cli_classic_silent_exit;
 	}
 
-	/* FIXME: Delay calibration should happen in programmer code. */
-	for (i = 0; i < ARRAY_SIZE(flashes); i++) {
-		startchip = probe_flash(startchip, &flashes[i], 0);
-		if (startchip == -1)
-			break;
-		chipcount++;
-		startchip++;
+	// FIXME(quasisec): Hack to loop correctly while we have no actual
+	// registered masters. Remove once we use new dispatch mechanism!
+	const struct registered_master mst_nop;
+	register_master(&mst_nop);
+
+	for (j = 0; j < registered_master_count; j++) {
+		for (i = 0; i < ARRAY_SIZE(flashes); i++) {
+			startchip = probe_flash(&registered_masters[j],
+						startchip, &flashes[i], 0);
+			if (startchip == -1)
+				break;
+			chipcount++;
+			startchip++;
+		}
 	}
 
 	if (chipcount > 1) {
@@ -744,7 +751,9 @@ int main(int argc, char *argv[])
 		}
 		if (force && read_it && chip_to_probe) {
 			msg_ginfo("Force read (-f -r -c) requested, pretending the chip is there:\n");
-			startchip = probe_flash(0, &flashes[0], 1);
+			// FIXME(quasisec): Passing in NULL for registered_master as we don't know how to handle
+			// the case of a forced chip with multiple compatible programmers that are registered.
+			startchip = probe_flash(NULL, 0, &flashes[0], 1);
 			if (startchip == -1) {
 				msg_gerr("Probing for flash chip '%s' failed.\n", chip_to_probe);
 				rc = 1;

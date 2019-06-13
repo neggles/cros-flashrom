@@ -122,6 +122,25 @@ void register_par_master(const struct par_master *pgm, const enum chipbustype bu
 	buses_supported |= buses;
 }
 
+/* The limit of 4 is totally arbitrary. */
+#define MASTERS_MAX 4
+struct registered_master registered_masters[MASTERS_MAX];
+int registered_master_count = 0;
+
+/* This function copies the struct registered_master parameter. */
+int register_master(const struct registered_master *mst)
+{
+	if (registered_master_count >= MASTERS_MAX) {
+		msg_perr("Tried to register more than %i master "
+			 "interfaces.\n", MASTERS_MAX);
+		return ERROR_FLASHROM_LIMIT;
+	}
+	registered_masters[registered_master_count] = *mst;
+	registered_master_count++;
+
+	return 0;
+}
+
 struct programmer_alias aliases[] = {
 	{ "ec", ALIAS_EC },
 	{ "host", ALIAS_HOST },

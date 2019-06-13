@@ -1072,7 +1072,8 @@ int check_max_decode(enum chipbustype buses, uint32_t size)
 	return 1;
 }
 
-int probe_flash(int startchip, struct flashctx *fill_flash, int force)
+int probe_flash(struct registered_master *mst, int startchip,
+		struct flashctx *fill_flash, int force)
 {
 	const struct flashchip *flash, *flash_list;
 	unsigned long base = 0;
@@ -1133,6 +1134,7 @@ int probe_flash(int startchip, struct flashctx *fill_flash, int force)
 			exit(1);
 		}
 		memcpy(fill_flash->chip, flash, sizeof(struct flashchip));
+		fill_flash->mst = mst;
 
 		base = flashbase ? flashbase : (0xffffffff - size + 1);
 		fill_flash->virtual_memory = (chipaddr)programmer_map_flash_region("flash chip", base, size);
