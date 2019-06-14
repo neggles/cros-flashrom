@@ -13,7 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <stdlib.h>
@@ -221,7 +220,7 @@ struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar)
 	if (pcidev_bdf != NULL) {
 		if ((msg = pci_filter_parse_slot(&filter, pcidev_bdf))) {
 			msg_perr("Error: %s\n", msg);
-			exit(1);
+			return NULL;
 		}
 	}
 	free(pcidev_bdf);
@@ -240,11 +239,11 @@ struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar)
 	/* Only continue if exactly one supported PCI dev has been found. */
 	if (found == 0) {
 		msg_perr("Error: No supported PCI device found.\n");
-		exit(1);
+		return NULL;
 	} else if (found > 1) {
 		msg_perr("Error: Multiple supported PCI devices found. Use 'flashrom -p xxxx:pci=bb:dd.f' \n"
 			 "to explicitly select the card with the given BDF (PCI bus, device, function).\n");
-		exit(1);
+		return NULL;
 	}
 
 	return dev;
@@ -325,13 +324,13 @@ int rpci_write_byte(struct pci_dev *dev, int reg, uint8_t data)
 	register_undo_pci_write_byte(dev, reg);
 	return pci_write_byte(dev, reg, data);
 }
- 
+
 int rpci_write_word(struct pci_dev *dev, int reg, uint16_t data)
 {
 	register_undo_pci_write_word(dev, reg);
 	return pci_write_word(dev, reg, data);
 }
- 
+
 int rpci_write_long(struct pci_dev *dev, int reg, uint32_t data)
 {
 	register_undo_pci_write_long(dev, reg);
