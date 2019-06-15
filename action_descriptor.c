@@ -645,13 +645,13 @@ static size_t top_section_offset(const struct flashrom_layout *layout)
 	size_t top = 0;
 	size_t i;
 
-	for (i = 0; i < layout->num_entries; i++) {
-
-		if (!layout->entries[i].included)
+	const struct romentry *entry = NULL;
+	while ((entry = layout_next(layout, entry))) {
+		if (!entry->included)
 			continue;
 
-		if (layout->entries[i].end > top)
-			top = layout->entries[i].end;
+		if (entry->end > top)
+			top = entry->end;
 	}
 
 	return top;
