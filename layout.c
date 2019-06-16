@@ -29,6 +29,12 @@ struct flashrom_layout {
 	struct romentry *head;
 };
 
+struct layout_include_args {
+	char *name;
+	char *file;
+	struct layout_include_args *next;
+};
+
 const struct flashrom_layout *get_default_layout(const struct flashrom_flashctx *const flashctx)
 {
 	return flashctx->default_layout;
@@ -236,6 +242,19 @@ int process_include_args(struct flashrom_layout *l, const struct layout_include_
 		tmp = tmp->next;
 	}
 	msg_ginfo(".\n");
+	return 0;
+}
+
+int check_include_args_filename(const struct layout_include_args *include_args)
+{
+	const struct layout_include_args *arg;
+	for (arg = include_args; arg; arg = arg->next) {
+		if (!arg->file || (arg->file[0] == '\0')) {
+			fprintf(stderr, "Error: No region file specified.\n");
+			return 1;
+		}
+	}
+
 	return 0;
 }
 

@@ -47,11 +47,7 @@ struct romentry {
 
 struct flashrom_layout;
 
-struct layout_include_args {
-	char *name;
-	char *file;
-	struct layout_include_args *next;
-};
+struct layout_include_args;
 
 struct flashrom_flashctx;
 const struct flashrom_layout *get_default_layout(const struct flashrom_flashctx *);
@@ -61,6 +57,7 @@ int layout_from_file(struct flashrom_layout **, const char *name);
 
 int register_include_arg(struct layout_include_args **, const char *arg);
 int process_include_args(struct flashrom_layout *, const struct layout_include_args *);
+int check_include_args_filename(const struct layout_include_args *);
 void cleanup_include_args(struct layout_include_args **);
 
 int get_region_range(struct flashrom_layout *, const char *name,

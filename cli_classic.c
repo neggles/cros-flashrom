@@ -824,18 +824,15 @@ int main(int argc, char *argv[])
 	 *   processing the layout/fmap first.
 	 */
 	if ((read_it | write_it | verify_it) && !filename) {
-		struct layout_include_args *arg;
 		if (!include_args) {
 			msg_gerr("Error: No image file specified.\n");
 			ret = 1;
 			goto out_shutdown;
 		}
 
-		for (arg = include_args; arg; arg = arg->next) {
-			if (check_filename(arg->file, "region")) {
-				ret = 1;
-				goto out_shutdown;
-			}
+		if (check_include_args_filename(include_args)) {
+			ret = 1;
+			goto out_shutdown;
 		}
 	}
 
