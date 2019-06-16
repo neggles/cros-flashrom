@@ -1005,8 +1005,10 @@ out:
 		msg_gerr("Unable to re-enable power management\n");
 		ret |= 1;
 	}
-	for (i = 0; i < chipcount; i++)
+	for (i = 0; i < chipcount; i++) {
+		flashrom_layout_release(flashes[i].default_layout);
 		free(flashes[i].chip);
+	}
 
 	layout_cleanup(&include_args);
 	free(filename);
