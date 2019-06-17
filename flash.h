@@ -15,7 +15,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #ifndef __FLASH_H__
@@ -75,6 +74,27 @@ enum chipbustype {
 extern enum chipbustype target_bus;
 
 /*
+ * The following enum defines possible write granularities of flash chips. These tend to reflect the properties
+ * of the actual hardware not necesserily the write function(s) defined by the respective struct flashchip.
+ * The latter might (and should) be more precisely specified, e.g. they might bail out early if their execution
+ * would result in undefined chip contents.
+ */
+enum write_granularity {
+	/* We assume 256 byte granularity by default. */
+	write_gran_256bytes = 0,/* If less than 256 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1bit,	/* Each bit can be cleared individually. */
+	write_gran_1byte,	/* A byte can be written once. Further writes to an already written byte cause
+				 * its contents to be either undefined or to stay unchanged. */
+	write_gran_128bytes,	/* If less than 128 bytes are written, the unwritten bytes are undefined. */
+	write_gran_264bytes,	/* If less than 264 bytes are written, the unwritten bytes are undefined. */
+	write_gran_512bytes,	/* If less than 512 bytes are written, the unwritten bytes are undefined. */
+	write_gran_528bytes,	/* If less than 528 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1024bytes,	/* If less than 1024 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1056bytes,	/* If less than 1056 bytes are written, the unwritten bytes are undefined. */
+	write_gran_1byte_implicit_erase, /* EEPROMs and other chips with implicit erase and 1-byte writes. */
+};
+
+/*
  * How many different contiguous runs of erase blocks with one size each do
  * we have for a given erase function?
  */
@@ -86,6 +106,7 @@ extern enum chipbustype target_bus;
  */
 #define NUM_ERASEFUNCTIONS 6
 
+/* Feature bits used for non-SPI only */
 #define FEATURE_REGISTERMAP	(1 << 0)
 #define FEATURE_BYTEWRITES	(1 << 1)
 #define FEATURE_LONG_RESET	(0 << 4)
@@ -97,6 +118,7 @@ extern enum chipbustype target_bus;
 #define FEATURE_ADDR_2AA	(1 << 2)
 #define FEATURE_ADDR_AAA	(2 << 2)
 #define FEATURE_ADDR_SHIFTED	(1 << 5)
+/* Feature bits used for SPI only */
 #define FEATURE_WRSR_EWSR	(1 << 6)
 #define FEATURE_WRSR_WREN	(1 << 7)
 #define FEATURE_WRSR_EITHER	(FEATURE_WRSR_EWSR | FEATURE_WRSR_WREN)
@@ -266,42 +288,21 @@ void print_supported_wiki(void);
 /* helpers.c */
 uint32_t address_to_bits(uint32_t addr);
 int bitcount(unsigned long a);
-int min(int a, int b);
 int max(int a, int b);
+int min(int a, int b);
 char *strcat_realloc(char *dest, const char *src);
 void tolower_string(char *str);
 
 /* flashrom.c */
-/*
- * The following enum defines possible write granularities of flash chips. These tend to reflect the properties
- * of the actual hardware not necesserily the write function(s) defined by the respective struct flashchip.
- * The latter might (and should) be more precisely specified, e.g. they might bail out early if their execution
- * would result in undefined chip contents.
- */
-enum write_granularity {
-	/* We assume 256 byte granularity by default. */
-	write_gran_256bytes = 0,/* If less than 256 bytes are written, the unwritten bytes are undefined. */
-	write_gran_1bit,	/* Each bit can be cleared individually. */
-	write_gran_1byte,	/* A byte can be written once. Further writes to an already written byte cause
-				 * its contents to be either undefined or to stay unchanged. */
-	write_gran_128bytes,	/* If less than 128 bytes are written, the unwritten bytes are undefined. */
-	write_gran_264bytes,	/* If less than 264 bytes are written, the unwritten bytes are undefined. */
-	write_gran_512bytes,	/* If less than 512 bytes are written, the unwritten bytes are undefined. */
-	write_gran_528bytes,	/* If less than 528 bytes are written, the unwritten bytes are undefined. */
-	write_gran_1024bytes,	/* If less than 1024 bytes are written, the unwritten bytes are undefined. */
-	write_gran_1056bytes,	/* If less than 1056 bytes are written, the unwritten bytes are undefined. */
-	write_gran_1byte_implicit_erase, /* EEPROMs and other chips with implicit erase and 1-byte writes. */
-};
-
-extern enum chipbustype buses_supported;
 extern const char flashrom_version[];
 extern char *chip_to_probe;
+char *flashbuses_to_text(enum chipbustype bustype);
+extern enum chipbustype buses_supported;
 void map_flash_registers(struct flashctx *flash);
 int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int erase_flash(struct flashctx *flash);
 int probe_flash(struct registered_master *master, int startchip, struct flashctx *fill_flash, int force);
-int read_flash(struct flashctx *flash, uint8_t *buf,
-			unsigned int start, unsigned int len);
+int read_flash(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int read_flash_to_file(struct flashctx *flash, const char *filename);
 char *extract_param(char **haystack, const char *needle, const char *delim);
 int verify_range(struct flashctx *flash, uint8_t *cmpbuf, unsigned int start, unsigned int len, const char *message);
@@ -310,6 +311,8 @@ void print_buildinfo(void);
 void print_banner(void);
 void list_programmers_linebreak(int startcol, int cols, int paren);
 int selfcheck(void);
+int read_buf_from_file(unsigned char *buf, unsigned long size, const char *filename);
+int write_buf_to_file(unsigned char *buf, unsigned long size, const char *filename);
 
 /*
  *
@@ -344,8 +347,6 @@ int selfcheck(void);
 int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	 int write_it, int erase_it, int verify_it, int extract_it,
 	 const char *diff_file, int do_diff);
-int read_buf_from_file(unsigned char *buf, unsigned long size, const char *filename);
-int write_buf_to_file(unsigned char *buf, unsigned long size, const char *filename);
 
 #define OK 0
 #define NT 1    /* Not tested */
@@ -378,7 +379,6 @@ extern enum error_action access_denied_action;
 extern int ignore_error(int x);
 
 /* cli_common.c */
-char *flashbuses_to_text(enum chipbustype bustype);
 void print_chip_support_status(const struct flashchip *chip);
 
 /* cli_output.c */
