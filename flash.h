@@ -236,6 +236,7 @@ struct flashchip {
 	int (*write_status) (const struct flashctx *flash, int status);
 	int (*check_access) (const struct flashctx *flash, unsigned int start, unsigned int len, int read);
 	struct voltage_range voltage;
+	enum write_granularity gran;
 	struct wp *wp;
 };
 

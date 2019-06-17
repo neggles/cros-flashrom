@@ -1531,7 +1531,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	unsigned int starthere = 0, lenhere = 0;
 	int ret = 0, skip = 1, writecount = 0;
 	int block_was_erased = 0;
-	enum write_granularity gran = write_gran_256bytes; /* FIXME */
+	enum write_granularity gran = flash->chip->gran;
 
 	/*
 	 * curcontents and newcontents are opaque to walk_eraseregions, and
@@ -1544,7 +1544,6 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	newcontents += start;
 
 	msg_cdbg(":");
-	/* FIXME: Assume 256 byte granularity for now to play it safe. */
 	if (need_erase(flash, curcontents, newcontents, len, gran)) {
 		content_has_changed |= 1;
 		msg_cdbg(" E");
