@@ -2030,6 +2030,9 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	if (flash->chip->unlock)
 		flash->chip->unlock(flash);
 
+	flash->address_high_byte = -1;
+	flash->in_4ba_mode = false;
+
 	/* Enable/disable 4-byte addressing mode if flash chip supports it */
 	if ((flash->chip->feature_bits & FEATURE_4BA_SUPPORT) &&
 	    flash->chip->four_bytes_addr_funcs.set_4ba) {
