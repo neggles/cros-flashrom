@@ -526,6 +526,36 @@ int spi_block_erase_c7(struct flashctx *flash, unsigned int addr, unsigned int b
 	return spi_chip_erase_c7(flash);
 }
 
+/* Erase 4 KB of flash with 4-bytes address from ANY mode (3-bytes or 4-bytes)
+   JEDEC_SE_4BA (21h) instruction is new for 4-bytes addressing flash chips.
+   The presence of this instruction for an exact chip should be checked
+   by its datasheet or from SFDP 4-Bytes Address Instruction Table (JESD216B). */
+int spi_block_erase_21(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+{
+	/* This usually takes 15-800ms, so wait in 10ms steps. */
+	return spi_write_cmd(flash, 0x21, true, addr, NULL, 0, 10 * 1000);
+}
+
+/* Erase 32 KB of flash with 4-bytes address from ANY mode (3-bytes or 4-bytes)
+   JEDEC_BE_5C_4BA (5Ch) instruction is new for 4-bytes addressing flash chips.
+   The presence of this instruction for an exact chip should be checked
+   by its datasheet or from SFDP 4-Bytes Address Instruction Table (JESD216B). */
+int spi_block_erase_5c(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+{
+	/* This usually takes 100-4000ms, so wait in 100ms steps. */
+	return spi_write_cmd(flash, 0x5c, true, addr, NULL, 0, 100 * 1000);
+}
+
+/* Erase 64 KB of flash with 4-bytes address from ANY mode (3-bytes or 4-bytes)
+   JEDEC_BE_DC_4BA (DCh) instruction is new for 4-bytes addressing flash chips.
+   The presence of this instruction for an exact chip should be checked
+   by its datasheet or from SFDP 4-Bytes Address Instruction Table (JESD216B). */
+int spi_block_erase_dc(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+{
+	/* This usually takes 100-4000ms, so wait in 100ms steps. */
+	return spi_write_cmd(flash, 0xdc, true, addr, NULL, 0, 100 * 1000);
+}
+
 int spi_write_status_register_wren(const struct flashctx *flash, int status)
 {
 	int result;

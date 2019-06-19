@@ -106,11 +106,6 @@ int spi_byte_program_4ba_direct(struct flashctx *flash, unsigned int addr, uint8
 int spi_nbyte_program_4ba_direct(struct flashctx *flash, unsigned int addr, const uint8_t *bytes, unsigned int len);
 int spi_nbyte_read_4ba_direct(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
 
-/* erase flash bytes with 4-bytes address from any mode (3-byte or 4-byte) */
-int spi_block_erase_21_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_5c_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_dc_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-
 int spi_write_extended_address_register(struct flashctx *flash, uint8_t regdata);
 
 #endif /* __SPI_4BA_H__ */
