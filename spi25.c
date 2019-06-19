@@ -687,10 +687,7 @@ int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start, u
 		lenhere = min(start + len, (i + 1) * page_size) - starthere;
 		for (j = 0; j < lenhere; j += chunksize) {
 			toread = min(chunksize, lenhere - j);
-			chunk_status = (flash->chip->feature_bits & FEATURE_4BA_SUPPORT) == 0
-				? spi_nbyte_read(flash, starthere + j, buf + starthere - start + j, toread)
-				: flash->chip->four_bytes_addr_funcs.read_nbyte(flash, starthere + j,
-					buf + starthere - start + j, toread);
+			chunk_status = spi_nbyte_read(flash, starthere + j, buf + starthere - start + j, toread);
 			if (chunk_status) {
 				if (ignore_error(chunk_status)) {
 					/* fill this chunk with 0xff bytes and
@@ -725,13 +722,7 @@ int spi_read_unbound(struct flashctx *flash, uint8_t *buf, unsigned int start, u
 		int chunk_status = 0;
 		unsigned int toread = min(chunksize, start + len - i);
 
-		if (flash->chip->feature_bits & FEATURE_4BA_SUPPORT) {
-			chunk_status = flash->chip->four_bytes_addr_funcs.read_nbyte(
-				flash, i, buf + (i - start), toread);
-		} else {
-			chunk_status = spi_nbyte_read(flash, i, buf + (i - start), toread);
-		}
-
+		chunk_status = spi_nbyte_read(flash, i, buf + (i - start), toread);
 		if (chunk_status) {
 			if (ignore_error(chunk_status)) {
 				/* fill this chunk with 0xff bytes and
@@ -756,7 +747,6 @@ int spi_read_unbound(struct flashctx *flash, uint8_t *buf, unsigned int start, u
  */
 int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len, unsigned int chunksize)
 {
-	int rc = 0;
 	unsigned int i, j, starthere, lenhere, towrite;
 	/* FIXME: page_size is the wrong variable. We need max_writechunk_size
 	 * in struct flashctx to do this properly. All chips using
@@ -781,21 +771,15 @@ int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int s
 		/* Length of bytes in the range in this page. */
 		lenhere = min(start + len, (i + 1) * page_size) - starthere;
 		for (j = 0; j < lenhere; j += chunksize) {
+			int rc;
 			towrite = min(chunksize, lenhere - j);
-			rc = (flash->chip->feature_bits & FEATURE_4BA_SUPPORT) == 0
-				? spi_nbyte_program(flash, starthere + j, buf + starthere - start + j, towrite)
-				: flash->chip->four_bytes_addr_funcs.program_nbyte(flash, starthere + j,
-					buf + starthere - start + j, towrite);
+			rc = spi_nbyte_program(flash, starthere + j, buf + starthere - start + j, towrite);
 			if (rc)
-				break;
-			while (spi_read_status_register(flash) & SPI_SR_WIP)
-				programmer_delay(10);
+				return rc;
 		}
-		if (rc)
-			break;
 	}
 
-	return rc;
+	return 0;
 }
 
 /*
@@ -808,18 +792,11 @@ int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int s
 int spi_chip_write_1(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
 {
 	unsigned int i;
-	int result = 0;
 
 	for (i = start; i < start + len; i++) {
-		result = (flash->chip->feature_bits & FEATURE_4BA_SUPPORT) == 0
-			? spi_nbyte_program(flash, i, buf + i - start, 1)
-			: flash->chip->four_bytes_addr_funcs.program_byte(flash, i, buf[i - start]);
-		if (result)
+		if (spi_nbyte_program(flash, i, buf + i - start, 1))
 			return 1;
-		while (spi_read_status_register(flash) & SPI_SR_WIP)
-			programmer_delay(10);
 	}
-
 	return 0;
 }
 
