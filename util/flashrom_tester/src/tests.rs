@@ -99,6 +99,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
             flashrom::wp_toggle(&param.cmd, false)?;
         }
         if flashrom::wp_status(&param.cmd, true)? {
+            // TODO(quasisec): Should fail the whole test suite here?
             return Err(Error::new(ErrorKind::Other, "Cannot disable write protect.  Cannot continue."));
         }
 
@@ -130,10 +131,26 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     let erase_write_test_fn = |param: &tester::TestParams| {
         flashrom::read(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
         flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+
+        flashrom::wp_toggle(&param.cmd, true)?;
+        println!("Replace battery to assert hardware write-protect.");
+        utils::toggle_hw_wp(false);
+        if flashrom::erase(&param.cmd).is_ok() {
+            warn!("flash image in an inconsistent state! Attempting to restore..");
+            flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+            flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+            return Err(Error::new(ErrorKind::Other, "Hardware write protect asserted however can still erase!"));
+        }
+        println!("Remove battery to de-assert hardware write-protect.");
+        utils::toggle_hw_wp(true);
         flashrom::wp_toggle(&param.cmd, false)?;
+
         flashrom::erase(&param.cmd)?;
         flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+
         flashrom::wp_toggle(&param.cmd, true);
+        println!("Replace battery to assert hardware write-protect.");
+        utils::toggle_hw_wp(false);
         Ok(())
     };
     let erase_write_test = tester::TestCase {
