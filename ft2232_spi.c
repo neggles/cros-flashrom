@@ -154,6 +154,7 @@ static int ft2232_spi_send_command(const struct flashctx *flash, unsigned int wr
 
 static const struct spi_master spi_master_ft2232 = {
 	.type		= SPI_CONTROLLER_FT2232,
+	.features	= SPI_MASTER_4BA,
 	.max_data_read	= 64 * 1024,
 	.max_data_write	= 256,
 	.command	= ft2232_spi_send_command,
