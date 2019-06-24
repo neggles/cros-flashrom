@@ -48,7 +48,7 @@ static unsigned int required_erase_size;
  */
 static char *include_args[MAX_ROMLAYOUT];
 static int num_include_args = 0;  /* the number of valid entries. */
-static romlayout_t rom_entries[MAX_ROMLAYOUT];
+static struct romentry rom_entries[MAX_ROMLAYOUT];
 
 #if CONFIG_INTERNAL == 1 /* FIXME: Move the whole block to cbtable.c? */
 
@@ -503,7 +503,7 @@ int find_romentry(char *name)
 }
 
 
-int fill_romentry(romlayout_t *entry, int n)
+int fill_romentry(struct romentry *entry, int n)
 {
 	if (!entry)
 		return 1;
@@ -565,12 +565,12 @@ int process_include_args() {
 	return 0;
 }
 
-static romlayout_t *get_next_included_romentry(unsigned int start)
+static struct romentry *get_next_included_romentry(unsigned int start)
 {
 	int i;
 	unsigned int best_start = UINT_MAX;
-	romlayout_t *best_entry = NULL;
-	romlayout_t *cur;
+	struct romentry *best_entry = NULL;
+	struct romentry *cur;
 
 	/* First come, first serve for overlapping regions. */
 	for (i = 0; i < romimages; i++) {
@@ -631,7 +631,7 @@ out:
 	return overlap_detected;
 }
 
-static int read_content_from_file(romlayout_t *entry, uint8_t *newcontents) {
+static int read_content_from_file(struct romentry *entry, uint8_t *newcontents) {
 	char *file;
 	FILE *fp;
 	int len;
@@ -676,7 +676,7 @@ int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode)
 {
 	unsigned int start = 0;
-	romlayout_t *entry;
+	struct romentry *entry;
 	unsigned int size = flash->chip->total_size * 1024;
 
 	/* If no regions were specified for inclusion, assume
@@ -736,7 +736,7 @@ int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 
 	return 0;
 }
-static int write_content_to_file(romlayout_t *entry, uint8_t *buf) {
+static int write_content_to_file(struct romentry *entry, uint8_t *buf) {
 	char *file;
 	FILE *fp;
 	int len = entry->end - entry->start + 1;
@@ -931,7 +931,7 @@ int extract_regions(struct flashctx *flash)
 
 	msg_gdbg("Extracting %d images\n", romimages);
 	for (i = 0; !ret && i < romimages; i++) {
-		romlayout_t *region = &rom_entries[i];
+		struct romentry *region = &rom_entries[i];
 		char fname[256];
 		char *from, *to;
 		unsigned long region_size;

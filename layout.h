@@ -17,13 +17,13 @@
 #ifndef FLASHMAP_LIB_LAYOUT_H__
 #define FLASHMAP_LIB_LAYOUT_H__
 
-typedef struct romlayout {
+struct romentry {
 	unsigned int start;
 	unsigned int end;
 	unsigned int included;
 	char name[256];
 	char file[256];  /* file[0]=='\0' means not specified. */
-} romlayout_t;
+};
 
 /**
  * Extract regions to current directory
@@ -36,7 +36,7 @@ int extract_regions(struct flashctx *flash);
 int specified_partition();
 int read_romlayout(char *name);
 int find_romentry(char *name);
-int fill_romentry(romlayout_t *entry, int n);
+int fill_romentry(struct romentry *entry, int n);
 int get_fmap_entries(const char *filename, struct flashctx *flash);
 int get_num_include_args(void);
 int register_include_arg(char *name);

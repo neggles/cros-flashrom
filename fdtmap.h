@@ -38,7 +38,7 @@
 
 #define FDTMAP_SIGNATURE	"__FDTM__"
 
-struct romlayout;
+struct romentry;
 
 /* The header at the start of an fdtmap */
 struct fdtmap_hdr {
@@ -57,7 +57,7 @@ struct fdtmap_hdr {
  * @return Number of entries added, or -1 on error
  */
 int fdtmap_add_entries_from_buf(const void *blob,
-		struct romlayout *rom_entries, int max_entries);
+		struct romentry *rom_entries, int max_entries);
 
 /*
  * fdtmap_find - find FDTMAP at offset in an image and copy it to buffer

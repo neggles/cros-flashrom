@@ -952,7 +952,7 @@ int main(int argc, char *argv[])
 
 	if (set_wp_region && wp_region) {
 		int n;
-		romlayout_t entry;
+		struct romentry entry;
 
 		n = find_romentry(wp_region);
 		if (n < 0) {

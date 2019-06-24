@@ -126,7 +126,7 @@ static int read_entry(const void *blob, int node, const char *name,
 	return 0;
 }
 
-static int scan_flashmap(const void *blob, romlayout_t *rom_entries,
+static int scan_flashmap(const void *blob, struct romentry *rom_entries,
 			  int max_entries)
 {
 	int romimages;
@@ -142,7 +142,7 @@ static int scan_flashmap(const void *blob, romlayout_t *rom_entries,
 	for (depth = romimages = 0; offset > 0 && depth >= 0; offset = node) {
 		struct fmap_entry entry;
 		const char *name;
-		romlayout_t *rl;
+		struct romentry *rl;
 		char *s;
 		int ret;
 
@@ -203,7 +203,7 @@ static int scan_flashmap(const void *blob, romlayout_t *rom_entries,
 	return romimages;
 }
 
-int fdtmap_add_entries_from_buf(const void *blob, romlayout_t *rom_entries,
+int fdtmap_add_entries_from_buf(const void *blob, struct romentry *rom_entries,
 				int max_entries)
 {
 	int count;
