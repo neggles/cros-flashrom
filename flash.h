@@ -127,11 +127,17 @@ enum write_granularity {
 #define FEATURE_ERASE_TO_ZERO	(1 << 9)
 #define FEATURE_UNBOUND_READ	(1 << 10)
 #define FEATURE_NO_ERASE	(1 << 11)
-#define FEATURE_4BA_SUPPORT	(1 << 12)
-#define FEATURE_4BA_EXT_ADDR	(1 << 13) /**< Regular 3-byte operations can be used by writing the most
+#define FEATURE_4BA_ENTER	(1 << 12)
+#define FEATURE_4BA_ENTER_WREN	(1 << 13) /**< Can enter/exit 4BA mode with instructions 0xb7/0xe9 after WREN */
+#define FEATURE_4BA_EXT_ADDR	(1 << 14) /**< Regular 3-byte operations can be used by writing the most
 						significant address byte into an extended address register. */
-#define FEATURE_4BA_READ       (1 << 14) /**< Native 4BA read instruction (0x13) is supported. */
-#define FEATURE_4BA_WRITE      (1 << 15) /**< Native 4BA byte program (0x12) is supported. */
+#define FEATURE_4BA_READ	(1 << 15) /**< Native 4BA read instruction (0x13) is supported. */
+#define FEATURE_4BA_FAST_READ	(1 << 16) /**< Native 4BA fast read instruction (0x0c) is supported. */
+#define FEATURE_4BA_WRITE	(1 << 17) /**< Native 4BA byte program (0x12) is supported. */
+/* 4BA Shorthands */
+#define FEATURE_4BA_NATIVE	(FEATURE_4BA_READ | FEATURE_4BA_FAST_READ | FEATURE_4BA_WRITE)
+#define FEATURE_4BA		(FEATURE_4BA_ENTER | FEATURE_4BA_EXT_ADDR | FEATURE_4BA_NATIVE)
+#define FEATURE_4BA_WREN	(FEATURE_4BA_ENTER_WREN | FEATURE_4BA_EXT_ADDR | FEATURE_4BA_NATIVE)
 
 struct voltage_range {
 	uint16_t min, max;

@@ -148,7 +148,7 @@ int spi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsi
 	addrbase = spi_get_valid_read_addr(flash);
 	/* Show flash chip size warning if flash chip doesn't support
 	   4-Bytes Addressing mode and last address excedes 24 bits */
-	if (!(flash->chip->feature_bits & FEATURE_4BA_SUPPORT) &&
+	if (!(flash->chip->feature_bits & FEATURE_4BA_ENTER) &&
 	    addrbase + flash->chip->total_size * 1024 > (1 << 24)) {
 		msg_perr("Flash chip size exceeds the allowed access window. ");
 		msg_perr("Read will probably fail.\n");
