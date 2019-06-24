@@ -14,8 +14,13 @@
  *
  */
 
-#ifndef FLASHMAP_LIB_LAYOUT_H__
-#define FLASHMAP_LIB_LAYOUT_H__
+#ifndef __LAYOUT_H__
+#define __LAYOUT_H__ 1
+
+#include <stddef.h>
+#include <stdint.h>
+
+#define MAX_ROMLAYOUT	64
 
 struct romentry {
 	unsigned int start;
@@ -24,6 +29,20 @@ struct romentry {
 	char name[256];
 	char file[256];  /* file[0]=='\0' means not specified. */
 };
+
+struct flashrom_layout {
+	/* entries store the entries specified in a layout file and associated run-time data */
+	struct romentry *entries;
+	/* the number of successfully parsed entries */
+	size_t num_entries;
+};
+
+struct single_layout {
+	struct flashrom_layout base;
+	struct romentry entry;
+};
+
+const struct flashrom_layout *get_global_layout(void);
 
 /**
  * Extract regions to current directory
@@ -86,4 +105,4 @@ size_t top_section_offset(void);
 int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode);
 
-#endif
+#endif /* __LAYOUT_H__ */
