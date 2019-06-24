@@ -30,7 +30,7 @@
 #include "programmer.h"
 #include "search.h"
 
-static int romimages = 0;
+static int num_rom_entries = 0;
 
 #define MAX_ROMLAYOUT	64
 
@@ -188,14 +188,14 @@ int read_romlayout(char *name)
 	while (!feof(romlayout)) {
 		char *tstr1, *tstr2;
 
-		if (romimages >= MAX_ROMLAYOUT) {
+		if (num_rom_entries >= MAX_ROMLAYOUT) {
 			msg_gerr("Maximum number of ROM images (%i) in layout "
 				 "file reached before end of layout file.\n",
 				 MAX_ROMLAYOUT);
 			msg_gerr("Ignoring the rest of the layout file.\n");
 			break;
 		}
-		if (2 != fscanf(romlayout, "%255s %255s\n", tempstr, rom_entries[romimages].name))
+		if (2 != fscanf(romlayout, "%255s %255s\n", tempstr, rom_entries[num_rom_entries].name))
 			continue;
 #if 0
 		// fscanf does not like arbitrary comments like that :( later
@@ -210,14 +210,14 @@ int read_romlayout(char *name)
 			fclose(romlayout);
 			return 1;
 		}
-		rom_entries[romimages].start = strtol(tstr1, (char **)NULL, 16);
-		rom_entries[romimages].end = strtol(tstr2, (char **)NULL, 16);
-		rom_entries[romimages].included = 0;
-		strcpy(rom_entries[romimages].file, "");
-		romimages++;
+		rom_entries[num_rom_entries].start = strtol(tstr1, (char **)NULL, 16);
+		rom_entries[num_rom_entries].end = strtol(tstr2, (char **)NULL, 16);
+		rom_entries[num_rom_entries].included = 0;
+		strcpy(rom_entries[num_rom_entries].file, "");
+		num_rom_entries++;
 	}
 
-	for (i = 0; i < romimages; i++) {
+	for (i = 0; i < num_rom_entries; i++) {
 		msg_gdbg("romlayout %08x - %08x named %s\n",
 			     rom_entries[i].start,
 			     rom_entries[i].end, rom_entries[i].name);
@@ -316,42 +316,42 @@ static int add_fmap_entries_from_buf(const uint8_t *buf)
 	fmap = (struct fmap *)(buf);
 
 	for (i = 0; i < fmap->nareas; i++) {
-		if (romimages >= MAX_ROMLAYOUT) {
+		if (num_rom_entries >= MAX_ROMLAYOUT) {
 			msg_gerr("ROM image contains too many regions\n");
 			return -1;
 		}
-		rom_entries[romimages].start = fmap->areas[i].offset;
+		rom_entries[num_rom_entries].start = fmap->areas[i].offset;
 
 		/*
 		 * Flashrom rom entries use absolute addresses. So for non-zero
 		 * length entries, we need to subtract 1 from offset + size to
 		 * determine the end address.
 		 */
-		rom_entries[romimages].end = fmap->areas[i].offset +
+		rom_entries[num_rom_entries].end = fmap->areas[i].offset +
 		                             fmap->areas[i].size;
 		if (fmap->areas[i].size)
-			rom_entries[romimages].end--;
+			rom_entries[num_rom_entries].end--;
 
-		memset(rom_entries[romimages].name, 0,
-		       sizeof(rom_entries[romimages].name));
-		memcpy(rom_entries[romimages].name, fmap->areas[i].name,
-		       min(sizeof(rom_entries[romimages].name),
+		memset(rom_entries[num_rom_entries].name, 0,
+		       sizeof(rom_entries[num_rom_entries].name));
+		memcpy(rom_entries[num_rom_entries].name, fmap->areas[i].name,
+		       min(sizeof(rom_entries[num_rom_entries].name),
 		           sizeof(fmap->areas[i].name)));
 
-		rom_entries[romimages].included = 0;
-		strcpy(rom_entries[romimages].file, "");
+		rom_entries[num_rom_entries].included = 0;
+		strcpy(rom_entries[num_rom_entries].file, "");
 
 		msg_gdbg("added fmap region \"%s\" (file=\"%s\") as %sincluded,"
 			 " start: 0x%08x, end: 0x%08x\n",
-			  rom_entries[romimages].name,
-			  rom_entries[romimages].file,
-			  rom_entries[romimages].included ? "" : "not ",
-			  rom_entries[romimages].start,
-			  rom_entries[romimages].end);
-		romimages++;
+			  rom_entries[num_rom_entries].name,
+			  rom_entries[num_rom_entries].file,
+			  rom_entries[num_rom_entries].included ? "" : "not ",
+			  rom_entries[num_rom_entries].start,
+			  rom_entries[num_rom_entries].end);
+		num_rom_entries++;
 	}
 
-	return romimages;
+	return num_rom_entries;
 }
 
 enum found_t {
@@ -416,12 +416,12 @@ static int add_fmap_entries(void *source_handle,
 #ifdef CONFIG_FDTMAP
 	case FOUND_FDTMAP:
 		/* It looks valid, so use it */
-		romimages = fdtmap_add_entries_from_buf(buf, rom_entries,
+		num_rom_entries = fdtmap_add_entries_from_buf(buf, rom_entries,
 							  MAX_ROMLAYOUT);
 		break;
 #endif
 	case FOUND_FMAP:
-		romimages = add_fmap_entries_from_buf(buf);
+		num_rom_entries = add_fmap_entries_from_buf(buf);
 		break;
 	default:
 		msg_gdbg("%s: no fmap present\n", __func__);
@@ -430,7 +430,7 @@ static int add_fmap_entries(void *source_handle,
 		free(buf);
 	search_free(&search);
 
-	return romimages;
+	return num_rom_entries;
 }
 
 int get_num_include_args(void) {
@@ -442,7 +442,7 @@ size_t top_section_offset(void)
 	size_t top = 0;
 	int i;
 
-	for (i = 0; i < romimages; i++) {
+	for (i = 0; i < num_rom_entries; i++) {
 
 		if (!rom_entries[i].included)
 			continue;
@@ -472,7 +472,7 @@ int find_romentry(char *name)
 	char *file = NULL;
 	char *has_colon;
 
-	if (!romimages)
+	if (!num_rom_entries)
 		return -1;
 
 	/* -i <image>[:<file>] */
@@ -487,7 +487,7 @@ int find_romentry(char *name)
 	msg_gdbg("Looking for \"%s\" (file=\"%s\")... ",
 	         name, file ? file : "<not specified>");
 
-	for (i = 0; i < romimages; i++) {
+	for (i = 0; i < num_rom_entries; i++) {
 		if (!strcmp(rom_entries[i].name, name)) {
 			rom_entries[i].included = 1;
 			snprintf(rom_entries[i].file,
@@ -547,7 +547,7 @@ int process_include_args() {
 			/* User has specified the area name, but no layout file
 			 * is loaded, and no fmap is stored in BIOS.
 			 * Return error. */
-			if (!romimages) {
+			if (!num_rom_entries) {
 				msg_gerr("No layout info is available.\n");
 				return -1;
 			}
@@ -573,7 +573,7 @@ static struct romentry *get_next_included_romentry(unsigned int start)
 	struct romentry *cur;
 
 	/* First come, first serve for overlapping regions. */
-	for (i = 0; i < romimages; i++) {
+	for (i = 0; i < num_rom_entries; i++) {
 		cur = &rom_entries[i];
 		if (!cur->included)
 			continue;
@@ -598,13 +598,13 @@ int included_regions_overlap()
 	int i;
 	int overlap_detected = 0;
 
-	for (i = 0; i < romimages; i++) {
+	for (i = 0; i < num_rom_entries; i++) {
 		int j;
 
 		if (!rom_entries[i].included)
 			continue;
 
-		for (j = 0; j < romimages; j++) {
+		for (j = 0; j < num_rom_entries; j++) {
 			if (!rom_entries[j].included)
 				continue;
 
@@ -810,7 +810,7 @@ int handle_partial_read(
 	if (set_required_erase_size(flash))
 		return -1;
 
-	for (i = 0; i < romimages; i++) {
+	for (i = 0; i < num_rom_entries; i++) {
 		unsigned int start, len, start_align, len_align;
 
 		if (!rom_entries[i].included)
@@ -873,7 +873,7 @@ int handle_partial_verify(
 
 	/* Walk through the table and write content to file for those included
 	 * partition. */
-	for (i = 0; i < romimages; i++) {
+	for (i = 0; i < num_rom_entries; i++) {
 		unsigned int start, len, start_align, len_align;
 
 		if (!rom_entries[i].included)
@@ -929,8 +929,8 @@ int extract_regions(struct flashctx *flash)
 		goto out_free;
 	}
 
-	msg_gdbg("Extracting %d images\n", romimages);
-	for (i = 0; !ret && i < romimages; i++) {
+	msg_gdbg("Extracting %d images\n", num_rom_entries);
+	for (i = 0; !ret && i < num_rom_entries; i++) {
 		struct romentry *region = &rom_entries[i];
 		char fname[256];
 		char *from, *to;

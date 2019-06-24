@@ -129,7 +129,7 @@ static int read_entry(const void *blob, int node, const char *name,
 static int scan_flashmap(const void *blob, struct romentry *rom_entries,
 			  int max_entries)
 {
-	int romimages;
+	int num_rom_entries;
 	int offset;
 	int depth;
 	int node;
@@ -139,7 +139,7 @@ static int scan_flashmap(const void *blob, struct romentry *rom_entries,
 	if (offset < 0)
 		return offset;
 
-	for (depth = romimages = 0; offset > 0 && depth >= 0; offset = node) {
+	for (depth = num_rom_entries = 0; offset > 0 && depth >= 0; offset = node) {
 		struct fmap_entry entry;
 		const char *name;
 		struct romentry *rl;
@@ -157,11 +157,11 @@ static int scan_flashmap(const void *blob, struct romentry *rom_entries,
 		if (ret)
 			return ret;
 
-		if (romimages >= max_entries) {
+		if (num_rom_entries >= max_entries) {
 			msg_gerr("ROM image contains too many regions\n");
 			return -1;
 		}
-		rl = &rom_entries[romimages];
+		rl = &rom_entries[num_rom_entries];
 		rl->start = entry.offset;
 
 		/*
@@ -195,12 +195,12 @@ static int scan_flashmap(const void *blob, struct romentry *rom_entries,
 			  rl->included ? "" : "not ",
 			  rl->start,
 			  rl->end);
-		romimages++;
+		num_rom_entries++;
 	}
 
-	msg_gdbg("Found %d regions\n", romimages);
+	msg_gdbg("Found %d regions\n", num_rom_entries);
 
-	return romimages;
+	return num_rom_entries;
 }
 
 int fdtmap_add_entries_from_buf(const void *blob, struct romentry *rom_entries,
