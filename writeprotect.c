@@ -375,7 +375,8 @@ static struct w25q_range mx25u6435e_ranges[] = {
 	{ 0, 1, 0x7, {0x000000, 128 * 64 * 1024} },	/* blocks 0-127 */
 };
 
-static struct w25q_range mx25u12835e_ranges[] = {
+#define MX25U12835E_TB	(1 << 3)
+static struct w25q_range mx25u12835e_tb0_ranges[] = {
 	{ X, X, 0, {0, 0} },	/* none */
 	{ 0, 0, 0x1, {0xff0000,   1 * 64 * 1024} },	/* block 255 */
 	{ 0, 0, 0x2, {0xfe0000,   2 * 64 * 1024} },	/* blocks 254-255 */
@@ -392,7 +393,9 @@ static struct w25q_range mx25u12835e_ranges[] = {
 	{ 0, 0, 0xd, {0x000000,  256 * 64 * 1024} },	/* blocks all */
 	{ 0, 0, 0xe, {0x000000,  256 * 64 * 1024} },	/* blocks all */
 	{ 0, 0, 0xf, {0x000000,  256 * 64 * 1024} },	/* blocks all */
+};
 
+static struct w25q_range mx25u12835e_tb1_ranges[] = {
 	{ 0, 1, 0x1, {0x000000,   1 * 64 * 1024} },	/* block 0 */
 	{ 0, 1, 0x2, {0x000000,   2 * 64 * 1024} },	/* blocks 0-1 */
 	{ 0, 1, 0x3, {0x000000,   4 * 64 * 1024} },	/* blocks 0-3 */
@@ -872,11 +875,29 @@ static uint8_t w25q_read_status_register_2(const struct flashctx *flash)
 	return readarr[0];
 }
 
+/* FIXME: Move to spi25.c if it's a JEDEC standard opcode */
+uint8_t mx25l_read_config_register(const struct flashctx *flash)
+{
+	static const unsigned char cmd[JEDEC_RDSR_OUTSIZE] = { 0x15 };
+	unsigned char readarr[2];	/* leave room for dummy byte */
+	int ret;
+
+	ret = spi_send_command(flash, sizeof(cmd), sizeof(readarr), cmd, readarr);
+	if (ret) {
+		msg_cdbg("RDCR failed!\n");
+		readarr[0] = 0x00;
+	}
+
+	return readarr[0];
+}
+
 /* Given a flash chip, this function returns its range table. */
 static int w25_range_table(const struct flashctx *flash,
                            struct w25q_range **w25q_ranges,
                            int *num_entries)
 {
+	uint8_t cr;
+
 	*w25q_ranges = 0;
 	*num_entries = 0;
 
@@ -1023,8 +1044,14 @@ static int w25_range_table(const struct flashctx *flash,
 			*num_entries = ARRAY_SIZE(mx25u6435e_ranges);
 			break;
 		case MACRONIX_MX25U12835E:
-			*w25q_ranges = mx25u12835e_ranges;
-			*num_entries = ARRAY_SIZE(mx25u12835e_ranges);
+			cr = mx25l_read_config_register(flash);
+			if (cr & MX25U12835E_TB) {	/* T/B == 1 */
+				*w25q_ranges = mx25u12835e_tb1_ranges;
+				*num_entries = ARRAY_SIZE(mx25u12835e_tb1_ranges);
+			} else {			/* T/B == 0 */
+				*w25q_ranges = mx25u12835e_tb0_ranges;
+				*num_entries = ARRAY_SIZE(mx25u12835e_tb0_ranges);
+			}
 			break;
 		default:
 			msg_cerr("%s():%d: MXIC flash chip mismatch (0x%04x)"
@@ -1293,7 +1320,14 @@ static int w25q_large_range_to_status(const struct flashctx *flash,
 			status->bp1 = w25q_ranges[i].bp >> 1;
 			status->bp2 = w25q_ranges[i].bp >> 2;
 			status->bp3 = w25q_ranges[i].bp >> 3;
-			status->tb = w25q_ranges[i].tb;
+			/*
+			 * For MX25U12835E chip, Top/Bottom (T/B) bit is not
+			 * part of status register and in that bit position is
+			 * Quad Enable (QE)
+			 */
+			if (flash->chip->manufacture_id != MACRONIX_ID ||
+			    flash->chip->model_id != MACRONIX_MX25U12835E)
+				status->tb = w25q_ranges[i].tb;
 
 			range_found = 1;
 			break;
@@ -1720,21 +1754,6 @@ static int w25q_enable_writeprotect(const struct flashctx *flash,
 	return ret;
 }
 
-/* FIXME: Move to spi25.c if it's a JEDEC standard opcode */
-uint8_t mx25l_read_config_register(const struct flashctx *flash)
-{
-	static const unsigned char cmd[JEDEC_RDSR_OUTSIZE] = { 0x15 };
-	unsigned char readarr[2];	/* leave room for dummy byte */
-	int ret;
-
-	ret = spi_send_command(flash, sizeof(cmd), sizeof(readarr), cmd, readarr);
-	if (ret) {
-		msg_cdbg("RDCR failed!\n");
-		readarr[0] = 0x00;
-	}
-
-	return readarr[0];
-}
 /* W25P, W25X, and many flash chips from various vendors */
 struct wp wp_w25 = {
 	.list_ranges	= w25_list_ranges,
