@@ -8896,33 +8896,6 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Spansion",
-		.name		= "S25FL004A",
-		.bustype	= BUS_SPI,
-		.manufacture_id	= SPANSION_ID,
-		.model_id	= SPANSION_S25FL004A,
-		.total_size	= 512,
-		.page_size	= 256,
-		.feature_bits	= FEATURE_UNBOUND_READ,
-		.tested		= TEST_UNTESTED,
-		.probe		= probe_spi_rdid,
-		.probe_timing	= TIMING_ZERO,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 8} },
-				.block_erase = spi_block_erase_d8,
-			}, {
-				.eraseblocks = { {512 * 1024, 1} },
-				.block_erase = spi_block_erase_c7,
-			}
-		},
-		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_256,
-		.read		= spi_chip_read,
-	},
-
-	{
-		.vendor		= "Spansion",
 		.name		= "S25FL008A",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= SPANSION_ID,
@@ -9007,33 +8980,6 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Spansion",
-		.name		= "S25FL032A",
-		.bustype	= BUS_SPI,
-		.manufacture_id	= SPANSION_ID,
-		.model_id	= SPANSION_S25FL032A,
-		.total_size	= 4096,
-		.page_size	= 256,
-		.feature_bits	= FEATURE_UNBOUND_READ,
-		.tested		= TEST_UNTESTED,
-		.probe		= probe_spi_rdid,
-		.probe_timing	= TIMING_ZERO,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 64} },
-				.block_erase = spi_block_erase_d8,
-			}, {
-				.eraseblocks = { {4 * 1024 * 1024, 1} },
-				.block_erase = spi_block_erase_c7,
-			}
-		},
-		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_256,
-		.read		= spi_chip_read,
-	},
-
-	{
-		.vendor		= "Spansion",
 		.name		= "S25FL064A",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= SPANSION_ID,
@@ -9058,33 +9004,6 @@ const struct flashchip flashchips[] = {
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
-	},
-
-	{
-		.vendor		= "Spansion",
-		.name		= "S25FL064A",
-		.bustype	= BUS_SPI,
-		.manufacture_id	= SPANSION_ID,
-		.model_id	= SPANSION_S25FL064A,
-		.total_size	= 8192,
-		.page_size	= 256,
-		.feature_bits	= FEATURE_UNBOUND_READ,
-		.tested		= TEST_OK_PREWU,
-		.probe		= probe_spi_rdid,
-		.probe_timing	= TIMING_ZERO,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 128} },
-				.block_erase = spi_block_erase_d8,
-			}, {
-				.eraseblocks = { {8 * 1024 * 1024, 1} },
-				.block_erase = spi_block_erase_c7,
-			}
-		},
-		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_256,
-		.read		= spi_chip_read,
 	},
 
 	{
