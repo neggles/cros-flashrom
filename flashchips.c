@@ -10604,34 +10604,6 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Winbond",
-		.name		= "W39V040FB",
-		.bustype	= BUS_FWH,
-		.manufacture_id	= WINBOND_ID,
-		.model_id	= WINBOND_W39V040B,
-		.total_size	= 512,
-		.page_size	= 64 * 1024,
-		.feature_bits	= FEATURE_REGISTERMAP | FEATURE_EITHER_RESET,
-		.tested		= TEST_OK_PRE,
-		.probe		= probe_jedec,
-		.probe_timing	= 10,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 8} },
-				.block_erase = erase_sector_jedec,
-			}, {
-				.eraseblocks = { {512 * 1024, 1} },
-				.block_erase = erase_chip_block_jedec,
-			}
-		},
-		.printlock	= printlock_w39v040fb,
-		.unlock		= unlock_w39v040fb,
-		.write		= write_jedec_1,
-		.read		= read_memmapped,
-	},
-
-	{
-		.vendor		= "Winbond",
 		.name		= "W39V040FC",
 		.bustype	= BUS_FWH,
 		.manufacture_id	= WINBOND_ID,
@@ -10656,33 +10628,6 @@ const struct flashchip flashchips[] = {
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program */
-	},
-
-	{
-		.vendor		= "Winbond",
-		.name		= "W39V040FC",
-		.bustype	= BUS_FWH,
-		.manufacture_id	= WINBOND_ID,
-		.model_id	= WINBOND_W39V040C,
-		.total_size	= 512,
-		.page_size	= 64 * 1024,
-		.feature_bits	= FEATURE_REGISTERMAP | FEATURE_EITHER_RESET,
-		.tested		= TEST_UNTESTED,
-		.probe		= probe_jedec,
-		.probe_timing	= 10,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 8} },
-				.block_erase = erase_sector_jedec,
-			}, {
-				.eraseblocks = { {512 * 1024, 1} },
-				.block_erase = erase_chip_block_jedec,
-			}
-		},
-		.printlock	= printlock_w39v040fc,
-		.write		= write_jedec_1,
-		.read		= read_memmapped,
 	},
 
 	{
