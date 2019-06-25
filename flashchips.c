@@ -1920,26 +1920,6 @@ const struct flashchip flashchips[] = {
 		.voltage	= {2700, 3600},
 	},
 
-	/*The AT26DF321 has the same ID as the AT25DF321. */
-#if 0
-	{
-		.vendor		= "Atmel",
-		.name		= "AT26DF321",
-		.bustype	= BUS_SPI,
-		.manufacture_id	= ATMEL_ID,
-		.model_id	= ATMEL_AT26DF321,
-		.total_size	= 4096,
-		.page_size	= 256,
-		.tested		= TEST_UNTESTED,
-		.probe		= probe_spi_rdid,
-		.probe_timing	= TIMING_ZERO,
-		.printlock	= spi_prettyprint_status_register_at26df081a,
-		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_256,
-		.read		= spi_chip_read,
-	},
-#endif
-
 	{
 		.vendor		= "Atmel",
 		.name		= "AT26F004",
