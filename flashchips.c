@@ -2451,32 +2451,6 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
-		.vendor		= "Bright",
-		.name		= "BM29F040",
-		.bustype	= BUS_PARALLEL,
-		.manufacture_id	= BRIGHT_ID,
-		.model_id	= BRIGHT_BM29F040,
-		.total_size	= 512,
-		.page_size	= 64 * 1024,
-		.feature_bits	= FEATURE_EITHER_RESET,
-		.tested		= TEST_OK_PR,
-		.probe		= probe_jedec,
-		.probe_timing	= TIMING_ZERO,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 8} },
-				.block_erase = erase_sector_jedec,
-			}, {
-				.eraseblocks = { {512 * 1024, 1} },
-				.block_erase = erase_chip_block_jedec,
-			},
-		},
-		.write		= write_jedec_1,
-		.read		= read_memmapped,
-	},
-
-	{
 		.vendor		= "Catalyst",
 		.name		= "CAT28F512",
 		.bustype	= BUS_PARALLEL,
