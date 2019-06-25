@@ -5675,32 +5675,6 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Macronix",
-		.name		= "MX29F040",
-		.bustype	= BUS_PARALLEL,
-		.manufacture_id	= MACRONIX_ID,
-		.model_id	= MACRONIX_MX29F040,
-		.total_size	= 512,
-		.page_size	= 64 * 1024,
-		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
-		.tested		= TEST_UNTESTED,
-		.probe		= probe_jedec,
-		.probe_timing	= TIMING_ZERO,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 8} },
-				.block_erase = erase_sector_jedec,
-			}, {
-				.eraseblocks = { {512 * 1024, 1} },
-				.block_erase = erase_chip_block_jedec,
-			},
-		},
-		.write		= write_jedec_1,
-		.read		= read_memmapped,
-	},
-
-	{
-		.vendor		= "Macronix",
 		.name		= "MX29LV040",
 		.bustype	= BUS_PARALLEL,
 		.manufacture_id	= MACRONIX_ID,
