@@ -374,6 +374,7 @@ int spi_block_erase_d8_4ba(struct flashctx *flash, unsigned int addr,
 int spi_write_extended_address_register(struct flashctx *flash, uint8_t regdata)
 {
 	int result;
+	const uint8_t op = flash->chip->wrea_override ? : JEDEC_WRITE_EXT_ADDR_REG;
 	struct spi_command cmds[] = {
 	{
 		.writecnt	= JEDEC_WREN_OUTSIZE,
@@ -382,10 +383,7 @@ int spi_write_extended_address_register(struct flashctx *flash, uint8_t regdata)
 		.readarr	= NULL,
 	}, {
 		.writecnt	= JEDEC_WRITE_EXT_ADDR_REG_OUTSIZE,
-		.writearr	= (const unsigned char[]){
-					JEDEC_WRITE_EXT_ADDR_REG,
-					regdata
-				},
+		.writearr	= (const unsigned char[]){ op, regdata },
 		.readcnt	= 0,
 		.readarr	= NULL,
 	}, {

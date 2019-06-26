@@ -241,6 +241,10 @@ struct flashchip {
 	int (*check_access) (const struct flashctx *flash, unsigned int start, unsigned int len, int read);
 	struct voltage_range voltage;
 	enum write_granularity gran;
+
+	/* SPI specific options (TODO: Make it a union in case other bustypes get specific options.) */
+	uint8_t wrea_override; /**< override opcode for write extended address register */
+
 	struct wp *wp;
 };
 
