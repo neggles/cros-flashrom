@@ -42,10 +42,10 @@
  *   flashrom -p dummy:emulate=VARIABLE_SIZE,size=4194304
  */
 #define VARIABLE_SIZE_CHIP_NAME "VARIABLE_SIZE"
-unsigned char spi_blacklist[256];
-unsigned char spi_ignorelist[256];
-int spi_blacklist_size = 0;
-int spi_ignorelist_size = 0;
+static unsigned char spi_blacklist[256];
+static unsigned char spi_ignorelist[256];
+static int spi_blacklist_size = 0;
+static int spi_ignorelist_size = 0;
 #endif
 #endif
 
@@ -122,7 +122,7 @@ static const struct par_master par_master_dummy = {
 		.chip_writen		= dummy_chip_writen,
 };
 
-enum chipbustype dummy_buses_supported = BUS_NONE;
+static enum chipbustype dummy_buses_supported = BUS_NONE;
 
 static int dummy_shutdown(void *data)
 {
