@@ -375,7 +375,7 @@ static struct w25q_range mx25u6435e_ranges[] = {
 	{ 0, 1, 0x7, {0x000000, 128 * 64 * 1024} },	/* blocks 0-127 */
 };
 
-static struct w25q_range mx25u12835f_ranges[] = {
+static struct w25q_range mx25u12835e_ranges[] = {
 	{ X, X, 0, {0, 0} },	/* none */
 	{ 0, 0, 0x1, {0xff0000,   1 * 64 * 1024} },	/* block 255 */
 	{ 0, 0, 0x2, {0xfe0000,   2 * 64 * 1024} },	/* blocks 254-255 */
@@ -1022,9 +1022,9 @@ static int w25_range_table(const struct flashctx *flash,
 			*w25q_ranges = mx25u6435e_ranges;
 			*num_entries = ARRAY_SIZE(mx25u6435e_ranges);
 			break;
-		case MACRONIX_MX25U12835F:
-			*w25q_ranges = mx25u12835f_ranges;
-			*num_entries = ARRAY_SIZE(mx25u12835f_ranges);
+		case MACRONIX_MX25U12835E:
+			*w25q_ranges = mx25u12835e_ranges;
+			*num_entries = ARRAY_SIZE(mx25u12835e_ranges);
 			break;
 		default:
 			msg_cerr("%s():%d: MXIC flash chip mismatch (0x%04x)"
