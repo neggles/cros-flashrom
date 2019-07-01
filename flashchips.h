@@ -15,7 +15,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #ifndef __FLASHCHIPS_H__
@@ -132,6 +131,7 @@
 
 #define ATMEL_ID		0x1F	/* Atmel (now used by Adesto) */
 #define ATMEL_AT25DF021		0x4300
+#define ATMEL_AT25DF021A	0x4301
 #define ATMEL_AT25DF041A	0x4401
 #define ATMEL_AT25DF081		0x4502	/* EDI 0x00. AT25DL081 has same ID + EDI 0x0100 */
 #define ATMEL_AT25DF081A	0x4501	/* Yes, 81A has a lower number than 81 */
@@ -150,6 +150,9 @@
 #define ATMEL_AT25F4096		0x64	/* Needs AT25F_RDID */
 #define ATMEL_AT25FS010		0x6601
 #define ATMEL_AT25FS040		0x6604
+#define ATMEL_AT25SF041		0x8401
+#define ATMEL_AT25SF081		0x8501
+#define ATMEL_AT25SF161		0x8601
 #define ATMEL_AT25SL128A	0x4218
 #define ATMEL_AT25SF128A	0x8901 /* Adesto AT25SF128A */
 #define ATMEL_AT26DF041		0x4400
@@ -467,6 +470,14 @@
 #define INTEL_HWSEQ		0xFFFE	/* dummy ID for hardware sequencing */
 
 #define ISSI_ID			0xD5	/* ISSI Integrated Silicon Solutions, see also PMC. */
+#define ISSI_ID_SPI		0x9D	/* ISSI ID used for SPI flash, see also PMC_ID_NOPREFIX */
+#define ISSI_IS25LP064		0x6017
+#define ISSI_IS25LP128		0x6018
+#define ISSI_IS25LP256		0x6019
+#define ISSI_IS25WP032		0x7016
+#define ISSI_IS25WP064		0x7017
+#define ISSI_IS25WP128		0x7018
+#define ISSI_IS25WP256		0x7019
 #define ISSI_PMC_IS29GL032B	0xF9
 #define ISSI_PMC_IS29GL032T	0xF6
 #define ISSI_PMC_IS29GL064B	0x7E1000
@@ -498,13 +509,18 @@
 #define MACRONIX_MX25L25635F	0x2019	/* Same as MX25L25639F, but the latter seems to not support REMS */
 #define MACRONIX_MX25L1635D	0x2415
 #define MACRONIX_MX25L1635E	0x2515	/* MX25L1635{E} */
+#define MACRONIX_MX66L51235F	0x201a	/* MX66L51235F */
+#define MACRONIX_MX25U8032E	0x2534
 #define MACRONIX_MX25U1635E	0x2535
 #define MACRONIX_MX25U3235E	0x2536	/* Same as MX25U6435F */
 #define MACRONIX_MX25U6435E	0x2537	/* Same as MX25U6435F */
 #define MACRONIX_MX25U12835F	0x2538	/* Same as MX25U12835E */
 #define MACRONIX_MX25U25635F	0x2539
+#define MACRONIX_MX25U51245G	0x253a
 #define MACRONIX_MX25L3235D	0x5E16	/* MX25L3225D/MX25L3235D/MX25L3237D */
 #define MACRONIX_MX25L6495F	0x9517
+
+#define MACRONIX_MX25R6435F	0x2817
 
 #define MACRONIX_MX29F001B	0x19
 #define MACRONIX_MX29F001T	0x18
@@ -602,7 +618,7 @@
 #define PMC_PM49FL002		0x6D
 #define PMC_PM49FL004		0x6E
 
-/* 
+/*
  * The Sanyo chip found so far uses SPI, first byte is manufacture code,
  * second byte is the device code,
  * third byte is a dummy byte.
@@ -614,6 +630,9 @@
 #define SANYO_LE25FW406		0x07	/* RES2 */
 #define SANYO_LE25FW418A	0x10	/* RES2 and some weird 1 byte RDID variant */
 #define SANYO_LE25FW406A	0x1A	/* RES2, no datasheet */
+#define SANYO_LE25FU106B	0x1D
+#define SANYO_LE25FU206		0x44
+#define SANYO_LE25FU206A	0x0612
 #define SANYO_LE25FU406B	0x1E	/* LE25FW418A without HD_READ mode option variant */
 #define SANYO_LE25FU406C	0x0613	/* Also known as LE25U40CMC apparently */
 #define SANYO_LE25FW806		0x26	/* RES2 and some weird 1 byte RDID variant */
@@ -722,6 +741,8 @@
 #define SST_SST25VF064C		0x254B
 #define SST_SST26VF016		0x2601
 #define SST_SST26VF032		0x2602
+#define SST_SST26VF016B		0x2641
+#define SST_SST26VF032B		0x2642
 #define SST_SST26VF064B		0x2643
 #define SST_SST27SF512		0xA4
 #define SST_SST27SF010		0xA5
@@ -867,11 +888,11 @@
 #define ST_N25Q016__1E		0xBB15	/* N25Q016, 1.8V, (uniform sectors expected) */
 #define ST_N25Q032__3E		0xBA16	/* N25Q032, 3.0V, (uniform sectors expected) */
 #define ST_N25Q032__1E		0xBB16	/* N25Q032, 1.8V, (uniform sectors expected) */
-#define ST_N25Q064__3E		0xBA17	/* N25Q064, 3V, 64KB/4KB blocks/sectors */
-#define ST_N25Q064__1E		0xBB17	/* N25Q064, 1.8V, 64KB/4KB blocks/sectors */
+#define ST_N25Q064__3E		0xBA17	/* N25Q064, 3.0V, (uniform sectors expected) */
+#define ST_N25Q064__1E		0xBB17	/* N25Q064, 1.8V, (uniform sectors expected) */
 #define ST_N25Q128__3E		0xBA18	/* N25Q128, 3.0V, (uniform sectors expected) */
 #define ST_N25Q128__1E		0xBB18	/* N25Q128, 1.8V, (uniform sectors expected) */
-#define ST_N25Q256__3E		0xBA19	/* N25Q256, 3V, 64KB/4KB blocks/sectors */
+#define ST_N25Q256__3E		0xBA19	/* N25Q256, 3.0V, (uniform sectors expected) */
 #define ST_N25Q256__1E		0xBB19	/* N25Q256, 1.8V, (uniform sectors expected) */
 #define ST_N25Q512__3E		0xBA20	/* N25Q512, 3.0V, (uniform sectors expected) */
 #define ST_N25Q512__1E		0xBB20	/* N25Q512, 1.8V, (uniform sectors expected) */
@@ -911,6 +932,9 @@
  * byte of device ID is related to log(bitsize).
  */
 #define WINBOND_NEX_ID		0xEF	/* Winbond (ex Nexcom) serial flashes */
+#define WINBOND_NEX_W25P80	0x2014
+#define WINBOND_NEX_W25P16	0x2015
+#define WINBOND_NEX_W25P32	0x2016
 #define WINBOND_NEX_W25X10	0x3011
 #define WINBOND_NEX_W25X20	0x3012
 #define WINBOND_NEX_W25X40	0x3013
@@ -946,18 +970,18 @@
 #define WINBOND_ID		0xDA	/* Winbond */
 #define WINBOND_W19B160BB	0x49
 #define WINBOND_W19B160BT	0xC4
-#define WINBOND_W19B320SB	0x2A    /* Same as W19L320SB */
-#define WINBOND_W19B320ST	0xBA    /* Same as W19L320ST */
+#define WINBOND_W19B320SB	0x2A	/* Same as W19L320SB */
+#define WINBOND_W19B320ST	0xBA	/* Same as W19L320ST */
 #define WINBOND_W19B322MB	0x92
 #define WINBOND_W19B322MT	0x10
 #define WINBOND_W19B323MB	0x94
 #define WINBOND_W19B323MT	0x13
 #define WINBOND_W19B324MB	0x97
 #define WINBOND_W19B324MT	0x16
-#define WINBOND_W29C010		0xC1    /* Same as W29C010M, W29C011A, W29EE011, W29EE012, and ASD AE29F1008 */
-#define WINBOND_W29C020		0x45    /* Same as W29C020C, W29C022 and ASD AE29F2008 */
-#define WINBOND_W29C040		0x46    /* Same as W29C040P */
-#define WINBOND_W29C512A	0xC8    /* Same as W29EE512 */
+#define WINBOND_W29C010		0xC1	/* Same as W29C010M, W29C011A, W29EE011, W29EE012, and ASD AE29F1008 */
+#define WINBOND_W29C020		0x45	/* Same as W29C020C, W29C022 and ASD AE29F2008 */
+#define WINBOND_W29C040		0x46	/* Same as W29C040P */
+#define WINBOND_W29C512A	0xC8	/* Same as W29EE512 */
 #define WINBOND_W29GL032CHL	0x7E1D01	/* Uniform Sectors, WP protects Top OR Bottom sector */
 #define WINBOND_W29GL032CB	0x7E1A00	/* Top Boot Sector, WP protects Top 2 sectors */
 #define WINBOND_W29GL032CT	0x7E1A01	/* Bottom Boot Sector, WP protects Bottom 2 sectors */
@@ -974,15 +998,19 @@
 #define WINBOND_W39L512		0x38
 #define WINBOND_W39V040A	0x3D
 #define WINBOND_W39V040FA	0x34
-#define WINBOND_W39V040B	0x54    /* Same as W39V040FB */
-#define WINBOND_W39V040C	0x50    /* Same as W39V040FC */
+#define WINBOND_W39V040B	0x54	/* Same as W39V040FB */
+#define WINBOND_W39V040C	0x50	/* Same as W39V040FC */
 #define WINBOND_W39V080A	0xD0
 #define WINBOND_W39V080FA	0xD3
-#define WINBOND_W39V080FA_DM	0x93    /* W39V080FA dual mode */
-#define WINBOND_W49F002		0x25    /* Same as W49F002B */
-#define WINBOND_W49F002U	0x0B    /* Same as W49F002N and ASD AE49F2008 */
+#define WINBOND_W39V080FA_DM	0x93	/* W39V080FA dual mode */
+#define WINBOND_W49F002		0x25	/* Same as W49F002B */
+#define WINBOND_W49F002U	0x0B	/* Same as W49F002N and ASD AE49F2008 */
 #define WINBOND_W49F020		0x8C
 #define WINBOND_W49V002A	0xB0
 #define WINBOND_W49V002FA	0x32
+
+#define ZETTADEVICE_ID          0xBA	/* Zetta Device */
+#define ZETTADEVICE_ZD25D20     0x2012
+#define ZETTADEVICE_ZD25D40     0x2013
 
 #endif /* !FLASHCHIPS_H */
