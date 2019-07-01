@@ -918,7 +918,7 @@ static int w25_range_table(const struct flashctx *flash,
 			*w25q_ranges = w25q64_ranges;
 			*num_entries = ARRAY_SIZE(w25q64_ranges);
 			break;
-		case WINBOND_NEX_W25Q128J:
+		case WINBOND_NEX_W25Q128_V_M:
 		case WINBOND_NEX_W25Q128_V:
 		case WINBOND_NEX_W25Q128_W:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
@@ -931,7 +931,7 @@ static int w25_range_table(const struct flashctx *flash,
 				*num_entries = ARRAY_SIZE(w25rq128_cmp0_ranges);
 			}
 			break;
-		case WINBOND_NEX_W25Q256JV:
+		case WINBOND_NEX_W25Q256JV_M:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
 				*w25q_ranges = w25rq256_cmp1_ranges;
