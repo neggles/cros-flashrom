@@ -10668,8 +10668,10 @@ const struct flashchip flashchips[] = {
 		.write		= NULL,
 	},
 
-	{ NULL 	}
+	{0}
 };
+
+const unsigned int flashchips_size = ARRAY_SIZE(flashchips);
 
 /* Generic flashchip struct for platforms that use Intel hardware sequencing. */
 const struct flashchip flashchips_hwseq[] = {

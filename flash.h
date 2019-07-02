@@ -287,6 +287,8 @@ const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model_id);
 #define TIMING_ZERO	-2
 
 extern const struct flashchip flashchips[];
+extern const unsigned int flashchips_size;
+
 extern const struct flashchip flashchips_hwseq[];
 
 void chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr);
