@@ -23,6 +23,7 @@ import argparse
 from pathlib import Path
 import re
 import sys
+import csv
 
 TMP_DIR = Path.home() / 'tmp'
 DIRS = {
@@ -252,10 +253,15 @@ def countLines(text):
 
 
 def keyForEntry(e):
+  """Defines the sort order for entries in the file.
+
+  The order is mostly name within vendor, although some generic entries are
+  pushed to the end fo the file.
+  """
   group = 0
   vendor = e.get('vendor')
   name = e.get('name')
-  if vendor == 'Uknown':
+  if vendor == 'Uknown': # This is a bug, but leave it for now.
     group += 10
   if vendor == 'Programmer':
     group += 20
@@ -412,7 +418,7 @@ REWRITE_PARSER.add_argument('--use', choices=DIRS.keys(), default='chromiumos')
 def diff(args):
   achips = readCFile(args.A).entries
   bchips = readCFile(args.B).entries
-  # Work though the two lists, which are assumed to be ordered consistently by vendor
+  # Work though the two lists, which are assumed to be sorted as defined by keyForEntry()
   ab_identical = 0
   ab_with_diffs = 0
   a_only = 0
@@ -458,6 +464,44 @@ DIFF_PARSER.set_defaults(func=diff)
 DIFF_PARSER.add_argument(
     'A', choices=DIRS.keys(), nargs='?', default='upstream')
 DIFF_PARSER.add_argument(
+    'B', choices=DIRS.keys(), nargs='?', default='chromiumos')
+
+
+def csvsummary(args):
+  achips = readCFile(args.A).entries
+  bchips = readCFile(args.B).entries
+  w = csv.writer(sys.stdout)
+
+  # Work though the two lists, which are assumed to be sorted as defined by keyForEntry()
+  while achips and bchips:
+    a = achips[0]
+    b = bchips[0]
+    akey = keyForEntry(a)
+    bkey = keyForEntry(b)
+    if akey == bkey:
+      # compare individual entry
+      diff_count = sum(
+          a.get(field.name) != b.get(field.name) for field in FIELDS)
+      w.writerow([a.get('vendor'), a.get('name'), 'TRUE', 'TRUE', diff_count])
+      achips = achips[1:]
+      bchips = bchips[1:]
+    elif akey < bkey:
+      w.writerow([a.get('vendor'), a.get('name'), 'TRUE', 'FALSE', 0])
+      achips = achips[1:]
+    else:  # bkey < akey
+      w.writerow([b.get('vendor'), b.get('name'), 'FALSE', 'TRUE', 0])
+      bchips = bchips[1:]
+  for a in achips:
+    w.writerow([a.get('vendor'), a.get('name'), 'TRUE', 'FALSE', 0])
+  for b in bchips:
+    w.writerow([b.get('vendor'), b.get('name'), 'FALSE', 'TRUE', 0])
+
+
+CSV_SUMMARY_PARSER = SUBPARSERS.add_parser('csvsummary')
+CSV_SUMMARY_PARSER.set_defaults(func=csvsummary)
+CSV_SUMMARY_PARSER.add_argument(
+    'A', choices=DIRS.keys(), nargs='?', default='upstream')
+CSV_SUMMARY_PARSER.add_argument(
     'B', choices=DIRS.keys(), nargs='?', default='chromiumos')
 
 
