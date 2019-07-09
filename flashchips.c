@@ -1803,7 +1803,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_20,
 			}
 		},
-		.write		= NULL /* Incompatible Page write */,
+		.write		= NULL, /* Incompatible Page write */
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600}, /* 3.0-3.6V for higher speed, 2.7-3.6V normal */
 	},
@@ -1950,7 +1950,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
-		.write		= NULL /* Incompatible Page write */,
+		.write		= NULL, /* Incompatible Page write */
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
 	},
@@ -2057,13 +2057,13 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45CS1282,
-		.total_size	= 16896 /* No power of two sizes */,
-		.page_size	= 1056 /* No power of two sizes */,
+		.total_size	= 16896, /* No power of two sizes */
+		.page_size	= 1056, /* No power of two sizes */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
-		.write		= NULL /* Incompatible Page write */,
-		.read		= NULL /* Incompatible read */,
+		.write		= NULL, /* Incompatible Page write */
+		.read		= NULL, /* Incompatible read */
 		.voltage	= {2700, 3600},
 	},
 
@@ -2073,8 +2073,8 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB011D,
-		.total_size	= 128 /* Size can only be determined from status register */,
-		.page_size	= 256 /* Size can only be determined from status register */,
+		.total_size	= 128, /* Size can only be determined from status register */
+		.page_size	= 256, /* Size can only be determined from status register */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
@@ -2089,8 +2089,8 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB021D,
-		.total_size	= 256 /* Size can only be determined from status register */,
-		.page_size	= 256 /* Size can only be determined from status register */,
+		.total_size	= 256, /* Size can only be determined from status register */
+		.page_size	= 256, /* Size can only be determined from status register */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
@@ -2105,8 +2105,8 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB041D,
-		.total_size	= 512 /* Size can only be determined from status register */,
-		.page_size	= 256 /* Size can only be determined from status register */,
+		.total_size	= 512, /* Size can only be determined from status register */
+		.page_size	= 256, /* Size can only be determined from status register */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
@@ -2121,8 +2121,8 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB081D,
-		.total_size	= 1024 /* Size can only be determined from status register */,
-		.page_size	= 256 /* Size can only be determined from status register */,
+		.total_size	= 1024, /* Size can only be determined from status register */
+		.page_size	= 256, /* Size can only be determined from status register */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
@@ -2137,8 +2137,8 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB161D,
-		.total_size	= 2048 /* Size can only be determined from status register */,
-		.page_size	= 512 /* Size can only be determined from status register */,
+		.total_size	= 2048, /* Size can only be determined from status register */
+		.page_size	= 512, /* Size can only be determined from status register */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
@@ -2153,13 +2153,13 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB321C,
-		.total_size	= 4224 /* No power of two sizes */,
-		.page_size	= 528 /* No power of two sizes */,
+		.total_size	= 4224, /* No power of two sizes */
+		.page_size	= 528, /* No power of two sizes */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
-		.read		= NULL /* Incompatible read */,
+		.read		= NULL, /* Incompatible read */
 		.voltage	= {2700, 3600},
 	},
 
@@ -2169,8 +2169,8 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB321D,
-		.total_size	= 4096 /* Size can only be determined from status register */,
-		.page_size	= 512 /* Size can only be determined from status register */,
+		.total_size	= 4096, /* Size can only be determined from status register */
+		.page_size	= 512, /* Size can only be determined from status register */
 		/* OTP: 128B total, 64B pre-programmed; read 0x77; write 0x9B */
 		.feature_bits	= FEATURE_OTP,
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
@@ -2187,8 +2187,8 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT45DB642D,
-		.total_size	= 8192 /* Size can only be determined from status register */,
-		.page_size	= 1024 /* Size can only be determined from status register */,
+		.total_size	= 8192, /* Size can only be determined from status register */
+		.page_size	= 1024, /* Size can only be determined from status register */
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
