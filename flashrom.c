@@ -2042,7 +2042,7 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	flash->in_4ba_mode = false;
 
 	/* Enable/disable 4-byte addressing mode if flash chip supports it */
-	if ((flash->chip->feature_bits & FEATURE_4BA_ENTER) && flash->chip->set_4ba) {
+	if ((flash->chip->feature_bits & FEATURE_4BA_ENTER_WREN) && flash->chip->set_4ba) {
 		if (flash->chip->set_4ba(flash)) {
 			msg_cerr("Enabling/disabling 4-byte addressing mode failed!\n");
 			return 1;
