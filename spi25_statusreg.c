@@ -451,22 +451,6 @@ static void spi_prettyprint_status_register_amic_a25_srwd(uint8_t status)
 		     "(SRWD) is %sset\n", (status & (1 << 7)) ? "" : "not ");
 }
 
-int spi_prettyprint_status_register_amic_a25l05p(struct flashctx *flash)
-{
-	uint8_t status;
-
-	status = spi_read_status_register(flash);
-	msg_cdbg("Chip status register is %02x\n", status);
-
-	spi_prettyprint_status_register_amic_a25_srwd(status);
-	spi_prettyprint_status_register_bit(status, 6);
-	spi_prettyprint_status_register_bit(status, 5);
-	spi_prettyprint_status_register_bit(status, 4);
-	spi_prettyprint_status_register_bp3210(status, 1);
-	spi_prettyprint_status_register_welwip(status);
-	return 0;
-}
-
 int spi_prettyprint_status_register_amic_a25l032(struct flashctx *flash)
 {
 	uint8_t status = spi_read_status_register(flash);
