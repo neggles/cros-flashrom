@@ -1166,12 +1166,13 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "AMIC",
-		.name		= "A25LQ032",
+		.name		= "A25LQ032/A25LQ32A",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= AMIC_ID_NOPREFIX,
 		.model_id	= AMIC_A25LQ032,
 		.total_size	= 4096,
 		.page_size	= 256,
+		/* A25LQ32A supports SFDP */
 		/* OTP: 64B total; read 0x4B, 0x48; write 0x42 */
 		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ | FEATURE_OTP,
 		.tested		= TEST_UNTESTED,
