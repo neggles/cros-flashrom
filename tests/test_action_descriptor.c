@@ -37,7 +37,7 @@ static struct flashchip test_chip = {
 	.model_id	= WINBOND_NEX_W25Q64_V,
 	.total_size	= 8192,
 	.page_size	= 256,
-	.feature_bits	= FEATURE_WRSR_WREN | FEATURE_UNBOUND_READ | FEATURE_OTP,
+	.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
 	.tested		= TEST_OK_PREWU,
 	.block_erasers	=
 	{

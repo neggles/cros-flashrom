@@ -92,10 +92,7 @@ int default_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, u
 			 "flashrom@flashrom.org\n", __func__);
 		return 1;
 	}
-	if (flash->chip->feature_bits & FEATURE_UNBOUND_READ)
-		rc = spi_read_unbound(flash, buf, start, len, max_data);
-	else
-		rc = spi_read_chunked(flash, buf, start, len, max_data);
+	rc = spi_read_chunked(flash, buf, start, len, max_data);
 	/* translate SPI-specific access denied error to generic error */
 	if (rc == SPI_ACCESS_DENIED)
 		rc = ACCESS_DENIED;
