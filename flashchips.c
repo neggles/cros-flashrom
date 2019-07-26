@@ -1804,6 +1804,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_20,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.write		= NULL, /* Incompatible Page write */
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600}, /* 3.0-3.6V for higher speed, 2.7-3.6V normal */
@@ -1951,6 +1952,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.write		= NULL, /* Incompatible Page write */
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
@@ -2063,6 +2065,7 @@ const struct flashchip flashchips[] = {
 		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
+		.printlock	= spi_prettyprint_status_register_plain,
 		.write		= NULL, /* Incompatible Page write */
 		.read		= NULL, /* Incompatible read */
 		.voltage	= {2700, 3600},
@@ -2568,6 +2571,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2601,6 +2605,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2634,6 +2639,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2667,6 +2673,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2701,6 +2708,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2735,6 +2743,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2769,6 +2778,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2803,6 +2813,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2837,6 +2848,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2871,6 +2883,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2905,6 +2918,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2939,6 +2953,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -2973,6 +2988,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3007,6 +3023,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3041,6 +3058,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3075,6 +3093,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3152,6 +3171,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3189,6 +3209,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3223,6 +3244,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3260,6 +3282,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3294,6 +3317,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3327,6 +3351,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			},
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3362,6 +3387,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3397,6 +3423,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3432,6 +3459,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3468,6 +3496,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3504,6 +3533,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3540,6 +3570,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -3577,6 +3608,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -8611,6 +8643,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -8639,6 +8672,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -8667,6 +8701,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9257,6 +9292,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9340,6 +9376,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.unlock		= spi_disable_blockprotect,
+		.printlock	= spi_prettyprint_status_register_plain,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
@@ -9419,6 +9456,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9611,6 +9649,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9759,6 +9798,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9797,6 +9837,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9828,6 +9869,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9866,6 +9908,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9897,6 +9940,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9935,6 +9979,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
@@ -9966,6 +10011,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
