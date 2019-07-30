@@ -2049,7 +2049,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45CS1282,
 		.total_size	= 16896, /* No power of two sizes */
 		.page_size	= 1056, /* No power of two sizes */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.printlock	= spi_prettyprint_status_register_plain,
@@ -2066,7 +2066,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45DB011D,
 		.total_size	= 128, /* Size can only be determined from status register */
 		.page_size	= 256, /* Size can only be determined from status register */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
@@ -2082,7 +2082,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45DB021D,
 		.total_size	= 256, /* Size can only be determined from status register */
 		.page_size	= 256, /* Size can only be determined from status register */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
@@ -2098,7 +2098,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45DB041D,
 		.total_size	= 512, /* Size can only be determined from status register */
 		.page_size	= 256, /* Size can only be determined from status register */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
@@ -2114,7 +2114,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45DB081D,
 		.total_size	= 1024, /* Size can only be determined from status register */
 		.page_size	= 256, /* Size can only be determined from status register */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
@@ -2130,7 +2130,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45DB161D,
 		.total_size	= 2048, /* Size can only be determined from status register */
 		.page_size	= 512, /* Size can only be determined from status register */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
@@ -2146,7 +2146,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45DB321C,
 		.total_size	= 4224, /* No power of two sizes */
 		.page_size	= 528, /* No power of two sizes */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
@@ -2164,7 +2164,7 @@ const struct flashchip flashchips[] = {
 		.page_size	= 512, /* Size can only be determined from status register */
 		/* OTP: 128B total, 64B pre-programmed; read 0x77; write 0x9B */
 		.feature_bits	= FEATURE_OTP,
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
@@ -2180,7 +2180,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT45DB642D,
 		.total_size	= 8192, /* Size can only be determined from status register */
 		.page_size	= 1024, /* Size can only be determined from status register */
-		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT, .uread = NT },
+		.tested		= { .probe = NT, .read = BAD, .erase = NT, .write = NT },
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
