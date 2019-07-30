@@ -1307,7 +1307,7 @@ int cros_ec_probe_size(struct flashctx *flash) {
 		memcpy(chip_name, chip_info.name, sizeof(chip_name));
 		flash->chip->vendor = chip_vendor;
 		flash->chip->name = chip_name;
-		flash->chip->tested = TEST_OK_PREWU;
+		flash->chip->tested = TEST_OK_PREW;
 	} else {
 		const struct flashchip *f;
 		uint32_t mfg = spi_info.jedec[0];

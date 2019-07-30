@@ -38,7 +38,7 @@ static struct flashchip test_chip = {
 	.total_size	= 8192,
 	.page_size	= 256,
 	.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
-	.tested		= TEST_OK_PREWU,
+	.tested		= TEST_OK_PREW,
 	.block_erasers	=
 	{
 		{
