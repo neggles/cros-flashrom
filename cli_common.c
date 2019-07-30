@@ -32,14 +32,12 @@ void print_chip_support_status(const struct flashchip *chip)
 	if ((chip->tested.probe != OK) ||
 	    (chip->tested.read != OK) ||
 	    (chip->tested.erase != OK) ||
-	    (chip->tested.write != OK) ||
-	    (chip->tested.uread != OK)) {
+	    (chip->tested.write != OK)) {
 		msg_cdbg("===\n");
 		if ((chip->tested.probe == BAD) ||
 		    (chip->tested.read == BAD) ||
 		    (chip->tested.erase == BAD) ||
-		    (chip->tested.write == BAD) ||
-		    (chip->tested.uread == BAD)) {
+		    (chip->tested.write == BAD)) {
 			msg_cdbg("This flash part has status NOT WORKING for operations:");
 			if (chip->tested.probe == BAD)
 				msg_cdbg(" PROBE");
@@ -49,15 +47,12 @@ void print_chip_support_status(const struct flashchip *chip)
 				msg_cdbg(" ERASE");
 			if (chip->tested.write == BAD)
 				msg_cdbg(" WRITE");
-			if (chip->tested.uread == BAD)
-				msg_cdbg(" UNBOUNDED READ");
 			msg_cdbg("\n");
 		}
 		if ((chip->tested.probe == NT) ||
 		    (chip->tested.read == NT) ||
 		    (chip->tested.erase == NT) ||
-		    (chip->tested.write == NT) ||
-		    (chip->tested.uread == NT)) {
+		    (chip->tested.write == NT)) {
 			msg_cdbg("This flash part has status UNTESTED for operations:");
 			if (chip->tested.probe == NT)
 				msg_cdbg(" PROBE");
@@ -67,8 +62,6 @@ void print_chip_support_status(const struct flashchip *chip)
 				msg_cdbg(" ERASE");
 			if (chip->tested.write == NT)
 				msg_cdbg(" WRITE");
-			if (chip->tested.uread == NT)
-				msg_cdbg(" UNBOUNDED READ");
 			msg_cdbg("\n");
 		}
 		/* FIXME: This message is designed towards CLI users. */
