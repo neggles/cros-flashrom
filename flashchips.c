@@ -5555,14 +5555,21 @@ const struct flashchip flashchips[] = {
 				.eraseblocks = { {4 * 1024, 16384} },
 				.block_erase = spi_block_erase_21,
 			}, {
+				.eraseblocks = { {4 * 1024, 16384} },
+				.block_erase = spi_block_erase_20,
+			}, {
 				.eraseblocks = { {64 * 1024, 1024} },
 				.block_erase = spi_block_erase_dc,
+			}, {
+				.eraseblocks = { {64 * 1024, 1024} },
+				.block_erase = spi_block_erase_d8,
 			}, {
 				.eraseblocks = { {65536 * 1024, 1} },
 				.block_erase = spi_block_erase_c7,
 			}
 		},
-		.unlock		= spi_disable_blockprotect, /* TODO: per 64kB sector lock registers */
+		.printlock	= spi_prettyprint_status_register_n25q, /* TODO: config, lock, flag regs */
+		.unlock		= spi_disable_blockprotect_n25q, /* TODO: per 64kB sector lock registers */
 		.write		= spi_chip_write_256, /* Multi I/O supported */
 		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {2700, 3600},
