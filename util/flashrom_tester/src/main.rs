@@ -39,8 +39,6 @@ extern crate log;
 extern crate chrono;
 extern crate env_logger;
 
-extern crate built;
-
 mod tests;
 mod tester;
 mod types;
