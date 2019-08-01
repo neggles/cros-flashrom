@@ -725,6 +725,11 @@ int main(int argc, char *argv[])
 	const struct registered_master mst_nop;
 	register_master(&mst_nop);
 
+	tempstr = flashbuses_to_text(get_buses_supported());
+	msg_pdbg("The following protocols are supported: %s.\n", tempstr);
+	free(tempstr);
+	tempstr = NULL;
+
 	for (j = 0; j < registered_master_count; j++) {
 		for (i = 0; i < ARRAY_SIZE(flashes); i++) {
 			startchip = probe_flash(&registered_masters[j],

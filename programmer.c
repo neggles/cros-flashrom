@@ -12,7 +12,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include "flash.h"
@@ -147,3 +146,13 @@ struct programmer_alias aliases[] = {
 	{ NULL },
 };
 struct programmer_alias *alias;
+enum chipbustype get_buses_supported(void)
+{
+	int i;
+	enum chipbustype ret = BUS_NONE;
+
+	for (i = 0; i < registered_master_count; i++)
+		ret |= registered_masters[i].buses_supported;
+
+	return ret;
+}

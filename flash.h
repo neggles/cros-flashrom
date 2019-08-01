@@ -454,4 +454,5 @@ extern struct voltage_range voltage_ranges[];
 /* returns number of unique voltage ranges, or <0 to indicate failure */
 extern int flash_supported_voltage_ranges(enum chipbustype bus);
 
+enum chipbustype get_buses_supported(void);
 #endif				/* !__FLASH_H__ */

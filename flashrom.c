@@ -1133,19 +1133,8 @@ int probe_flash(struct registered_master *mst, int startchip,
 		if (chip_to_probe && strcmp(chip->name, chip_to_probe) != 0)
 			continue;
 		buses_common = buses_supported & chip->bustype;
-		if (!buses_common) {
-			msg_gspew("Probing for %s %s, %d kB: skipped. ",
-			         chip->vendor, chip->name, chip->total_size);
-			tmp = flashbuses_to_text(buses_supported);
-			msg_gspew("Host bus type %s ", tmp);
-			free(tmp);
-			tmp = flashbuses_to_text(chip->bustype);
-			msg_gspew("and chip bus type %s are incompatible.",
-				  tmp);
-			free(tmp);
-			msg_gspew("\n");
+		if (!buses_common)
 			continue;
-		}
 		/* Only probe for SPI25 chips by default. */
 		if (chip->bustype == BUS_SPI && !chip_to_probe && chip->spi_cmd_set != SPI25)
 			continue;
