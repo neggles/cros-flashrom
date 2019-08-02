@@ -93,6 +93,14 @@ const struct dev_entry nics_intel_spi[] = {
 	{PCI_VENDOR_ID_INTEL, 0x152a, NT, "Intel", "82599 10 Gigabit Dual Port Backplane Controller with FCoE"},
 	{PCI_VENDOR_ID_INTEL, 0x1557, NT, "Intel", "82599 10 Gigabit SFI Network Controller"},
 
+	{PCI_VENDOR_ID_INTEL, 0x1531, OK, "Intel", "I210 Gigabit Network Connection Unprogrammed"},
+	{PCI_VENDOR_ID_INTEL, 0x1532, NT, "Intel", "I211 Gigabit Network Connection Unprogrammed"},
+	{PCI_VENDOR_ID_INTEL, 0x1533, NT, "Intel", "I210 Gigabit Network Connection"},
+	{PCI_VENDOR_ID_INTEL, 0x1536, NT, "Intel", "I210 Gigabit Network Connection SERDES Fiber"},
+	{PCI_VENDOR_ID_INTEL, 0x1537, NT, "Intel", "I210 Gigabit Network Connection SERDES Backplane"},
+	{PCI_VENDOR_ID_INTEL, 0x1538, NT, "Intel", "I210 Gigabit Network Connection SGMII"},
+	{PCI_VENDOR_ID_INTEL, 0x1539, NT, "Intel", "I211 Gigabit Network Connection"},
+
 	{0},
 };
 
