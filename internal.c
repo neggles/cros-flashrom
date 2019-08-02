@@ -348,6 +348,8 @@ int internal_init(void)
 #endif
 
 #if IS_X86
+	is_laptop = 2; /* Assume that we don't know by default. */
+
 	dmi_init();
 
 	if (probe_target_bus_later) {
@@ -376,36 +378,13 @@ int internal_init(void)
 	/* Check laptop whitelist. */
 	board_handle_before_laptop();
 
-	/* Warn if a non-whitelisted laptop is detected. */
-	if (is_laptop && !laptop_ok) {
-		msg_perr("========================================================================\n");
-		if (is_laptop == 1) {
-			msg_perr("WARNING! You seem to be running flashrom on an unsupported laptop.\n");
-		} else {
-			msg_perr("WARNING! You may be running flashrom on an unsupported laptop. We could\n"
-				 "not detect this for sure because your vendor has not setup the SMBIOS\n"
-				 "tables correctly. You can enforce execution by adding\n"
-				 "'-p internal:laptop=this_is_not_a_laptop' to the command line, but\n"
-				 "please read the following warning if you are not sure.\n\n");
-		}
-		msg_perr("Laptops, notebooks and netbooks are difficult to support and we\n"
-			 "recommend to use the vendor flashing utility. The embedded controller\n"
-			 "(EC) in these machines often interacts badly with flashing.\n"
-			 "See http://www.flashrom.org/Laptops for details.\n\n"
-			 "If flash is shared with the EC, erase is guaranteed to brick your laptop\n"
-			 "and write may brick your laptop.\n"
-			 "Read and probe may irritate your EC and cause fan failure, backlight\n"
-			 "failure and sudden poweroff.\n"
-			 "You have been warned.\n"
-			 "========================================================================\n");
-
-		if (force_laptop || (not_a_laptop && (is_laptop == 2))) {
-			msg_perr("Proceeding anyway because user forced us to.\n");
-		} else {
-			msg_perr("Aborting.\n");
-			exit(1);
-		}
-	}
+	/*
+	 * Disable all internal buses by default if we are not sure
+	 * this isn't a laptop. Board-enables may override this,
+	 * non-legacy buses (SPI and opaque atm) are probed anyway.
+	 */
+	if (force_laptop || (not_a_laptop && (is_laptop == 2)))
+		internal_buses_supported = BUS_NONE;
 
 #if defined (__FLASHROM_LITTLE_ENDIAN__)
 #if IS_X86 || IS_MIPS || IS_ARM
@@ -419,7 +398,35 @@ int internal_init(void)
 	} else if (ret == ERROR_FATAL)
 		return ret;
 
-	register_par_master(&par_master_internal, internal_buses_supported);
+	if (internal_buses_supported & BUS_NONSPI)
+		register_par_master(&par_master_internal, internal_buses_supported);
+
+	/* Report if a non-whitelisted laptop is detected that likely uses a legacy bus. */
+	if (is_laptop && !laptop_ok) {
+		msg_perr("========================================================================\n");
+		if (is_laptop == 1) {
+			msg_pinfo("You seem to be running flashrom on an unknown laptop. Some\n"
+				  "internal buses have been disabled for safety reasons.\n\n");
+		} else {
+			msg_pinfo("You may be running flashrom on an unknown laptop. We could not\n"
+				 "detect this for sure because your vendor has not setup the SMBIOS\n"
+				 "tables correctly. Some internal buses have been disabled for\n"
+				 "safety reasons. You can enforce using all buses by adding\n"
+				 "  -p internal:laptop=this_is_not_a_laptop\n"
+				 "to the command line, but please read the following warning if you\n"
+				 "are not sure.\n\n");
+		}
+		msg_perr("Laptops, notebooks and netbooks are difficult to support and we\n"
+			 "recommend to use the vendor flashing utility. The embedded controller\n"
+			 "(EC) in these machines often interacts badly with flashing.\n"
+			 "See http://www.flashrom.org/Laptops for details.\n\n"
+			 "If flash is shared with the EC, erase is guaranteed to brick your laptop\n"
+			 "and write may brick your laptop.\n"
+			 "Read and probe may irritate your EC and cause fan failure, backlight\n"
+			 "failure and sudden poweroff.\n"
+			 "You have been warned.\n"
+			 "========================================================================\n");
+	}
 #if IS_X86
 
 	/* probe for programmers that bridge LPC <--> SPI */

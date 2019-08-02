@@ -65,13 +65,13 @@ static int enable_flash_rdc_r8610(struct pci_dev *dev, const char *name)
 	tmp = pci_read_byte(dev, 0x40) & 0x3;
 	switch (tmp) {
 	case 3:
-		internal_buses_supported = BUS_FWH;
+		internal_buses_supported &= BUS_FWH;
 		break;
 	case 2:
-		internal_buses_supported = BUS_LPC;
+		internal_buses_supported &= BUS_LPC;
 		break;
 	default:
-		internal_buses_supported = BUS_PARALLEL;
+		internal_buses_supported &= BUS_PARALLEL;
 		break;
 	}
 
@@ -237,7 +237,7 @@ static int enable_flash_piix4(struct pci_dev *dev, const char *name)
 	uint16_t old, new;
 	uint16_t xbcs = 0x4e;	/* X-Bus Chip Select register. */
 
-	internal_buses_supported = BUS_PARALLEL;
+	internal_buses_supported &= BUS_PARALLEL;
 
 	old = pci_read_word(dev, xbcs);
 
@@ -360,7 +360,7 @@ static int enable_flash_ich_4e(struct pci_dev *dev, const char *name)
 	 * FWH_DEC_EN1, but they are called FB_SEL1, FB_SEL2, FB_DEC_EN1 and
 	 * FB_DEC_EN2.
 	 */
-	internal_buses_supported = BUS_FWH;
+	internal_buses_supported &= BUS_FWH;
 	return enable_flash_ich(dev, name, 0x4e);
 }
 
@@ -471,7 +471,7 @@ idsel_garbage_out:
 	/* If we're called by enable_flash_ich_dc_spi, it will override
 	 * internal_buses_supported anyway.
 	 */
-	internal_buses_supported = BUS_FWH;
+	internal_buses_supported &= BUS_FWH;
 	return enable_flash_ich(dev, name, 0xdc);
 }
 
@@ -617,7 +617,7 @@ static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 	if (new != old)
 		rpci_write_byte(dev, 0xd9, new);
 
-	internal_buses_supported = BUS_FWH;
+	internal_buses_supported &= BUS_FWH;
 	return 0;
 }
 
@@ -651,7 +651,7 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 	bnt = mmio_readl(rcrb + 0x3410);
 	if (bnt & 0x02) {
 		/* If strapped to LPC, no SPI initialization is required */
-		internal_buses_supported = BUS_FWH;
+		internal_buses_supported &= BUS_FWH;
 		return 0;
 	}
 
@@ -908,7 +908,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	 * time. At least not with our current code. So we prevent searching
 	 * on ICH7 when the southbridge is strapped to LPC
 	 */
-	internal_buses_supported = BUS_FWH;
+	internal_buses_supported &= BUS_FWH;
 	if (generation == CHIPSET_ICH7) {
 		if (bbs == 0x03) {
 			/* If strapped to LPC, no further SPI initialization is
@@ -916,7 +916,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 			return ret;
 		} else {
 			/* Disable LPC/FWH if strapped to PCI or SPI */
-			internal_buses_supported = BUS_NONE;
+			internal_buses_supported &= BUS_NONE;
 		}
 	}
 
@@ -1128,7 +1128,7 @@ static int enable_flash_cs5530(struct pci_dev *dev, const char *name)
 #define CS5530_ENABLE_SA2320		(1 << 2)
 #define CS5530_ENABLE_SA20		(1 << 6)
 
-	internal_buses_supported = BUS_PARALLEL;
+	internal_buses_supported &= BUS_PARALLEL;
 	/* Decode 0x000E0000-0x000FFFFF (128 kB), not just 64 kB, and
 	 * decode 0xFF000000-0xFFFFFFFF (16 MB), not just 256 kB.
 	 * FIXME: Should we really touch the low mapping below 1 MB? Flashrom
@@ -1281,7 +1281,7 @@ static int enable_flash_sb600(struct pci_dev *dev, const char *name)
 				 (prot & 0xfffff800) + (((prot & 0x7fc) << 8) | 0x3ff));
 	}
 
-	internal_buses_supported = BUS_LPC | BUS_FWH;
+	internal_buses_supported &= BUS_LPC | BUS_FWH;
 
 	ret = sb600_probe_spi(dev);
 
@@ -1375,7 +1375,7 @@ static int enable_flash_osb4(struct pci_dev *dev, const char *name)
 {
 	uint8_t tmp;
 
-	internal_buses_supported = BUS_PARALLEL;
+	internal_buses_supported &= BUS_PARALLEL;
 
 	tmp = INB(0xc06);
 	tmp |= 0x1;
@@ -1475,7 +1475,7 @@ static int enable_flash_mcp6x_7x(struct pci_dev *dev, const char *name)
 	switch ((val >> 5) & 0x3) {
 	case 0x0:
 		ret = enable_flash_mcp55(dev, name);
-		internal_buses_supported = BUS_LPC;
+		internal_buses_supported &= BUS_LPC;
 		msg_pdbg("Flash bus type is LPC\n");
 		break;
 	case 0x2:
@@ -1483,7 +1483,7 @@ static int enable_flash_mcp6x_7x(struct pci_dev *dev, const char *name)
 		/* SPI is added in mcp6x_spi_init if it works.
 		 * Do we really want to disable LPC in this case?
 		 */
-		internal_buses_supported = BUS_NONE;
+		internal_buses_supported &= BUS_NONE;
 		msg_pdbg("Flash bus type is SPI\n");
 		msg_pinfo("SPI on this chipset is WIP. Please report any "
 			  "success or failure by mailing us the verbose "
@@ -1491,7 +1491,7 @@ static int enable_flash_mcp6x_7x(struct pci_dev *dev, const char *name)
 		break;
 	default:
 		/* Should not happen. */
-		internal_buses_supported = BUS_NONE;
+		internal_buses_supported &= BUS_NONE;
 		msg_pdbg("Flash bus type is unknown (none)\n");
 		msg_pinfo("Something went wrong with bus type detection.\n");
 		goto out_msg;
