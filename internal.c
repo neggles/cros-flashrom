@@ -96,7 +96,7 @@ struct pci_dev *pci_card_find(uint16_t vendor, uint16_t device,
 int force_boardenable = 0;
 int force_boardmismatch = 0;
 
-#if defined(__i386__) || defined(__x86_64__)
+#if IS_X86
 void probe_superio(void)
 {
 	probe_superio_ite();
