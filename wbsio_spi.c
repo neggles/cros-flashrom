@@ -19,6 +19,7 @@
 #include "flash.h"
 #include "chipdrivers.h"
 #include "programmer.h"
+#include "hwaccess.h"
 #include "spi.h"
 
 #define WBSIO_PORT1	0x2e
@@ -56,9 +57,12 @@ done:
 	return flashport;
 }
 
-static int wbsio_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		      const unsigned char *writearr, unsigned char *readarr);
-static int wbsio_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
+static int wbsio_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+				  unsigned int readcnt,
+				  const unsigned char *writearr,
+				  unsigned char *readarr);
+static int wbsio_spi_read(struct flashctx *flash, uint8_t *buf,
+			  unsigned int start, unsigned int len);
 
 static const struct spi_master spi_master_wbsio = {
 	.type = SPI_CONTROLLER_WBSIO,
@@ -106,10 +110,12 @@ int wbsio_check_for_spi(void)
  * Would one more byte of RAM in the chip (to get all 24 bits) really make
  * such a big difference?
  */
-static int wbsio_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		      const unsigned char *writearr, unsigned char *readarr)
+static int wbsio_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+				  unsigned int readcnt,
+				  const unsigned char *writearr,
+				  unsigned char *readarr)
 {
-	int i;
+	unsigned int i;
 	uint8_t mode = 0;
 
 	msg_pspew("%s:", __func__);
@@ -190,7 +196,8 @@ static int wbsio_spi_send_command(const struct flashctx *flash, unsigned int wri
 	return 0;
 }
 
-static int wbsio_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len)
+static int wbsio_spi_read(struct flashctx *flash, uint8_t *buf,
+			  unsigned int start, unsigned int len)
 {
 	return read_memmapped(flash, buf, start, len);
 }
