@@ -184,6 +184,7 @@ static int pcidev_shutdown(void *data)
 		return 1;
 	}
 	pci_cleanup(pacc);
+	pacc = NULL;
 	return 0;
 }
 
@@ -241,7 +242,7 @@ struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar)
 		msg_perr("Error: No supported PCI device found.\n");
 		return NULL;
 	} else if (found > 1) {
-		msg_perr("Error: Multiple supported PCI devices found. Use 'flashrom -p xxxx:pci=bb:dd.f' \n"
+		msg_perr("Error: Multiple supported PCI devices found. Use 'flashrom -p xxxx:pci=bb:dd.f'\n"
 			 "to explicitly select the card with the given BDF (PCI bus, device, function).\n");
 		return NULL;
 	}
@@ -282,6 +283,11 @@ struct undo_pci_write_data {
 int undo_pci_write(void *p)
 {
 	struct undo_pci_write_data *data = p;
+	if (pacc == NULL) {
+		msg_perr("%s: Tried to undo PCI writes without a valid PCI context!\n"
+			 "Please report a bug at flashrom@flashrom.org\n", __func__);
+		return 1;
+	}
 	msg_pdbg("Restoring PCI config space for %02x:%02x:%01x reg 0x%02x\n",
 		 data->dev.bus, data->dev.dev, data->dev.func, data->reg);
 	switch (data->type) {

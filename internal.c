@@ -161,50 +161,6 @@ static int internal_shutdown(void *data)
 }
 enum chipbustype target_bus;
 
-#if IS_X86
-#define BUFSIZE 256
-static char buffer[BUFSIZE];
-
-static void
-pci_error(char *msg, ...)
-{
-	va_list args;
-
-	va_start(args, msg);
-	vsnprintf(buffer, BUFSIZE, msg, args);
-	va_end(args);
-
-	msg_perr("pcilib: %s\n", buffer);
-
-	/* libpci requires us to exit. TODO cleanup? */
-	exit(1);
-}
-
-static void
-pci_warning(char *msg, ...)
-{
-	va_list args;
-
-	va_start(args, msg);
-	vsnprintf(buffer, BUFSIZE, msg, args);
-	va_end(args);
-
-	msg_pinfo("pcilib: %s\n", buffer);
-}
-
-static void
-pci_debug(char *msg, ...)
-{
-	va_list args;
-
-	va_start(args, msg);
-	vsnprintf(buffer, BUFSIZE, msg, args);
-	va_end(args);
-
-	msg_pdbg("pcilib: %s\n", buffer);
-}
-#endif
-
 int internal_init(void)
 {
 #if defined (__FLASHROM_LITTLE_ENDIAN__)
@@ -314,14 +270,8 @@ int internal_init(void)
 	internal_buses_supported = BUS_NONSPI;
 
 	/* Initialize PCI access for flash enables */
-	pacc = pci_alloc();	/* Get the pci_access structure */
-	pacc->error = pci_error;
-	pacc->warning = pci_warning;
-	pacc->debug = pci_debug;
-
-	/* Set all options you want -- here we stick with the defaults */
-	pci_init(pacc);		/* Initialize the PCI library */
-	pci_scan_bus(pacc);	/* We want to get the list of devices */
+	if (pci_init_common() != 0)
+		return 1;
 #else
 	internal_buses_supported = BUS_NONE;
 #endif

@@ -251,6 +251,7 @@ struct dev_entry {
 	const char *vendor_name;
 	const char *device_name;
 };
+int pci_init_common(void);
 uintptr_t pcidev_readbar(struct pci_dev *dev, int bar);
 uintptr_t pcidev_validate(struct pci_dev *dev, int bar, const struct dev_entry *devs);
 struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar);
