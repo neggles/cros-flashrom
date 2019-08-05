@@ -171,6 +171,7 @@ struct bitbang_spi_master {
 };
 
 #if CONFIG_INTERNAL == 1
+struct pci_dev;
 struct penable {
 	uint16_t vendor_id;
 	uint16_t device_id;
@@ -320,6 +321,7 @@ extern int superio_count;
 #define SUPERIO_VENDOR_ITE	0x1
 #endif
 #if NEED_PCI == 1
+struct pci_filter;
 struct pci_dev *pci_dev_find_filter(struct pci_filter filter);
 struct pci_dev *pci_dev_find_vendorclass(uint16_t vendor, uint16_t devclass);
 struct pci_dev *pci_dev_find(uint16_t vendor, uint16_t device);

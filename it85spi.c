@@ -33,6 +33,7 @@
 #include "flash.h"
 #include "spi.h"
 #include "programmer.h"
+#include "hwaccess.h"
 
 /* Supported ECs, ITE_LAST should always be LAST member */
 enum ite_chip_id {

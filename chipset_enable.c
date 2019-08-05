@@ -31,6 +31,7 @@
 #include <errno.h>
 #include "flash.h"
 #include "programmer.h"
+#include "hwaccess.h"
 
 #define NOT_DONE_YET 1
 

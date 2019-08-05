@@ -39,6 +39,7 @@
 #include <unistd.h>
 
 #include "flash.h"
+#include "hwaccess.h"
 #include "chipdrivers.h"
 #include "programmer.h"
 #include "spi.h"

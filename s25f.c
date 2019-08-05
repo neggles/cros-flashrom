@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include "chipdrivers.h"
+#include "hwaccess.h"
 #include "spi.h"
 #include "writeprotect.h"
 

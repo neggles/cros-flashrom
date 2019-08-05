@@ -45,6 +45,7 @@
 #include "cros_ec_commands.h"
 #include "programmer.h"
 #include "cros_ec.h"
+#include "hwaccess.h"
 #include "spi.h"
 #include "writeprotect.h"
 

@@ -42,6 +42,7 @@
 #include "chipdrivers.h"
 #include "flash.h"
 #include "programmer.h"
+#include "hwaccess.h"
 #include "spi.h"
 
 /* Supported ENE ECs, ENE_LAST should always be LAST member */

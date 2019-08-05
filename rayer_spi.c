@@ -31,6 +31,7 @@
 #include <string.h>
 #include "flash.h"
 #include "programmer.h"
+#include "hwaccess.h"
 
 enum rayer_type {
 	TYPE_RAYER,
