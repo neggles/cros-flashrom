@@ -11,6 +11,7 @@ chrono = "0.4"
 log = "0.4"
 env_logger = { version = "0.6.1", default-features = false }
 sys-info = "0.5.7"
+built = { version = "0.3", default-features = false, features = ["serialized_time", "serialized_version"] }
 
 [build-dependencies]
 built = { version = "0.3", default-features = false, features = ["serialized_time", "serialized_version"] }
