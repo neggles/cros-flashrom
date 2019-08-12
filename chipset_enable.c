@@ -1127,8 +1127,7 @@ static int enable_flash_vt823x(struct pci_dev *dev, const char *name)
 	rpci_write_byte(dev, 0x40, val);
 
 	if (pci_read_byte(dev, 0x40) != val) {
-		msg_pinfo("\nWARNING: Failed to enable flash write on \"%s\"\n",
-			  name);
+		msg_pwarn("\nWarning: Failed to enable flash write on \"%s\"\n", name);
 		return -1;
 	}
 
@@ -1881,7 +1880,7 @@ int chipset_flash_enable(void)
 		if (!dev)
 			continue;
 		if (ret != -2) {
-			msg_pinfo("WARNING: unexpected second chipset match: "
+			msg_pwarn("Warning: unexpected second chipset match: "
 				    "\"%s %s\"\n"
 				  "ignoring, please report lspci and board URL "
 				    "to flashrom@flashrom.org\n"
@@ -1891,31 +1890,33 @@ int chipset_flash_enable(void)
 					chipset_enables[i].device_name);
 			continue;
 		}
-		msg_pdbg("Found chipset \"%s %s\"",
+		msg_pinfo("Found chipset \"%s %s\"",
 			  chipset_enables[i].vendor_name,
 			  chipset_enables[i].device_name);
 		msg_pdbg(" with PCI ID %04x:%04x",
 			 chipset_enables[i].vendor_id,
 			 chipset_enables[i].device_id);
-		msg_pdbg(". ");
+		msg_pinfo(". ");
 
 		if (chipset_enables[i].status == NT) {
 			msg_pinfo("\nThis chipset is marked as untested. If "
 				  "you are using an up-to-date version\nof "
-				  "flashrom please email a report to "
-				  "flashrom@flashrom.org including a\nverbose "
-				  "(-V) log. Thank you!\n");
+				  "flashrom *and* were (not) able to "
+				  "successfully update your firmware with it,\n"
+				  "then please email a report to "
+				  "flashrom@flashrom.org including a verbose "
+				  "(-V) log.\nThank you!\n");
 		}
-		msg_pdbg("Enabling flash write... ");
+		msg_pinfo("Enabling flash write... ");
 		ret = chipset_enables[i].doit(dev,
 					      chipset_enables[i].device_name);
 		if (ret == NOT_DONE_YET) {
 			ret = -2;
-			msg_pdbg("OK - searching further chips.\n");
+			msg_pinfo("OK - searching further chips.\n");
 		} else if (ret < 0)
 			msg_pinfo("FAILED!\n");
 		else if (ret == 0)
-			msg_pdbg("OK.\n");
+			msg_pinfo("OK.\n");
 		else if (ret == ERROR_NONFATAL)
 			msg_pinfo("PROBLEMS, continuing anyway\n");
 		if (ret == ERROR_FATAL) {
