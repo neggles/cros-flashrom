@@ -284,17 +284,10 @@ static int __enable_flash_ich(void *dev, const char *name, int bios_cntl,
 	uint8_t old, new, wanted;
 
 	/*
-	 * Note: the ICH0-ICH5 BIOS_CNTL register is actually 16 bit wide, but
+	 * Note: the ICH0-ICH5 BIOS_CNTL register is actually 16 bit wide, in Tunnel Creek it is even 32b, but
 	 * just treating it as 8 bit wide seems to work fine in practice.
 	 */
-	old = read_bios_cntl(dev, bios_cntl);
-	wanted = old;
-
-	msg_pdbg("\nBIOS Lock Enable: %sabled, ",
-		 (old & (1 << 1)) ? "en" : "dis");
-	msg_pdbg("BIOS Write Enable: %sabled, ",
-		 (old & (1 << 0)) ? "en" : "dis");
-	msg_pdbg("BIOS_CNTL is 0x%x\n", old);
+	wanted = old = read_bios_cntl(dev, bios_cntl);
 
 	/*
 	 * Quote from the 6 Series datasheet (Document Number: 324645-004):
@@ -302,27 +295,35 @@ static int __enable_flash_ich(void *dev, const char *name, int bios_cntl,
 	 * 1 = BIOS region SMM protection is enabled.
 	 * The BIOS Region is not writable unless all processors are in SMM."
 	 * In earlier chipsets this bit is reserved.
+	 *
+	 * Try to unset it in any case.
+	 * It won't hurt and makes sense in some cases according to Stefan Reinauer.
 	 */
-	if (old & (1 << 5)) {
-		msg_pdbg("WARNING: BIOS region SMM protection is enabled!\n");
-		msg_pdbg("Trying to clear BIOS region SMM protection.\n");
-		return -1;
-	}
+	wanted &= ~(1 << 5);
 
+	 /* Set BIOS Write Enable */
 	wanted |= (1 << 0);
 
 	/* Only write the register if it's necessary */
-	if (wanted == old)
-		return 0;
+	if (wanted != old) {
+		write_bios_cntl(dev, bios_cntl, wanted);
+		new = read_bios_cntl(dev, bios_cntl);
+	} else
+		new = old;
 
-	write_bios_cntl(dev, bios_cntl, wanted);
+	msg_pdbg("\nBIOS_CNTL = 0x%02x: ", new);
+	msg_pdbg("BIOS Lock Enable: %sabled, ", (new & (1 << 1)) ? "en" : "dis");
+	msg_pdbg("BIOS Write Enable: %sabled\n", (new & (1 << 0)) ? "en" : "dis");
+	if (new & (1 << 5))
+		msg_pwarn("Warning: BIOS region SMM protection is enabled!\n");
 
-	if ((new = read_bios_cntl(dev, bios_cntl)) != wanted) {
-		msg_pinfo("WARNING: Setting 0x%x from 0x%x to 0x%x on %s "
-			  "failed. New value is 0x%x.\n",
-			  bios_cntl, old, wanted, name, new);
+	if (new != wanted)
+		msg_pinfo("Warning: Setting Bios Control at 0x%x from 0x%02x to 0x%02x on %s failed.\n"
+			  "New value is 0x%02x.\n", bios_cntl, old, wanted, name, new);
+
+	/* Return an error if we could not set the write enable */
+	if (!(new & (1 << 0)))
 		return -1;
-	}
 
 	return 0;
 }
