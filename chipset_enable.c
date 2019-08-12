@@ -91,19 +91,20 @@ static int enable_flash_sis85c496(struct pci_dev *dev, const char *name)
 
 static int enable_flash_sis_mapping(struct pci_dev *dev, const char *name)
 {
+	#define SIS_MAPREG 0x40
 	uint8_t new, newer;
 
 	/* Extended BIOS enable = 1, Lower BIOS Enable = 1 */
 	/* This is 0xFFF8000~0xFFFF0000 decoding on SiS 540/630. */
-	new = pci_read_byte(dev, 0x40);
+	new = pci_read_byte(dev, SIS_MAPREG);
 	new &= (~0x04); /* No idea why we clear bit 2. */
 	new |= 0xb; /* 0x3 for some chipsets, bit 7 seems to be don't care. */
-	rpci_write_byte(dev, 0x40, new);
-	newer = pci_read_byte(dev, 0x40);
-	if (newer != new) {
-		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
-			  "(WARNING ONLY).\n", 0x40, new, name);
-		msg_pinfo("Stuck at 0x%x\n", newer);
+	rpci_write_byte(dev, SIS_MAPREG, new);
+	newer = pci_read_byte(dev, SIS_MAPREG);
+	if (newer != new) { /* FIXME: share this with other code? */
+		msg_pinfo("Setting register 0x%x to 0x%02x on %s failed (WARNING ONLY).\n",
+			  SIS_MAPREG, new, name);
+		msg_pinfo("Stuck at 0x%02x.\n", newer);
 		return -1;
 	}
 	return 0;
@@ -172,8 +173,9 @@ static int enable_flash_sis5511(struct pci_dev *dev, const char *name)
 	return ret;
 }
 
-static int enable_flash_sis530(struct pci_dev *dev, const char *name)
+static int enable_flash_sis5x0(struct pci_dev *dev, const char *name, uint8_t dis_mask, uint8_t en_mask)
 {
+	#define SIS_REG 0x45
 	uint8_t new, newer;
 	int ret = 0;
 	struct pci_dev *sbdev;
@@ -184,46 +186,28 @@ static int enable_flash_sis530(struct pci_dev *dev, const char *name)
 
 	ret = enable_flash_sis_mapping(sbdev, name);
 
-	new = pci_read_byte(sbdev, 0x45);
-	new &= (~0x20);
-	new |= 0x4;
-	rpci_write_byte(sbdev, 0x45, new);
-	newer = pci_read_byte(sbdev, 0x45);
-	if (newer != new) {
-		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
-			  "(WARNING ONLY).\n", 0x45, new, name);
-		msg_pinfo("Stuck at 0x%x\n", newer);
+	new = pci_read_byte(sbdev, SIS_REG);
+	new &= (~dis_mask);
+	new |= en_mask;
+	rpci_write_byte(sbdev, SIS_REG, new);
+	newer = pci_read_byte(sbdev, SIS_REG);
+	if (newer != new) { /* FIXME: share this with other code? */
+		msg_pinfo("Setting register 0x%x to 0x%02x on %s failed (WARNING ONLY).\n", SIS_REG, new, name);
+		msg_pinfo("Stuck at 0x%02x\n", newer);
 		ret = -1;
 	}
 
 	return ret;
 }
 
+static int enable_flash_sis530(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_sis5x0(dev, name, 0x20, 0x04);
+}
+
 static int enable_flash_sis540(struct pci_dev *dev, const char *name)
 {
-	uint8_t new, newer;
-	int ret = 0;
-	struct pci_dev *sbdev;
-
-	sbdev = find_southbridge(dev->vendor_id, name);
-	if (!sbdev)
-		return -1;
-
-	ret = enable_flash_sis_mapping(sbdev, name);
-
-	new = pci_read_byte(sbdev, 0x45);
-	new &= (~0x80);
-	new |= 0x40;
-	rpci_write_byte(sbdev, 0x45, new);
-	newer = pci_read_byte(sbdev, 0x45);
-	if (newer != new) {
-		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
-			  "(WARNING ONLY).\n", 0x45, new, name);
-		msg_pinfo("Stuck at 0x%x\n", newer);
-		ret = -1;
-	}
-
-	return ret;
+	return enable_flash_sis5x0(dev, name, 0x80, 0x40);
 }
 
 /* Datasheet:
@@ -1656,7 +1640,7 @@ const struct penable chipset_enables[] = {
 	{0x1039, 0x0645, NT, "SiS", "645",		enable_flash_sis540},
 	{0x1039, 0x0646, OK, "SiS", "645DX",		enable_flash_sis540},
 	{0x1039, 0x0648, NT, "SiS", "648",		enable_flash_sis540},
-	{0x1039, 0x0650, NT, "SiS", "650",		enable_flash_sis540},
+	{0x1039, 0x0650, OK, "SiS", "650",		enable_flash_sis540},
 	{0x1039, 0x0651, OK, "SiS", "651",		enable_flash_sis540},
 	{0x1039, 0x0655, NT, "SiS", "655",		enable_flash_sis540},
 	{0x1039, 0x0661, OK, "SiS", "661",		enable_flash_sis540},
@@ -1668,7 +1652,7 @@ const struct penable chipset_enables[] = {
 	{0x1039, 0x0745, OK, "SiS", "745",		enable_flash_sis540},
 	{0x1039, 0x0746, NT, "SiS", "746",		enable_flash_sis540},
 	{0x1039, 0x0748, NT, "SiS", "748",		enable_flash_sis540},
-	{0x1039, 0x0755, NT, "SiS", "755",		enable_flash_sis540},
+	{0x1039, 0x0755, OK, "SiS", "755",		enable_flash_sis540},
 	{0x1039, 0x5511, NT, "SiS", "5511",		enable_flash_sis5511},
 	{0x1039, 0x5571, NT, "SiS", "5571",		enable_flash_sis530},
 	{0x1039, 0x5591, NT, "SiS", "5591/5592",	enable_flash_sis530},
