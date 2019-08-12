@@ -677,49 +677,88 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	uint8_t bbs, buc;
 	uint32_t tmp, gcs;
 	void *rcrb;
-	const char *const *straps_names;
+	struct boot_straps {
+		const char *name;
+		enum chipbustype bus;
+	};
 
-	static const char *const straps_names_EP80579[] = { "SPI", "reserved", "reserved", "LPC" };
-	static const char *const straps_names_ich7_nm10[] = { "reserved", "SPI", "PCI", "LPC" };
-	static const char *const straps_names_ich8910[] = { "SPI", "SPI", "PCI", "LPC" };
-	static const char *const straps_names_pch56[] = { "LPC", "reserved", "PCI", "SPI" };
-	static const char *const straps_names_lpt[] = { "LPC", "reserved", "reserved", "SPI" };
-	static const char *const straps_names_lpt_lp[] = { "SPI", "LPC", "unknown", "unknown" };
-	static const char *const straps_names_unknown[] = { "unknown", "unknown", "unknown", "unknown" };
+	static const struct boot_straps boot_straps_EP80579[] =
+		{ { "SPI", BUS_SPI },
+		  { "reserved" },
+		  { "reserved" },
+		  { "LPC", BUS_LPC | BUS_FWH },
+		};
+	static const struct boot_straps boot_straps_ich7_nm10[] =
+		{ { "reserved" },
+		  { "SPI", BUS_SPI },
+		  { "PCI" },
+		  { "LPC", BUS_LPC | BUS_FWH },
+		};
+	static const struct boot_straps boot_straps_ich8910[] =
+		{ { "SPI", BUS_SPI },
+		  { "SPI", BUS_SPI },
+		  { "PCI" },
+		  { "LPC", BUS_LPC | BUS_FWH },
+		};
+	static const struct boot_straps boot_straps_pch56[] =
+		{ { "LPC", BUS_LPC | BUS_FWH },
+		  { "reserved" },
+		  { "PCI" },
+		  { "SPI", BUS_SPI },
+		};
+	static const struct boot_straps boot_straps_lpt[] =
+		{ { "LPC", BUS_LPC | BUS_FWH },
+		  { "reserved" },
+		  { "reserved" },
+		  { "SPI", BUS_SPI },
+		};
+	static const struct boot_straps boot_straps_lpt_lp[] =
+		{ { "SPI", BUS_SPI },
+		  { "LPC", BUS_LPC | BUS_FWH },
+		  { "unknown" },
+		  { "unknown" },
+		};
+	static const struct boot_straps boot_straps_unknown[] =
+		{ { "unknown" },
+		  { "unknown" },
+		  { "unknown" },
+		  { "unknown" },
+		};
 
+	const struct boot_straps *boot_straps;
 	switch (generation) {
 	case CHIPSET_ICH7:
 		/* EP80579 may need further changes, but this is the least
 		 * intrusive way to get correct BOOT Strap printing without
 		 * changing the rest of its code path). */
 		if (strcmp(name, "EP80579") == 0)
-			straps_names = straps_names_EP80579;
+			boot_straps = boot_straps_EP80579;
 		else
-			straps_names = straps_names_ich7_nm10;
+			boot_straps = boot_straps_ich7_nm10;
 		break;
 	case CHIPSET_ICH8:
 	case CHIPSET_ICH9:
 	case CHIPSET_ICH10:
-		straps_names = straps_names_ich8910;
+		boot_straps = boot_straps_ich8910;
 		break;
 	case CHIPSET_5_SERIES_IBEX_PEAK:
 	case CHIPSET_6_SERIES_COUGAR_POINT:
 	case CHIPSET_7_SERIES_PANTHER_POINT:
-		straps_names = straps_names_pch56;
+		boot_straps = boot_straps_pch56;
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT:
-		straps_names = straps_names_lpt;
+		boot_straps = boot_straps_lpt;
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
 	case CHIPSET_9_SERIES_WILDCAT_POINT:
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_APL:
-		straps_names = straps_names_lpt_lp;
+		boot_straps = boot_straps_lpt_lp;
 		break;
 	default:
 		msg_gerr("%s: unknown ICH generation. Please report!\n",
 			 __func__);
-		straps_names = straps_names_unknown;
+		boot_straps = boot_straps_unknown;
 		break;
 	}
 
@@ -891,7 +930,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		bbs = (gcs >> 10) & 0x3;
 		break;
 	}
-	msg_pdbg("Boot BIOS Straps: 0x%x (%s)\n", bbs, straps_names[bbs]);
+	msg_pdbg("Boot BIOS Straps: 0x%x (%s)\n", bbs, boot_straps[bbs].name);
 
 	switch (generation) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
@@ -1011,8 +1050,15 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 	uint32_t tmp, gcs;
 	void *rcrb, *spibar;
 
-	static const char *const straps_names[] = { "LPC", "unknown",
-						    "unknown", "SPI" };
+	static const struct {
+		const char *name;
+		enum chipbustype bus;
+	} boot_straps[] =
+		{ { "LPC", BUS_LPC | BUS_FWH },
+		  { "unknown" },
+		  { "unknown" },
+		  { "SPI", BUS_SPI },
+		};
 
 	/* Enable Flash Writes */
 	ret = enable_flash_byt(dev, name);
@@ -1049,7 +1095,7 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 		 (gcs & 0x1) ? "en" : "dis");
 
 	bbs = (gcs >> 10) & 0x3;
-	msg_pdbg("Boot BIOS Straps: 0x%x (%s)\n", bbs, straps_names[bbs]);
+	msg_pdbg("Boot BIOS Straps: 0x%x (%s)\n", bbs, boot_straps[bbs].name);
 
 	buc = mmio_readb(rcrb + 0x3414);
 	msg_pdbg("Top Swap : %s\n",
