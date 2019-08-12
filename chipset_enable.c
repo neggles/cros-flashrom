@@ -349,13 +349,20 @@ static int enable_flash_ich_4e(struct pci_dev *dev, const char *name)
 	return enable_flash_ich(dev, name, 0x4e);
 }
 
-static int enable_flash_ich_dc(struct pci_dev *dev, const char *name)
+static int enable_flash_ich_fwh_decode(struct pci_dev *dev, const char *name)
 {
 	uint32_t fwh_conf;
+	uint8_t fwh_sel1, fwh_sel2, fwh_dec_en_lo, fwh_dec_en_hi;
 	int i, tmp;
 	char *idsel = NULL;
 	int max_decode_fwh_idsel = 0, max_decode_fwh_decode = 0;
 	int contiguous = 1;
+
+	/* Register map from ICH6 onwards. */
+	fwh_sel1 = 0xd0;
+	fwh_sel2 = 0xd4;
+	fwh_dec_en_lo = 0xd8;
+	fwh_dec_en_hi = 0xd9;
 
 	idsel = extract_programmer_param("fwh_idsel");
 	if (idsel && strlen(idsel)) {
@@ -373,14 +380,14 @@ static int enable_flash_ich_dc(struct pci_dev *dev, const char *name)
 				 "unused bits set.\n");
 			goto idsel_garbage_out;
 		}
-		fwh_idsel_old = pci_read_long(dev, 0xd0);
+		fwh_idsel_old = pci_read_long(dev, fwh_sel1);
 		fwh_idsel_old <<= 16;
-		fwh_idsel_old |= pci_read_word(dev, 0xd4);
+		fwh_idsel_old |= pci_read_word(dev, fwh_sel2);
 		msg_pdbg("\nSetting IDSEL from 0x%012" PRIx64 " to "
 			 "0x%012" PRIx64 " for top 16 MB.", fwh_idsel_old,
 			 fwh_idsel);
-		rpci_write_long(dev, 0xd0, (fwh_idsel >> 16) & 0xffffffff);
-		rpci_write_word(dev, 0xd4, fwh_idsel & 0xffff);
+		rpci_write_long(dev, fwh_sel1, (fwh_idsel >> 16) & 0xffffffff);
+		rpci_write_word(dev, fwh_sel2, fwh_idsel & 0xffff);
 		/* FIXME: Decode settings are not changed. */
 	} else if (idsel) {
 		msg_perr("Error: fwh_idsel= specified, but no value given.\n");
@@ -396,7 +403,7 @@ idsel_garbage_out:
 	 * have to be adjusted.
 	 */
 	/* FWH_SEL1 */
-	fwh_conf = pci_read_long(dev, 0xd0);
+	fwh_conf = pci_read_long(dev, fwh_sel1);
 	for (i = 7; i >= 0; i--) {
 		tmp = (fwh_conf >> (i * 4)) & 0xf;
 		msg_pdbg("\n0x%08x/0x%08x FWH IDSEL: 0x%x",
@@ -410,7 +417,7 @@ idsel_garbage_out:
 		}
 	}
 	/* FWH_SEL2 */
-	fwh_conf = pci_read_word(dev, 0xd4);
+	fwh_conf = pci_read_word(dev, fwh_sel2);
 	for (i = 3; i >= 0; i--) {
 		tmp = (fwh_conf >> (i * 4)) & 0xf;
 		msg_pdbg("\n0x%08x/0x%08x FWH IDSEL: 0x%x",
@@ -425,7 +432,9 @@ idsel_garbage_out:
 	}
 	contiguous = 1;
 	/* FWH_DEC_EN1 */
-	fwh_conf = pci_read_word(dev, 0xd8);
+	fwh_conf = pci_read_byte(dev, fwh_dec_en_hi);
+	fwh_conf <<= 8;
+	fwh_conf |= pci_read_byte(dev, fwh_dec_en_lo);
 	for (i = 7; i >= 0; i--) {
 		tmp = (fwh_conf >> (i + 0x8)) & 0x1;
 		msg_pdbg("\n0x%08x/0x%08x FWH decode %sabled",
@@ -453,7 +462,18 @@ idsel_garbage_out:
 	max_rom_decode.fwh = min(max_decode_fwh_idsel, max_decode_fwh_decode);
 	msg_pdbg("\nMaximum FWH chip size: 0x%x bytes", max_rom_decode.fwh);
 
-	/* If we're called by enable_flash_ich_dc_spi, it will override
+	return 0;
+}
+
+static int enable_flash_ich_dc(struct pci_dev *dev, const char *name)
+{
+	int err;
+
+	/* Configure FWH IDSEL decoder maps. */
+	if ((err = enable_flash_ich_fwh_decode(dev, name)) != 0)
+		return err;
+
+	/* If we're called by enable_flash_ich_spi, it will override
 	 * internal_buses_supported anyway.
 	 */
 	internal_buses_supported &= BUS_FWH;
