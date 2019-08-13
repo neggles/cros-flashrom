@@ -338,17 +338,6 @@ static int enable_flash_ich_apl(void *dev, const char *name, int bios_cntl)
 				  apl_write_bios_cntl) ? ERROR_FATAL : 0;
 }
 
-static int enable_flash_ich_4e(struct pci_dev *dev, const char *name)
-{
-	/*
-	 * Note: ICH5 has registers similar to FWH_SEL1, FWH_SEL2 and
-	 * FWH_DEC_EN1, but they are called FB_SEL1, FB_SEL2, FB_DEC_EN1 and
-	 * FB_DEC_EN2.
-	 */
-	internal_buses_supported &= BUS_FWH;
-	return enable_flash_ich(dev, name, 0x4e);
-}
-
 static int enable_flash_ich_fwh_decode(struct pci_dev *dev, const char *name)
 {
 	uint32_t fwh_conf;
@@ -463,21 +452,6 @@ idsel_garbage_out:
 	msg_pdbg("\nMaximum FWH chip size: 0x%x bytes", max_rom_decode.fwh);
 
 	return 0;
-}
-
-static int enable_flash_ich_dc(struct pci_dev *dev, const char *name)
-{
-	int err;
-
-	/* Configure FWH IDSEL decoder maps. */
-	if ((err = enable_flash_ich_fwh_decode(dev, name)) != 0)
-		return err;
-
-	/* If we're called by enable_flash_ich_spi, it will override
-	 * internal_buses_supported anyway.
-	 */
-	internal_buses_supported &= BUS_FWH;
-	return enable_flash_ich(dev, name, 0xdc);
 }
 
 static int enable_flash_byt(struct pci_dev *dev, const char *name)
@@ -604,6 +578,66 @@ static int enable_flash_byt(struct pci_dev *dev, const char *name)
 		return ERROR_FATAL;
 	}
 	return 0;
+}
+
+static int enable_flash_ich0(struct pci_dev *dev, const char *name)
+{
+	internal_buses_supported &= BUS_FWH;
+	/* FIXME: Make this use enable_flash_ich_4e() too and add IDSEL support. Unlike later chipsets,
+	 * ICH and ICH-0 do only support mapping of the top-most 4MB and therefore do only feature
+	 * FWH_DEC_EN (E3h, different default too) and FWH_SEL (E8h). */
+	return enable_flash_ich(dev, name, 0x4e);
+}
+
+static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation_)
+{
+	/*
+	 * Note: ICH5 has registers similar to FWH_SEL1, FWH_SEL2 and
+	 * FWH_DEC_EN1, but they are called FB_SEL1, FB_SEL2, FB_DEC_EN1 and
+	 * FB_DEC_EN2.
+	 */
+	internal_buses_supported = BUS_FWH;
+	return enable_flash_ich(dev, name, 0x4e);
+}
+
+static int enable_flash_ich2(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_4e(dev, name, CHIPSET_ICH2);
+}
+
+static int enable_flash_ich3(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_4e(dev, name, CHIPSET_ICH3);
+}
+
+static int enable_flash_ich4(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_4e(dev, name, CHIPSET_ICH4);
+}
+
+static int enable_flash_ich5(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_4e(dev, name, CHIPSET_ICH5);
+}
+
+static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation_)
+{
+	int err;
+
+	/* Configure FWH IDSEL decoder maps. */
+	if ((err = enable_flash_ich_fwh_decode(dev, name)) != 0)
+		return err;
+
+	/* If we're called by enable_flash_ich_spi, it will override
+	 * internal_buses_supported anyway.
+	 */
+	internal_buses_supported &= BUS_FWH;
+	return enable_flash_ich(dev, name, 0xdc);
+}
+
+static int enable_flash_ich6(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_dc(dev, name, CHIPSET_ICH6);
 }
 
 static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
@@ -801,7 +835,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	default:
 		/* Enable Flash Writes */
-		ret = enable_flash_ich_dc(dev, name);
+		ret = enable_flash_ich_dc(dev, name, ich_generation);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -1784,21 +1818,21 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x1e5d, OK, "Intel", "HM75",		enable_flash_pch6},
 	{0x8086, 0x1e5e, OK, "Intel", "HM70",		enable_flash_pch6},
 	{0x8086, 0x1e5f, OK, "Intel", "NM70",		enable_flash_pch6},
-	{0x8086, 0x2410, OK, "Intel", "ICH",		enable_flash_ich_4e},
-	{0x8086, 0x2420, OK, "Intel", "ICH0",		enable_flash_ich_4e},
-	{0x8086, 0x2440, OK, "Intel", "ICH2",		enable_flash_ich_4e},
-	{0x8086, 0x244c, OK, "Intel", "ICH2-M",		enable_flash_ich_4e},
-	{0x8086, 0x2450, NT, "Intel", "C-ICH",		enable_flash_ich_4e},
-	{0x8086, 0x2480, OK, "Intel", "ICH3-S",		enable_flash_ich_4e},
-	{0x8086, 0x248c, OK, "Intel", "ICH3-M",		enable_flash_ich_4e},
-	{0x8086, 0x24c0, OK, "Intel", "ICH4/ICH4-L",	enable_flash_ich_4e},
-	{0x8086, 0x24cc, OK, "Intel", "ICH4-M",		enable_flash_ich_4e},
-	{0x8086, 0x24d0, OK, "Intel", "ICH5/ICH5R",	enable_flash_ich_4e},
-	{0x8086, 0x25a1, OK, "Intel", "6300ESB",	enable_flash_ich_4e},
-	{0x8086, 0x2640, OK, "Intel", "ICH6/ICH6R",	enable_flash_ich_dc},
-	{0x8086, 0x2641, OK, "Intel", "ICH6-M",		enable_flash_ich_dc},
-	{0x8086, 0x2642, NT, "Intel", "ICH6W/ICH6RW",	enable_flash_ich_dc},
-	{0x8086, 0x2670, OK, "Intel", "631xESB/632xESB/3100", enable_flash_ich_dc},
+	{0x8086, 0x2410, OK, "Intel", "ICH",		enable_flash_ich0},
+	{0x8086, 0x2420, OK, "Intel", "ICH0",		enable_flash_ich0},
+	{0x8086, 0x2440, OK, "Intel", "ICH2",		enable_flash_ich2},
+	{0x8086, 0x244c, OK, "Intel", "ICH2-M",		enable_flash_ich2},
+	{0x8086, 0x2450, NT, "Intel", "C-ICH",		enable_flash_ich2},
+	{0x8086, 0x2480, OK, "Intel", "ICH3-S",		enable_flash_ich3},
+	{0x8086, 0x248c, OK, "Intel", "ICH3-M",		enable_flash_ich3},
+	{0x8086, 0x24c0, OK, "Intel", "ICH4/ICH4-L",	enable_flash_ich4},
+	{0x8086, 0x24cc, OK, "Intel", "ICH4-M",		enable_flash_ich4},
+	{0x8086, 0x24d0, OK, "Intel", "ICH5/ICH5R",	enable_flash_ich5},
+	{0x8086, 0x25a1, OK, "Intel", "6300ESB",	enable_flash_ich5},
+	{0x8086, 0x2640, OK, "Intel", "ICH6/ICH6R",	enable_flash_ich6},
+	{0x8086, 0x2641, OK, "Intel", "ICH6-M",		enable_flash_ich6},
+	{0x8086, 0x2642, NT, "Intel", "ICH6W/ICH6RW",	enable_flash_ich6},
+	{0x8086, 0x2670, OK, "Intel", "631xESB/632xESB/3100", enable_flash_ich6},
 	{0x8086, 0x27b0, OK, "Intel", "ICH7DH",		enable_flash_ich7},
 	{0x8086, 0x27b8, OK, "Intel", "ICH7/ICH7R",	enable_flash_ich7},
 	{0x8086, 0x27b9, OK, "Intel", "ICH7M",		enable_flash_ich7},

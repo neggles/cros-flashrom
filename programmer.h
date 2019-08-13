@@ -597,10 +597,15 @@ int default_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, u
 int default_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 void register_spi_master(const struct spi_master *programmer);
 
-/* ichspi.c */
-enum ich_chipset {
+/* The following enum is needed by ich_descriptor_tool and ich* code as well as in chipset_enable.c. */
+ enum ich_chipset {
 	CHIPSET_ICH_UNKNOWN,
-	CHIPSET_ICH7 = 7,
+	CHIPSET_ICH2 = 2,
+	CHIPSET_ICH3,
+	CHIPSET_ICH4,
+	CHIPSET_ICH5,
+	CHIPSET_ICH6,
+	CHIPSET_ICH7,
 	CHIPSET_ICH8,
 	CHIPSET_ICH9,
 	CHIPSET_ICH10,
@@ -615,6 +620,7 @@ enum ich_chipset {
 	CHIPSET_APL,
 };
 
+/* ichspi.c */
 #if CONFIG_INTERNAL == 1
 
 /*
