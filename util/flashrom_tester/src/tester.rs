@@ -33,7 +33,6 @@
 // Software Foundation.
 //
 
-#[macro_use]
 use super::types;
 use super::cmd;
 
@@ -61,25 +60,25 @@ pub struct TestCase<'a> {
     pub name: &'a str,
     pub test_fn: TestFunction,
     pub params: &'a TestParams<'a>,
+    /// The conclusion returned by this case if `test_fn` returns Ok.
     pub conclusion: TestConclusion,
 }
 
 pub struct ReportMetaData {
-    pub chip_name: std::string::String,
-    pub os_release: std::string::String,
-    pub system_info: std::string::String,
-    pub bios_info: std::string::String,
+    pub chip_name: String,
+    pub os_release: String,
+    pub system_info: String,
+    pub bios_info: String,
 }
 
 fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, Option<std::io::Error>) {
-    if res.is_ok() && con == TestConclusion::Fail {
-        return (TestConclusion::UnexpectedPass, None);
-    }
-    if res.is_err() && con == TestConclusion::Pass {
-        return (TestConclusion::UnexpectedFail, res.err());
-    }
+    use TestConclusion::*;
 
-    (TestConclusion::Pass, None)
+    match (res, con) {
+        (Ok(_), Fail) => (UnexpectedPass, None),
+        (Err(e), Pass) => (UnexpectedFail, Some(e)),
+        _ => (Pass, None)
+    }
 }
 
 fn run_test(t: &TestCase) -> (TestConclusion, Option<std::io::Error>) {
@@ -95,17 +94,19 @@ fn run_test(t: &TestCase) -> (TestConclusion, Option<std::io::Error>) {
 
     let res = (t.test_fn)(params);
 
-    if params.post_fn.is_some() {
-        params.post_fn.unwrap()(params);
+    if let Some(f) = params.post_fn {
+        f(params);
     }
 
     decode_test_result(res, t.conclusion)
 }
 
-pub fn run_all_tests<'a>(ts: &Vec<&TestCase<'a>>) -> Vec<(&'a str, (TestConclusion, Option<std::io::Error>))> {
+pub fn run_all_tests<'a>(
+    ts: &[&TestCase<'a>],
+) -> Vec<(&'a str, (TestConclusion, Option<std::io::Error>))> {
     let mut results = Vec::new();
-    for t in ts.iter() {
-        results.push( (t.name, run_test(t)) );
+    for t in ts {
+        results.push((t.name, run_test(t)));
     }
     results
 }
@@ -117,19 +118,20 @@ macro_rules! style {
 macro_rules! style_ {
     ($s: expr, $c: expr) => { format!("{}{}{}", $c, $s, types::RESET) }
 }
-pub fn collate_all_test_runs<'a>(truns: Vec<(&'a str, (TestConclusion, Option<std::io::Error>))>, meta_data: ReportMetaData) -> Result<(), std::io::Error> {
-    println!("");
+pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<std::io::Error>))], meta_data: ReportMetaData) -> Result<(), std::io::Error> {
+    println!();
     println!("  =============================");
     println!("  =====  AVL qual RESULTS  ====");
     println!("  =============================");
-    println!("");
+    println!();
     println!("  %---------------------------%");
     println!("   os release: {}", meta_data.os_release);
     println!("   chip name: {}", meta_data.chip_name);
     println!("   system info: \n{}", meta_data.system_info);
     println!("   bios info: \n{}", meta_data.bios_info);
     println!("  %---------------------------%");
-    println!("");
+    println!();
+
     for trun in truns.iter() {
         let (name, (result, error)) = trun;
         if *result != TestConclusion::Pass {
@@ -142,6 +144,6 @@ pub fn collate_all_test_runs<'a>(truns: Vec<(&'a str, (TestConclusion, Option<st
             println!(" {} {}", style_!(format!(" <+> {} test:", name), types::BOLD), style!(result, types::GREEN));
         }
     }
-    println!("");
+    println!();
     Ok(())
 }

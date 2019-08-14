@@ -33,37 +33,17 @@
 // Software Foundation.
 //
 
-//#![feature(drain_filter)]
-
 use std::io::prelude::*;
 use std::fs::File;
 use std::process::Command;
 use std::io::{Error, ErrorKind};
 
-//TODO(quasisec): Use drain_filter feature when we can.
-//pub fn vgrep<'a>(s: &'a str, m: &str) -> &'a str {
-//    let v: Vec<&str> = s.split('\n').collect();
-//    v.drain_filter(|&x| x == m).collect::<Vec<_>>();
-//    return drained.iter().fold("".to_string(), |x, xs| x + xs);
-//}
 pub fn vgrep(s: &str, m: &str) -> String {
-    let v: Vec<&str> = s.split('\n').collect();
-    let (drained, _v): (Vec<_>, Vec<_>) = v.into_iter().partition(|&x| x.find(m).is_none());
-
-    return drained.iter().fold("".to_string(), |x, xs| x + xs);
-}
-
-pub fn qgrep(s: &str, m: &str) -> bool {
-    // return true for any substring match
-    return s.find(m).is_some();
-}
-
-pub fn last_line(s: &str) -> &str {
-    s.split('\n').collect::<Vec<&str>>().last().unwrap_or(&"")
+    s.lines().filter(|&x| !x.contains(m)).collect()
 }
 
 pub fn hex_string(v: i64) -> String {
-    format!("0x{:06X}", v).to_string()
+    format!("{:#08X}", v).to_string()
 }
 
 #[derive(Debug)]
@@ -135,25 +115,6 @@ mod tests {
         let xs = "LA";
 
         assert_eq!("idkZZZQQ", vgrep(x, xs));
-    }
-
-    #[test]
-    fn _qgrep() {
-        let s = "XXXqcYYY";
-        let m = "qc";
-        let n = "zz";
-
-        assert_eq!(true, qgrep(s, s));
-        assert_eq!(true, qgrep(s, m));
-        assert_eq!(false, qgrep(s, n));
-    }
-
-    #[test]
-    fn _last_line() {
-        let s = "XXX\nYYY\nZZZ";
-
-        assert_eq!("ZZZ", last_line(s));
-        assert_ne!("XXX", last_line(s));
     }
 }
 

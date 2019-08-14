@@ -75,7 +75,7 @@ pub trait Flashrom {
     fn new(path: String, fc: types::FlashChip) -> Self;
 
     fn dispatch(&self, fropt: FlashromOpt)
-        -> Result<(std::vec::Vec<u8>, std::vec::Vec<u8>), std::io::Error>;
+        -> Result<(Vec<u8>, Vec<u8>), std::io::Error>;
 }
 
 pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, std::io::Error> {
@@ -180,7 +180,7 @@ pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Erro
     debug!("wp_status():\n{}", output);
 
     let s = std::format!("write protect is {}abled", status);
-    Ok(utils::qgrep(&output, &s))
+    Ok(output.contains(&s))
 }
 
 pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Error> {

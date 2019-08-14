@@ -66,8 +66,8 @@ mod tests {
         let path1 = "/tmp/idk_test01";
         let sz = 1024;
 
-        gen_rand_testdata(path0, sz);
-        gen_rand_testdata(path1, sz);
+        gen_rand_testdata(path0, sz).unwrap();
+        gen_rand_testdata(path1, sz).unwrap();
 
         let mut buf0 = Vec::new();
         let mut buf1 = Vec::new();

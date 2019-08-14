@@ -47,8 +47,7 @@ pub struct FlashromCmd {
 
 impl flashrom::Flashrom for FlashromCmd {
     fn get_size(&self) -> Result<i64, std::io::Error> {
-        let params = vec!["--get-size".to_string()];
-        let (stdout, _) = flashrom_dispatch(self.path.as_str(), params, self.fc)?;
+        let (stdout, _) = flashrom_dispatch(self.path.as_str(), &["--get-size"], self.fc)?;
         let sz = String::from_utf8_lossy(&stdout);
 
         match utils::vgrep(&sz, "coreboot").trim_end().parse::<i64>() {
@@ -63,13 +62,13 @@ impl flashrom::Flashrom for FlashromCmd {
     }
 
     fn dispatch(&self, fropt: flashrom::FlashromOpt)
-        -> Result<(std::vec::Vec<u8>, std::vec::Vec<u8>), std::io::Error> {
+        -> Result<(Vec<u8>, Vec<u8>), std::io::Error> {
         let params = flashrom_decode_opts(fropt);
-        flashrom_dispatch(self.path.as_str(), params, self.fc)
+        flashrom_dispatch(self.path.as_str(), &params, self.fc)
     }
 }
 
-fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<std::string::String> {
+fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<String> {
     let mut params = Vec::<String>::new();
 
     // ------------ WARNING !!! ------------
@@ -130,12 +129,12 @@ fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<std::string::String>
     params
 }
 
-fn flashrom_dispatch(path: &str, params: Vec<std::string::String>, fc: types::FlashChip)
-    -> Result<(std::vec::Vec<u8>, std::vec::Vec<u8>), std::io::Error> {
+fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashChip)
+    -> Result<(Vec<u8>, Vec<u8>), std::io::Error> {
     // from man page:
     //  ' -p, --programmer <name>[:parameter[,parameter[,parameter]]] '
-    let mut args: Vec<String> = vec!["-p".to_string(), types::FlashChip::to(fc).to_string()];
-    args.extend(params);
+    let mut args: Vec<&str> = vec!["-p", types::FlashChip::to(fc)];
+    args.extend(params.iter().map(S::as_ref));
 
     info!("flashrom_dispatch() running: {} {:?}", path, args);
 
@@ -159,7 +158,7 @@ fn flashrom_dispatch(path: &str, params: Vec<std::string::String>, fc: types::Fl
 }
 
 pub fn dut_ctrl_toggle_wp(en: bool)
-    -> Result<(std::vec::Vec<u8>, std::vec::Vec<u8>), std::io::Error> {
+    -> Result<(Vec<u8>, Vec<u8>), std::io::Error> {
 
     let args = if en {
         ["fw_wp_en:off", "fw_wp:on"]

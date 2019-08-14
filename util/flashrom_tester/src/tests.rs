@@ -35,20 +35,20 @@
 
 extern crate sys_info;
 
-use super::mosys;
-use super::flashrom;
-use super::flashrom::{Flashrom};
 use super::cmd;
-use super::types;
-use super::utils;
+use super::flashrom;
+use super::flashrom::Flashrom;
+use super::mosys;
 use super::rand;
 use super::tester;
+use super::types;
+use super::utils;
 
 use std::io::{Error, ErrorKind};
 
 pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     let p = path.to_string();
-    let cmd = cmd::FlashromCmd{path: p, fc};
+    let cmd = cmd::FlashromCmd { path: p, fc };
 
     let chip_name = flashrom::name(&cmd)?;
     info!("Found chip name: {}.", chip_name);
@@ -74,12 +74,15 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     //
     let wp_test_fn = |param: &tester::TestParams| {
         // TODO(quasisec): Should this be in generic() ?
-        let wpen = if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
-            let wp = utils::gather_system_info()?;
-            let state = if wp { "EN" } else { "DIS" };
-            info!("Hardware write protect is {}ABLED", state);
-            wp
-        } else { true };
+        let wpen =
+            if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
+                let wp = utils::gather_system_info()?;
+                let state = if wp { "EN" } else { "DIS" };
+                info!("Hardware write protect is {}ABLED", state);
+                wp
+            } else {
+                true
+            };
 
         // NOTE: This is not strictly a 'test' as it is allowed to fail on some platforms.
         //       However, we will warn when it does fail.
@@ -93,14 +96,19 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
             flashrom::wp_toggle(&param.cmd, false)?;
         }
         if wpen && flashrom::wp_status(&param.cmd, true)? {
-            warn!("Hardware write protect seems to be asserted, attempt to get user to de-assert it.");
+            warn!(
+                "Hardware write protect seems to be asserted, attempt to get user to de-assert it."
+            );
             utils::toggle_hw_wp(true);
             warn!("ROM is write protected.  Attempting to disable..");
             flashrom::wp_toggle(&param.cmd, false)?;
         }
         if flashrom::wp_status(&param.cmd, true)? {
             // TODO(quasisec): Should fail the whole test suite here?
-            return Err(Error::new(ErrorKind::Other, "Cannot disable write protect.  Cannot continue."));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Cannot disable write protect.  Cannot continue.",
+            ));
         }
 
         info!("Successfully disable Write-protect");
@@ -139,7 +147,10 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
             warn!("flash image in an inconsistent state! Attempting to restore..");
             flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
             flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-            return Err(Error::new(ErrorKind::Other, "Hardware write protect asserted however can still erase!"));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Hardware write protect asserted however can still erase!",
+            ));
         }
         println!("Remove battery to de-assert hardware write-protect.");
         utils::toggle_hw_wp(true);
@@ -162,9 +173,8 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
 
     //  ================================================
     //
-    let verify_fail_test_fn = |param: &tester::TestParams| {
-        flashrom::verify(&param.cmd, "/tmp/random_content.bin")
-    };
+    let verify_fail_test_fn =
+        |param: &tester::TestParams| flashrom::verify(&param.cmd, "/tmp/random_content.bin");
     let verify_fail_test = tester::TestCase {
         name: "Fail to verify",
         params: &default_test_params,
@@ -182,24 +192,33 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         flashrom::wp_toggle(&param.cmd, true)?;
 
         // TODO(quasisec): Should this be in generic() ?
-        let wpen = if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
-            let wp = utils::gather_system_info()?;
-            let state = if wp { "EN" } else { "DIS" };
-            info!("Hardware write protect is {}ABLED", state);
-            wp
-        } else { true };
+        let wpen =
+            if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
+                let wp = utils::gather_system_info()?;
+                let state = if wp { "EN" } else { "DIS" };
+                info!("Hardware write protect is {}ABLED", state);
+                wp
+            } else {
+                true
+            };
 
         if !wpen && flashrom::wp_status(&param.cmd, true)? {
             info!("WP should unlock since hardware WP is de-asserted.  Attempting to disable..");
             flashrom::wp_toggle(&param.cmd, false)?;
         } else {
-            return Err(Error::new(ErrorKind::Other, "Hardware write protect still asserted!"));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Hardware write protect still asserted!",
+            ));
         }
 
         // Validate we successfully disabled soft write-protect when hardware write-protect was
         // de-asserted.
         if flashrom::wp_status(&param.cmd, true)? {
-            return Err(Error::new(ErrorKind::Other, "Cannot disable write protect.  Cannot continue."));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Cannot disable write protect.  Cannot continue.",
+            ));
         }
 
         // Toggle soft write-protect back on after we are done.
@@ -211,26 +230,38 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         utils::toggle_hw_wp(false);
 
         // TODO(quasisec): Should this be in generic() ?
-        let wpen = if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
-            let wp = utils::gather_system_info()?;
-            let state = if wp { "EN" } else { "DIS" };
-            info!("Hardware write protect is {}ABLED", state);
-            wp
-        } else { true };
+        let wpen =
+            if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
+                let wp = utils::gather_system_info()?;
+                let state = if wp { "EN" } else { "DIS" };
+                info!("Hardware write protect is {}ABLED", state);
+                wp
+            } else {
+                true
+            };
 
         if wpen && flashrom::wp_status(&param.cmd, true)? {
             info!("WP should stay locked since hardware WP is asserted.  Attempting to disable..");
             if flashrom::wp_toggle(&param.cmd, false).is_ok() {
-                return Err(Error::new(ErrorKind::Other, "Soft write-protect didn't stay locked however hardware WP was asserted."));
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    "Soft write-protect didn't stay locked however hardware WP was asserted.",
+                ));
             }
         } else {
-            return Err(Error::new(ErrorKind::Other, "Hardware write protect was not asserted!"));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Hardware write protect was not asserted!",
+            ));
         }
 
         // Validate we successfully disabled soft write-protect when hardware write-protect was
         // de-asserted.
         if flashrom::wp_status(&param.cmd, false)? {
-            return Err(Error::new(ErrorKind::Other, "Soft write protect wasn't enabled."));
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Soft write protect wasn't enabled.",
+            ));
         }
         Ok(())
     };
@@ -307,9 +338,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
 
     //  ================================================
     //
-    let consistent_exit_test_fn = |param: &tester::TestParams| {
-        consistent_flash_checks(&param.cmd)
-    };
+    let consistent_exit_test_fn = |param: &tester::TestParams| consistent_flash_checks(&param.cmd);
     let consistent_exit_test = tester::TestCase {
         name: "Flash image consistency check at end of tests",
         params: &default_test_params,
@@ -321,17 +350,18 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     //  ================================================
 
     // Register tests to run:
-    let mut tests = Vec::new();
-    tests.push( &wp_test );
-    tests.push( &read_test );
-    tests.push( &erase_write_test );
-    tests.push( &verify_fail_test );
-    tests.push( &lock_test );
-    tests.push( &lock_top_quad_test );
-    tests.push( &lock_bottom_quad_test );
-    tests.push( &lock_bottom_half_test );
-    tests.push( &lock_top_half_test );
-    tests.push( &consistent_exit_test );
+    let tests = [
+        &wp_test,
+        &read_test,
+        &erase_write_test,
+        &verify_fail_test,
+        &lock_test,
+        &lock_top_quad_test,
+        &lock_bottom_quad_test,
+        &lock_bottom_half_test,
+        &lock_top_half_test,
+        &consistent_exit_test,
+    ];
     // ------------------------.
     // Run all the tests and collate the findings:
     let results = tester::run_all_tests(&tests);
@@ -339,13 +369,13 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
     let os_rel = sys_info::os_release().unwrap_or("<Unknown OS>".to_string());
     let system_info = mosys::system_info().unwrap_or("<Unknown System>".to_string());
     let bios_info = mosys::bios_info().unwrap_or("<Unknown BIOS>".to_string());
-    let meta_data = tester::ReportMetaData{
+    let meta_data = tester::ReportMetaData {
         chip_name: chip_name,
         os_release: os_rel,
         system_info: system_info,
         bios_info: bios_info,
     };
-    tester::collate_all_test_runs(results, meta_data)
+    tester::collate_all_test_runs(&results, meta_data)
 }
 
 fn consistent_flash_checks(cmd: &cmd::FlashromCmd) -> Result<(), std::io::Error> {
@@ -357,7 +387,10 @@ fn consistent_flash_checks(cmd: &cmd::FlashromCmd) -> Result<(), std::io::Error>
     flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat")
 }
 
-fn test_section(cmd: &cmd::FlashromCmd, section: (&'static str, i64, i64)) -> Result<(), std::io::Error> {
+fn test_section(
+    cmd: &cmd::FlashromCmd,
+    section: (&'static str, i64, i64),
+) -> Result<(), std::io::Error> {
     let (name, start, len) = section;
 
     debug!("test_section() :: name = '{}' ..", name);
@@ -367,8 +400,8 @@ fn test_section(cmd: &cmd::FlashromCmd, section: (&'static str, i64, i64)) -> Re
 
     let rws = flashrom::ROMWriteSpecifics {
         layout_file: Some("/tmp/layout.file"),
-        write_file:  Some("/tmp/random_content.bin"),
-        name_file:   Some(name),
+        write_file: Some("/tmp/random_content.bin"),
+        name_file: Some(name),
     };
 
     utils::toggle_hw_wp(true); // disconnect battery.
@@ -380,11 +413,17 @@ fn test_section(cmd: &cmd::FlashromCmd, section: (&'static str, i64, i64)) -> Re
     flashrom::wp_status(&cmd, false)?;
 
     if flashrom::write_file_with_layout(&cmd, None, &rws).is_ok() {
-        return Err(Error::new(ErrorKind::Other, "Section should be locked, should not have been overwritable with random data"));
+        return Err(Error::new(
+            ErrorKind::Other,
+            "Section should be locked, should not have been overwritable with random data",
+        ));
     }
 
     if flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat").is_err() {
-        return Err(Error::new(ErrorKind::Other, "Section didn't locked, has been overwritable with random data!"));
+        return Err(Error::new(
+            ErrorKind::Other,
+            "Section didn't locked, has been overwritable with random data!",
+        ));
     }
     Ok(())
 }

@@ -33,32 +33,25 @@
 // Software Foundation.
 //
 
-use std::process::Command;
-use std::io::{Error, ErrorKind};
+use std::ffi::OsStr;
+use std::fmt::Debug;
+use std::io::{Error, ErrorKind, Result as IoResult};
+use std::process::{Command, Stdio};
 
-pub fn system_info() -> Result<std::string::String, std::io::Error> {
-    // mosys -l smbios info system
-    let args: Vec<String> = vto_string(vec!["-l", "smbios", "info", "system"]);
-    let (stdout, _) = mosys_dispatch(args)?;
-    Ok(String::from_utf8_lossy(stdout.as_slice()).to_string())
+pub fn system_info() -> IoResult<String> {
+    mosys_dispatch(&["-l", "smbios", "info", "system"])
 }
 
-pub fn bios_info() -> Result<std::string::String, std::io::Error> {
-    // mosys -l smbios info bios
-    let args: Vec<String> = vto_string(vec!["-l", "smbios", "info", "bios"]);
-    let (stdout, _) = mosys_dispatch(args)?;
-    Ok(String::from_utf8_lossy(stdout.as_slice()).to_string())
+pub fn bios_info() -> IoResult<String> {
+    mosys_dispatch(&["-l", "smbios", "info", "bios"])
 }
 
-fn vto_string(v: Vec<&str>) -> Vec<String> {
-    v.iter().map(|e| e.to_string()).collect()
-}
-
-fn mosys_dispatch(args: Vec<std::string::String>) -> Result<(std::vec::Vec<u8>, std::vec::Vec<u8>), std::io::Error> {
+fn mosys_dispatch<S: AsRef<OsStr> + Debug>(args: &[S]) -> IoResult<String> {
     info!("mosys_dispatch() running: /usr/sbin/mosys {:?}", args);
 
     let output = Command::new("/usr/sbin/mosys")
-        .args(&args)
+        .args(args)
+        .stdin(Stdio::null())
         .output()?;
     if !output.status.success() {
         // There is two cases on failure;
@@ -66,12 +59,22 @@ fn mosys_dispatch(args: Vec<std::string::String>) -> Result<(std::vec::Vec<u8>, 
         //  ii.) A SIG killed us.
         match output.status.code() {
             Some(code) => {
-                let e = format!("{}\nExited with error code: {}", String::from_utf8_lossy(&output.stderr), code);
+                let e = format!(
+                    "{}\nExited with error code: {}",
+                    String::from_utf8_lossy(&output.stderr),
+                    code
+                );
                 return Err(Error::new(ErrorKind::Other, e));
-            },
-            None => return Err(Error::new(ErrorKind::Other, "Process terminated by a signal".to_string()))
+            }
+            None => {
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    "Process terminated by a signal".to_string(),
+                ))
+            }
         }
     }
 
-    Ok((output.stdout, output.stderr))
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    Ok(stdout)
 }
