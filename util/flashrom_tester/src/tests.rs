@@ -338,6 +338,31 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
 
     //  ================================================
     //
+    let coreboot_elog_sanity_test = tester::TestCase {
+        name: "Coreboot ELOG sanity",
+        params: &default_test_params,
+        test_fn: |params| {
+            // Check that the elog contains *something*, as an indication that Coreboot
+            // is actually able to write to the Flash. Because this invokes mosys on the
+            // host, it doesn't make sense to run for other chips.
+            if params.fc != types::FlashChip::HOST {
+                info!("Skipping ELOG sanity check for non-host chip");
+                return Ok(());
+            }
+            // Output is one event per line, drop empty lines in the interest of being defensive.
+            let event_count = mosys::eventlog_list()?.lines().filter(|l| !l.is_empty()).count();
+
+            if event_count == 0 {
+                Err(Error::new(ErrorKind::Other, "ELOG contained no events"))
+            } else {
+                Ok(())
+            }
+        },
+        conclusion: tester::TestConclusion::Pass,
+    };
+
+    //  ================================================
+    //
     let consistent_exit_test_fn = |param: &tester::TestParams| consistent_flash_checks(&param.cmd);
     let consistent_exit_test = tester::TestCase {
         name: "Flash image consistency check at end of tests",
@@ -360,6 +385,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), std::io::Error> {
         &lock_bottom_quad_test,
         &lock_bottom_half_test,
         &lock_top_half_test,
+        &coreboot_elog_sanity_test,
         &consistent_exit_test,
     ];
     // ------------------------.

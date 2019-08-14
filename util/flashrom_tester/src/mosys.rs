@@ -46,6 +46,10 @@ pub fn bios_info() -> IoResult<String> {
     mosys_dispatch(&["-l", "smbios", "info", "bios"])
 }
 
+pub fn eventlog_list() -> Result<String, std::io::Error> {
+    mosys_dispatch(&["eventlog", "list"])
+}
+
 fn mosys_dispatch<S: AsRef<OsStr> + Debug>(args: &[S]) -> IoResult<String> {
     info!("mosys_dispatch() running: /usr/sbin/mosys {:?}", args);
 
