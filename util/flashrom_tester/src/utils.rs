@@ -53,6 +53,7 @@ pub enum LayoutNames {
     BottomQuad,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct LayoutSizes {
     half_sz: i64,
     quad_sz: i64,
@@ -66,7 +67,7 @@ pub fn get_layout_sizes(rom_sz: i64) -> Result<LayoutSizes, String> {
     if rom_sz <= 0 {
         return Err("invalid rom size provided".into());
     }
-    if rom_sz % 2 != 0 {
+    if rom_sz & (rom_sz - 1) != 0 {
         return Err("invalid rom size, not a power of 2".into());
     }
     Ok(LayoutSizes {
@@ -214,7 +215,7 @@ mod tests {
 
     #[test]
     fn construct_layout_file() {
-        use super::construct_layout_file;
+        use super::{construct_layout_file, get_layout_sizes};
 
         let mut buf = Vec::new();
         construct_layout_file(
@@ -229,6 +230,33 @@ mod tests {
                000000:7fff BOTTOM_HALF\n\
                8000:ffff TOP_HALF\n\
                c000:ffff TOP_QUAD\n"[..]
+        );
+    }
+
+    #[test]
+    fn get_layout_sizes() {
+        use super::get_layout_sizes;
+
+        assert_eq!(
+            get_layout_sizes(-128).err(),
+            Some("invalid rom size provided".into())
+        );
+
+        assert_eq!(
+            get_layout_sizes(3 << 20).err(),
+            Some("invalid rom size, not a power of 2".into())
+        );
+
+        assert_eq!(
+            get_layout_sizes(64 << 10).unwrap(),
+            LayoutSizes {
+                half_sz: 0x8000,
+                quad_sz: 0x4000,
+                rom_top: 0xFFFF,
+                bottom_half_top: 0x7FFF,
+                bottom_quad_top: 0x3FFF,
+                top_quad_bottom: 0xC000,
+            }
         );
     }
 }
