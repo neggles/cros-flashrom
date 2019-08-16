@@ -35,8 +35,6 @@
 
 #[macro_use]
 extern crate log;
-extern crate chrono;
-extern crate env_logger;
 
 #[macro_use]
 mod types;
@@ -44,7 +42,7 @@ mod types;
 mod cmd;
 mod flashrom;
 mod mosys;
-mod rand;
+mod rand_util;
 mod tester;
 mod tests;
 mod utils;

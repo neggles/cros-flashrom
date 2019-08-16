@@ -36,7 +36,7 @@
 use super::cmd;
 use super::flashrom::{self, Flashrom, FlashromError};
 use super::mosys;
-use super::rand;
+use super::rand_util;
 use super::tester::{self, TestResult};
 use super::types;
 use super::utils;
@@ -57,7 +57,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
     utils::construct_layout_file("/tmp/layout.file", &layout_sizes)?;
 
     info!("Create a Binary with random contents.");
-    rand::gen_rand_testdata("/tmp/random_content.bin", rom_sz as usize)?;
+    rand_util::gen_rand_testdata("/tmp/random_content.bin", rom_sz as usize)?;
 
     // run specialization tests:
     //  ================================================

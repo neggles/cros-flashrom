@@ -37,7 +37,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufWriter;
 
-extern crate rand;
 use rand::prelude::*;
 
 pub fn gen_rand_testdata(path: &str, size: usize) -> std::io::Result<()> {
