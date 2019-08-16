@@ -50,8 +50,7 @@ pub fn gen_rand_testdata(path: &str, size: usize) -> std::io::Result<()> {
     a.resize(size, 0b0);
     thread_rng().fill(a.as_mut_slice());
 
-    buf.write(a.as_slice())?;
-    buf.flush()?;
+    buf.write_all(a.as_slice())?;
 
     Ok(())
 }
