@@ -60,12 +60,12 @@ pub struct LayoutSizes {
     top_quad_bottom: i64,
 }
 
-pub fn get_layout_sizes(rom_sz: i64) -> Result<LayoutSizes, std::io::Error> {
+pub fn get_layout_sizes(rom_sz: i64) -> Result<LayoutSizes, String> {
     if rom_sz <= 0 {
-        return Err(Error::new(ErrorKind::Other, "invalid rom size provided"));
+        return Err("invalid rom size provided".into());
     }
     if rom_sz % 2 != 0 {
-        return Err(Error::new(ErrorKind::Other, "invalid rom size, not a power of 2"));
+        return Err("invalid rom size, not a power of 2".into());
     }
     Ok(LayoutSizes{
         half_sz: rom_sz / 2,

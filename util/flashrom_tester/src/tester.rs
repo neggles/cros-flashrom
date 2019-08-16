@@ -37,7 +37,8 @@ use super::types;
 use super::cmd;
 
 // type-signature comes from the return type of flashrom.rs workers.
-type TestResult = Result<(), std::io::Error>;
+type TestError = Box<dyn std::error::Error>;
+pub type TestResult = Result<(), TestError>;
 
 type TestFunction = fn(&TestParams) -> TestResult;
 type PreFunction = fn(&TestParams) -> ();
@@ -71,7 +72,7 @@ pub struct ReportMetaData {
     pub bios_info: String,
 }
 
-fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, Option<std::io::Error>) {
+fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, Option<TestError>) {
     use TestConclusion::*;
 
     match (res, con) {
@@ -81,7 +82,7 @@ fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, 
     }
 }
 
-fn run_test(t: &TestCase) -> (TestConclusion, Option<std::io::Error>) {
+fn run_test(t: &TestCase) -> (TestConclusion, Option<TestError>) {
     let params = &t.params;
 
     if params.log_text.is_some() {
@@ -103,7 +104,7 @@ fn run_test(t: &TestCase) -> (TestConclusion, Option<std::io::Error>) {
 
 pub fn run_all_tests<'a>(
     ts: &[&TestCase<'a>],
-) -> Vec<(&'a str, (TestConclusion, Option<std::io::Error>))> {
+) -> Vec<(&'a str, (TestConclusion, Option<TestError>))> {
     let mut results = Vec::new();
     for t in ts {
         results.push((t.name, run_test(t)));
@@ -118,7 +119,7 @@ macro_rules! style {
 macro_rules! style_ {
     ($s: expr, $c: expr) => { format!("{}{}{}", $c, $s, types::RESET) }
 }
-pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<std::io::Error>))], meta_data: ReportMetaData) -> Result<(), std::io::Error> {
+pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<TestError>))], meta_data: ReportMetaData) {
     println!();
     println!("  =============================");
     println!("  =====  AVL qual RESULTS  ====");
@@ -145,5 +146,4 @@ pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<std::io::Er
         }
     }
     println!();
-    Ok(())
 }

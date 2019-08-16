@@ -34,7 +34,6 @@
 //
 
 #[macro_use]
-
 extern crate log;
 extern crate chrono;
 extern crate env_logger;
@@ -50,23 +49,22 @@ mod mosys;
 
 use std::env;
 use std::io::Write;
-use std::io::{Error, ErrorKind};
 use chrono::Local;
 use env_logger::Builder;
 use log::LevelFilter;
 
-fn dispatch_args(args: &[String]) -> Result<(), std::io::Error> {
+fn dispatch_args(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     match args {
         [_, ref path, ref flashchip] => {
             if path.len() > 0 {
                     debug!("got flashrom path = '{}'.", path);
             } else {
-                    return Err(Error::new(ErrorKind::Other, "Missing flashrom path"))
+                    return Err("Missing flashrom path".into())
             }
 
             let fc: Result<types::FlashChip, &str> = types::FlashChip::from(&flashchip[..]);
             if fc.is_err() {
-                return Err(Error::new(ErrorKind::Other, "Missing flashchip type, should be either 'ec', 'host', or 'servo-v2'."));
+                return Err("Missing flashchip type, should be either 'ec', 'host', or 'servo-v2'.".into());
             }
             tests::generic(path, fc.unwrap())
         },
@@ -86,19 +84,19 @@ fn help(s: Option<&str>) {
 
 }
 
-fn parse_args(args: Vec<String>) -> Result<(), std::io::Error> {
+fn parse_args(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     match args.len() {
-        1 => return Err(Error::new(ErrorKind::Other, "No arguments passed!")),
+        1 => return Err("No arguments passed!".into()),
         3 => {
             match dispatch_args(args.as_slice()) {
                 Ok(_) => Ok(()),
                 Err(e) => {
                     error!("flashrom_tester failed to run due to an internal error with: {}.", e.to_string());
-                    Err(Error::new(ErrorKind::Other, "Please verify that both 'dut-control' and 'crossytem' are in your PATH!"))
+                    Err("Please verify that both 'dut-control' and 'crossytem' are in your PATH!".into())
                 },
             }
-        },
-        _ => Err(Error::new(ErrorKind::Other, "Incorrect number of arguments passed, expected 3.")),
+        }
+        _ => Err("Incorrect number of arguments passed, expected 3.".into()),
     }
 }
 
@@ -130,7 +128,7 @@ fn main() {
 
     compiletime_info();
 
-    let args: Vec<String> = env::args().map(|x| x.to_string()).collect();
+    let args: Vec<String> = env::args().collect();
     match parse_args(args) {
         Ok(_) => return,
         Err(e) => help(Some(&e.to_string())),

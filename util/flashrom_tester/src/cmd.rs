@@ -33,12 +33,11 @@
 // Software Foundation.
 //
 
-use super::flashrom;
+use super::flashrom::{self, FlashromError};
 use super::types;
 use super::utils;
 
 use std::process::Command;
-use std::io::{Error, ErrorKind};
 
 pub struct FlashromCmd {
     pub path: String,
@@ -46,13 +45,13 @@ pub struct FlashromCmd {
 }
 
 impl flashrom::Flashrom for FlashromCmd {
-    fn get_size(&self) -> Result<i64, std::io::Error> {
+    fn get_size(&self) -> Result<i64, FlashromError> {
         let (stdout, _) = flashrom_dispatch(self.path.as_str(), &["--get-size"], self.fc)?;
         let sz = String::from_utf8_lossy(&stdout);
 
         match utils::vgrep(&sz, "coreboot").trim_end().parse::<i64>() {
             Ok(s) => Ok(s),
-            Err(_e) => Err(Error::new(ErrorKind::Other, "'flashrom --get-size' output did not parse as int correctly")),
+            Err(_e) => Err("'flashrom --get-size' output did not parse as int correctly".into()),
         }
     }
 
@@ -62,7 +61,7 @@ impl flashrom::Flashrom for FlashromCmd {
     }
 
     fn dispatch(&self, fropt: flashrom::FlashromOpt)
-        -> Result<(Vec<u8>, Vec<u8>), std::io::Error> {
+        -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
         let params = flashrom_decode_opts(fropt);
         flashrom_dispatch(self.path.as_str(), &params, self.fc)
     }
@@ -130,7 +129,7 @@ fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<String> {
 }
 
 fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashChip)
-    -> Result<(Vec<u8>, Vec<u8>), std::io::Error> {
+    -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
     // from man page:
     //  ' -p, --programmer <name>[:parameter[,parameter[,parameter]]] '
     let mut args: Vec<&str> = vec!["-p", types::FlashChip::to(fc)];
@@ -138,19 +137,21 @@ fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashCh
 
     info!("flashrom_dispatch() running: {} {:?}", path, args);
 
-    let output = Command::new(path)
+    let output = match Command::new(path)
         .args(&args)
-        .output()?;
+        .output() {
+        Ok(x) => x,
+        Err(e) => return Err(format!("Failed to run flashrom: {}", e)),
+    };
     if !output.status.success() {
         // There is two cases on failure;
         //  i. ) A bad exit code,
         //  ii.) A SIG killed us.
         match output.status.code() {
             Some(code) => {
-                let e = format!("{}\nExited with error code: {}", String::from_utf8_lossy(&output.stderr), code);
-                return Err(Error::new(ErrorKind::Other, e));
+                return Err(format!("{}\nExited with error code: {}", String::from_utf8_lossy(&output.stderr), code));
             },
-            None => return Err(Error::new(ErrorKind::Other, "Process terminated by a signal".to_string()))
+            None => return Err("Process terminated by a signal".into()),
         }
     }
 
@@ -158,7 +159,7 @@ fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashCh
 }
 
 pub fn dut_ctrl_toggle_wp(en: bool)
-    -> Result<(Vec<u8>, Vec<u8>), std::io::Error> {
+    -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
 
     let args = if en {
         ["fw_wp_en:off", "fw_wp:on"]
@@ -166,19 +167,21 @@ pub fn dut_ctrl_toggle_wp(en: bool)
         ["fw_wp_en:on", "fw_wp:off"]
     };
 
-    let output = Command::new("dut-control")
+    let output = match Command::new("dut-control")
         .args(&args)
-        .output()?;
+        .output() {
+        Ok(x) => x,
+        Err(e) => return Err(format!("Failed to run dut-control: {}", e)),
+    };
     if !output.status.success() {
         // There is two cases on failure;
         //  i. ) A bad exit code,
         //  ii.) A SIG killed us.
         match output.status.code() {
             Some(code) => {
-                let e = format!("Exited with error code: {}", code);
-                return Err(Error::new(ErrorKind::Other, e));
+                return Err(format!("Exited with error code: {}", code).into());
             },
-            None => return Err(Error::new(ErrorKind::Other, "Process terminated by a signal".to_string()))
+            None => return Err("Process terminated by a signal".into()),
         }
     }
 

@@ -37,7 +37,7 @@ use super::types;
 use super::cmd;
 use super::utils;
 
-use std::io::{Error, ErrorKind};
+pub type FlashromError = String;
 
 #[derive(Default)]
 pub struct FlashromOpt<'a> {
@@ -70,15 +70,15 @@ pub struct IOOpt<'a> {
 }
 
 pub trait Flashrom {
-    fn get_size(&self) -> Result<i64, std::io::Error>;
+    fn get_size(&self) -> Result<i64, FlashromError>;
 
     fn new(path: String, fc: types::FlashChip) -> Self;
 
     fn dispatch(&self, fropt: FlashromOpt)
-        -> Result<(Vec<u8>, Vec<u8>), std::io::Error>;
+        -> Result<(Vec<u8>, Vec<u8>), FlashromError>;
 }
 
-pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, std::io::Error> {
+pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
     let opts = FlashromOpt{
         io_opt: IOOpt {
             ..Default::default()
@@ -103,7 +103,7 @@ pub struct ROMWriteSpecifics<'a> {
     pub name_file:   Option<&'a str>,
 }
 
-pub fn write_file_with_layout(cmd: &cmd::FlashromCmd, range: Option<(i64, i64)>, rws: &ROMWriteSpecifics) -> Result<bool, std::io::Error> {
+pub fn write_file_with_layout(cmd: &cmd::FlashromCmd, range: Option<(i64, i64)>, rws: &ROMWriteSpecifics) -> Result<bool, FlashromError> {
     let opts = FlashromOpt{
         io_opt: IOOpt {
             write: rws.write_file,
@@ -126,7 +126,7 @@ pub fn write_file_with_layout(cmd: &cmd::FlashromCmd, range: Option<(i64, i64)>,
     Ok(true)
 }
 
-pub fn wp_range(cmd: &cmd::FlashromCmd, range: (i64, i64), wp_enable: bool) -> Result<bool, std::io::Error> {
+pub fn wp_range(cmd: &cmd::FlashromCmd, range: (i64, i64), wp_enable: bool) -> Result<bool, FlashromError> {
     let opts = FlashromOpt{
         wp_opt: WPOpt {
             range: Some(range),
@@ -144,7 +144,7 @@ pub fn wp_range(cmd: &cmd::FlashromCmd, range: (i64, i64), wp_enable: bool) -> R
     Ok(true)
 }
 
-pub fn wp_list(cmd: &cmd::FlashromCmd) -> Result<String, std::io::Error> {
+pub fn wp_list(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
     let opts = FlashromOpt{
         wp_opt: WPOpt {
             list: true,
@@ -157,12 +157,12 @@ pub fn wp_list(cmd: &cmd::FlashromCmd) -> Result<String, std::io::Error> {
     let (stdout, _) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
     if output.len() == 0 {
-        return Err(Error::new(ErrorKind::Other, "wp_list isn't supported on platforms using the Linux kernel SPI driver wp_list"));
+        return Err("wp_list isn't supported on platforms using the Linux kernel SPI driver wp_list".into());
     }
     Ok(output.to_string())
 }
 
-pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Error> {
+pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError> {
     let status = if en { "en" } else { "dis" };
     info!("See if chip write protect is {}abled", status);
 
@@ -183,7 +183,7 @@ pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Erro
     Ok(output.contains(&s))
 }
 
-pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Error> {
+pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError> {
     let status = if en { "en" } else { "dis" };
 
     let opts = FlashromOpt{
@@ -208,13 +208,12 @@ pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, std::io::Erro
             Ok(true)
         },
         Err(e) => {
-            let s = std::format!("Cannot {}able write-protect", status);
-            Err(Error::new(e.kind(), &s[..]))
+            Err(format!("Cannot {}able write-protect: {}", status, e))
         }
     }
 }
 
-pub fn read(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> {
+pub fn read(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
     let opts = FlashromOpt{
         io_opt: IOOpt {
             read: Some(path),
@@ -229,7 +228,7 @@ pub fn read(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-pub fn write(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> {
+pub fn write(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
     let opts = FlashromOpt{
         io_opt: IOOpt {
             write: Some(path),
@@ -244,7 +243,7 @@ pub fn write(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-pub fn verify(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> {
+pub fn verify(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
     let opts = FlashromOpt{
         io_opt: IOOpt {
             verify: Some(path),
@@ -259,7 +258,7 @@ pub fn verify(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), std::io::Error> 
     Ok(())
 }
 
-pub fn erase(cmd: &cmd::FlashromCmd) -> Result<(), std::io::Error> {
+pub fn erase(cmd: &cmd::FlashromCmd) -> Result<(), FlashromError> {
     let opts = FlashromOpt{
         io_opt: IOOpt {
             erase: true,
