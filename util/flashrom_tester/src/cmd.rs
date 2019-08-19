@@ -41,7 +41,7 @@ use std::process::Command;
 
 pub struct FlashromCmd {
     pub path: String,
-    pub fc:   types::FlashChip,
+    pub fc: types::FlashChip,
 }
 
 impl flashrom::Flashrom for FlashromCmd {
@@ -57,11 +57,10 @@ impl flashrom::Flashrom for FlashromCmd {
 
     // do I need this?
     fn new(path: String, fc: types::FlashChip) -> Self {
-        FlashromCmd{path, fc}
+        FlashromCmd { path, fc }
     }
 
-    fn dispatch(&self, fropt: flashrom::FlashromOpt)
-        -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
+    fn dispatch(&self, fropt: flashrom::FlashromOpt) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
         let params = flashrom_decode_opts(fropt);
         flashrom_dispatch(self.path.as_str(), &params, self.fc)
     }
@@ -75,11 +74,11 @@ fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<String> {
     // -------------------------------------
 
     // wp_opt
-   if opts.wp_opt.range.is_some() {
-       let (x0, x1) = opts.wp_opt.range.unwrap();
-       params.push("--wp-range".to_string());
-       params.push(utils::hex_string(x0));
-       params.push(utils::hex_string(x1));
+    if opts.wp_opt.range.is_some() {
+        let (x0, x1) = opts.wp_opt.range.unwrap();
+        params.push("--wp-range".to_string());
+        params.push(utils::hex_string(x0));
+        params.push(utils::hex_string(x1));
     }
     if opts.wp_opt.status {
         params.push("--wp-status".to_string());
@@ -128,8 +127,11 @@ fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<String> {
     params
 }
 
-fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashChip)
-    -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
+fn flashrom_dispatch<S: AsRef<str>>(
+    path: &str,
+    params: &[S],
+    fc: types::FlashChip,
+) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
     // from man page:
     //  ' -p, --programmer <name>[:parameter[,parameter[,parameter]]] '
     let mut args: Vec<&str> = vec!["-p", types::FlashChip::to(fc)];
@@ -137,9 +139,7 @@ fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashCh
 
     info!("flashrom_dispatch() running: {} {:?}", path, args);
 
-    let output = match Command::new(path)
-        .args(&args)
-        .output() {
+    let output = match Command::new(path).args(&args).output() {
         Ok(x) => x,
         Err(e) => return Err(format!("Failed to run flashrom: {}", e)),
     };
@@ -149,8 +149,12 @@ fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashCh
         //  ii.) A SIG killed us.
         match output.status.code() {
             Some(code) => {
-                return Err(format!("{}\nExited with error code: {}", String::from_utf8_lossy(&output.stderr), code));
-            },
+                return Err(format!(
+                    "{}\nExited with error code: {}",
+                    String::from_utf8_lossy(&output.stderr),
+                    code
+                ));
+            }
             None => return Err("Process terminated by a signal".into()),
         }
     }
@@ -158,18 +162,14 @@ fn flashrom_dispatch<S: AsRef<str>>(path: &str, params: &[S], fc: types::FlashCh
     Ok((output.stdout, output.stderr))
 }
 
-pub fn dut_ctrl_toggle_wp(en: bool)
-    -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
-
+pub fn dut_ctrl_toggle_wp(en: bool) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
     let args = if en {
         ["fw_wp_en:off", "fw_wp:on"]
     } else {
         ["fw_wp_en:on", "fw_wp:off"]
     };
 
-    let output = match Command::new("dut-control")
-        .args(&args)
-        .output() {
+    let output = match Command::new("dut-control").args(&args).output() {
         Ok(x) => x,
         Err(e) => return Err(format!("Failed to run dut-control: {}", e)),
     };
@@ -180,10 +180,132 @@ pub fn dut_ctrl_toggle_wp(en: bool)
         match output.status.code() {
             Some(code) => {
                 return Err(format!("Exited with error code: {}", code).into());
-            },
+            }
             None => return Err("Process terminated by a signal".into()),
         }
     }
 
     Ok((output.stdout, output.stderr))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::flashrom_decode_opts;
+    use crate::flashrom::{FlashromOpt, IOOpt, WPOpt};
+
+    #[test]
+    fn decode_wp_opt() {
+        fn test_wp_opt(wpo: WPOpt, expected: &[&str]) {
+            assert_eq!(
+                flashrom_decode_opts(FlashromOpt {
+                    wp_opt: wpo,
+                    ..Default::default()
+                }),
+                expected
+            );
+        }
+
+        test_wp_opt(Default::default(), &[]);
+        test_wp_opt(
+            WPOpt {
+                range: Some((0, 1234)),
+                status: true,
+                ..Default::default()
+            },
+            &["--wp-range", "0x000000", "0x0004D2", "--wp-status"],
+        );
+        test_wp_opt(
+            WPOpt {
+                list: true,
+                ..Default::default()
+            },
+            &["--wp-list"],
+        );
+        test_wp_opt(
+            WPOpt {
+                enable: true,
+                ..Default::default()
+            },
+            &["--wp-enable"],
+        );
+        test_wp_opt(
+            WPOpt {
+                disable: true,
+                ..Default::default()
+            },
+            &["--wp-disable"],
+        );
+    }
+
+    #[test]
+    fn decode_io_opt() {
+        fn test_io_opt(opts: IOOpt, expected: &[&str]) {
+            assert_eq!(
+                flashrom_decode_opts(FlashromOpt {
+                    io_opt: opts,
+                    ..Default::default()
+                }),
+                expected
+            );
+        }
+
+        test_io_opt(
+            IOOpt {
+                read: Some("foo.bin"),
+                ..Default::default()
+            },
+            &["-r", "foo.bin"],
+        );
+        test_io_opt(
+            IOOpt {
+                write: Some("bar.bin"),
+                ..Default::default()
+            },
+            &["-w", "bar.bin"],
+        );
+        test_io_opt(
+            IOOpt {
+                verify: Some("/tmp/baz.bin"),
+                ..Default::default()
+            },
+            &["-v", "/tmp/baz.bin"],
+        );
+        test_io_opt(
+            IOOpt {
+                erase: true,
+                ..Default::default()
+            },
+            &["-E"],
+        );
+    }
+
+    #[test]
+    fn decode_misc() {
+        //use Default::default;
+        assert_eq!(
+            flashrom_decode_opts(FlashromOpt {
+                layout: Some("TestLayout"),
+                ..Default::default()
+            }),
+            &["-l", "TestLayout"]
+        );
+
+        assert_eq!(
+            flashrom_decode_opts(FlashromOpt {
+                image: Some("TestImage"),
+                ..Default::default()
+            }),
+            &["-i", "TestImage"]
+        );
+
+        assert_eq!(
+            flashrom_decode_opts(FlashromOpt {
+                flash_name: true,
+                ignore_fmap: true,
+                verbose: true,
+                ..Default::default()
+            }),
+            &["--flash-name", "--ignore-fmap", "-V"]
+        );
+    }
 }
