@@ -147,3 +147,67 @@ pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<TestError>)
     }
     println!();
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use crate::types::FlashChip;
+    use crate::cmd::FlashromCmd;
+
+    #[test]
+    fn run_test() {
+        use super::{run_test, TestCase, TestParams};
+        use super::TestConclusion::*;
+
+        // Hack around TestParams not accepting closures with statics.
+        // This is safe for parallel testing because the statics are private
+        // to this test case.
+        static RAN_PRE: AtomicBool = AtomicBool::new(false);
+        static RAN_POST: AtomicBool = AtomicBool::new(false);
+
+        let expected_pass = TestCase {
+            name: "ExpectedPass",
+            test_fn: |_| Ok(()),
+            params: &TestParams {
+                cmd: &FlashromCmd { path: "".to_string(), fc: FlashChip::EC },
+                fc: FlashChip::HOST,
+                log_text: None,
+                pre_fn: Some(|_| RAN_PRE.store(true, Ordering::SeqCst)),
+                post_fn: Some(|_| RAN_POST.store(true, Ordering::SeqCst)),
+            },
+            conclusion: Pass
+        };
+
+        let (conclusion, error) = run_test(&expected_pass);
+        assert_eq!(conclusion, Pass);
+        assert!(error.is_none());
+        // Check functions ran and reset flags at the same time
+        assert_eq!(RAN_PRE.swap(false, Ordering::SeqCst), true);
+        assert_eq!(RAN_POST.swap(false, Ordering::SeqCst), true);
+
+        let unexpected_fail = TestCase {
+            test_fn: |_| Err("I'm a failure".into()),
+            ..expected_pass
+        };
+        let (conclusion, error) = run_test(&unexpected_fail);
+        assert_eq!(conclusion, UnexpectedFail);
+        assert_eq!(format!("{}", error.expect("not an error")),
+                   "I'm a failure");
+
+        let expected_fail = TestCase {
+            conclusion: Fail,
+            ..unexpected_fail
+        };
+        let (conclusion, error) = run_test(&expected_fail);
+        assert_eq!(conclusion, Pass);
+        assert!(error.is_none());
+
+        let unexpected_pass = TestCase {
+            conclusion: Fail,
+            ..expected_pass
+        };
+        let (conclusion, error) = run_test(&unexpected_pass);
+        assert_eq!(conclusion, UnexpectedPass);
+        assert!(error.is_none());
+    }
+}
