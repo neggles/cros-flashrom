@@ -105,8 +105,10 @@ pub mod built_info {
 }
 
 fn compiletime_info() {
-    info!("This is version {}, built for {} by {}.",
-          built_info::PKG_VERSION, built_info::TARGET, built_info::RUSTC_VERSION);
+    info!("This is version {}-{}, built for {} by {}.",
+          built_info::PKG_VERSION,
+          option_env!("VCSID").unwrap_or("<unknown>"),
+          built_info::TARGET, built_info::RUSTC_VERSION);
 
     trace!("I was built with profile \"{}\", features \"{}\" on {}.",
            built_info::PROFILE, built_info::FEATURES_STR,
