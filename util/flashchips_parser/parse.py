@@ -154,6 +154,8 @@ FIELDS = [
     ValueField('wrea_override', True),
 ]
 
+COMPARE_FIELDS = [f for f in FIELDS if f.name != 'wp']
+
 ENTRY_RE = re.compile(
     r'(?P<pre_comment>(?:^\t/\*.*?\*/\n){1,2}\n?)?'
     r'(?P<if_zero>#if 0\n)?'
@@ -365,7 +367,7 @@ NAMES_PARSER.add_argument('--use', choices=DIRS.keys(), default='chromiumos')
 def print_diffs(a, b, print_cb=print, a_name='A', b_name='B'):
   # print differences between two chips return number of diffs
   diffs = 0
-  for field in FIELDS:
+  for field in COMPARE_FIELDS:
     aval = a.get(field.name)
     bval = b.get(field.name)
     if aval != bval:
@@ -481,7 +483,7 @@ def csvsummary(args):
     if akey == bkey:
       # compare individual entry
       diff_count = sum(
-          a.get(field.name) != b.get(field.name) for field in FIELDS)
+          a.get(field.name) != b.get(field.name) for field in COMPARE_FIELDS)
       w.writerow([a.get('vendor'), a.get('name'), 'TRUE', 'TRUE', diff_count])
       achips = achips[1:]
       bchips = bchips[1:]
