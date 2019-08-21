@@ -12,12 +12,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #if CONFIG_FT2232_SPI == 1
 
 #include <stdio.h>
+#include <strings.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -246,6 +246,7 @@ int ft2232_spi_init(void)
 		}
 	}
 	free(arg);
+
 	arg = extract_programmer_param("port");
 	if (arg) {
 		switch (toupper((unsigned char)*arg)) {
@@ -272,6 +273,7 @@ int ft2232_spi_init(void)
 		msg_pdbg("Clock %f MHz\n", spi_mhz);
 	}
 	free(arg);
+
 	msg_pdbg("Using device type %s %s ",
 		 get_ft2232_vendorname(ft2232_vid, ft2232_type),
 		 get_ft2232_devicename(ft2232_vid, ft2232_type));
@@ -279,14 +281,12 @@ int ft2232_spi_init(void)
 		 (ft2232_interface == INTERFACE_A) ? "A" : "B");
 
 	if (ftdi_init(ftdic) < 0) {
-		msg_perr("ftdi_init failed\n");
+		msg_perr("ftdi_init failed.\n");
 		return -3;
 	}
 
-	/* Must occur prior to ftdi_usb_open_* call */
 	if (ftdi_set_interface(ftdic, ft2232_interface) < 0) {
-		msg_perr("Unable to select interface: %s\n",
-				ftdic->error_str);
+		msg_perr("Unable to select channel (%s).\n", ftdi_get_error_string(ftdic));
 	}
 
 	arg = extract_programmer_param("serial");
@@ -306,19 +306,19 @@ int ft2232_spi_init(void)
 	}
 
 	if (ftdi_usb_reset(ftdic) < 0) {
-		msg_perr("Unable to reset FTDI device\n");
+		msg_perr("Unable to reset FTDI device (%s).\n", ftdi_get_error_string(ftdic));
 	}
 
 	if (ftdi_set_latency_timer(ftdic, 2) < 0) {
-		msg_perr("Unable to set latency timer\n");
+		msg_perr("Unable to set latency timer (%s).\n", ftdi_get_error_string(ftdic));
 	}
 
 	if (ftdi_write_data_set_chunksize(ftdic, 256)) {
-		msg_perr("Unable to set chunk size\n");
+		msg_perr("Unable to set chunk size (%s).\n", ftdi_get_error_string(ftdic));
 	}
 
 	if (ftdi_set_bitmode(ftdic, 0x00, BITMODE_BITBANG_SPI) < 0) {
-		msg_perr("Unable to set bitmode to SPI\n");
+		msg_perr("Unable to set bitmode to SPI (%s).\n", ftdi_get_error_string(ftdic));
 	}
 
 	if (clock_5x) {
