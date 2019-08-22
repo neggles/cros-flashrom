@@ -118,12 +118,22 @@ mod tests {
     }
 }
 
-pub fn toggle_hw_wp(dis: bool) {
+pub fn toggle_hw_wp(dis: bool) -> Result<(), std::io::Error> {
     // The easist way to toggle the harware write-protect is
     // to {dis}connect the battery.
     let s = if dis { "dis" } else { "" };
     info!(" > {}connect the battery", s);
     pause();
+    let wp = gather_system_info()?;
+    if wp && dis {
+        warn!("Hardware write protect is still ENABLED!");
+        return toggle_hw_wp(dis);
+    }
+    if !wp && !dis {
+        warn!("Hardware write protect is still DISABLED!");
+        return toggle_hw_wp(dis);
+    }
+    Ok(())
 }
 
 fn pause() {
