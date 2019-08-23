@@ -40,6 +40,9 @@ use super::rand_util;
 use super::tester::{self, TestResult};
 use super::types;
 use super::utils;
+use std::fs::File;
+
+const LAYOUT_FILE: &'static str = "/tmp/layout.file";
 
 /// Run tests.
 ///
@@ -54,7 +57,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
     info!("Calculate ROM partition sizes & Create the layout file.");
     let rom_sz: i64 = cmd.get_size()?;
     let layout_sizes = utils::get_layout_sizes(rom_sz)?;
-    utils::construct_layout_file("/tmp/layout.file", &layout_sizes)?;
+    utils::construct_layout_file(File::create(LAYOUT_FILE)?, &layout_sizes)?;
 
     info!("Create a Binary with random contents.");
     rand_util::gen_rand_testdata("/tmp/random_content.bin", rom_sz as usize)?;
@@ -415,7 +418,7 @@ fn test_section(
     consistent_flash_checks(&cmd)?;
 
     let rws = flashrom::ROMWriteSpecifics {
-        layout_file: Some("/tmp/layout.file"),
+        layout_file: Some(LAYOUT_FILE),
         write_file: Some("/tmp/random_content.bin"),
         name_file: Some(name),
     };

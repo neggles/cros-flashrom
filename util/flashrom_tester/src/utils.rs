@@ -33,7 +33,6 @@
 // Software Foundation.
 //
 
-use std::fs::File;
 use std::io::prelude::*;
 use std::io::{Error, ErrorKind};
 use std::process::Command;
@@ -89,36 +88,11 @@ pub fn layout_section(ls: &LayoutSizes, ln: LayoutNames) -> (&'static str, i64, 
     }
 }
 
-pub fn construct_layout_file(path: &str, ls: &LayoutSizes) -> std::io::Result<()> {
-    let mut buf = File::create(path)?;
-
-    writeln!(buf, "000000:{:x} BOTTOM_QUAD", ls.bottom_quad_top)?;
-    writeln!(buf, "000000:{:x} BOTTOM_HALF", ls.bottom_half_top)?;
-    writeln!(buf, "{:x}:{:x} TOP_HALF", ls.half_sz, ls.rom_top)?;
-    writeln!(buf, "{:x}:{:x} TOP_QUAD", ls.top_quad_bottom, ls.rom_top)?;
-
-    buf.flush()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn _vgrep() {
-        let s = "XXXqcYYY";
-        let m = "qc";
-        let n = "zz";
-
-        assert_eq!("", vgrep(s, s));
-        assert_eq!("", vgrep(s, m));
-        assert_eq!(s, vgrep(s, n));
-
-        let x = "idk\nLALLA\nZZZ\nQQ";
-        let xs = "LA";
-
-        assert_eq!("idkZZZQQ", vgrep(x, xs));
-    }
+pub fn construct_layout_file<F: Write>(mut target: F, ls: &LayoutSizes) -> std::io::Result<()> {
+    writeln!(target, "000000:{:x} BOTTOM_QUAD", ls.bottom_quad_top)?;
+    writeln!(target, "000000:{:x} BOTTOM_HALF", ls.bottom_half_top)?;
+    writeln!(target, "{:x}:{:x} TOP_HALF", ls.half_sz, ls.rom_top)?;
+    writeln!(target, "{:x}:{:x} TOP_QUAD", ls.top_quad_bottom, ls.rom_top)
 }
 
 pub fn toggle_hw_wp(dis: bool) -> Result<(), std::io::Error> {
@@ -215,5 +189,46 @@ fn parse_crosssystem(s: &str) -> Result<(Vec<&str>, bool), &'static str> {
             }
         }
         Err(_) => return Err("Cannot parse state value"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn _vgrep() {
+        let s = "XXXqcYYY";
+        let m = "qc";
+        let n = "zz";
+
+        assert_eq!("", vgrep(s, s));
+        assert_eq!("", vgrep(s, m));
+        assert_eq!(s, vgrep(s, n));
+
+        let x = "idk\nLALLA\nZZZ\nQQ";
+        let xs = "LA";
+
+        assert_eq!("idkZZZQQ", vgrep(x, xs));
+    }
+
+    #[test]
+    fn construct_layout_file() {
+        use super::construct_layout_file;
+
+        let mut buf = Vec::new();
+        construct_layout_file(
+            &mut buf,
+            &get_layout_sizes(0x10000).expect("64k is a valid chip size"),
+        )
+        .expect("no I/O errors expected");
+
+        assert_eq!(
+            &buf[..],
+            &b"000000:3fff BOTTOM_QUAD\n\
+               000000:7fff BOTTOM_HALF\n\
+               8000:ffff TOP_HALF\n\
+               c000:ffff TOP_QUAD\n"[..]
+        );
     }
 }
