@@ -72,9 +72,12 @@ pub const YELLOW: &str = "\x1b[33m";
 pub const GREEN: &str = "\x1b[92m";
 pub const RED: &str = "\x1b[31m";
 
-//TODO(quasisec): Consolidate colour implementations here.
-#[macro_export]
-macro_rules! colour {
+macro_rules! style_dbg {
+    ($s: expr, $c: expr) => {
+        format!("{}{:?}{}", $c, $s, types::RESET)
+    };
+}
+macro_rules! style {
     ($s: expr, $c: expr) => {
         format!("{}{}{}", $c, $s, types::RESET)
     };

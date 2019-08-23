@@ -38,13 +38,15 @@ extern crate log;
 extern crate chrono;
 extern crate env_logger;
 
+#[macro_use]
+mod types;
+
 mod cmd;
 mod flashrom;
 mod mosys;
 mod rand;
 mod tester;
 mod tests;
-mod types;
 mod utils;
 
 use chrono::Local;
@@ -132,8 +134,8 @@ fn main() {
             writeln!(
                 buf,
                 "{} [ {} ] - {}",
-                colour!(Local::now().format("%Y-%m-%dT%H:%M:%S"), types::MAGENTA),
-                colour!(record.level(), types::YELLOW),
+                style!(Local::now().format("%Y-%m-%dT%H:%M:%S"), types::MAGENTA),
+                style!(record.level(), types::YELLOW),
                 record.args()
             )
         })

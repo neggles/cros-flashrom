@@ -115,17 +115,6 @@ pub fn run_all_tests<'a>(
     results
 }
 
-// not getting exported from types.rs due to ordering???
-macro_rules! style {
-    ($s: expr, $c: expr) => {
-        format!("{}{:?}{}", $c, $s, types::RESET)
-    };
-}
-macro_rules! style_ {
-    ($s: expr, $c: expr) => {
-        format!("{}{}{}", $c, $s, types::RESET)
-    };
-}
 pub fn collate_all_test_runs(
     truns: &[(&str, (TestConclusion, Option<TestError>))],
     meta_data: ReportMetaData,
@@ -148,8 +137,8 @@ pub fn collate_all_test_runs(
         if *result != TestConclusion::Pass {
             println!(
                 " {} {}",
-                style_!(format!(" <+> {} test:", name), types::BOLD),
-                style!(result, types::RED)
+                style!(format!(" <+> {} test:", name), types::BOLD),
+                style_dbg!(result, types::RED)
             );
             match error {
                 None => {}
@@ -158,8 +147,8 @@ pub fn collate_all_test_runs(
         } else {
             println!(
                 " {} {}",
-                style_!(format!(" <+> {} test:", name), types::BOLD),
-                style!(result, types::GREEN)
+                style!(format!(" <+> {} test:", name), types::BOLD),
+                style_dbg!(result, types::GREEN)
             );
         }
     }
