@@ -33,8 +33,8 @@
 // Software Foundation.
 //
 
-use super::types;
 use super::cmd;
+use super::types;
 
 // type-signature comes from the return type of flashrom.rs workers.
 type TestError = Box<dyn std::error::Error>;
@@ -54,7 +54,10 @@ pub struct TestParams<'a> {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum TestConclusion {
-    Pass, Fail, UnexpectedPass, UnexpectedFail
+    Pass,
+    Fail,
+    UnexpectedPass,
+    UnexpectedFail,
 }
 
 pub struct TestCase<'a> {
@@ -78,7 +81,7 @@ fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, 
     match (res, con) {
         (Ok(_), Fail) => (UnexpectedPass, None),
         (Err(e), Pass) => (UnexpectedFail, Some(e)),
-        _ => (Pass, None)
+        _ => (Pass, None),
     }
 }
 
@@ -114,12 +117,19 @@ pub fn run_all_tests<'a>(
 
 // not getting exported from types.rs due to ordering???
 macro_rules! style {
-    ($s: expr, $c: expr) => { format!("{}{:?}{}", $c, $s, types::RESET) }
+    ($s: expr, $c: expr) => {
+        format!("{}{:?}{}", $c, $s, types::RESET)
+    };
 }
 macro_rules! style_ {
-    ($s: expr, $c: expr) => { format!("{}{}{}", $c, $s, types::RESET) }
+    ($s: expr, $c: expr) => {
+        format!("{}{}{}", $c, $s, types::RESET)
+    };
 }
-pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<TestError>))], meta_data: ReportMetaData) {
+pub fn collate_all_test_runs(
+    truns: &[(&str, (TestConclusion, Option<TestError>))],
+    meta_data: ReportMetaData,
+) {
     println!();
     println!("  =============================");
     println!("  =====  AVL qual RESULTS  ====");
@@ -136,13 +146,21 @@ pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<TestError>)
     for trun in truns.iter() {
         let (name, (result, error)) = trun;
         if *result != TestConclusion::Pass {
-            println!(" {} {}", style_!(format!(" <+> {} test:", name), types::BOLD), style!(result, types::RED));
+            println!(
+                " {} {}",
+                style_!(format!(" <+> {} test:", name), types::BOLD),
+                style!(result, types::RED)
+            );
             match error {
-                None => {},
+                None => {}
                 Some(e) => info!(" - {} failure details:\n{}", name, e.to_string()),
             };
         } else {
-            println!(" {} {}", style_!(format!(" <+> {} test:", name), types::BOLD), style!(result, types::GREEN));
+            println!(
+                " {} {}",
+                style_!(format!(" <+> {} test:", name), types::BOLD),
+                style!(result, types::GREEN)
+            );
         }
     }
     println!();
@@ -150,14 +168,14 @@ pub fn collate_all_test_runs(truns: &[(&str, (TestConclusion, Option<TestError>)
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use crate::types::FlashChip;
     use crate::cmd::FlashromCmd;
+    use crate::types::FlashChip;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     #[test]
     fn run_test() {
-        use super::{run_test, TestCase, TestParams};
         use super::TestConclusion::*;
+        use super::{run_test, TestCase, TestParams};
 
         // Hack around TestParams not accepting closures with statics.
         // This is safe for parallel testing because the statics are private
@@ -169,13 +187,16 @@ mod tests {
             name: "ExpectedPass",
             test_fn: |_| Ok(()),
             params: &TestParams {
-                cmd: &FlashromCmd { path: "".to_string(), fc: FlashChip::EC },
+                cmd: &FlashromCmd {
+                    path: "".to_string(),
+                    fc: FlashChip::EC,
+                },
                 fc: FlashChip::HOST,
                 log_text: None,
                 pre_fn: Some(|_| RAN_PRE.store(true, Ordering::SeqCst)),
                 post_fn: Some(|_| RAN_POST.store(true, Ordering::SeqCst)),
             },
-            conclusion: Pass
+            conclusion: Pass,
         };
 
         let (conclusion, error) = run_test(&expected_pass);
@@ -191,8 +212,7 @@ mod tests {
         };
         let (conclusion, error) = run_test(&unexpected_fail);
         assert_eq!(conclusion, UnexpectedFail);
-        assert_eq!(format!("{}", error.expect("not an error")),
-                   "I'm a failure");
+        assert_eq!(format!("{}", error.expect("not an error")), "I'm a failure");
 
         let expected_fail = TestCase {
             conclusion: Fail,

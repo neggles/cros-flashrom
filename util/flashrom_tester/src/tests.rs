@@ -103,9 +103,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
         }
         if flashrom::wp_status(&param.cmd, true)? {
             // TODO(quasisec): Should fail the whole test suite here?
-            return Err(
-                "Cannot disable write protect.  Cannot continue.".into()
-            );
+            return Err("Cannot disable write protect.  Cannot continue.".into());
         }
 
         info!("Successfully disable Write-protect");
@@ -145,9 +143,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
             warn!("flash image in an inconsistent state! Attempting to restore..");
             flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
             flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-            return Err(
-                "Hardware write protect asserted however can still erase!".into()
-            );
+            return Err("Hardware write protect asserted however can still erase!".into());
         }
         println!("Remove battery to de-assert hardware write-protect.");
         utils::toggle_hw_wp(true);
@@ -203,17 +199,13 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
             info!("WP should unlock since hardware WP is de-asserted.  Attempting to disable..");
             flashrom::wp_toggle(&param.cmd, false)?;
         } else {
-            return Err(
-                "Hardware write protect still asserted!".into()
-            );
+            return Err("Hardware write protect still asserted!".into());
         }
 
         // Validate we successfully disabled soft write-protect when hardware write-protect was
         // de-asserted.
         if flashrom::wp_status(&param.cmd, true)? {
-            return Err(
-                "Cannot disable write protect.  Cannot continue.".into()
-            );
+            return Err("Cannot disable write protect.  Cannot continue.".into());
         }
 
         // Toggle soft write-protect back on after we are done.
@@ -239,21 +231,18 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
             info!("WP should stay locked since hardware WP is asserted.  Attempting to disable..");
             if flashrom::wp_toggle(&param.cmd, false).is_ok() {
                 return Err(
-                    "Soft write-protect didn't stay locked however hardware WP was asserted.".into()
+                    "Soft write-protect didn't stay locked however hardware WP was asserted."
+                        .into(),
                 );
             }
         } else {
-            return Err(
-                "Hardware write protect was not asserted!".into()
-            );
+            return Err("Hardware write protect was not asserted!".into());
         }
 
         // Validate we successfully disabled soft write-protect when hardware write-protect was
         // de-asserted.
         if flashrom::wp_status(&param.cmd, false)? {
-            return Err(
-                "Soft write protect wasn't enabled.".into()
-            );
+            return Err("Soft write protect wasn't enabled.".into());
         }
         Ok(())
     };
@@ -346,7 +335,10 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
                 return Ok(());
             }
             // Output is one event per line, drop empty lines in the interest of being defensive.
-            let event_count = mosys::eventlog_list()?.lines().filter(|l| !l.is_empty()).count();
+            let event_count = mosys::eventlog_list()?
+                .lines()
+                .filter(|l| !l.is_empty())
+                .count();
 
             if event_count == 0 {
                 Err("ELOG contained no events".into())
@@ -359,7 +351,8 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
 
     //  ================================================
     //
-    let consistent_exit_test_fn = |param: &tester::TestParams| Ok(consistent_flash_checks(&param.cmd)?);
+    let consistent_exit_test_fn =
+        |param: &tester::TestParams| Ok(consistent_flash_checks(&param.cmd)?);
     let consistent_exit_test = tester::TestCase {
         name: "Flash image consistency check at end of tests",
         params: &default_test_params,
@@ -437,14 +430,12 @@ fn test_section(
 
     if flashrom::write_file_with_layout(&cmd, None, &rws).is_ok() {
         return Err(
-            "Section should be locked, should not have been overwritable with random data".into()
+            "Section should be locked, should not have been overwritable with random data".into(),
         );
     }
 
     if flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat").is_err() {
-        return Err(
-            "Section didn't locked, has been overwritable with random data!".into()
-        );
+        return Err("Section didn't locked, has been overwritable with random data!".into());
     }
     Ok(())
 }

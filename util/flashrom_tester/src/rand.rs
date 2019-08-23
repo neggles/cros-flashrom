@@ -35,9 +35,9 @@
 
 //#![feature(vec_resize)]
 
+use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufWriter;
-use std::fs::File;
 
 extern crate rand;
 use rand::prelude::*;

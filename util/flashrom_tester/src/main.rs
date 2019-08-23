@@ -38,39 +38,39 @@ extern crate log;
 extern crate chrono;
 extern crate env_logger;
 
-mod tests;
-mod tester;
-mod types;
 mod cmd;
-mod rand;
-mod utils;
 mod flashrom;
 mod mosys;
+mod rand;
+mod tester;
+mod tests;
+mod types;
+mod utils;
 
-use std::env;
-use std::io::Write;
 use chrono::Local;
 use env_logger::Builder;
 use log::LevelFilter;
+use std::env;
+use std::io::Write;
 
 fn dispatch_args(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     match args {
         [_, ref path, ref flashchip] => {
             if path.len() > 0 {
-                    debug!("got flashrom path = '{}'.", path);
+                debug!("got flashrom path = '{}'.", path);
             } else {
-                    return Err("Missing flashrom path".into())
+                return Err("Missing flashrom path".into());
             }
 
             let fc: Result<types::FlashChip, &str> = types::FlashChip::from(&flashchip[..]);
             if fc.is_err() {
-                return Err("Missing flashchip type, should be either 'ec', 'host', or 'servo-v2'.".into());
+                return Err(
+                    "Missing flashchip type, should be either 'ec', 'host', or 'servo-v2'.".into(),
+                );
             }
             tests::generic(path, fc.unwrap())
-        },
-        _ => {
-            Ok(())
         }
+        _ => Ok(()),
     }
 }
 
@@ -79,23 +79,28 @@ fn help(s: Option<&str>) {
     if s.is_some() {
         eprintln!("{}", s.unwrap());
     }
-    eprintln!("Usage:
-    flashrom_tester flashrom.bin <ec|host|servo-v2>");
-
+    eprintln!(
+        "Usage:
+    flashrom_tester flashrom.bin <ec|host|servo-v2>"
+    );
 }
 
 fn parse_args(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     match args.len() {
         1 => return Err("No arguments passed!".into()),
-        3 => {
-            match dispatch_args(args.as_slice()) {
-                Ok(_) => Ok(()),
-                Err(e) => {
-                    error!("flashrom_tester failed to run due to an internal error with: {}.", e.to_string());
-                    Err("Please verify that both 'dut-control' and 'crossytem' are in your PATH!".into())
-                },
+        3 => match dispatch_args(args.as_slice()) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                error!(
+                    "flashrom_tester failed to run due to an internal error with: {}.",
+                    e.to_string()
+                );
+                Err(
+                    "Please verify that both 'dut-control' and 'crossytem' are in your PATH!"
+                        .into(),
+                )
             }
-        }
+        },
         _ => Err("Incorrect number of arguments passed, expected 3.".into()),
     }
 }
@@ -105,28 +110,36 @@ pub mod built_info {
 }
 
 fn compiletime_info() {
-    info!("This is version {}-{}, built for {} by {}.",
-          built_info::PKG_VERSION,
-          option_env!("VCSID").unwrap_or("<unknown>"),
-          built_info::TARGET, built_info::RUSTC_VERSION);
+    info!(
+        "This is version {}-{}, built for {} by {}.",
+        built_info::PKG_VERSION,
+        option_env!("VCSID").unwrap_or("<unknown>"),
+        built_info::TARGET,
+        built_info::RUSTC_VERSION
+    );
 
-    trace!("I was built with profile \"{}\", features \"{}\" on {}.",
-           built_info::PROFILE, built_info::FEATURES_STR,
-           built_info::BUILT_TIME_UTC);
+    trace!(
+        "I was built with profile \"{}\", features \"{}\" on {}.",
+        built_info::PROFILE,
+        built_info::FEATURES_STR,
+        built_info::BUILT_TIME_UTC
+    );
 }
 
 fn main() {
     Builder::new()
         .format(|buf, record| {
-            writeln!(buf,
-                     "{} [ {} ] - {}",
-                     colour!(Local::now().format("%Y-%m-%dT%H:%M:%S"), types::MAGENTA),
-                     colour!(record.level(), types::YELLOW), record.args()
+            writeln!(
+                buf,
+                "{} [ {} ] - {}",
+                colour!(Local::now().format("%Y-%m-%dT%H:%M:%S"), types::MAGENTA),
+                colour!(record.level(), types::YELLOW),
+                record.args()
             )
         })
-    .filter(None, LevelFilter::Info)
-    .parse_filters(&env::var("FLASHROM_TESTER_LOG").unwrap_or_default())
-    .init();
+        .filter(None, LevelFilter::Info)
+        .parse_filters(&env::var("FLASHROM_TESTER_LOG").unwrap_or_default())
+        .init();
 
     compiletime_info();
 

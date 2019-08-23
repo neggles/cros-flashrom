@@ -33,8 +33,8 @@
 // Software Foundation.
 //
 
-use super::types;
 use super::cmd;
+use super::types;
 use super::utils;
 
 pub type FlashromError = String;
@@ -44,29 +44,29 @@ pub struct FlashromOpt<'a> {
     pub wp_opt: WPOpt,
     pub io_opt: IOOpt<'a>,
 
-    pub layout:      Option<&'a str>, // -l <file>
-    pub image:       Option<&'a str>, // -i <name>
+    pub layout: Option<&'a str>, // -l <file>
+    pub image: Option<&'a str>,  // -i <name>
 
-    pub flash_name:  bool, // --flash-name
+    pub flash_name: bool,  // --flash-name
     pub ignore_fmap: bool, // --ignore-fmap
-    pub verbose:     bool, // -V
+    pub verbose: bool,     // -V
 }
 
 #[derive(Default)]
 pub struct WPOpt {
-    pub range:   Option<(i64, i64)>, // --wp-range x0 x1
-    pub status:  bool, // --wp-status
-    pub list:    bool, // --wp-list
-    pub enable:  bool, // --wp-enable
-    pub disable: bool, // --wp-disable
+    pub range: Option<(i64, i64)>, // --wp-range x0 x1
+    pub status: bool,              // --wp-status
+    pub list: bool,                // --wp-list
+    pub enable: bool,              // --wp-enable
+    pub disable: bool,             // --wp-disable
 }
 
 #[derive(Default)]
 pub struct IOOpt<'a> {
-    pub read:   Option<&'a str>, // -r <file>
-    pub write:  Option<&'a str>, // -w <file>
+    pub read: Option<&'a str>,   // -r <file>
+    pub write: Option<&'a str>,  // -w <file>
     pub verify: Option<&'a str>, // -v <file>
-    pub erase:  bool, // -E
+    pub erase: bool,             // -E
 }
 
 pub trait Flashrom {
@@ -74,12 +74,11 @@ pub trait Flashrom {
 
     fn new(path: String, fc: types::FlashChip) -> Self;
 
-    fn dispatch(&self, fropt: FlashromOpt)
-        -> Result<(Vec<u8>, Vec<u8>), FlashromError>;
+    fn dispatch(&self, fropt: FlashromOpt) -> Result<(Vec<u8>, Vec<u8>), FlashromError>;
 }
 
 pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         io_opt: IOOpt {
             ..Default::default()
         },
@@ -99,12 +98,16 @@ pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
 
 pub struct ROMWriteSpecifics<'a> {
     pub layout_file: Option<&'a str>,
-    pub write_file:  Option<&'a str>,
-    pub name_file:   Option<&'a str>,
+    pub write_file: Option<&'a str>,
+    pub name_file: Option<&'a str>,
 }
 
-pub fn write_file_with_layout(cmd: &cmd::FlashromCmd, range: Option<(i64, i64)>, rws: &ROMWriteSpecifics) -> Result<bool, FlashromError> {
-    let opts = FlashromOpt{
+pub fn write_file_with_layout(
+    cmd: &cmd::FlashromCmd,
+    range: Option<(i64, i64)>,
+    rws: &ROMWriteSpecifics,
+) -> Result<bool, FlashromError> {
+    let opts = FlashromOpt {
         io_opt: IOOpt {
             write: rws.write_file,
             ..Default::default()
@@ -126,8 +129,12 @@ pub fn write_file_with_layout(cmd: &cmd::FlashromCmd, range: Option<(i64, i64)>,
     Ok(true)
 }
 
-pub fn wp_range(cmd: &cmd::FlashromCmd, range: (i64, i64), wp_enable: bool) -> Result<bool, FlashromError> {
-    let opts = FlashromOpt{
+pub fn wp_range(
+    cmd: &cmd::FlashromCmd,
+    range: (i64, i64),
+    wp_enable: bool,
+) -> Result<bool, FlashromError> {
+    let opts = FlashromOpt {
         wp_opt: WPOpt {
             range: Some(range),
             enable: wp_enable,
@@ -145,7 +152,7 @@ pub fn wp_range(cmd: &cmd::FlashromCmd, range: (i64, i64), wp_enable: bool) -> R
 }
 
 pub fn wp_list(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         wp_opt: WPOpt {
             list: true,
             ..Default::default()
@@ -153,11 +160,12 @@ pub fn wp_list(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
         ..Default::default()
     };
 
-
     let (stdout, _) = cmd.dispatch(opts)?;
     let output = String::from_utf8_lossy(stdout.as_slice());
     if output.len() == 0 {
-        return Err("wp_list isn't supported on platforms using the Linux kernel SPI driver wp_list".into());
+        return Err(
+            "wp_list isn't supported on platforms using the Linux kernel SPI driver wp_list".into(),
+        );
     }
     Ok(output.to_string())
 }
@@ -166,7 +174,7 @@ pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError
     let status = if en { "en" } else { "dis" };
     info!("See if chip write protect is {}abled", status);
 
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         wp_opt: WPOpt {
             status: true,
             ..Default::default()
@@ -186,7 +194,7 @@ pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError
 pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError> {
     let status = if en { "en" } else { "dis" };
 
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         wp_opt: WPOpt {
             enable: en,
             disable: !en,
@@ -206,15 +214,13 @@ pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError
         Ok(_ret) => {
             info!("Successfully {}abled write-protect", status);
             Ok(true)
-        },
-        Err(e) => {
-            Err(format!("Cannot {}able write-protect: {}", status, e))
         }
+        Err(e) => Err(format!("Cannot {}able write-protect: {}", status, e)),
     }
 }
 
 pub fn read(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         io_opt: IOOpt {
             read: Some(path),
             ..Default::default()
@@ -229,7 +235,7 @@ pub fn read(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
 }
 
 pub fn write(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         io_opt: IOOpt {
             write: Some(path),
             ..Default::default()
@@ -244,7 +250,7 @@ pub fn write(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
 }
 
 pub fn verify(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         io_opt: IOOpt {
             verify: Some(path),
             ..Default::default()
@@ -259,7 +265,7 @@ pub fn verify(cmd: &cmd::FlashromCmd, path: &str) -> Result<(), FlashromError> {
 }
 
 pub fn erase(cmd: &cmd::FlashromCmd) -> Result<(), FlashromError> {
-    let opts = FlashromOpt{
+    let opts = FlashromOpt {
         io_opt: IOOpt {
             erase: true,
             ..Default::default()

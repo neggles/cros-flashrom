@@ -33,10 +33,10 @@
 // Software Foundation.
 //
 
-use std::io::prelude::*;
 use std::fs::File;
-use std::process::Command;
+use std::io::prelude::*;
 use std::io::{Error, ErrorKind};
+use std::process::Command;
 
 pub fn vgrep(s: &str, m: &str) -> String {
     s.lines().filter(|&x| !x.contains(m)).collect()
@@ -48,7 +48,10 @@ pub fn hex_string(v: i64) -> String {
 
 #[derive(Debug)]
 pub enum LayoutNames {
-    TopQuad, TopHalf, BottomHalf, BottomQuad
+    TopQuad,
+    TopHalf,
+    BottomHalf,
+    BottomQuad,
 }
 
 pub struct LayoutSizes {
@@ -67,7 +70,7 @@ pub fn get_layout_sizes(rom_sz: i64) -> Result<LayoutSizes, String> {
     if rom_sz % 2 != 0 {
         return Err("invalid rom size, not a power of 2".into());
     }
-    Ok(LayoutSizes{
+    Ok(LayoutSizes {
         half_sz: rom_sz / 2,
         quad_sz: rom_sz / 4,
         rom_top: rom_sz - 1,
@@ -147,8 +150,7 @@ fn pause() {
 
 pub fn gather_system_info() -> std::result::Result<(bool), std::io::Error> {
     info!("Gathering system information for the log file.");
-    let cmd = Command::new("crossystem")
-        .output()?;
+    let cmd = Command::new("crossystem").output()?;
 
     if !cmd.status.success() {
         // There is two cases on failure;
@@ -158,8 +160,13 @@ pub fn gather_system_info() -> std::result::Result<(bool), std::io::Error> {
             Some(code) => {
                 let e = format!("Exited with error code: {}", code);
                 return Err(Error::new(ErrorKind::Other, e));
-            },
-            None => return Err(Error::new(ErrorKind::Other, "Process terminated by a signal")),
+            }
+            None => {
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    "Process terminated by a signal",
+                ))
+            }
         }
     };
 
@@ -168,33 +175,45 @@ pub fn gather_system_info() -> std::result::Result<(bool), std::io::Error> {
         Ok((sysinfo, wp)) => {
             info!("{:#?}", sysinfo);
             return Ok(wp);
-        },
-        Err(_) => return Err(Error::new(ErrorKind::Other, "Hardware write protect is Unknown")),
+        }
+        Err(_) => {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Hardware write protect is Unknown",
+            ))
+        }
     }
 }
 
 fn parse_crosssystem(s: &str) -> Result<(Vec<&str>, bool), &'static str> {
     // grep -v 'fwid +=' | grep -v 'hwid +='
-    let sysinfo = s.split_terminator("\n").filter(|s| !s.contains("fwid +=") && !s.contains("hwid +="));
+    let sysinfo = s
+        .split_terminator("\n")
+        .filter(|s| !s.contains("fwid +=") && !s.contains("hwid +="));
     let wp_s = sysinfo.clone().filter(|s| s.contains("wpsw_cur"));
 
-    let wp_s_val = wp_s.collect::<Vec<_>>().first().unwrap().trim_start_matches("wpsw_cur")
+    let wp_s_val = wp_s
+        .collect::<Vec<_>>()
+        .first()
+        .unwrap()
+        .trim_start_matches("wpsw_cur")
         .trim_start_matches(' ')
         .trim_start_matches('=')
         .trim_start_matches(' ')
-        .get(..1).unwrap()
+        .get(..1)
+        .unwrap()
         .parse::<u32>();
 
     match wp_s_val {
         Ok(v) => {
-           if v == 1 {
-               return Ok( (sysinfo.collect(), true) );
-           } else if v == 0 {
-               return Ok( (sysinfo.collect(), false) );
-           } else {
-               return Err("Unknown state value");
-           }
-        },
+            if v == 1 {
+                return Ok((sysinfo.collect(), true));
+            } else if v == 0 {
+                return Ok((sysinfo.collect(), false));
+            } else {
+                return Err("Unknown state value");
+            }
+        }
         Err(_) => return Err("Cannot parse state value"),
     }
 }

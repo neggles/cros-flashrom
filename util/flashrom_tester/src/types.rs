@@ -35,7 +35,10 @@
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum FlashChip {
-    EC, HOST, SERVOv2, DEDIPROG
+    EC,
+    HOST,
+    SERVOv2,
+    DEDIPROG,
 }
 
 impl FlashChip {
@@ -60,17 +63,19 @@ impl FlashChip {
     }
 }
 
-pub const BOLD:    &str = "\x1b[1m";
+pub const BOLD: &str = "\x1b[1m";
 
-pub const RESET:   &str = "\x1b[0m";
-pub const BLACK:   &str = "\x1b[30m";
+pub const RESET: &str = "\x1b[0m";
+pub const BLACK: &str = "\x1b[30m";
 pub const MAGENTA: &str = "\x1b[35m";
-pub const YELLOW:  &str = "\x1b[33m";
-pub const GREEN:   &str = "\x1b[92m";
-pub const RED:     &str = "\x1b[31m";
+pub const YELLOW: &str = "\x1b[33m";
+pub const GREEN: &str = "\x1b[92m";
+pub const RED: &str = "\x1b[31m";
 
 //TODO(quasisec): Consolidate colour implementations here.
 #[macro_export]
 macro_rules! colour {
-    ($s: expr, $c: expr) => { format!("{}{}{}", $c, $s, types::RESET) }
+    ($s: expr, $c: expr) => {
+        format!("{}{}{}", $c, $s, types::RESET)
+    };
 }
