@@ -3,23 +3,23 @@
  *
  * Copyright (C) 2010 Google, Inc.
  *
- * Redistribution and use in source and binary forms, with or without 
- * modification, are permitted provided that the following conditions 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
  * are met:
- * 
- * Redistributions of source code must retain the above copyright 
+ *
+ * Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
- * 
- * Redistributions in binary form must reproduce the above copyright 
- * notice, this list of conditions and the following disclaimer in the 
+ *
+ * Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
  * documentation and/or other materials provided with the distribution.
- * 
- * Neither the name of Nuvoton Technology Corporation. or the names of 
- * contributors or licensors may be used to endorse or promote products derived 
+ *
+ * Neither the name of Nuvoton Technology Corporation. or the names of
+ * contributors or licensors may be used to endorse or promote products derived
  * from this software without specific prior written permission.
- * 
- * This software is provided "AS IS," without a warranty of any kind. 
- * ALL EXPRESS OR IMPLIED CONDITIONS, REPRESENTATIONS AND WARRANTIES, 
+ *
+ * This software is provided "AS IS," without a warranty of any kind.
+ * ALL EXPRESS OR IMPLIED CONDITIONS, REPRESENTATIONS AND WARRANTIES,
  * INCLUDING ANY IMPLIED WARRANTY OF MERCHANTABILITY, FITNESS FOR A
  * PARTICULAR PURPOSE OR NON-INFRINGEMENT, ARE HEREBY EXCLUDED.
  * NUVOTON TECHNOLOGY CORPORATION. ("NUVOTON") AND ITS LICENSORS SHALL NOT BE LIABLE
@@ -369,7 +369,7 @@ static int InitFlash()
 	if (!initflash_cfg) {
 		msg_perr("%s(): InitFlash config is not defined\n", __func__);
 		return 1;
-	} 
+	}
 
 	assert_ec_is_free();
 	/* Byte 3: command code: Init Flash */
@@ -400,12 +400,12 @@ static int logbase2(int x)
 }
 
 /* initialize initflash_cfg struct */
-int initflash_cfg_setup(struct flashctx *flash)
+static int initflash_cfg_setup(struct flashctx *flash)
 {
 	if (!initflash_cfg)
 		initflash_cfg = malloc(sizeof(*initflash_cfg));
 
-	/* Copy flash struct pointer so that raw SPI commands that do not get 
+	/* Copy flash struct pointer so that raw SPI commands that do not get
 	   it passed in (e.g. called by spi_send_command) can access it. */
 	if (flash)
 		flash_internal = flash;
@@ -478,7 +478,7 @@ static int ReadId(unsigned char* id0, unsigned char* id1,
 }
 
 /** Tell EC to "enter flash update" mode. */
-int EnterFlashUpdate()
+static int EnterFlashUpdate()
 {
 	if (in_flash_update_mode) {
 		/* already in update mode */
@@ -505,7 +505,7 @@ int EnterFlashUpdate()
  *  Without calling this function, the EC stays in busy-loop and will not
  *  response further request from host, which means system will halt.
  */
-int ExitFlashUpdate(unsigned char exit_code)
+static int ExitFlashUpdate(unsigned char exit_code)
 {
 	/*
 	 * Note: ExitFlashUpdate must be called before shutting down the
@@ -532,15 +532,15 @@ int ExitFlashUpdate(unsigned char exit_code)
  * 0x20 is used for EC F/W no change, but BIOS changed (in Share mode)
  * 0x21 is used for EC F/W changed. Goto EC F/W, wait system reboot.
  * 0x22 is used for EC F/W changed, Goto EC Watchdog reset. */
-int ExitFlashUpdateFirmwareNoChange(void) {
+static int ExitFlashUpdateFirmwareNoChange(void) {
 	return ExitFlashUpdate(0x20);
 }
 
-int ExitFlashUpdateFirmwareChanged(void) {
+static int ExitFlashUpdateFirmwareChanged(void) {
 	return ExitFlashUpdate(0x21);
 }
 
-int wpce775x_read(int addr, unsigned char *buf, unsigned int nbytes)
+static int wpce775x_read(int addr, unsigned char *buf, unsigned int nbytes)
 {
 	int offset;
         unsigned int bytes_read = 0;
@@ -582,14 +582,14 @@ int wpce775x_read(int addr, unsigned char *buf, unsigned int nbytes)
 	return 0;
 }
 
-int wpce775x_erase_new(int blockaddr, uint8_t opcode) {
+static int wpce775x_erase_new(int blockaddr, uint8_t opcode) {
 	unsigned int current;
 	int blocksize;
 	int ret = 0;
 
 	assert_ec_is_free();
 
-	/* 
+	/*
 	 * FIXME: In the long-run we should examine block_erasers within the
 	 * flash struct to ensure the proper blocksize is used. This is because
 	 * some chips implement commands differently. For now, we'll support
@@ -663,7 +663,7 @@ wpce775x_erase_new_exit:
 	return ret;
 }
 
-int wpce775x_nbyte_program(int addr, const unsigned char *buf,
+static int wpce775x_nbyte_program(int addr, const unsigned char *buf,
                           unsigned int nbytes)
 {
 	int offset, ret = 0;
@@ -709,7 +709,7 @@ wpce775x_nbyte_program_exit:
 	return ret;
 }
 
-int wpce775x_spi_read(struct flashctx *flash, uint8_t * buf,
+static int wpce775x_spi_read(struct flashctx *flash, uint8_t * buf,
                       unsigned int start, unsigned int len)
 {
 	if (!initflash_cfg) {
@@ -720,7 +720,7 @@ int wpce775x_spi_read(struct flashctx *flash, uint8_t * buf,
 				flash->chip->page_size);
 }
 
-int wpce775x_spi_write_256(struct flashctx *flash, const uint8_t *buf,
+static int wpce775x_spi_write_256(struct flashctx *flash, const uint8_t *buf,
                            unsigned int start, unsigned int len)
 {
 	if (!initflash_cfg) {
@@ -731,7 +731,7 @@ int wpce775x_spi_write_256(struct flashctx *flash, const uint8_t *buf,
 				 flash->chip->page_size);
 }
 
-int wpce775x_spi_read_status_register(unsigned int readcnt, uint8_t *readarr)
+static int wpce775x_spi_read_status_register(unsigned int readcnt, uint8_t *readarr)
 {
 	uint8_t before[2];
 	int ret = 0;
@@ -782,7 +782,7 @@ int wpce775x_spi_read_status_register(unsigned int readcnt, uint8_t *readarr)
 	return ret;
 }
 
-int wpce775x_spi_write_status_register(uint8_t val)
+static int wpce775x_spi_write_status_register(uint8_t val)
 {
 	assert_ec_is_free();
 	msg_pdbg("%s(): writing 0x%02x to status register\n", __func__, val);
@@ -806,8 +806,11 @@ int wpce775x_spi_write_status_register(uint8_t val)
  * WPCE775x does not allow direct access to SPI chip from host. This function
  * will translate SPI commands to valid WPCE775x WCB commands.
  */
-int wpce775x_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-			const unsigned char *writearr, unsigned char *readarr)
+static int wpce775x_spi_send_command(const struct flashctx *flash,
+				     unsigned int writecnt,
+				     unsigned int readcnt,
+				     const unsigned char *writearr,
+				     unsigned char *readarr)
 {
 	int rc = 0;
 	uint8_t opcode = writearr[0];
@@ -910,7 +913,7 @@ static const struct spi_master spi_master_wpce775x = {
 	.write_256 = wpce775x_spi_write_256,
 };
 
-int wpce775x_spi_common_init(void)
+static int wpce775x_spi_common_init(void)
 {
 	uint8_t fwh_id;
 
@@ -969,7 +972,7 @@ int wpce775x_spi_common_init(void)
 	return 0;
 }
 
-int wpce775x_probe_superio()
+static int wpce775x_probe_superio()
 {
 	uint16_t sio_port;
 	uint8_t srid;
