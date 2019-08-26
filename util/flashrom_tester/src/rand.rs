@@ -33,8 +33,6 @@
 // Software Foundation.
 //
 
-//#![feature(vec_resize)]
-
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufWriter;
