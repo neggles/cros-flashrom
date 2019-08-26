@@ -2197,7 +2197,7 @@ const struct flashchip flashchips[] = {
 		.probe_timing	= TIMING_ZERO,
 		.write		= NULL,
 		.read		= NULL,
-		.voltage	= {2500, 3600}, /* 2.5-3.6V & 2.7-3.6V models available */
+		.voltage	= {2700, 3600}, /* 2.5-3.6V & 2.7-3.6V models available */
 	},
 
 	{
@@ -3347,6 +3347,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
 	},
 
 	{
@@ -3933,6 +3934,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {1695, 1950},
 		.wp		= &wp_generic,
 	},
 
@@ -3970,7 +3972,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
-		.voltage	= {1700, 1950},
+		.voltage	= {1695, 1950},
 		.wp		= &wp_w25,
 	},
 
@@ -4008,7 +4010,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
-		.voltage	= {1650, 1950},
+		.voltage	= {1695, 1950},
 	},
 
 	{
@@ -4091,6 +4093,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
 		.wp		= &wp_w25,
 	},
 
@@ -4319,6 +4322,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
 		.wp		= &wp_w25,
 	},
 
@@ -6077,6 +6081,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2300, 3600},
 	},
 
 	{
@@ -6136,6 +6141,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
 	},
 
 	{
@@ -7001,6 +7007,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_1,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
 	},
 
 	{
@@ -9304,6 +9311,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
 		.wp		= &wp_w25q,
 	},
 
