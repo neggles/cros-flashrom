@@ -202,8 +202,16 @@ uint32_t spi_get_valid_read_addr(struct flashctx *flash)
 	}
 }
 
-void register_spi_master(const struct spi_master *pgm)
+int register_spi_master(const struct spi_master *mst)
 {
-	spi_master = pgm;
+	struct registered_master rmst;
+
+	// TODO(quasisec): Kill off these global states.
+	spi_master = mst;
 	buses_supported |= BUS_SPI;
+
+	rmst.buses_supported = BUS_SPI;
+	rmst.spi = *mst;
+
+	return register_master(&rmst);
 }
