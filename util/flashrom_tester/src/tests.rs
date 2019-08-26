@@ -100,7 +100,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
             warn!(
                 "Hardware write protect seems to be asserted, attempt to get user to de-assert it."
             );
-            utils::toggle_hw_wp(true);
+            utils::toggle_hw_wp(true)?;
             warn!("ROM is write protected.  Attempting to disable..");
             flashrom::wp_toggle(&param.cmd, false)?;
         }
@@ -141,7 +141,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
 
         flashrom::wp_toggle(&param.cmd, true)?;
         println!("Replace battery to assert hardware write-protect.");
-        utils::toggle_hw_wp(false);
+        utils::toggle_hw_wp(false)?;
         if flashrom::erase(&param.cmd).is_ok() {
             warn!("flash image in an inconsistent state! Attempting to restore..");
             flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
@@ -149,15 +149,15 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
             return Err("Hardware write protect asserted however can still erase!".into());
         }
         println!("Remove battery to de-assert hardware write-protect.");
-        utils::toggle_hw_wp(true);
+        utils::toggle_hw_wp(true)?;
         flashrom::wp_toggle(&param.cmd, false)?;
 
         flashrom::erase(&param.cmd)?;
         flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
 
-        flashrom::wp_toggle(&param.cmd, true);
+        flashrom::wp_toggle(&param.cmd, true)?;
         println!("Replace battery to assert hardware write-protect.");
-        utils::toggle_hw_wp(false);
+        utils::toggle_hw_wp(false)?;
         Ok(())
     };
     let erase_write_test = tester::TestCase {
@@ -182,7 +182,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
     //
     fn lock_test_fn(param: &tester::TestParams) -> TestResult {
         println!("Remove battery to de-assert hardware write-protect.");
-        utils::toggle_hw_wp(true);
+        utils::toggle_hw_wp(true)?;
 
         // Don't assume soft write-protect state, and so toggle back on.
         flashrom::wp_toggle(&param.cmd, true)?;
@@ -217,7 +217,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
         // --- deal with the other case of hardware wp being asserted. //
 
         println!("Replace battery to assert hardware write-protect.");
-        utils::toggle_hw_wp(false);
+        utils::toggle_hw_wp(false)?;
 
         // TODO(quasisec): Should this be in generic() ?
         let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
@@ -409,7 +409,7 @@ fn consistent_flash_checks(cmd: &cmd::FlashromCmd) -> Result<(), FlashromError> 
 fn test_section(
     cmd: &cmd::FlashromCmd,
     section: (&'static str, i64, i64),
-) -> Result<(), FlashromError> {
+) -> Result<(), Box<dyn std::error::Error>> {
     let (name, start, len) = section;
 
     debug!("test_section() :: name = '{}' ..", name);
@@ -423,15 +423,15 @@ fn test_section(
         name_file: Some(name),
     };
 
-    utils::toggle_hw_wp(true); // disconnect battery.
+    utils::toggle_hw_wp(true)?; // disconnect battery.
     flashrom::wp_toggle(&cmd, false)?;
-    utils::toggle_hw_wp(false); // connect battery.
+    utils::toggle_hw_wp(false)?; // connect battery.
     flashrom::wp_status(&cmd, false)?;
 
     flashrom::wp_range(&cmd, (start, len), true)?;
     flashrom::wp_status(&cmd, false)?;
 
-    if flashrom::write_file_with_layout(&cmd, None, &rws).is_ok() {
+    if flashrom::write_file_with_layout(&cmd, &rws).is_ok() {
         return Err(
             "Section should be locked, should not have been overwritable with random data".into(),
         );
@@ -457,7 +457,7 @@ fn host(cmd: &cmd::FlashromCmd) -> tester::TestParams {
     };
 }
 
-fn ec(cmd: &cmd::FlashromCmd) -> tester::TestParams {
+fn ec(_cmd: &cmd::FlashromCmd) -> tester::TestParams {
     panic!("Error: Unimplemented in this version, Please use 'host' parameter.");
 }
 

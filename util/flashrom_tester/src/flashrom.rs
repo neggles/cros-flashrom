@@ -104,7 +104,6 @@ pub struct ROMWriteSpecifics<'a> {
 
 pub fn write_file_with_layout(
     cmd: &cmd::FlashromCmd,
-    range: Option<(i64, i64)>,
     rws: &ROMWriteSpecifics,
 ) -> Result<bool, FlashromError> {
     let opts = FlashromOpt {
