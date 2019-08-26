@@ -37,7 +37,7 @@
 pub enum FlashChip {
     EC,
     HOST,
-    SERVOv2,
+    SERVO,
     DEDIPROG,
 }
 
@@ -46,7 +46,7 @@ impl FlashChip {
         let r = match s {
             "ec" => Ok(FlashChip::EC),
             "host" => Ok(FlashChip::HOST),
-            "servo-v2" => Ok(FlashChip::SERVOv2),
+            "servo" => Ok(FlashChip::SERVO),
             "dediprog" => Ok(FlashChip::DEDIPROG),
             _ => Err("cannot convert str to enum"),
         };
@@ -56,7 +56,7 @@ impl FlashChip {
         let r = match fc {
             FlashChip::EC => "ec",
             FlashChip::HOST => "host",
-            FlashChip::SERVOv2 => "ft2232_spi:type=servo-v2",
+            FlashChip::SERVO => "ft2232_spi:type=servo-v2",
             FlashChip::DEDIPROG => "dediprog",
         };
         return r;

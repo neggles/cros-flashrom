@@ -65,7 +65,7 @@ fn dispatch_args(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let fc: Result<types::FlashChip, &str> = types::FlashChip::from(&flashchip[..]);
             if fc.is_err() {
                 return Err(
-                    "Missing flashchip type, should be either 'ec', 'host', or 'servo-v2'.".into(),
+                    "Missing flashchip type, should be either 'ec', 'host', or 'servo'.".into(),
                 );
             }
             tests::generic(path, fc.unwrap())
@@ -81,7 +81,7 @@ fn help(s: Option<&str>) {
     }
     eprintln!(
         "Usage:
-    flashrom_tester flashrom.bin <ec|host|servo-v2>"
+    flashrom_tester flashrom.bin <ec|host|servo>"
     );
 }
 

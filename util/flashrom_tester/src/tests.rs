@@ -67,7 +67,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
     let default_test_params = match fc {
         types::FlashChip::EC => ec(&cmd),
         types::FlashChip::HOST => host(&cmd),
-        types::FlashChip::SERVOv2 => servov2(&cmd),
+        types::FlashChip::SERVO => servo(&cmd),
         types::FlashChip::DEDIPROG => dediprog(&cmd),
     };
 
@@ -75,15 +75,15 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
     //
     let wp_test_fn = |param: &tester::TestParams| {
         // TODO(quasisec): Should this be in generic() ?
-        let wpen =
-            if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
-                let wp = utils::gather_system_info()?;
-                let state = if wp { "EN" } else { "DIS" };
-                info!("Hardware write protect is {}ABLED", state);
-                wp
-            } else {
-                true
-            };
+        let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
+        {
+            let wp = utils::gather_system_info()?;
+            let state = if wp { "EN" } else { "DIS" };
+            info!("Hardware write protect is {}ABLED", state);
+            wp
+        } else {
+            true
+        };
 
         // NOTE: This is not strictly a 'test' as it is allowed to fail on some platforms.
         //       However, we will warn when it does fail.
@@ -188,15 +188,15 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
         flashrom::wp_toggle(&param.cmd, true)?;
 
         // TODO(quasisec): Should this be in generic() ?
-        let wpen =
-            if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
-                let wp = utils::gather_system_info()?;
-                let state = if wp { "EN" } else { "DIS" };
-                info!("Hardware write protect is {}ABLED", state);
-                wp
-            } else {
-                true
-            };
+        let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
+        {
+            let wp = utils::gather_system_info()?;
+            let state = if wp { "EN" } else { "DIS" };
+            info!("Hardware write protect is {}ABLED", state);
+            wp
+        } else {
+            true
+        };
 
         if !wpen && flashrom::wp_status(&param.cmd, true)? {
             info!("WP should unlock since hardware WP is de-asserted.  Attempting to disable..");
@@ -220,15 +220,15 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
         utils::toggle_hw_wp(false);
 
         // TODO(quasisec): Should this be in generic() ?
-        let wpen =
-            if param.fc != types::FlashChip::SERVOv2 && param.fc != types::FlashChip::DEDIPROG {
-                let wp = utils::gather_system_info()?;
-                let state = if wp { "EN" } else { "DIS" };
-                info!("Hardware write protect is {}ABLED", state);
-                wp
-            } else {
-                true
-            };
+        let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
+        {
+            let wp = utils::gather_system_info()?;
+            let state = if wp { "EN" } else { "DIS" };
+            info!("Hardware write protect is {}ABLED", state);
+            wp
+        } else {
+            true
+        };
 
         if wpen && flashrom::wp_status(&param.cmd, true)? {
             info!("WP should stay locked since hardware WP is asserted.  Attempting to disable..");
@@ -461,7 +461,7 @@ fn ec(cmd: &cmd::FlashromCmd) -> tester::TestParams {
     panic!("Error: Unimplemented in this version, Please use 'host' parameter.");
 }
 
-fn servov2(cmd: &cmd::FlashromCmd) -> tester::TestParams {
+fn servo(cmd: &cmd::FlashromCmd) -> tester::TestParams {
     let pre_fn = |_: &tester::TestParams| {
         if cmd::dut_ctrl_toggle_wp(false).is_err() {
             error!("failed to dispatch dut_ctrl_toggle_wp()!");
@@ -474,7 +474,7 @@ fn servov2(cmd: &cmd::FlashromCmd) -> tester::TestParams {
     };
     return tester::TestParams {
         cmd: &cmd,
-        fc: types::FlashChip::SERVOv2,
+        fc: types::FlashChip::SERVO,
         log_text: None,
         pre_fn: Some(pre_fn),
         post_fn: Some(post_fn),
