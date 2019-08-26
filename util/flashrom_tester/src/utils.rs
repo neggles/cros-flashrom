@@ -165,12 +165,16 @@ fn parse_crosssystem(s: &str) -> Result<(Vec<&str>, bool), &'static str> {
     let sysinfo = s
         .split_terminator("\n")
         .filter(|s| !s.contains("fwid +=") && !s.contains("hwid +="));
-    let wp_s = sysinfo.clone().filter(|s| s.contains("wpsw_cur"));
 
-    let wp_s_val = wp_s
-        .collect::<Vec<_>>()
-        .first()
-        .unwrap()
+    let state_line = match sysinfo
+        .clone()
+        .filter(|s| s.starts_with("wpsw_cur "))
+        .next()
+    {
+        None => return Err("No wpsw_cur in system info"),
+        Some(line) => line,
+    };
+    let wp_s_val = state_line
         .trim_start_matches("wpsw_cur")
         .trim_start_matches(' ')
         .trim_start_matches('=')
@@ -259,6 +263,42 @@ mod tests {
                 bottom_quad_top: 0x3FFF,
                 top_quad_bottom: 0xC000,
             }
+        );
+    }
+
+    #[test]
+    fn parse_crosssystem() {
+        use super::parse_crosssystem;
+
+        assert_eq!(
+            parse_crosssystem("This is not the tool you are looking for").err(),
+            Some("No wpsw_cur in system info")
+        );
+
+        assert_eq!(
+            parse_crosssystem("wpsw_cur = ERROR").err(),
+            Some("Cannot parse state value")
+        );
+
+        assert_eq!(
+            parse_crosssystem("wpsw_cur = 3").err(),
+            Some("Unknown state value")
+        );
+
+        assert_eq!(
+            parse_crosssystem(
+                "fwid += 123wpsw_cur\n\
+                 hwid += aaaaa\n\
+                 wpsw_boot                  = 0                      # [RO/int]\n\
+                 wpsw_cur                   = 1                      # [RO/int]\n"
+            ),
+            Ok((
+                vec![
+                    "wpsw_boot                  = 0                      # [RO/int]",
+                    "wpsw_cur                   = 1                      # [RO/int]"
+                ],
+                true
+            ))
         );
     }
 }
