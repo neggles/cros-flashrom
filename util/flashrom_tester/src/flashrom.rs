@@ -194,8 +194,17 @@ pub fn wp_status(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError
 pub fn wp_toggle(cmd: &cmd::FlashromCmd, en: bool) -> Result<bool, FlashromError> {
     let status = if en { "en" } else { "dis" };
 
+    // For MTD, --wp-range and --wp-enable must be used simultaneously.
+    let range = if en {
+        let rom_sz: i64 = cmd.get_size()?;
+        Some((0, rom_sz)) // (start, len)
+    } else {
+        None
+    };
+
     let opts = FlashromOpt {
         wp_opt: WPOpt {
+            range: range,
             enable: en,
             disable: !en,
             ..Default::default()
