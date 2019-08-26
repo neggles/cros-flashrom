@@ -166,11 +166,7 @@ fn parse_crosssystem(s: &str) -> Result<(Vec<&str>, bool), &'static str> {
         .split_terminator("\n")
         .filter(|s| !s.contains("fwid +=") && !s.contains("hwid +="));
 
-    let state_line = match sysinfo
-        .clone()
-        .filter(|s| s.starts_with("wpsw_cur "))
-        .next()
-    {
+    let state_line = match sysinfo.clone().filter(|s| s.starts_with("wpsw_cur")).next() {
         None => return Err("No wpsw_cur in system info"),
         Some(line) => line,
     };
@@ -283,6 +279,21 @@ mod tests {
         assert_eq!(
             parse_crosssystem("wpsw_cur = 3").err(),
             Some("Unknown state value")
+        );
+
+        assert_eq!(
+            parse_crosssystem("wpsw_cur = 0"),
+            Ok((vec!["wpsw_cur = 0"], false))
+        );
+
+        assert_eq!(
+            parse_crosssystem("wpsw_cur = 1"),
+            Ok((vec!["wpsw_cur = 1"], true))
+        );
+
+        assert_eq!(
+            parse_crosssystem("wpsw_cur=1"),
+            Ok((vec!["wpsw_cur=1"], true))
         );
 
         assert_eq!(
