@@ -57,7 +57,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn _gen_rand_testdata() {
+    fn gen_rand_testdata() {
+        use super::gen_rand_testdata;
+
         let path0 = "/tmp/idk_test00";
         let path1 = "/tmp/idk_test01";
         let sz = 1024;

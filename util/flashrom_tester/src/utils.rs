@@ -198,7 +198,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn _vgrep() {
+    fn vgrep() {
+        use super::vgrep;
+
         let s = "XXXqcYYY";
         let m = "qc";
         let n = "zz";
