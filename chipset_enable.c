@@ -481,6 +481,8 @@ static int enable_flash_byt(struct pci_dev *dev, const char *name)
 		return ERROR_FATAL;
 	}
 	ilb = physmap("BYT IBASE", ilb_base, 512);
+	if (ilb == ERROR_PTR)
+		return ERROR_FATAL;
 
 	idsel = extract_programmer_param("fwh_idsel");
 	if (idsel && strlen(idsel)) {
@@ -695,6 +697,8 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 
 	/* Map RCBA to virtual memory */
 	rcrb = physmap("ICH RCRB", tmp, 0x4000);
+	if (rcrb == ERROR_PTR)
+		return ERROR_FATAL;
 
 	/* Test Boot BIOS Strap Status */
 	bnt = mmio_readl(rcrb + 0x3410);
@@ -823,6 +827,8 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 
 		/* Map SPI BAR to virtual memory */
 		rcrb = physmap("PCH SPI BAR0", tmp, 0x4000);
+		if (rcrb == ERROR_PTR)
+			return ERROR_FATAL;
 
 		/* Set BBS (Boot BIOS Straps) field of GCS register. */
 		gcs = mmio_readl((void *)dev + 0xdc);
@@ -839,6 +845,8 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 
 		/* Map SPI BAR to virtual memory */
 		rcrb = physmap("PCH SPI BAR0", tmp, 0x4000);
+		if (rcrb == ERROR_PTR)
+			return ERROR_FATAL;
 
 		/* Set BBS (Boot BIOS Straps) field of GCS register. */
 		gcs = pci_read_long(dev, 0xdc);
@@ -855,6 +863,8 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 
 		/* Map RCBA to virtual memory */
 		rcrb = physmap("ICH RCRB", tmp, 0x4000);
+		if (rcrb == ERROR_PTR)
+			return ERROR_FATAL;
 
 		/* Set BBS (Boot BIOS Straps) field of GCS register. */
 		gcs = mmio_readl(rcrb + 0x3410);
@@ -1083,6 +1093,8 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 	uint32_t addr = (0xe0000000 | (0xd << 15) | (0x2 << 12));
 
 	void *spicfg = physmap("SPI PCI CONFIG", addr, 0x1000);
+	if (spicfg == ERROR_PTR)
+		return ERROR_FATAL;
 
 	msg_pdbg("Vendor ID: %x, Device ID: %x, BAR: %x\n",
 		 mmio_readw(spicfg + 0x0), mmio_readw(spicfg + 0x2),
@@ -1120,6 +1132,8 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 
 	/* Map RCBA to virtual memory */
 	rcrb = physmap("BYT RCRB", tmp, 0x4000);
+	if (rcrb == ERROR_PTR)
+		return ERROR_FATAL;
 
 	/* Set BBS (Boot BIOS Straps) field of GCS register. */
 	gcs = mmio_readl(rcrb + 0);
@@ -1154,6 +1168,8 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 	tmp = pci_read_long(dev, 0x54) & 0xfffffe00;
 	msg_pdbg("SPI_BASE_ADDRESS = 0x%x\n", tmp);
 	spibar = physmap("BYT SBASE", tmp, 512);
+	if (spibar == ERROR_PTR)
+		return ERROR_FATAL;
 
 	ret_spi = ich_init_spi(dev, tmp, spibar, CHIPSET_BAYTRAIL);
 	if (ret_spi == ERROR_FATAL)
@@ -1635,6 +1651,8 @@ static int get_flashbase_sc520(struct pci_dev *dev, const char *name)
 
 	/* 1. Map MMCR */
 	mmcr = physmap("Elan SC520 MMCR", 0xfffef000, getpagesize());
+	if (mmcr == ERROR_PTR)
+		return ERROR_FATAL;
 
 	/* 2. Scan PAR0 (0x88) - PAR15 (0xc4) for
 	 *    BOOTCS region (PARx[31:29] = 100b)e
@@ -2051,6 +2069,8 @@ int get_target_bus_from_chipset(enum chipbustype *bus)
 
 		/* Map RCBA to virtual memory */
 		rcrb = physmap("ICH RCRB", tmp, 0x4000);
+		if (rcrb == ERROR_PTR)
+			return ERROR_FATAL;
 		break;
 	}
 
