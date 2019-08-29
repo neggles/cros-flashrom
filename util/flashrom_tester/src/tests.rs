@@ -62,6 +62,11 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
     info!("Create a Binary with random contents.");
     rand_util::gen_rand_testdata("/tmp/random_content.bin", rom_sz as usize)?;
 
+    info!(
+        "Record crossystem information.\n{}",
+        utils::collect_crosssystem()?
+    );
+
     // run specialization tests:
     //  ================================================
     let default_test_params = match fc {
@@ -77,7 +82,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
         // TODO(quasisec): Should this be in generic() ?
         let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
         {
-            let wp = utils::gather_system_info()?;
+            let wp = utils::get_hardware_wp()?;
             let state = if wp { "EN" } else { "DIS" };
             info!("Hardware write protect is {}ABLED", state);
             wp
@@ -190,7 +195,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
         // TODO(quasisec): Should this be in generic() ?
         let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
         {
-            let wp = utils::gather_system_info()?;
+            let wp = utils::get_hardware_wp()?;
             let state = if wp { "EN" } else { "DIS" };
             info!("Hardware write protect is {}ABLED", state);
             wp
@@ -222,7 +227,7 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
         // TODO(quasisec): Should this be in generic() ?
         let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
         {
-            let wp = utils::gather_system_info()?;
+            let wp = utils::get_hardware_wp()?;
             let state = if wp { "EN" } else { "DIS" };
             info!("Hardware write protect is {}ABLED", state);
             wp

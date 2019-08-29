@@ -110,7 +110,11 @@ pub fn run_all_tests<'a>(
 ) -> Vec<(&'a str, (TestConclusion, Option<TestError>))> {
     let mut results = Vec::new();
     for t in ts {
-        results.push((t.name, run_test(t)));
+        info!("Begin test: {}", t.name);
+        let result = run_test(t);
+        info!("Completed {}: {:?}", t.name, result);
+
+        results.push((t.name, result));
     }
     results
 }

@@ -34,7 +34,6 @@
 //
 
 use std::io::prelude::*;
-use std::io::{Error, ErrorKind};
 use std::process::Command;
 
 pub fn vgrep(s: &str, m: &str) -> String {
@@ -96,13 +95,13 @@ pub fn construct_layout_file<F: Write>(mut target: F, ls: &LayoutSizes) -> std::
     writeln!(target, "{:x}:{:x} TOP_QUAD", ls.top_quad_bottom, ls.rom_top)
 }
 
-pub fn toggle_hw_wp(dis: bool) -> Result<(), std::io::Error> {
+pub fn toggle_hw_wp(dis: bool) -> Result<(), String> {
     // The easist way to toggle the harware write-protect is
     // to {dis}connect the battery.
     let s = if dis { "dis" } else { "" };
     info!(" > {}connect the battery", s);
     pause();
-    let wp = gather_system_info()?;
+    let wp = get_hardware_wp()?;
     if wp && dis {
         warn!("Hardware write protect is still ENABLED!");
         return toggle_hw_wp(dis);
@@ -123,9 +122,16 @@ fn pause() {
     std::io::stdin().read(&mut [0]).unwrap();
 }
 
-pub fn gather_system_info() -> std::result::Result<(bool), std::io::Error> {
-    info!("Gathering system information for the log file.");
-    let cmd = Command::new("crossystem").output()?;
+pub fn get_hardware_wp() -> std::result::Result<bool, String> {
+    let (_, wp) = parse_crosssystem(&collect_crosssystem()?)?;
+    Ok(wp)
+}
+
+pub fn collect_crosssystem() -> Result<String, String> {
+    let cmd = match Command::new("crossystem").output() {
+        Ok(x) => x,
+        Err(e) => return Err(format!("Failed to run crossystem: {}", e)),
+    };
 
     if !cmd.status.success() {
         // There is two cases on failure;
@@ -133,31 +139,15 @@ pub fn gather_system_info() -> std::result::Result<(bool), std::io::Error> {
         //  ii.) A SIG killed us.
         match cmd.status.code() {
             Some(code) => {
-                let e = format!("Exited with error code: {}", code);
-                return Err(Error::new(ErrorKind::Other, e));
+                return Err(format!("Exited with error code: {}", code));
             }
             None => {
-                return Err(Error::new(
-                    ErrorKind::Other,
-                    "Process terminated by a signal",
-                ))
+                return Err("Process terminated by a signal".into());
             }
         }
     };
 
-    let stdout = String::from_utf8_lossy(&cmd.stdout);
-    match parse_crosssystem(&stdout) {
-        Ok((sysinfo, wp)) => {
-            info!("{:#?}", sysinfo);
-            return Ok(wp);
-        }
-        Err(_) => {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Hardware write protect is Unknown",
-            ))
-        }
-    }
+    Ok(String::from_utf8_lossy(&cmd.stdout).into_owned())
 }
 
 fn parse_crosssystem(s: &str) -> Result<(Vec<&str>, bool), &'static str> {
