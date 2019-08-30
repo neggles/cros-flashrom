@@ -723,7 +723,7 @@ int main(int argc, char *argv[])
 	// FIXME(quasisec): Hack to loop correctly while we have no actual
 	// registered masters. Remove once we use new dispatch mechanism!
 	const struct registered_master mst_nop;
-	register_master(&mst_nop);
+	if (!registered_master_count) register_master(&mst_nop);
 
 	tempstr = flashbuses_to_text(get_buses_supported());
 	msg_pdbg("The following protocols are supported: %s.\n", tempstr);
@@ -731,9 +731,9 @@ int main(int argc, char *argv[])
 	tempstr = NULL;
 
 	for (j = 0; j < registered_master_count; j++) {
-		for (i = 0; i < ARRAY_SIZE(flashes); i++) {
+		while (chipcount < (int)ARRAY_SIZE(flashes)) {
 			startchip = probe_flash(&registered_masters[j],
-						startchip, &flashes[i], 0);
+						startchip, &flashes[chipcount], 0);
 			if (startchip == -1)
 				break;
 			chipcount++;
