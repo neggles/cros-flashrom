@@ -150,10 +150,6 @@ int block_erase_chip_m29f400bt(struct flashctx *flash, unsigned int start, unsig
 int write_m29f400bt(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 void protect_m29f400bt(struct flashctx *flash, chipaddr bios);
 
-/* pm49fl00x.c */
-int unlock_49fl00x(struct flashctx *flash);
-int lock_49fl00x(struct flashctx *flash);
-
 /* sst28sf040.c */
 int erase_chip_28sf040(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 int erase_sector_28sf040(struct flashctx *flash, unsigned int address, unsigned int sector_size);
