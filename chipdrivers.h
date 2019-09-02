@@ -135,6 +135,14 @@ int erase_sector_jedec(struct flashctx *flash, unsigned int page, unsigned int p
 int erase_block_jedec(struct flashctx *flash, unsigned int page, unsigned int blocksize);
 int erase_chip_block_jedec(struct flashctx *flash, unsigned int page, unsigned int blocksize);
 
+int unlock_regspace2_uniform_32k(struct flashctx *flash);
+int unlock_regspace2_uniform_64k(struct flashctx *flash);
+int unlock_regspace2_block_eraser_0(struct flashctx *flash);
+int unlock_regspace2_block_eraser_1(struct flashctx *flash);
+int printlock_regspace2_uniform_64k(struct flashctx *flash);
+int printlock_regspace2_block_eraser_0(struct flashctx *flash);
+int printlock_regspace2_block_eraser_1(struct flashctx *flash);
+
 /* m29f400bt.c */
 int probe_m29f400bt(struct flashctx *flash);
 int block_erase_m29f400bt(struct flashctx *flash, unsigned int start, unsigned int len);
