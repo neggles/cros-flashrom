@@ -276,7 +276,6 @@
 #define EON_EN25P64		0x16
 #define EON_EN25B64T		0x46
 #define EON_EN25B64B		0x36
-#define EON_EN25D16		0x3015
 #define EON_EN25Q40		0x3013
 #define EON_EN25Q80		0x3014
 #define EON_EN25D16		0x3015	/* Same as Q16 */
