@@ -112,7 +112,6 @@ int probe_82802ab(struct flashctx *flash);
 int erase_block_82802ab(struct flashctx *flash, unsigned int page, unsigned int pagesize);
 int write_82802ab(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 void print_status_82802ab(uint8_t status);
-int unlock_82802ab(struct flashctx *flash);
 int unlock_28f004s5(struct flashctx *flash);
 int unlock_lh28f008bjt(struct flashctx *flash);
 
