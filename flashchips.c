@@ -2377,7 +2377,7 @@ const struct flashchip flashchips[] = {
 		.manufacture_id	= ATMEL_ID,
 		.model_id	= ATMEL_AT49F020,
 		.total_size	= 256,
-		.page_size	= 256,
+		.page_size	= 0, /* unused */
 		.feature_bits	= FEATURE_EITHER_RESET,
 		.tested		= TEST_OK_PRE,
 		.probe		= probe_jedec,
@@ -2388,7 +2388,14 @@ const struct flashchip flashchips[] = {
 				.eraseblocks = { {256 * 1024, 1} },
 				.block_erase = erase_chip_block_jedec,
 			}
+			/* Chip features an optional permanent write protection
+			 * of the first 8 kB. The erase function is the same as
+			 * above, but 00000H to 01FFFH will not be erased.
+			 * FIXME: add another eraser when partial erasers are
+			 * supported.
+			 */
 		},
+		.printlock	= printlock_at49f,
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {4500, 5500},
