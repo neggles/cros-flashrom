@@ -445,12 +445,6 @@ int spi_prettyprint_status_register_bp2_tb_bpl(struct flashctx *flash)
  * by the second status register.
  */
 
-static void spi_prettyprint_status_register_amic_a25_srwd(uint8_t status)
-{
-	msg_cdbg("Chip status register: Status Register Write Disable "
-		     "(SRWD) is %sset\n", (status & (1 << 7)) ? "" : "not ");
-}
-
 int spi_prettyprint_status_register_amic_a25l032(struct flashctx *flash)
 {
 	uint8_t status = spi_read_status_register(flash);
@@ -464,26 +458,6 @@ int spi_prettyprint_status_register_amic_a25l032(struct flashctx *flash)
 	msg_cdbg("Chip status register 2 is NOT decoded!\n");
 	return 0;
 }
-
-int spi_prettyprint_status_register_amic_a25lq032(struct flashctx *flash)
-{
-	uint8_t status;
-
-	status = spi_read_status_register(flash);
-	msg_cdbg("Chip status register is %02x\n", status);
-
-	spi_prettyprint_status_register_amic_a25_srwd(status);
-	msg_cdbg("Chip status register: Sector Protect Size (SEC) "
-		 "is %i KB\n", (status & (1 << 6)) ? 4 : 64);
-	msg_cdbg("Chip status register: Top/Bottom (TB) "
-		 "is %s\n", (status & (1 << 5)) ? "bottom" : "top");
-	spi_prettyprint_status_register_bp3210(status, 2);
-	spi_prettyprint_status_register_welwip(status);
-	msg_cdbg("Chip status register 2 is NOT decoded!\n");
-	return 0;
-}
-
-//
 
 /* === Atmel === */
 
