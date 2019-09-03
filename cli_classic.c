@@ -108,7 +108,7 @@ static enum programmer default_programmer =
 ;
 #endif
 
-void cli_classic_usage(const char *name)
+static void cli_classic_usage(const char *name)
 {
 
 	msg_ginfo("Usage: flashrom [-n] [-V] [-f] [-h|-R|-L|"
@@ -188,7 +188,7 @@ void cli_classic_usage(const char *name)
 	         "flash chips.\n\n");
 }
 
-void cli_classic_abort_usage(const char *name)
+static void cli_classic_abort_usage(const char *name)
 {
 	msg_gerr("Please run \"%s --help\" for usage info.\n", name);
 	exit(1);
