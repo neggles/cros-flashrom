@@ -122,7 +122,7 @@ struct programmer_entry {
 	void *(*map_flash_region) (const char *descr, uintptr_t phys_addr, size_t len);
 	void (*unmap_flash_region) (void *virt_addr, size_t len);
 
-	void (*delay) (int usecs);
+	void (*delay) (unsigned int usecs);
 
 	/*
 	 * If set, use extra precautions such as erasing with small block sizes
@@ -238,9 +238,9 @@ extern const struct board_info laptops_known[];
 #endif
 
 /* udelay.c */
-void myusec_delay(int usecs);
+void myusec_delay(unsigned int usecs);
 void myusec_calibrate_delay(void);
-void internal_delay(int usecs);
+void internal_delay(unsigned int usecs);
 
 #if NEED_PCI == 1
 /* pcidev.c */
@@ -728,7 +728,7 @@ int register_master(const struct registered_master *mst);
 /* serprog.c */
 #if CONFIG_SERPROG == 1
 int serprog_init(void);
-void serprog_delay(int usecs);
+void serprog_delay(unsigned int usecs);
 #endif
 
 /* serial.c */

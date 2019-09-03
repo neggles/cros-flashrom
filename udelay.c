@@ -14,18 +14,19 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #ifndef __LIBPAYLOAD__
 
+#include <stdbool.h>
 #include <unistd.h>
+#include <errno.h>
 #include <time.h>
 #include <sys/time.h>
 #include <stdlib.h>
 #include <limits.h>
-#include <errno.h>
 #include "flash.h"
+#include "programmer.h"
 
 /* 100ms is currently the highest delay period for operations that are expected
  * to be called repeatedly (such as block erases). Delays beyond that are used
@@ -54,10 +55,10 @@ static unsigned long measure_os_delay_resolution(void)
 	unsigned long timeusec;
 	struct timeval start, end;
 	unsigned long counter = 0;
-	
+
 	gettimeofday(&start, NULL);
 	timeusec = 0;
-	
+
 	while (!timeusec && (++counter < 1000000000)) {
 		gettimeofday(&end, NULL);
 		timeusec = 1000000 * (end.tv_sec - start.tv_sec) +
@@ -77,7 +78,7 @@ static unsigned long measure_delay(unsigned int usecs)
 {
 	unsigned long timeusec;
 	struct timeval start, end;
-	
+
 	gettimeofday(&start, NULL);
 	myusec_delay(usecs);
 	gettimeofday(&end, NULL);
@@ -128,7 +129,7 @@ recalibrate:
 	/* Avoid division by zero, but in that case the loop is shot anyway. */
 	if (!timeusec)
 		timeusec = 1;
-	
+
 	/* Compute rounded up number of loops per microsecond. */
 	micro = (count * micro) / timeusec + 1;
 	msg_pdbg("%luM loops per second, ", micro);
@@ -236,7 +237,7 @@ void internal_delay(unsigned int usecs)
 	}
 }
 
-#else 
+#else
 #include <libpayload.h>
 
 void myusec_calibrate_delay(void)
