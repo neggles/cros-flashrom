@@ -308,19 +308,19 @@ const struct programmer_entry programmer_table[] = {
 
 #define CHIP_RESTORE_MAXFN 4
 static int chip_restore_fn_count = 0;
-struct chip_restore_func_data {
+static struct chip_restore_func_data {
 	CHIP_RESTORE_CALLBACK;
 	struct flashctx *flash;
 	uint8_t status;
-} static chip_restore_fn[CHIP_RESTORE_MAXFN];
+} chip_restore_fn[CHIP_RESTORE_MAXFN];
 
 
 #define SHUTDOWN_MAXFN 32
 static int shutdown_fn_count = 0;
-struct shutdown_func_data {
+static struct shutdown_func_data {
 	int (*func) (void *data);
 	void *data;
-} static shutdown_fn[SHUTDOWN_MAXFN];
+} shutdown_fn[SHUTDOWN_MAXFN];
 /* Initialize to 0 to make sure nobody registers a shutdown function before
  * programmer init.
  */
