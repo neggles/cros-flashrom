@@ -1119,7 +1119,7 @@ int probe_flash(struct registered_master *mst, int startchip,
 	 * needs to use (hwseq or swseq),
 	 * set the flashchips list here.
 	 */
-	switch (ich_generation) {
+	switch (g_ich_generation) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_APL:
 		flash_list = flashchips_hwseq;

@@ -338,7 +338,7 @@ static int enable_flash_ich_apl(void *dev, const char *name, int bios_cntl)
 				  apl_write_bios_cntl) ? ERROR_FATAL : 0;
 }
 
-static int enable_flash_ich_fwh_decode(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation_)
+static int enable_flash_ich_fwh_decode(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
 {
 	uint32_t fwh_conf;
 	uint8_t fwh_sel1, fwh_sel2, fwh_dec_en_lo, fwh_dec_en_hi;
@@ -347,12 +347,12 @@ static int enable_flash_ich_fwh_decode(struct pci_dev *dev, const char *name, en
 	int max_decode_fwh_idsel = 0, max_decode_fwh_decode = 0;
 	int contiguous = 1;
 
-	if (ich_generation_ >= CHIPSET_ICH6) {
+	if (ich_generation >= CHIPSET_ICH6) {
 		fwh_sel1 = 0xd0;
 		fwh_sel2 = 0xd4;
 		fwh_dec_en_lo = 0xd8;
 		fwh_dec_en_hi = 0xd9;
-	} else if (ich_generation_ >= CHIPSET_ICH2) {
+	} else if (ich_generation >= CHIPSET_ICH2) {
 		fwh_sel1 = 0xe8;
 		fwh_sel2 = 0xee;
 		fwh_dec_en_lo = 0xf0;
@@ -600,7 +600,7 @@ static int enable_flash_ich0(struct pci_dev *dev, const char *name)
 	return enable_flash_ich(dev, name, 0x4e);
 }
 
-static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation_)
+static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
 {
 	int err;
 
@@ -632,7 +632,7 @@ static int enable_flash_ich5(struct pci_dev *dev, const char *name)
 	return enable_flash_ich_4e(dev, name, CHIPSET_ICH5);
 }
 
-static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation_)
+static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
 {
 	int err;
 
@@ -853,7 +853,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	default:
 		/* Enable Flash Writes */
-		ret = enable_flash_ich_dc(dev, name, ich_generation);
+		ret = enable_flash_ich_dc(dev, name, g_ich_generation);
 		if (ret == ERROR_FATAL)
 			return ret;
 

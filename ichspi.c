@@ -513,7 +513,7 @@ static int generate_opcodes(OPCODES * op)
 		return -1;
 	}
 
-	switch (ich_generation) {
+	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
 		preop = REGREAD16(ICH7_REG_PREOP);
 		optype = REGREAD16(ICH7_REG_OPTYPE);
@@ -585,7 +585,7 @@ static int program_opcodes(OPCODES *op, int enable_undo)
 	}
 
 	msg_pdbg("\n%s: preop=%04x optype=%04x opmenu=%08x%08x\n", __func__, preop, optype, opmenu[0], opmenu[1]);
-	switch (ich_generation) {
+	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
 		/* Register undo only for enable_undo=1, i.e. first call. */
 		if (enable_undo) {
@@ -650,7 +650,7 @@ static int ich_missing_opcodes()
 static void ich_set_bbar(uint32_t min_addr)
 {
 	int bbar_off;
-	switch (ich_generation) {
+	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
 		bbar_off = 0x50;
 		break;
@@ -1028,7 +1028,7 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 		return SPI_INVALID_LENGTH;
 	}
 
-	switch (ich_generation) {
+	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
 		return ich7_run_opcode(op, offset, datalength, data, maxlength);
 	case CHIPSET_ICH8:
@@ -2043,14 +2043,14 @@ static void do_ich9_spi_frap(uint32_t frap, int i)
 		 */
 		rwperms = FD_REGION_READ_WRITE;
 		if (i == EMBEDDED_CONTROLLER_REGION &&
-		    ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
+		    g_ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
 			struct ich_descriptors desc = {{ 0 }};
 			/* Region is RW if flash descriptor override is set */
 			freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
 			if ((freg & HSFSC_FDV) && !(freg & HSFSC_FDOPSS))
 				rwperms = FD_REGION_READ_WRITE;
 			else if (read_ich_descriptors_via_fdo(ich_spibar, &desc,
-						ich_generation) == ICH_RET_OK) {
+						g_ich_generation) == ICH_RET_OK) {
 				if (desc.master.pch100.BIOS_EC_r &&
 				    desc.master.pch100.BIOS_EC_w)
 					rwperms = FD_REGION_READ_WRITE;
@@ -2183,7 +2183,7 @@ static struct opaque_master opaque_master_ich_hwseq = {
 };
 
 int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
-		 enum ich_chipset ich_gen)
+		 enum ich_chipset ich_generation)
 {
 	int i;
 	uint8_t old, new;
@@ -2198,7 +2198,7 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 		ich_swseq
 	} ich_spi_mode = ich_auto;
 
-	ich_generation = ich_gen;
+	g_ich_generation = ich_generation;
 	msg_pdbg("ich_ generation %d\n", ich_generation);
 
 	switch (ich_generation) {
@@ -2560,7 +2560,7 @@ int via_init_spi(struct pci_dev *dev)
 
 	/* Not sure if it speaks all these bus protocols. */
 	internal_buses_supported &= BUS_LPC | BUS_FWH;
-	ich_generation = CHIPSET_ICH7;
+	g_ich_generation = CHIPSET_ICH7;
 	register_spi_master(&spi_master_via);
 
 	msg_pdbg("0x00: 0x%04x     (SPIS)\n", mmio_readw(ich_spibar + 0));

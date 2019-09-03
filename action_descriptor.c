@@ -115,7 +115,7 @@ static void fix_erasers_if_needed(struct flashchip *chip,
 	 * But ICH type does not affect EC programming path, so no need to
 	 * check if the eraser is supported in that case.
 	 */
-	if ((ich_generation == CHIPSET_ICH_UNKNOWN) || programming_ec()) {
+	if ((g_ich_generation == CHIPSET_ICH_UNKNOWN) || programming_ec()) {
 		msg_pdbg("%s: kept all erasers\n",  __func__);
 		return;
 	}
