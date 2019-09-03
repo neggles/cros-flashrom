@@ -96,7 +96,7 @@ static int sp_opensocket(char *ip, unsigned int port)
 	}
 	sp.si.sin_family = AF_INET;
 	sp.si.sin_port = htons(port);
-	(void)memcpy(&sp.si.sin_addr, hostPtr->h_addr, hostPtr->h_length);
+	(void)memcpy(&sp.si.sin_addr, hostPtr->h_addr_list[0], hostPtr->h_length);
 	if (connect(sock, &sp.s, sizeof(sp.si)) < 0) {
 		close(sock);
 		sp_die("Error: serprog cannot connect");
