@@ -21,6 +21,7 @@
  * Contains the board specific flash enables.
  */
 
+#include <strings.h>
 #include <string.h>
 #include "flash.h"
 #include "programmer.h"
