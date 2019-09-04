@@ -608,15 +608,6 @@ static int enable_flash_byt(struct pci_dev *dev, const char *name)
 	return 0;
 }
 
-static int enable_flash_ich0(struct pci_dev *dev, const char *name)
-{
-	internal_buses_supported &= BUS_FWH;
-	/* FIXME: Make this use enable_flash_ich_4e() too and add IDSEL support. Unlike later chipsets,
-	 * ICH and ICH-0 do only support mapping of the top-most 4MB and therefore do only feature
-	 * FWH_DEC_EN (E3h, different default too) and FWH_SEL (E8h). */
-	return enable_flash_ich(dev, name, 0x4e);
-}
-
 static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
 {
 	int err;
@@ -627,11 +618,6 @@ static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_c
 
 	internal_buses_supported &= BUS_FWH;
 	return enable_flash_ich(dev, name, 0x4e);
-}
-
-static int enable_flash_ich2345(struct pci_dev *dev, const char *name)
-{
-	return enable_flash_ich_4e(dev, name, CHIPSET_ICH2345);
 }
 
 static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
@@ -647,6 +633,20 @@ static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_c
 	 */
 	internal_buses_supported &= BUS_FWH;
 	return enable_flash_ich(dev, name, 0xdc);
+}
+
+static int enable_flash_ich0(struct pci_dev *dev, const char *name)
+{
+	internal_buses_supported &= BUS_FWH;
+	/* FIXME: Make this use enable_flash_ich_4e() too and add IDSEL support. Unlike later chipsets,
+	 * ICH and ICH-0 do only support mapping of the top-most 4MB and therefore do only feature
+	 * FWH_DEC_EN (E3h, different default too) and FWH_SEL (E8h). */
+	return enable_flash_ich(dev, name, 0x4e);
+}
+
+static int enable_flash_ich2345(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_4e(dev, name, CHIPSET_ICH2345);
 }
 
 static int enable_flash_ich6(struct pci_dev *dev, const char *name)
@@ -672,51 +672,6 @@ static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 
 	internal_buses_supported &= BUS_FWH;
 	return 0;
-}
-
-static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
-{
-	uint16_t old, new;
-	uint32_t tmp, bnt;
-	void *rcrb;
-	int ret;
-
-	/* Enable Flash Writes */
-	ret = enable_flash_ich(dev, name, 0xd8);
-	if (ret == ERROR_FATAL)
-		return ret;
-
-	/* Make sure BIOS prefetch mechanism is disabled */
-	old = pci_read_byte(dev, 0xd9);
-	msg_pdbg("BIOS Prefetch Enable: %sabled, ", (old & 1) ? "en" : "dis");
-	new = old & ~1;
-	if (new != old)
-		rpci_write_byte(dev, 0xd9, new);
-
-	/* Get physical address of Root Complex Register Block */
-	tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
-	msg_pdbg("\nRoot Complex Register Block address = 0x%x\n", tmp);
-
-	/* Map RCBA to virtual memory */
-	rcrb = physmap("ICH RCRB", tmp, 0x4000);
-	if (rcrb == ERROR_PTR)
-		return ERROR_FATAL;
-
-	/* Test Boot BIOS Strap Status */
-	bnt = mmio_readl(rcrb + 0x3410);
-	if (bnt & 0x02) {
-		/* If strapped to LPC, no SPI initialization is required */
-		internal_buses_supported &= BUS_FWH;
-		return 0;
-	}
-
-	/* This adds BUS_SPI */
-	if (ich_init_spi(dev, tmp, rcrb, 7) != 0) {
-		if (!ret)
-			ret = ERROR_NONFATAL;
-	}
-
-	return ret;
 }
 
 static int enable_flash_vt8237s_spi(struct pci_dev *dev, const char *name)
@@ -1027,6 +982,51 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 
 	if (ret || ret_spi)
 		ret = ERROR_NONFATAL;
+
+	return ret;
+}
+
+static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
+{
+	uint16_t old, new;
+	uint32_t tmp, bnt;
+	void *rcrb;
+	int ret;
+
+	/* Enable Flash Writes */
+	ret = enable_flash_ich(dev, name, 0xd8);
+	if (ret == ERROR_FATAL)
+		return ret;
+
+	/* Make sure BIOS prefetch mechanism is disabled */
+	old = pci_read_byte(dev, 0xd9);
+	msg_pdbg("BIOS Prefetch Enable: %sabled, ", (old & 1) ? "en" : "dis");
+	new = old & ~1;
+	if (new != old)
+		rpci_write_byte(dev, 0xd9, new);
+
+	/* Get physical address of Root Complex Register Block */
+	tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
+	msg_pdbg("\nRoot Complex Register Block address = 0x%x\n", tmp);
+
+	/* Map RCBA to virtual memory */
+	rcrb = physmap("ICH RCRB", tmp, 0x4000);
+	if (rcrb == ERROR_PTR)
+		return ERROR_FATAL;
+
+	/* Test Boot BIOS Strap Status */
+	bnt = mmio_readl(rcrb + 0x3410);
+	if (bnt & 0x02) {
+		/* If strapped to LPC, no SPI initialization is required */
+		internal_buses_supported &= BUS_FWH;
+		return 0;
+	}
+
+	/* This adds BUS_SPI */
+	if (ich_init_spi(dev, tmp, rcrb, 7) != 0) {
+		if (!ret)
+			ret = ERROR_NONFATAL;
+	}
 
 	return ret;
 }
