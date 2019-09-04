@@ -338,52 +338,61 @@ static int enable_flash_ich_apl(void *dev, const char *name, int bios_cntl)
 				  apl_write_bios_cntl) ? ERROR_FATAL : 0;
 }
 
-static int enable_flash_ich_fwh_decode(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
+static int enable_flash_ich_fwh_decode(struct pci_dev *dev, enum ich_chipset ich_generation)
 {
-	uint32_t fwh_conf;
-	uint8_t fwh_sel1, fwh_sel2, fwh_dec_en_lo, fwh_dec_en_hi;
-	int i, tmp;
-	char *idsel = NULL;
-	int max_decode_fwh_idsel = 0, max_decode_fwh_decode = 0;
-	int contiguous = 1;
+	uint8_t fwh_sel1 = 0, fwh_sel2 = 0, fwh_dec_en_lo = 0, fwh_dec_en_hi = 0; /* silence compilers */
+	bool implemented = 0;
 
-	if (ich_generation >= CHIPSET_ICH6) {
-		fwh_sel1 = 0xd0;
-		fwh_sel2 = 0xd4;
-		fwh_dec_en_lo = 0xd8;
-		fwh_dec_en_hi = 0xd9;
-	} else if (ich_generation >= CHIPSET_ICH2) {
+	switch (ich_generation) {
+	case CHIPSET_ICH:
+		/* FIXME: Unlike later chipsets, ICH and ICH-0 do only support mapping of the top-most 4MB
+		 * and therefore do only feature FWH_DEC_EN (E3h, different default too) and FWH_SEL (E8h). */
+		break;
+	case CHIPSET_ICH2345:
 		fwh_sel1 = 0xe8;
 		fwh_sel2 = 0xee;
 		fwh_dec_en_lo = 0xf0;
 		fwh_dec_en_hi = 0xe3;
-	} else {
-		msg_perr("Error: FWH decode setting not implemented.\n");
-		return ERROR_FATAL;
+		implemented = 1;
+		break;
+	case CHIPSET_POULSBO:
+	case CHIPSET_TUNNEL_CREEK:
+		/* FIXME: Similar to ICH and ICH-0, Tunnel Creek and Poulsbo do only feature one register each,
+		 * FWH_DEC_EN (D7h) and FWH_SEL (D0h). */
+		break;
+	case CHIPSET_ICH6:
+	case CHIPSET_ICH7:
+	default: /* Future version might behave the same */
+		fwh_sel1 = 0xd0;
+		fwh_sel2 = 0xd4;
+		fwh_dec_en_lo = 0xd8;
+		fwh_dec_en_hi = 0xd9;
+		implemented = 1;
+		break;
 	}
 
-	idsel = extract_programmer_param("fwh_idsel");
+	char *idsel = extract_programmer_param("fwh_idsel");
 	if (idsel && strlen(idsel)) {
-		uint64_t fwh_idsel_old, fwh_idsel;
+		if (!implemented) {
+			msg_perr("Error: fwh_idsel= specified, but (yet) unsupported on this chipset.\n");
+			goto idsel_garbage_out;
+		}
 		errno = 0;
 		/* Base 16, nothing else makes sense. */
-		fwh_idsel = (uint64_t)strtoull(idsel, NULL, 16);
+		uint64_t fwh_idsel = (uint64_t)strtoull(idsel, NULL, 16);
 		if (errno) {
-			msg_perr("Error: fwh_idsel= specified, but value could "
-				 "not be converted.\n");
+			msg_perr("Error: fwh_idsel= specified, but value could not be converted.\n");
 			goto idsel_garbage_out;
 		}
 		if (fwh_idsel & 0xffff000000000000ULL) {
-			msg_perr("Error: fwh_idsel= specified, but value had "
-				 "unused bits set.\n");
+			msg_perr("Error: fwh_idsel= specified, but value had unused bits set.\n");
 			goto idsel_garbage_out;
 		}
-		fwh_idsel_old = pci_read_long(dev, fwh_sel1);
+		uint64_t fwh_idsel_old = pci_read_long(dev, fwh_sel1);
 		fwh_idsel_old <<= 16;
 		fwh_idsel_old |= pci_read_word(dev, fwh_sel2);
-		msg_pdbg("\nSetting IDSEL from 0x%012" PRIx64 " to "
-			 "0x%012" PRIx64 " for top 16 MB.", fwh_idsel_old,
-			 fwh_idsel);
+		msg_pdbg("\nSetting IDSEL from 0x%012" PRIx64 " to 0x%012" PRIx64 " for top 16 MB.",
+			 fwh_idsel_old, fwh_idsel);
 		rpci_write_long(dev, fwh_sel1, (fwh_idsel >> 16) & 0xffffffff);
 		rpci_write_word(dev, fwh_sel2, fwh_idsel & 0xffff);
 		/* FIXME: Decode settings are not changed. */
@@ -395,15 +404,23 @@ idsel_garbage_out:
 	}
 	free(idsel);
 
+	if (!implemented) {
+		msg_pdbg2("FWH IDSEL handling is not implemented on this chipset.");
+		return 0;
+	}
+
 	/* Ignore all legacy ranges below 1 MB.
 	 * We currently only support flashing the chip which responds to
 	 * IDSEL=0. To support IDSEL!=0, flashbase and decode size calculations
 	 * have to be adjusted.
 	 */
+	int max_decode_fwh_idsel = 0, max_decode_fwh_decode = 0;
+	bool contiguous = 1;
+	uint32_t fwh_conf = pci_read_long(dev, fwh_sel1);
+	int i;
 	/* FWH_SEL1 */
-	fwh_conf = pci_read_long(dev, fwh_sel1);
 	for (i = 7; i >= 0; i--) {
-		tmp = (fwh_conf >> (i * 4)) & 0xf;
+		int tmp = (fwh_conf >> (i * 4)) & 0xf;
 		msg_pdbg("\n0x%08x/0x%08x FWH IDSEL: 0x%x",
 			 (0x1ff8 + i) * 0x80000,
 			 (0x1ff0 + i) * 0x80000,
@@ -417,7 +434,7 @@ idsel_garbage_out:
 	/* FWH_SEL2 */
 	fwh_conf = pci_read_word(dev, fwh_sel2);
 	for (i = 3; i >= 0; i--) {
-		tmp = (fwh_conf >> (i * 4)) & 0xf;
+		int tmp = (fwh_conf >> (i * 4)) & 0xf;
 		msg_pdbg("\n0x%08x/0x%08x FWH IDSEL: 0x%x",
 			 (0xff4 + i) * 0x100000,
 			 (0xff0 + i) * 0x100000,
@@ -434,7 +451,7 @@ idsel_garbage_out:
 	fwh_conf <<= 8;
 	fwh_conf |= pci_read_byte(dev, fwh_dec_en_lo);
 	for (i = 7; i >= 0; i--) {
-		tmp = (fwh_conf >> (i + 0x8)) & 0x1;
+		int tmp = (fwh_conf >> (i + 0x8)) & 0x1;
 		msg_pdbg("\n0x%08x/0x%08x FWH decode %sabled",
 			 (0x1ff8 + i) * 0x80000,
 			 (0x1ff0 + i) * 0x80000,
@@ -446,7 +463,7 @@ idsel_garbage_out:
 		}
 	}
 	for (i = 3; i >= 0; i--) {
-		tmp = (fwh_conf >> i) & 0x1;
+		int tmp = (fwh_conf >> i) & 0x1;
 		msg_pdbg("\n0x%08x/0x%08x FWH decode %sabled",
 			 (0xff4 + i) * 0x100000,
 			 (0xff0 + i) * 0x100000,
@@ -605,31 +622,16 @@ static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_c
 	int err;
 
 	/* Configure FWH IDSEL decoder maps. */
-	if ((err = enable_flash_ich_fwh_decode(dev, name, ich_generation)) != 0)
+	if ((err = enable_flash_ich_fwh_decode(dev, ich_generation)) != 0)
 		return err;
 
 	internal_buses_supported &= BUS_FWH;
 	return enable_flash_ich(dev, name, 0x4e);
 }
 
-static int enable_flash_ich2(struct pci_dev *dev, const char *name)
+static int enable_flash_ich2345(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_4e(dev, name, CHIPSET_ICH2);
-}
-
-static int enable_flash_ich3(struct pci_dev *dev, const char *name)
-{
-	return enable_flash_ich_4e(dev, name, CHIPSET_ICH3);
-}
-
-static int enable_flash_ich4(struct pci_dev *dev, const char *name)
-{
-	return enable_flash_ich_4e(dev, name, CHIPSET_ICH4);
-}
-
-static int enable_flash_ich5(struct pci_dev *dev, const char *name)
-{
-	return enable_flash_ich_4e(dev, name, CHIPSET_ICH5);
+	return enable_flash_ich_4e(dev, name, CHIPSET_ICH2345);
 }
 
 static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
@@ -637,7 +639,7 @@ static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_c
 	int err;
 
 	/* Configure FWH IDSEL decoder maps. */
-	if ((err = enable_flash_ich_fwh_decode(dev, name, ich_generation)) != 0)
+	if ((err = enable_flash_ich_fwh_decode(dev, ich_generation)) != 0)
 		return err;
 
 	/* If we're called by enable_flash_ich_spi, it will override
@@ -1840,15 +1842,15 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x1e5f, OK, "Intel", "NM70",		enable_flash_pch6},
 	{0x8086, 0x2410, OK, "Intel", "ICH",		enable_flash_ich0},
 	{0x8086, 0x2420, OK, "Intel", "ICH0",		enable_flash_ich0},
-	{0x8086, 0x2440, OK, "Intel", "ICH2",		enable_flash_ich2},
-	{0x8086, 0x244c, OK, "Intel", "ICH2-M",		enable_flash_ich2},
-	{0x8086, 0x2450, NT, "Intel", "C-ICH",		enable_flash_ich2},
-	{0x8086, 0x2480, OK, "Intel", "ICH3-S",		enable_flash_ich3},
-	{0x8086, 0x248c, OK, "Intel", "ICH3-M",		enable_flash_ich3},
-	{0x8086, 0x24c0, OK, "Intel", "ICH4/ICH4-L",	enable_flash_ich4},
-	{0x8086, 0x24cc, OK, "Intel", "ICH4-M",		enable_flash_ich4},
-	{0x8086, 0x24d0, OK, "Intel", "ICH5/ICH5R",	enable_flash_ich5},
-	{0x8086, 0x25a1, OK, "Intel", "6300ESB",	enable_flash_ich5},
+	{0x8086, 0x2440, OK, "Intel", "ICH2",		enable_flash_ich2345},
+	{0x8086, 0x244c, OK, "Intel", "ICH2-M",		enable_flash_ich2345},
+	{0x8086, 0x2450, NT, "Intel", "C-ICH",		enable_flash_ich2345},
+	{0x8086, 0x2480, OK, "Intel", "ICH3-S",		enable_flash_ich2345},
+	{0x8086, 0x248c, OK, "Intel", "ICH3-M",		enable_flash_ich2345},
+	{0x8086, 0x24c0, OK, "Intel", "ICH4/ICH4-L",	enable_flash_ich2345},
+	{0x8086, 0x24cc, OK, "Intel", "ICH4-M",		enable_flash_ich2345},
+	{0x8086, 0x24d0, OK, "Intel", "ICH5/ICH5R",	enable_flash_ich2345},
+	{0x8086, 0x25a1, OK, "Intel", "6300ESB",	enable_flash_ich2345},
 	{0x8086, 0x2640, OK, "Intel", "ICH6/ICH6R",	enable_flash_ich6},
 	{0x8086, 0x2641, OK, "Intel", "ICH6-M",		enable_flash_ich6},
 	{0x8086, 0x2642, NT, "Intel", "ICH6W/ICH6RW",	enable_flash_ich6},
