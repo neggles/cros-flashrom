@@ -13,7 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <stdio.h>
@@ -50,7 +49,7 @@ int open_logfile(const char * const filename)
 		return 1;
 	}
 	if ((logfile = fopen(filename, "w")) == NULL) {
-		perror(filename);
+		msg_gerr("Error: opening log file \"%s\" failed: %s\n", filename, strerror(errno));
 		return 1;
 	}
 	return 0;
@@ -58,7 +57,7 @@ int open_logfile(const char * const filename)
 
 void start_logging(void)
 {
-	int oldverbose_screen = verbose_screen;
+	enum flashrom_log_level oldverbose_screen = verbose_screen;
 
 	/* Shut up the console. */
 	verbose_screen = FLASHROM_MSG_ERROR;
