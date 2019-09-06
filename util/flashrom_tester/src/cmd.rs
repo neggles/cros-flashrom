@@ -44,15 +44,34 @@ pub struct FlashromCmd {
     pub fc: types::FlashChip,
 }
 
+/// Attempt to determine the Flash size given stdout from `flashrom --get-size`
+fn flashrom_extract_size(stdout: &str) -> Result<i64, FlashromError> {
+    // Search for the last line of output that contains only digits, assuming
+    // that's the actual size. flashrom sadly tends to write additional messages
+    // to stdout.
+    match stdout
+        .lines()
+        .filter(|line| line.chars().all(|c| c.is_ascii_digit()))
+        .last()
+        .map(str::parse::<i64>)
+    {
+        None => return Err("Found no purely-numeric lines in flashrom output".into()),
+        Some(Err(e)) => {
+            return Err(format!(
+                "Failed to parse flashrom size output as integer: {}",
+                e
+            ))
+        }
+        Some(Ok(sz)) => Ok(sz),
+    }
+}
+
 impl flashrom::Flashrom for FlashromCmd {
     fn get_size(&self) -> Result<i64, FlashromError> {
         let (stdout, _) = flashrom_dispatch(self.path.as_str(), &["--get-size"], self.fc)?;
         let sz = String::from_utf8_lossy(&stdout);
 
-        match utils::vgrep(&sz, "coreboot").trim_end().parse::<i64>() {
-            Ok(s) => Ok(s),
-            Err(_e) => Err("'flashrom --get-size' output did not parse as int correctly".into()),
-        }
+        flashrom_extract_size(&sz)
     }
 
     // do I need this?
@@ -306,6 +325,25 @@ mod tests {
                 ..Default::default()
             }),
             &["--flash-name", "--ignore-fmap", "-V"]
+        );
+    }
+
+    #[test]
+    fn flashrom_extract_size() {
+        use super::flashrom_extract_size;
+
+        assert_eq!(
+            flashrom_extract_size(
+                "coreboot table found at 0x7cc13000.\n\
+                 Found chipset \"Intel Braswell\". Enabling flash write... OK.\n\
+                 8388608\n"
+            ),
+            Ok(8388608)
+        );
+
+        assert_eq!(
+            flashrom_extract_size("There was a catastrophic error."),
+            Err("Found no purely-numeric lines in flashrom output".into())
         );
     }
 }
