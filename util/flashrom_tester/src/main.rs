@@ -48,82 +48,14 @@ mod tests;
 mod utils;
 
 use chrono::Local;
+use clap::{App, Arg};
 use env_logger::Builder;
 use log::LevelFilter;
 use std::env;
 use std::io::Write;
 
-fn dispatch_args(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    match args {
-        [_, ref path, ref flashchip] => {
-            if path.len() > 0 {
-                debug!("got flashrom path = '{}'.", path);
-            } else {
-                return Err("Missing flashrom path".into());
-            }
-
-            let fc: Result<types::FlashChip, &str> = types::FlashChip::from(&flashchip[..]);
-            if fc.is_err() {
-                return Err(
-                    "Missing flashchip type, should be either 'ec', 'host', or 'servo'.".into(),
-                );
-            }
-            tests::generic(path, fc.unwrap())
-        }
-        _ => Ok(()),
-    }
-}
-
-fn help(s: Option<&str>) {
-    eprintln!("");
-    if s.is_some() {
-        eprintln!("{}", s.unwrap());
-    }
-    eprintln!(
-        "Usage:
-    flashrom_tester flashrom.bin <ec|host|servo>"
-    );
-}
-
-fn parse_args(args: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
-    match args.len() {
-        1 => return Err("No arguments passed!".into()),
-        3 => match dispatch_args(args.as_slice()) {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                error!(
-                    "flashrom_tester failed to run due to an internal error with: {}.",
-                    e.to_string()
-                );
-                Err(
-                    "Please verify that both 'dut-control' and 'crossytem' are in your PATH!"
-                        .into(),
-                )
-            }
-        },
-        _ => Err("Incorrect number of arguments passed, expected 3.".into()),
-    }
-}
-
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
-fn compiletime_info() {
-    info!(
-        "This is version {}-{}, built for {} by {}.",
-        built_info::PKG_VERSION,
-        option_env!("VCSID").unwrap_or("<unknown>"),
-        built_info::TARGET,
-        built_info::RUSTC_VERSION
-    );
-
-    trace!(
-        "I was built with profile \"{}\", features \"{}\" on {}.",
-        built_info::PROFILE,
-        built_info::FEATURES_STR,
-        built_info::BUILT_TIME_UTC
-    );
 }
 
 fn main() {
@@ -141,11 +73,41 @@ fn main() {
         .parse_filters(&env::var("FLASHROM_TESTER_LOG").unwrap_or_default())
         .init();
 
-    compiletime_info();
+    let matches = App::new("flashrom_tester")
+        .long_version(&*format!(
+            "{}-{}\n\
+             Target: {}\n\
+             Profile: {}\n\
+             Features: {:?}\n\
+             Build time: {}\n\
+             Compiler: {}",
+            built_info::PKG_VERSION,
+            option_env!("VCSID").unwrap_or("<unknown>"),
+            built_info::TARGET,
+            built_info::PROFILE,
+            built_info::FEATURES,
+            built_info::BUILT_TIME_UTC,
+            built_info::RUSTC_VERSION,
+        ))
+        .arg(Arg::with_name("flashrom_binary").required(true))
+        .arg(
+            Arg::with_name("ccd_target_type")
+                .required(true)
+                .possible_values(&["host", "ec", "servo"]),
+        )
+        .get_matches();
 
-    let args: Vec<String> = env::args().collect();
-    match parse_args(args) {
-        Ok(_) => return,
-        Err(e) => help(Some(&e.to_string())),
-    };
+    let flashrom_path = matches
+        .value_of("flashrom_binary")
+        .expect("flashrom_binary should be required");
+    let ccd_type = types::FlashChip::from(
+        matches
+            .value_of("ccd_target_type")
+            .expect("ccd_target_type should be required"),
+    )
+    .expect("ccd_target_type should admit only known types");
+
+    if let Err(e) = tests::generic(flashrom_path, ccd_type) {
+        eprintln!("Failed to run tests: {:?}", e);
+    }
 }
