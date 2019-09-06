@@ -683,7 +683,7 @@ static int enable_flash_vt8237s_spi(struct pci_dev *dev, const char *name)
 static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 				   enum ich_chipset ich_generation)
 {
-	int ret, ret_spi;
+	int ret;
 	uint8_t bbs, buc;
 	uint32_t tmp, gcs;
 	void *rcrb;
@@ -974,9 +974,26 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 			internal_buses_supported &= BUS_NONE;
 		}
 	}
+	/* SPIBAR is at RCRB+0x3020 for ICH[78], Tunnel Creek and Centerton, and RCRB+0x3800 for ICH9. */
+	uint16_t spibar_offset;
+	switch (ich_generation) {
+	case CHIPSET_ICH_UNKNOWN:
+		return ERROR_FATAL;
+	case CHIPSET_ICH7:
+	case CHIPSET_ICH8:
+	case CHIPSET_TUNNEL_CREEK:
+		spibar_offset = 0x3020;
+		break;
+	case CHIPSET_ICH9:
+	default:		/* Future version might behave the same */
+		spibar_offset = 0x3800;
+		break;
+	}
+	msg_pdbg("SPIBAR = 0x%0*" PRIxPTR " + 0x%04x\n", PRIxPTR_WIDTH, (uintptr_t)rcrb, spibar_offset);
+	void *spibar = rcrb + spibar_offset;
 
 	/* This adds BUS_SPI */
-	ret_spi = ich_init_spi(dev, tmp, rcrb, ich_generation);
+	int ret_spi = ich_init_spi(dev, spibar, ich_generation);
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
@@ -1021,9 +1038,11 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 		internal_buses_supported &= BUS_FWH;
 		return 0;
 	}
+	int spibar_offset = 0x3020;
+	void *spibar = rcrb + spibar_offset;
 
 	/* This adds BUS_SPI */
-	if (ich_init_spi(dev, tmp, rcrb, 7) != 0) {
+	if (ich_init_spi(dev, spibar, CHIPSET_TUNNEL_CREEK) != 0) {
 		if (!ret)
 			ret = ERROR_NONFATAL;
 	}
@@ -1173,7 +1192,7 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 	if (spibar == ERROR_PTR)
 		return ERROR_FATAL;
 
-	ret_spi = ich_init_spi(dev, tmp, spibar, CHIPSET_BAYTRAIL);
+	ret_spi = ich_init_spi(dev, spibar, CHIPSET_BAYTRAIL);
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
