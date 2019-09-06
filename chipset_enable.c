@@ -681,7 +681,7 @@ static int enable_flash_vt8237s_spi(struct pci_dev *dev, const char *name)
 }
 
 static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
-				   enum ich_chipset generation)
+				   enum ich_chipset ich_generation)
 {
 	int ret, ret_spi;
 	uint8_t bbs, buc;
@@ -736,7 +736,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		};
 
 	const struct boot_straps *boot_straps;
-	switch (generation) {
+	switch (ich_generation) {
 	case CHIPSET_ICH7:
 		/* EP80579 may need further changes, but this is the least
 		 * intrusive way to get correct BOOT Strap printing without
@@ -772,7 +772,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	}
 
-	switch (generation) {
+	switch (ich_generation) {
 	case CHIPSET_APL:
 		ret = enable_flash_ich_apl(dev, name, 0xdc);
 		if (ret == ERROR_FATAL)
@@ -810,7 +810,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	default:
 		/* Enable Flash Writes */
-		ret = enable_flash_ich_dc(dev, name, g_ich_generation);
+		ret = enable_flash_ich_dc(dev, name, ich_generation);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -828,7 +828,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	}
 
-	switch (generation) {
+	switch (ich_generation) {
 	case CHIPSET_5_SERIES_IBEX_PEAK:
 	case CHIPSET_6_SERIES_COUGAR_POINT:
 	case CHIPSET_7_SERIES_PANTHER_POINT:
@@ -909,7 +909,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	}
 
-	switch (generation) {
+	switch (ich_generation) {
 	case CHIPSET_APL:
 		mmio_writel(gcs, (void *)dev + 0xdc);
 		msg_pdbg("GCS = 0x%x: ", gcs);
@@ -931,7 +931,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	}
 
-	switch (generation) {
+	switch (ich_generation) {
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
 	case CHIPSET_9_SERIES_WILDCAT_POINT:
 		/* Lynx Point LP uses a single bit for GCS */
@@ -948,7 +948,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	}
 	msg_pdbg("Boot BIOS Straps: 0x%x (%s)\n", bbs, boot_straps[bbs].name);
 
-	switch (generation) {
+	switch (ich_generation) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_APL:
 		break;
@@ -964,7 +964,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	 * on ICH7 when the southbridge is strapped to LPC
 	 */
 	internal_buses_supported &= BUS_FWH;
-	if (generation == CHIPSET_ICH7) {
+	if (ich_generation == CHIPSET_ICH7) {
 		if (bbs == 0x03) {
 			/* If strapped to LPC, no further SPI initialization is
 			 * required. */
@@ -976,7 +976,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	}
 
 	/* This adds BUS_SPI */
-	ret_spi = ich_init_spi(dev, tmp, rcrb, generation);
+	ret_spi = ich_init_spi(dev, tmp, rcrb, ich_generation);
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
