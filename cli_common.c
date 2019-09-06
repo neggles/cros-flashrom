@@ -23,61 +23,56 @@
 void print_chip_support_status(const struct flashchip *chip)
 {
 	if (chip->feature_bits & FEATURE_OTP) {
-		msg_cdbg("This chip may contain one-time programmable memory. "
-			 "flashrom cannot read\nand may never be able to write "
-			 "it, hence it may not be able to completely\n"
-			 "clone the contents of this chip (see man page for "
-			 "details).\n");
+		msg_cdbg("This chip may contain one-time programmable memory. flashrom cannot read\n"
+			 "and may never be able to write it, hence it may not be able to completely\n"
+			 "clone the contents of this chip (see man page for details).\n");
 	}
-	if ((chip->tested.probe != OK) ||
-	    (chip->tested.read != OK) ||
-	    (chip->tested.erase != OK) ||
-	    (chip->tested.write != OK)) {
-		msg_cdbg("===\n");
+
+	if ((chip->tested.erase == NA) && (chip->tested.write == NA)) {
+		msg_cdbg("This chip's main memory can not be erased/written by design.\n");
+	}
+
+	if ((chip->tested.probe == BAD) || (chip->tested.probe == NT) ||
+	    (chip->tested.read == BAD)  || (chip->tested.read == NT) ||
+	    (chip->tested.erase == BAD) || (chip->tested.erase == NT) ||
+	    (chip->tested.write == BAD) || (chip->tested.write == NT)){
+		msg_cinfo("===\n");
 		if ((chip->tested.probe == BAD) ||
 		    (chip->tested.read == BAD) ||
 		    (chip->tested.erase == BAD) ||
 		    (chip->tested.write == BAD)) {
-			msg_cdbg("This flash part has status NOT WORKING for operations:");
+			msg_cinfo("This flash part has status NOT WORKING for operations:");
 			if (chip->tested.probe == BAD)
-				msg_cdbg(" PROBE");
+				msg_cinfo(" PROBE");
 			if (chip->tested.read == BAD)
-				msg_cdbg(" READ");
+				msg_cinfo(" READ");
 			if (chip->tested.erase == BAD)
-				msg_cdbg(" ERASE");
+				msg_cinfo(" ERASE");
 			if (chip->tested.write == BAD)
-				msg_cdbg(" WRITE");
-			msg_cdbg("\n");
+				msg_cinfo(" WRITE");
+			msg_cinfo("\n");
 		}
 		if ((chip->tested.probe == NT) ||
 		    (chip->tested.read == NT) ||
 		    (chip->tested.erase == NT) ||
 		    (chip->tested.write == NT)) {
-			msg_cdbg("This flash part has status UNTESTED for operations:");
+			msg_cinfo("This flash part has status UNTESTED for operations:");
 			if (chip->tested.probe == NT)
-				msg_cdbg(" PROBE");
+				msg_cinfo(" PROBE");
 			if (chip->tested.read == NT)
-				msg_cdbg(" READ");
+				msg_cinfo(" READ");
 			if (chip->tested.erase == NT)
-				msg_cdbg(" ERASE");
+				msg_cinfo(" ERASE");
 			if (chip->tested.write == NT)
-				msg_cdbg(" WRITE");
-			msg_cdbg("\n");
+				msg_cinfo(" WRITE");
+			msg_cinfo("\n");
 		}
-		/* FIXME: This message is designed towards CLI users. */
-		msg_cdbg("The test status of this chip may have been updated "
-			    "in the latest development\n"
-			  "version of flashrom. If you are running the latest "
-			    "development version,\n"
-			  "please email a report to flashrom@flashrom.org if "
-			    "any of the above operations\n"
-			  "work correctly for you with this flash part. Please "
-			    "include the flashrom\n"
-			  "output with the additional -V option for all "
-			    "operations you tested (-V, -Vr,\n"
-			  "-VE, -Vw), and mention which mainboard or "
-			    "programmer you tested.\n"
-			  "Please mention your board in the subject line. "
-			    "Thanks for your help!\n");
+		msg_cinfo("The test status of this chip may have been updated in the latest development\n"
+			  "version of flashrom. If you are running the latest development version,\n"
+			  "please email a report to flashrom@flashrom.org if any of the above operations\n"
+			  "work correctly for you with this flash chip. Please include the flashrom log\n"
+			  "file for all operations you tested (see the man page for details), and mention\n"
+			  "which mainboard or programmer you tested in the subject line.\n"
+			  "Thanks for your help!\n");
 	}
 }
