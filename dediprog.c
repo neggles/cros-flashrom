@@ -524,15 +524,15 @@ static int dediprog_spi_bulk_write(struct flashctx *flash, const uint8_t *buf, u
 		return 1;
 	}
 
+	/* No idea if the hardware can handle empty writes, so chicken out. */
+	if (len == 0)
+		return 0;
+
 	if ((start % chunksize) || (len % chunksize)) {
 		msg_perr("%s: Unaligned start=%i, len=%i! Please report a bug "
 			 "at flashrom@flashrom.org\n", __func__, start, len);
 		return 1;
 	}
-
-	/* No idea if the hardware can handle empty writes, so chicken out. */
-	if (len == 0)
-		return 0;
 
 	int command_packet_size;
 	switch (protocol()) {
