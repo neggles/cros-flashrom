@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2005-2008 coresystems GmbH
  * (Written by Stefan Reinauer <stepan@coresystems.de> for coresystems GmbH)
+ * Copyright (C) 2011-2013 Stefan Tauner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -560,6 +561,21 @@ int process_include_args() {
 	}
 
 	return 0;
+}
+
+void layout_cleanup(void)
+{
+	int i;
+	for (i = 0; i < num_include_args; i++) {
+		free(include_args[i]);
+		include_args[i] = NULL;
+	}
+	num_include_args = 0;
+
+	for (i = 0; i < layout.num_entries; i++) {
+		layout.entries[i].included = 0;
+	}
+	layout.num_entries = 0;
 }
 
 static struct romentry *get_next_included_romentry(unsigned int start)

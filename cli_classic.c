@@ -1046,6 +1046,8 @@ out_shutdown:
 		msg_gerr("Unable to re-enable power management\n");
 		ret |= 1;
 	}
+
+	layout_cleanup();
 #ifndef STANDALONE
 	ret |= close_logfile();
 #endif /* !STANDALONE */

@@ -104,5 +104,6 @@ size_t top_section_offset(void);
  */
 int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode);
+void layout_cleanup(void);
 
 #endif /* __LAYOUT_H__ */
