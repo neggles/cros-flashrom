@@ -55,12 +55,6 @@ const struct flashrom_layout *get_global_layout(void)
 
 #if CONFIG_INTERNAL == 1 /* FIXME: Move the whole block to cbtable.c? */
 
-
-/* Return TRUE if user specifies any -i argument. */
-int specified_partition() {
-	return num_include_args != 0;
-}
-
 // FIXME(quasisec): Currently we have global state of cb_{vendor,part} woven
 //  in here however show_id() isn't even called as it is currently dead code!
 //  Thus work out if we actually need it before spending too much time unraveling it.

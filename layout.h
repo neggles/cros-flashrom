@@ -53,7 +53,6 @@ const struct flashrom_layout *get_global_layout(void);
  */
 int extract_regions(struct flashctx *flash);
 
-int specified_partition();
 int read_romlayout(char *name);
 int find_romentry(char *name);
 int fill_romentry(struct romentry *entry, int n);
