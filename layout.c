@@ -32,7 +32,7 @@
 #include "search.h"
 
 static struct romentry entries[MAX_ROMLAYOUT];
-static struct flashrom_layout layout = { entries, 0 };
+static struct flashrom_layout global_layout = { entries, 0 };
 
 /*
  * This variable is set to the lowest erase granularity; it is used when
@@ -49,9 +49,9 @@ static unsigned int required_erase_size;
 static char *include_args[MAX_ROMLAYOUT];
 static int num_include_args = 0;  /* the number of valid entries. */
 
-const struct flashrom_layout *get_global_layout(void)
+struct flashrom_layout *get_global_layout(void)
 {
-	return &layout;
+	return &global_layout;
 }
 
 #if CONFIG_INTERNAL == 1 /* FIXME: Move the whole block to cbtable.c? */
@@ -171,6 +171,7 @@ int show_id(uint8_t *bios, int size, int force)
 #ifndef __LIBPAYLOAD__
 int read_romlayout(char *name)
 {
+	struct flashrom_layout *const layout = get_global_layout();
 	FILE *romlayout;
 	char tempstr[256];
 	int i;
@@ -186,14 +187,14 @@ int read_romlayout(char *name)
 	while (!feof(romlayout)) {
 		char *tstr1, *tstr2;
 
-		if (layout.num_entries >= MAX_ROMLAYOUT) {
+		if (layout->num_entries >= MAX_ROMLAYOUT) {
 			msg_gerr("Maximum number of ROM images (%i) in layout "
 				 "file reached before end of layout file.\n",
 				 MAX_ROMLAYOUT);
 			msg_gerr("Ignoring the rest of the layout file.\n");
 			break;
 		}
-		if (2 != fscanf(romlayout, "%255s %255s\n", tempstr, layout.entries[layout.num_entries].name))
+		if (2 != fscanf(romlayout, "%255s %255s\n", tempstr, layout->entries[layout->num_entries].name))
 			continue;
 #if 0
 		// fscanf does not like arbitrary comments like that :( later
@@ -208,17 +209,17 @@ int read_romlayout(char *name)
 			fclose(romlayout);
 			return 1;
 		}
-		layout.entries[layout.num_entries].start = strtol(tstr1, (char **)NULL, 16);
-		layout.entries[layout.num_entries].end = strtol(tstr2, (char **)NULL, 16);
-		layout.entries[layout.num_entries].included = 0;
-		strcpy(layout.entries[layout.num_entries].file, "");
-		layout.num_entries++;
+		layout->entries[layout->num_entries].start = strtol(tstr1, (char **)NULL, 16);
+		layout->entries[layout->num_entries].end = strtol(tstr2, (char **)NULL, 16);
+		layout->entries[layout->num_entries].included = 0;
+		strcpy(layout->entries[layout->num_entries].file, "");
+		layout->num_entries++;
 	}
 
-	for (i = 0; i < layout.num_entries; i++) {
+	for (i = 0; i < layout->num_entries; i++) {
 		msg_gdbg("romlayout %08x - %08x named %s\n",
-			     layout.entries[i].start,
-			     layout.entries[i].end, layout.entries[i].name);
+			     layout->entries[i].start,
+			     layout->entries[i].end, layout->entries[i].name);
 	}
 
 	fclose(romlayout);
@@ -310,46 +311,47 @@ static int add_fmap_entries_from_buf(const uint8_t *buf)
 {
 	struct fmap *fmap;
 	int i;
+	struct flashrom_layout *const layout = get_global_layout();
 
 	fmap = (struct fmap *)(buf);
 
 	for (i = 0; i < fmap->nareas; i++) {
-		if (layout.num_entries >= MAX_ROMLAYOUT) {
+		if (layout->num_entries >= MAX_ROMLAYOUT) {
 			msg_gerr("ROM image contains too many regions\n");
 			return -1;
 		}
-		layout.entries[layout.num_entries].start = fmap->areas[i].offset;
+		layout->entries[layout->num_entries].start = fmap->areas[i].offset;
 
 		/*
 		 * Flashrom rom entries use absolute addresses. So for non-zero
 		 * length entries, we need to subtract 1 from offset + size to
 		 * determine the end address.
 		 */
-		layout.entries[layout.num_entries].end = fmap->areas[i].offset +
+		layout->entries[layout->num_entries].end = fmap->areas[i].offset +
 		                             fmap->areas[i].size;
 		if (fmap->areas[i].size)
-			layout.entries[layout.num_entries].end--;
+			layout->entries[layout->num_entries].end--;
 
-		memset(layout.entries[layout.num_entries].name, 0,
-		       sizeof(layout.entries[layout.num_entries].name));
-		memcpy(layout.entries[layout.num_entries].name, fmap->areas[i].name,
-		       min(sizeof(layout.entries[layout.num_entries].name),
+		memset(layout->entries[layout->num_entries].name, 0,
+		       sizeof(layout->entries[layout->num_entries].name));
+		memcpy(layout->entries[layout->num_entries].name, fmap->areas[i].name,
+		       min(sizeof(layout->entries[layout->num_entries].name),
 		           sizeof(fmap->areas[i].name)));
 
-		layout.entries[layout.num_entries].included = 0;
-		strcpy(layout.entries[layout.num_entries].file, "");
+		layout->entries[layout->num_entries].included = 0;
+		strcpy(layout->entries[layout->num_entries].file, "");
 
 		msg_gdbg("added fmap region \"%s\" (file=\"%s\") as %sincluded,"
 			 " start: 0x%08x, end: 0x%08x\n",
-			  layout.entries[layout.num_entries].name,
-			  layout.entries[layout.num_entries].file,
-			  layout.entries[layout.num_entries].included ? "" : "not ",
-			  layout.entries[layout.num_entries].start,
-			  layout.entries[layout.num_entries].end);
-		layout.num_entries++;
+			  layout->entries[layout->num_entries].name,
+			  layout->entries[layout->num_entries].file,
+			  layout->entries[layout->num_entries].included ? "" : "not ",
+			  layout->entries[layout->num_entries].start,
+			  layout->entries[layout->num_entries].end);
+		layout->num_entries++;
 	}
 
-	return layout.num_entries;
+	return layout->num_entries;
 }
 
 enum found_t {
@@ -375,6 +377,7 @@ static int add_fmap_entries(void *source_handle,
 	} hdr;
 	uint8_t *buf = NULL;
 	off_t offset;
+	struct flashrom_layout *const layout = get_global_layout();
 
 	if (found != FOUND_NONE) {
 		msg_gdbg("Already found fmap entries, not searching again.\n");
@@ -414,12 +417,12 @@ static int add_fmap_entries(void *source_handle,
 #ifdef CONFIG_FDTMAP
 	case FOUND_FDTMAP:
 		/* It looks valid, so use it */
-		layout.num_entries = fdtmap_add_entries_from_buf(buf, layout.entries,
+		layout->num_entries = fdtmap_add_entries_from_buf(buf, layout->entries,
 							  MAX_ROMLAYOUT);
 		break;
 #endif
 	case FOUND_FMAP:
-		layout.num_entries = add_fmap_entries_from_buf(buf);
+		layout->num_entries = add_fmap_entries_from_buf(buf);
 		break;
 	default:
 		msg_gdbg("%s: no fmap present\n", __func__);
@@ -428,7 +431,7 @@ static int add_fmap_entries(void *source_handle,
 		free(buf);
 	search_free(&search);
 
-	return layout.num_entries;
+	return layout->num_entries;
 }
 
 int get_num_include_args(void) {
@@ -439,14 +442,15 @@ size_t top_section_offset(void)
 {
 	size_t top = 0;
 	int i;
+	struct flashrom_layout *const layout = get_global_layout();
 
-	for (i = 0; i < layout.num_entries; i++) {
+	for (i = 0; i < layout->num_entries; i++) {
 
-		if (!layout.entries[i].included)
+		if (!layout->entries[i].included)
 			continue;
 
-		if (layout.entries[i].end > top)
-			top = layout.entries[i].end;
+		if (layout->entries[i].end > top)
+			top = layout->entries[i].end;
 	}
 
 	return top;
@@ -469,8 +473,9 @@ int find_romentry(char *name)
 	int i;
 	char *file = NULL;
 	char *has_colon;
+	struct flashrom_layout *const layout = get_global_layout();
 
-	if (!layout.num_entries)
+	if (!layout->num_entries)
 		return -1;
 
 	/* -i <image>[:<file>] */
@@ -485,11 +490,11 @@ int find_romentry(char *name)
 	msg_gdbg("Looking for \"%s\" (file=\"%s\")... ",
 	         name, file ? file : "<not specified>");
 
-	for (i = 0; i < layout.num_entries; i++) {
-		if (!strcmp(layout.entries[i].name, name)) {
-			layout.entries[i].included = 1;
-			snprintf(layout.entries[i].file,
-			         sizeof(layout.entries[i].file),
+	for (i = 0; i < layout->num_entries; i++) {
+		if (!strcmp(layout->entries[i].name, name)) {
+			layout->entries[i].included = 1;
+			snprintf(layout->entries[i].file,
+			         sizeof(layout->entries[i].file),
 			         "%s", file ? file : "");
 			msg_gdbg("found.\n");
 			return i;
@@ -505,8 +510,9 @@ int fill_romentry(struct romentry *entry, int n)
 {
 	if (!entry)
 		return 1;
+	struct flashrom_layout *const layout = get_global_layout();
 
-	memcpy(entry, &layout.entries[n], sizeof(*entry));
+	memcpy(entry, &layout->entries[n], sizeof(*entry));
 	return 0;
 }
 
@@ -539,13 +545,14 @@ int num_include_files(void)
  */
 int process_include_args() {
 	int i;
+	struct flashrom_layout *const layout = get_global_layout();
 
 	for (i = 0; i < num_include_args; i++) {
 		if (include_args[i]) {
 			/* User has specified the area name, but no layout file
 			 * is loaded, and no fmap is stored in BIOS.
 			 * Return error. */
-			if (!layout.num_entries) {
+			if (!layout->num_entries) {
 				msg_gerr("No layout info is available.\n");
 				return -1;
 			}
@@ -572,10 +579,11 @@ void layout_cleanup(void)
 	}
 	num_include_args = 0;
 
-	for (i = 0; i < layout.num_entries; i++) {
-		layout.entries[i].included = 0;
+	struct flashrom_layout *const layout = get_global_layout();
+	for (i = 0; i < layout->num_entries; i++) {
+		layout->entries[i].included = 0;
 	}
-	layout.num_entries = 0;
+	layout->num_entries = 0;
 }
 
 static struct romentry *get_next_included_romentry(unsigned int start)
@@ -584,10 +592,11 @@ static struct romentry *get_next_included_romentry(unsigned int start)
 	unsigned int best_start = UINT_MAX;
 	struct romentry *best_entry = NULL;
 	struct romentry *cur;
+	struct flashrom_layout *const layout = get_global_layout();
 
 	/* First come, first serve for overlapping regions. */
-	for (i = 0; i < layout.num_entries; i++) {
-		cur = &layout.entries[i];
+	for (i = 0; i < layout->num_entries; i++) {
+		cur = &layout->entries[i];
 		if (!cur->included)
 			continue;
 		/* Already past the current entry? */
@@ -610,31 +619,32 @@ int included_regions_overlap()
 {
 	int i;
 	int overlap_detected = 0;
+	struct flashrom_layout *const layout = get_global_layout();
 
-	for (i = 0; i < layout.num_entries; i++) {
+	for (i = 0; i < layout->num_entries; i++) {
 		int j;
 
-		if (!layout.entries[i].included)
+		if (!layout->entries[i].included)
 			continue;
 
-		for (j = 0; j < layout.num_entries; j++) {
-			if (!layout.entries[j].included)
+		for (j = 0; j < layout->num_entries; j++) {
+			if (!layout->entries[j].included)
 				continue;
 
 			if (i == j)
 				continue;
 
-			if (layout.entries[i].start > layout.entries[j].end)
+			if (layout->entries[i].start > layout->entries[j].end)
 				continue;
 
-			if (layout.entries[i].end < layout.entries[j].start)
+			if (layout->entries[i].end < layout->entries[j].start)
 				continue;
 
 			msg_gdbg("Regions %s [0x%08x-0x%08x] and "
 				"%s [0x%08x-0x%08x] overlap\n",
-				layout.entries[i].name, layout.entries[i].start,
-				layout.entries[i].end, layout.entries[j].name,
-				layout.entries[j].start, layout.entries[j].end);
+				layout->entries[i].name, layout->entries[i].start,
+				layout->entries[i].end, layout->entries[j].name,
+				layout->entries[j].start, layout->entries[j].end);
 			overlap_detected = 1;
 			goto out;
 		}
@@ -823,18 +833,19 @@ int handle_partial_read(
 	if (set_required_erase_size(flash))
 		return -1;
 
-	for (i = 0; i < layout.num_entries; i++) {
+	struct flashrom_layout *const layout = get_global_layout();
+	for (i = 0; i < layout->num_entries; i++) {
 		unsigned int start, len, start_align, len_align;
 
-		if (!layout.entries[i].included)
+		if (!layout->entries[i].included)
 			continue;
 
 		/* round down to nearest eraseable block boundary */
-		start_align = layout.entries[i].start % required_erase_size;
-		start = layout.entries[i].start - start_align;
+		start_align = layout->entries[i].start % required_erase_size;
+		start = layout->entries[i].start - start_align;
 
 		/* round up to nearest eraseable block boundary */
-		len = layout.entries[i].end - start + 1;
+		len = layout->entries[i].end - start + 1;
 		len_align = len % required_erase_size;
 		if (len_align)
 			len = len + required_erase_size - len_align;
@@ -842,10 +853,10 @@ int handle_partial_read(
 		if (start_align || len_align) {
 			msg_gdbg("\n%s: Re-aligned partial read due to "
 				"eraseable block size requirement:\n"
-				"\tlayout.entries[%d].start: 0x%06x, len: 0x%06x, "
+				"\tlayout->entries[%d].start: 0x%06x, len: 0x%06x, "
 				"aligned start: 0x%06x, len: 0x%06x\n",
-				__func__, i, layout.entries[i].start,
-				layout.entries[i].end - layout.entries[i].start + 1,
+				__func__, i, layout->entries[i].start,
+				layout->entries[i].end - layout->entries[i].start + 1,
 				start, len);
 		}
 
@@ -856,7 +867,7 @@ int handle_partial_read(
 
 		/* If file is specified, write this partition to file. */
 		if (write_to_file) {
-			if (write_content_to_file(&layout.entries[i], buf) < 0)
+			if (write_content_to_file(&layout->entries[i], buf) < 0)
 				return -1;
 		}
 
@@ -884,20 +895,21 @@ int handle_partial_verify(
 	if (set_required_erase_size(flash))
 		return -1;
 
+	struct flashrom_layout *const layout = get_global_layout();
 	/* Walk through the table and write content to file for those included
 	 * partition. */
-	for (i = 0; i < layout.num_entries; i++) {
+	for (i = 0; i < layout->num_entries; i++) {
 		unsigned int start, len, start_align, len_align;
 
-		if (!layout.entries[i].included)
+		if (!layout->entries[i].included)
 			continue;
 
 		/* round down to nearest eraseable block boundary */
-		start_align = layout.entries[i].start % required_erase_size;
-		start = layout.entries[i].start - start_align;
+		start_align = layout->entries[i].start % required_erase_size;
+		start = layout->entries[i].start - start_align;
 
 		/* round up to nearest eraseable block boundary */
-		len = layout.entries[i].end - start + 1;
+		len = layout->entries[i].end - start + 1;
 		len_align = len % required_erase_size;
 		if (len_align)
 			len = len + required_erase_size - len_align;
@@ -905,11 +917,11 @@ int handle_partial_verify(
 		if (start_align || len_align) {
 			msg_gdbg("\n%s: Re-aligned partial verify due to "
 				"eraseable block size requirement:\n"
-				"\tlayout.entries[%d].start: 0x%06x, len: 0x%06x, "
+				"\tlayout->entries[%d].start: 0x%06x, len: 0x%06x, "
 				"aligned start: 0x%06x, len: 0x%06x\n",
-				__func__, i, layout.entries[i].start,
-				layout.entries[i].end -
-				layout.entries[i].start + 1,
+				__func__, i, layout->entries[i].start,
+				layout->entries[i].end -
+				layout->entries[i].start + 1,
 				start, len);
 		}
 
@@ -942,9 +954,10 @@ int extract_regions(struct flashctx *flash)
 		goto out_free;
 	}
 
-	msg_gdbg("Extracting %zd images\n", layout.num_entries);
-	for (i = 0; !ret && i < layout.num_entries; i++) {
-		struct romentry *region = &layout.entries[i];
+	struct flashrom_layout *const layout = get_global_layout();
+	msg_gdbg("Extracting %zd images\n", layout->num_entries);
+	for (i = 0; !ret && i < layout->num_entries; i++) {
+		struct romentry *region = &layout->entries[i];
 		char fname[256];
 		char *from, *to;
 		unsigned long region_size;

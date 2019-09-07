@@ -43,8 +43,6 @@ struct single_layout {
 	struct romentry entry;
 };
 
-const struct flashrom_layout *get_global_layout(void);
-
 /**
  * Extract regions to current directory
  *
