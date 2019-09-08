@@ -16,6 +16,7 @@
 
 #include <string.h>
 #include "flash.h"
+#include "chipdrivers.h"
 #include "ene.h"
 #include "edi.h"
 
@@ -150,12 +151,18 @@ static int edi_chip_probe(struct flashctx *flash, const struct ene_chip *chip)
 	int rc;
 
 	rc = edi_read(flash, ENE_EC_HWVERSION, &hwversion);
-	if (rc < 0)
+	if (rc < 0) {
+		msg_cdbg("%s: reading hwversion failed\n", __func__);
 		return 0;
+	}
 
 	rc = edi_read(flash, ENE_EC_EDIID, &ediid);
-	if (rc < 0)
+	if (rc < 0) {
+		msg_cdbg("%s: reading ediid failed\n", __func__);
 		return 0;
+	}
+
+	msg_cdbg("%s: hwversion 0x%02x, ediid 0x%02x\n", __func__, hwversion, ediid);
 
 	if (chip->hwversion == hwversion && chip->ediid == ediid)
 		return 1;
@@ -451,7 +458,7 @@ int edi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsi
 	return 0;
 }
 
-int edi_shutdown(void *data)
+static int edi_shutdown(void *data)
 {
 	struct flashctx *flash;
 	int rc;
@@ -480,6 +487,18 @@ int edi_probe_kb9012(struct flashctx *flash)
 {
 	int probe;
 	int rc;
+	unsigned char hwversion;
+
+	/*
+	 * ENE chips enable EDI by detecting a clock frequency between 1 MHz and
+	 * 8 MHz. In many cases, the chip won't be able to both detect the clock
+	 * signal and serve the associated request at the same time.
+	 *
+	 * Thus, a dummy read has to be added to ensure that EDI is enabled and
+	 * operational starting from the next request. This dummy read below
+	 * draws the chip's attention and as result the chip enables its EDI.
+	 */
+	edi_read(flash, ENE_EC_HWVERSION, &hwversion);
 
 	probe = edi_chip_probe(flash, &ene_kb9012);
 	if (!probe)
