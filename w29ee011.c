@@ -12,11 +12,11 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <string.h>
 #include "flash.h"
+#include "chipdrivers.h"
 
 /* According to the Winbond W29EE011, W29EE012, W29C010M, W29C011A
  * datasheets this is the only valid probe function for those chips.
