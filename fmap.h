@@ -35,8 +35,8 @@
  * This is ported from the flashmap utility: http://flashmap.googlecode.com
  */
 
-#ifndef FLASHMAP_LIB_FMAP_H__
-#define FLASHMAP_LIB_FMAP_H__
+#ifndef __FMAP_H__
+#define __FMAP_H__ 1
 
 #include <inttypes.h>
 
@@ -106,4 +106,4 @@ int fmap_find(void *source_handle,
 struct fmap *fmap_find_in_memory(uint8_t *image, int size);
 
 
-#endif	/* FLASHMAP_LIB_FMAP_H__*/
+#endif	/* __FMAP_H__*/
