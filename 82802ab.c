@@ -12,7 +12,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 /*
@@ -41,7 +40,7 @@ int probe_82802ab(struct flashctx *flash)
 {
 	chipaddr bios = flash->virtual_memory;
 	uint8_t id1, id2, flashcontent1, flashcontent2;
-	int shifted = (flash->chip->feature_bits & FEATURE_ADDR_SHIFTED) != 0;
+	int shifted = (flash->chip->feature_bits & FEATURE_ADDR_SHIFTED) ? 1 : 0;
 
 	/* Reset to get a clean state */
 	chip_writeb(flash, 0xFF, bios);
@@ -86,6 +85,7 @@ int probe_82802ab(struct flashctx *flash)
 	return 1;
 }
 
+/* FIXME: needs timeout */
 uint8_t wait_82802ab(struct flashctx *flash)
 {
 	uint8_t status;
@@ -129,7 +129,7 @@ int erase_block_82802ab(struct flashctx *flash, unsigned int page,
 /* chunksize is 1 */
 int write_82802ab(struct flashctx *flash, const uint8_t *src, unsigned int start, unsigned int len)
 {
-	int i;
+	unsigned int i;
 	chipaddr dst = flash->virtual_memory + start;
 
 	for (i = 0; i < len; i++) {
@@ -147,7 +147,7 @@ int unlock_28f004s5(struct flashctx *flash)
 {
 	chipaddr bios = flash->virtual_memory;
 	uint8_t mcfg, bcfg, need_unlock = 0, can_unlock = 0;
-	int i;
+	unsigned int i;
 
 	/* Clear status register */
 	chip_writeb(flash, 0x50, bios);
@@ -200,7 +200,7 @@ int unlock_lh28f008bjt(struct flashctx *flash)
 	chipaddr bios = flash->virtual_memory;
 	uint8_t mcfg, bcfg;
 	uint8_t need_unlock = 0, can_unlock = 0;
-	int i;
+	unsigned int i;
 
 	/* Wait if chip is busy */
 	wait_82802ab(flash);
