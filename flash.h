@@ -300,7 +300,7 @@ void print_supported_wiki(void);
 
 /* helpers.c */
 uint32_t address_to_bits(uint32_t addr);
-int bitcount(unsigned long a);
+unsigned int bitcount(unsigned long a);
 int max(int a, int b);
 int min(int a, int b);
 char *strcat_realloc(char *dest, const char *src);
