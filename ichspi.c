@@ -17,7 +17,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #if defined(__i386__) || defined(__x86_64__)
@@ -1402,7 +1401,7 @@ int ich_hwseq_probe(struct flashctx *flash)
 	struct block_eraser *eraser;
 
 	total_size = hwseq_data.size_comp0 + hwseq_data.size_comp1;
-	msg_cdbg("Found %d attached SPI flash chip",
+	msg_cdbg("Hardware sequencing reports %d attached SPI flash chip",
 		 (hwseq_data.size_comp1 != 0) ? 2 : 1);
 	if (hwseq_data.size_comp1 != 0)
 		msg_cdbg("s with a combined");
@@ -1417,14 +1416,14 @@ int ich_hwseq_probe(struct flashctx *flash)
 	erase_size_high = ich_hwseq_get_erase_block_size(boundary);
 
 	if (boundary == 0) {
-		msg_cdbg("There is only one partition containing the whole "
+		msg_cdbg2("There is only one partition containing the whole "
 			 "address space (0x%06x - 0x%06x).\n", 0, size_high-1);
 		eraser->eraseblocks[0].size = erase_size_high;
 		eraser->eraseblocks[0].count = size_high / erase_size_high;
-		msg_cdbg("There are %d erase blocks with %d B each.\n",
+		msg_cdbg2("There are %d erase blocks with %d B each.\n",
 			 size_high / erase_size_high, erase_size_high);
 	} else {
-		msg_cdbg("The flash address space (0x%06x - 0x%06x) is divided "
+		msg_cdbg2("The flash address space (0x%06x - 0x%06x) is divided "
 			 "at address 0x%06x in two partitions.\n",
 			 0, size_high-1, boundary);
 		size_low = total_size - size_high;
@@ -1482,7 +1481,7 @@ int ich_hwseq_block_erase(struct flashctx *flash,
 		return -1;
 	}
 
-	msg_pspew("Erasing %d bytes starting at 0x%06x.\n", len, addr);
+	msg_pdbg("Erasing %d bytes starting at 0x%06x.\n", len, addr);
 
 	/* make sure FDONE, FCERR, AEL are cleared by writing 1 to them */
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
@@ -1491,7 +1490,7 @@ int ich_hwseq_block_erase(struct flashctx *flash,
 	hsfc &= ~HSFC_FCYCLE; /* clear operation */
 	hsfc |= (0x3 << HSFC_FCYCLE_OFF); /* set erase operation */
 	hsfc |= HSFC_FGO; /* start */
-	msg_pspew("HSFC used for block erasing: ");
+	msg_pdbg("HSFC used for block erasing: ");
 	prettyprint_ich9_reg_hsfc(hsfc);
 	REGWRITE16(ICH9_REG_HSFC, hsfc);
 
@@ -1513,7 +1512,7 @@ int ich_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 		return -1;
 	}
 
-	msg_pspew("Reading %d bytes starting at 0x%06x.\n", len, addr);
+	msg_pdbg("Reading %d bytes starting at 0x%06x.\n", len, addr);
 	/* clear FDONE, FCERR, AEL by writing 1 to them (if they are set) */
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
 
@@ -1551,7 +1550,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		return -1;
 	}
 
-	msg_pspew("Writing %d bytes starting at 0x%06x.\n", len, addr);
+	msg_pdbg("Writing %d bytes starting at 0x%06x.\n", len, addr);
 	/* clear FDONE, FCERR, AEL by writing 1 to them (if they are set) */
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
 
@@ -2257,11 +2256,11 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 		for (i = 0; i < 3; i++) {
 			int offs;
 			offs = 0x60 + (i * 4);
-			msg_pdbg("0x%02x: 0x%08x (PBR%d)\n", offs,
+			msg_pdbg("0x%02x: 0x%08x (PBR%u)\n", offs,
 				     mmio_readl(ich_spibar + offs), i);
 		}
 		if (mmio_readw(ich_spibar) & (1 << 15)) {
-			msg_pdbg("WARNING: SPI Configuration Lockdown activated.\n");
+			msg_pwarn("WARNING: SPI Configuration Lockdown activated.\n");
 			ichspi_lock = 1;
 		}
 		ich_init_opcodes();
@@ -2385,7 +2384,7 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 		msg_pdbg("0x04: 0x%04x (HSFS)\n", tmp2);
 		prettyprint_ich9_reg_hsfs(tmp2);
 		if (tmp2 & HSFS_FLOCKDN) {
-			msg_pdbg("WARNING: SPI Configuration Lockdown activated.\n");
+			msg_pinfo("SPI Configuration is locked down.\n");
 			ichspi_lock = 1;
 		}
 		if (tmp2 & HSFS_FDV)
@@ -2406,7 +2405,7 @@ int ich_init_spi(struct pci_dev *dev, uint32_t base, void *rcrb,
 		}
 
 		tmp = mmio_readl(ich_spibar + ICH9_REG_FADDR);
-		msg_pdbg("0x08: 0x%08x (FADDR)\n", tmp);
+		msg_pdbg2("0x08: 0x%08x (FADDR)\n", tmp);
 
 		if (desc_valid) {
 			tmp = mmio_readl(ich_spibar + ICH9_REG_FRAP);
@@ -2589,7 +2588,7 @@ int via_init_spi(struct pci_dev *dev)
 	msg_pdbg("0x6c: 0x%04x     (CLOCK/DEBUG)\n",
 		 mmio_readw(ich_spibar + 0x6c));
 	if (mmio_readw(ich_spibar) & (1 << 15)) {
-		msg_pdbg("WARNING: SPI Configuration Lockdown activated.\n");
+		msg_pwarn("Warning: SPI Configuration Lockdown activated.\n");
 		ichspi_lock = 1;
 	}
 
