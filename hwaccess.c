@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #endif
 #include "flash.h"
+#include "programmer.h"
 #include "hwaccess.h"
 
 #if !(IS_LINUX || IS_MACOSX || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__) || defined(__DJGPP__) || defined(__LIBPAYLOAD__) || defined(__sun) || defined(__gnu_hurd__))
@@ -191,17 +192,17 @@ void mmio_le_writel(uint32_t val, void *addr)
 	mmio_writel(cpu_to_le32(val), addr);
 }
 
-uint8_t mmio_le_readb(void *addr)
+uint8_t mmio_le_readb(const void *addr)
 {
 	return le_to_cpu8(mmio_readb(addr));
 }
 
-uint16_t mmio_le_readw(void *addr)
+uint16_t mmio_le_readw(const void *addr)
 {
 	return le_to_cpu16(mmio_readw(addr));
 }
 
-uint32_t mmio_le_readl(void *addr)
+uint32_t mmio_le_readl(const void *addr)
 {
 	return le_to_cpu32(mmio_readl(addr));
 }
@@ -223,7 +224,7 @@ struct undo_mmio_write_data {
 	};
 };
 
-int undo_mmio_write(void *p)
+static int undo_mmio_write(void *p)
 {
 	struct undo_mmio_write_data *data = p;
 	msg_pdbg("Restoring MMIO space at %p\n", data->addr);
