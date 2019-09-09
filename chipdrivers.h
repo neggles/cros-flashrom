@@ -12,8 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- *
- *
  * Header file for flash chip drivers. Included from flash.h.
  * As a general rule, every function listed here should take a pointer to
  * struct flashctx as first parameter.
@@ -25,7 +23,7 @@
 #include "flash.h"		/* for chipaddr and flashctx */
 #include "writeprotect.h"	/* for generic_modifier_bits */
 
-/* spi.c, should probably be in spi_chip.c */
+/* spi25.c */
 int probe_spi_rdid(struct flashctx *flash);
 int probe_spi_rdid4(struct flashctx *flash);
 int probe_spi_rems(struct flashctx *flash);
