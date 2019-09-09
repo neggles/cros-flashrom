@@ -313,6 +313,10 @@ void print_supported_wiki(void);
 /* helpers.c */
 uint32_t address_to_bits(uint32_t addr);
 unsigned int bitcount(unsigned long a);
+#undef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#undef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 int max(int a, int b);
 int min(int a, int b);
 char *strcat_realloc(char *dest, const char *src);
@@ -387,7 +391,6 @@ enum error_action {
 
 /* Something happened that shouldn't happen, we'll abort. */
 #define ERROR_FATAL -0xee
-
 #define ERROR_FLASHROM_BUG -200
 /* We reached one of the hardcoded limits of flashrom. This can be fixed by
  * increasing the limit of a compile-time allocation or by switching to dynamic
