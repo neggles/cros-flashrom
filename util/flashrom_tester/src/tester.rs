@@ -34,8 +34,13 @@
 //
 
 use super::cmd;
+use super::flashrom;
 use super::types;
+use crate::cmd::FlashromCmd;
+use crate::types::FlashChip;
 use serde_json::json;
+use std::mem::MaybeUninit;
+use std::sync::Mutex;
 
 // type-signature comes from the return type of flashrom.rs workers.
 type TestError = Box<dyn std::error::Error>;
@@ -44,6 +49,361 @@ pub type TestResult = Result<(), TestError>;
 type TestFunction = fn(&TestParams) -> TestResult;
 type PreFunction = fn(&TestParams) -> ();
 type PostFunction = fn(&TestParams) -> ();
+
+pub struct TestEnv<'a> {
+    chip_type: FlashChip,
+    cmd: &'a cmd::FlashromCmd,
+
+    pub wp: WriteProtectState<'a, 'static>,
+    /// The path to a file containing the flash contents at test start.
+    // TODO(pmarheine) migrate this to a PathBuf for clarity
+    original_flash_contents: String,
+}
+
+impl<'a> TestEnv<'a> {
+    pub fn create(chip_type: FlashChip, cmd: &'a cmd::FlashromCmd) -> Result<Self, String> {
+        let out = TestEnv {
+            chip_type: chip_type,
+            cmd: cmd,
+            wp: WriteProtectState::from_hardware(cmd)?,
+            original_flash_contents: "/tmp/flashrom_tester_golden.bin".into(),
+        };
+
+        info!("Stashing golden image for verification/recovery on completion");
+        super::flashrom::read(&out.cmd, &out.original_flash_contents)?;
+        super::flashrom::verify(&out.cmd, &out.original_flash_contents)?;
+
+        Ok(out)
+    }
+
+    pub fn run_test<T: NewTestCase>(&mut self, test: T) -> TestResult {
+        let use_dut_control = self.chip_type == FlashChip::SERVO;
+        if use_dut_control && cmd::dut_ctrl_toggle_wp(false).is_err() {
+            error!("failed to dispatch dut_ctrl_toggle_wp()!");
+        }
+
+        let name = test.get_name();
+        info!("Beginning test: {}", name);
+        let out = test.run(self);
+        info!("Completed test: {}; result {:?}", name, out);
+
+        if use_dut_control && cmd::dut_ctrl_toggle_wp(true).is_err() {
+            error!("failed to dispatch dut_ctrl_toggle_wp()!");
+        }
+        out
+    }
+}
+
+impl Drop for TestEnv<'_> {
+    fn drop(&mut self) {
+        info!("Verifying flash remains unmodified");
+        if let Err(e) = flashrom::verify(&self.cmd, &self.original_flash_contents) {
+            warn!("ROM seems to be in a different state at finish; restoring original");
+            warn!("flashrom error: {:?}", e);
+
+            // Ensure write protects are disabled and attempt to write back the original image.
+            let status = self
+                .wp
+                .set_hw(false)
+                .and_then(|_| self.wp.set_sw(false))
+                .and_then(|_| flashrom::write(&self.cmd, &self.original_flash_contents));
+            if let Err(e) = status {
+                error!("Failed to write back golden image: {:?}", e);
+            }
+        }
+    }
+}
+
+/// RAII handle for setting write protect in either hardware or software.
+///
+/// Given an instance, the state of either write protect can be modified by calling
+/// `set` or `push`. When it goes out of scope, the write protects will be returned
+/// to the state they had then it was created.
+///
+/// The lifetime `'p` on this struct is the parent state it derives from; `'static`
+/// implies it is derived from hardware, while anything else is part of a stack
+/// created by `push`ing states. An initial state is always static, and the stack
+/// forms a lifetime chain `'static -> 'p -> 'p1 -> ... -> 'pn`.
+pub struct WriteProtectState<'a, 'p> {
+    /// The parent state this derives from.
+    ///
+    /// If it's a root (gotten via `from_hardware`), then this is Hardware and the
+    /// liveness flag will be reset on drop.
+    initial: InitialState<'p>,
+    // Tuples are (hardware, software)
+    current: (bool, bool),
+    cmd: &'a FlashromCmd,
+}
+
+enum InitialState<'p> {
+    Hardware(bool, bool),
+    Previous(&'p WriteProtectState<'p, 'p>),
+}
+
+impl InitialState<'_> {
+    fn get_target(&self) -> (bool, bool) {
+        match self {
+            InitialState::Hardware(hw, sw) => (*hw, *sw),
+            InitialState::Previous(s) => s.current,
+        }
+    }
+}
+
+impl<'a> WriteProtectState<'a, 'static> {
+    /// Initialize a state from the current state of the hardware.
+    ///
+    /// Panics if there is already a live state derived from hardware. In such a situation the
+    /// new state must be derived from the live one, or the live one must be dropped first.
+    pub fn from_hardware(cmd: &'a FlashromCmd) -> Result<Self, String> {
+        let mut lock = Self::get_liveness_lock()
+            .lock()
+            .expect("Somebody panicked during WriteProtectState init from hardware");
+        if *lock {
+            drop(lock); // Don't poison the lock
+            panic!("Attempted to create a new WriteProtectState when one is already live");
+        }
+
+        let hw = Self::get_hw(cmd)?;
+        let sw = Self::get_sw(cmd)?;
+        info!("Initial hardware write protect: HW={} SW={}", hw, sw);
+
+        *lock = true;
+        Ok(WriteProtectState {
+            initial: InitialState::Hardware(hw, sw),
+            current: (hw, sw),
+            cmd,
+        })
+    }
+
+    /// Get the actual hardware write protect state.
+    fn get_hw(cmd: &FlashromCmd) -> Result<bool, String> {
+        if cmd.fc.can_control_hw_wp() {
+            super::utils::get_hardware_wp()
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Get the actual software write protect state.
+    fn get_sw(cmd: &FlashromCmd) -> Result<bool, String> {
+        super::flashrom::wp_status(cmd, true)
+    }
+}
+
+impl<'a, 'p> WriteProtectState<'a, 'p> {
+    /// Return true if the current programmer supports setting the hardware
+    /// write protect.
+    ///
+    /// If false, calls to set_hw() will do nothing.
+    pub fn can_control_hw_wp(&self) -> bool {
+        self.cmd.fc.can_control_hw_wp()
+    }
+
+    /// Set the software write protect.
+    pub fn set_sw(&mut self, enable: bool) -> Result<(), String> {
+        if self.current.1 != enable {
+            super::flashrom::wp_toggle(self.cmd, /* en= */ enable)?;
+            self.current.1 = enable;
+        }
+        Ok(())
+    }
+
+    /// Set the hardware write protect.
+    pub fn set_hw(&mut self, enable: bool) -> Result<(), String> {
+        if self.current.0 != enable {
+            if self.can_control_hw_wp() {
+                super::utils::toggle_hw_wp(/* dis= */ !enable)?;
+                self.current.0 = enable;
+            } else if enable {
+                info!(
+                    "Ignoring attempt to enable hardware WP with {:?} programmer",
+                    self.cmd.fc
+                );
+            }
+        }
+        Ok(())
+    }
+
+    /// Stack a new write protect state on top of the current one.
+    ///
+    /// This is useful if you need to temporarily make a change to write protection:
+    ///
+    /// ```
+    /// let wp: WriteProtectState<'_, '_>;
+    /// {
+    ///     let wp = wp.push();
+    ///     wp.set_sw(false)?;
+    ///     // Do something with software write protect disabled
+    /// }
+    /// // Now software write protect returns to its original state, even if
+    /// // set_sw() failed.
+    /// ```
+    ///
+    /// This returns a new state which restores the original when it is dropped- the new state
+    /// refers to the old, so the compiler enforces that states are disposed of in the reverse
+    /// order of their creation and correctly restore the original state.
+    pub fn push<'p1>(&'p1 self) -> WriteProtectState<'a, 'p1> {
+        WriteProtectState {
+            initial: InitialState::Previous(self),
+            current: self.current,
+            cmd: self.cmd,
+        }
+    }
+
+    fn get_liveness_lock() -> &'static Mutex<bool> {
+        static INIT: std::sync::Once = std::sync::Once::new();
+        /// Value becomes true when there is a live WriteProtectState derived `from_hardware`,
+        /// blocking duplicate initialization.
+        ///
+        /// This is required because hardware access is not synchronized; it's possible to leave the
+        /// hardware in an unintended state by creating a state handle from it, modifying the state,
+        /// creating another handle from the hardware then dropping the first handle- then on drop
+        /// of the second handle it will restore the state to the modified one rather than the initial.
+        ///
+        /// This flag ensures that a duplicate root state cannot be created.
+        ///
+        /// This is a Mutex<bool> rather than AtomicBool because acquiring the flag needs to perform
+        /// several operations that may themselves fail- acquisitions must be fully synchronized.
+        static mut LIVE_FROM_HARDWARE: MaybeUninit<Mutex<bool>> = MaybeUninit::uninit();
+
+        unsafe {
+            INIT.call_once(|| {
+                LIVE_FROM_HARDWARE.as_mut_ptr().write(Mutex::new(false));
+            });
+            &*LIVE_FROM_HARDWARE.as_ptr()
+        }
+    }
+
+    /// Reset the hardware to what it was when this state was created, reporting errors.
+    ///
+    /// This behaves exactly like allowing a state to go out of scope, but it can return
+    /// errors from that process rather than panicking.
+    pub fn close(mut self) -> Result<(), String> {
+        unsafe {
+            let out = self.drop_internal();
+            // We just ran drop, don't do it again
+            std::mem::forget(self);
+            out
+        }
+    }
+
+    /// Internal Drop impl.
+    ///
+    /// This is unsafe because it effectively consumes self when clearing the
+    /// liveness lock. Callers must be able to guarantee that self will be forgotten
+    /// if the state was constructed from hardware in order to uphold the liveness
+    /// invariant (that only a single state constructed from hardware exists at any
+    /// time).
+    unsafe fn drop_internal(&mut self) -> Result<(), String> {
+        let lock = match self.initial {
+            InitialState::Hardware(_, _) => Some(
+                Self::get_liveness_lock()
+                    .lock()
+                    .expect("Somebody panicked during WriteProtectState drop from hardware"),
+            ),
+            _ => None,
+        };
+        let (hw, sw) = self.initial.get_target();
+
+        fn enable_str(enable: bool) -> &'static str {
+            if enable {
+                "en"
+            } else {
+                "dis"
+            }
+        }
+
+        // Toggle both protects back to their initial states.
+        // Software first because we can't change it once hardware is enabled.
+        if sw != self.current.1 {
+            super::flashrom::wp_toggle(self.cmd, /* en= */ sw).map_err(|e| {
+                format!(
+                    "Failed to {}able software write protect: {}",
+                    enable_str(sw),
+                    e
+                )
+            })?;
+        }
+
+        assert!(
+            self.cmd.fc.can_control_hw_wp() || (!self.current.0 && !hw),
+            "HW WP must be disabled if it cannot be controlled"
+        );
+        if hw != self.current.0 {
+            super::utils::toggle_hw_wp(/* dis= */ !hw).map_err(|e| {
+                format!(
+                    "Failed to {}able hardware write protect: {}",
+                    enable_str(hw),
+                    e
+                )
+            })?;
+        }
+
+        if let Some(mut lock) = lock {
+            // Initial state was constructed via from_hardware, now we can clear the liveness
+            // lock since reset is complete.
+            *lock = false;
+        }
+        Ok(())
+    }
+}
+
+impl<'a, 'p> Drop for WriteProtectState<'a, 'p> {
+    /// Sets both write protects to the state they had when this state was created.
+    ///
+    /// Panics on error because there is no mechanism to report errors in Drop.
+    fn drop(&mut self) {
+        unsafe { self.drop_internal() }.expect("Error while dropping WriteProtectState")
+    }
+}
+
+pub trait NewTestCase {
+    fn get_name(&self) -> &str;
+    fn expected_result(&self) -> TestConclusion;
+    fn run(&self, env: &mut TestEnv) -> TestResult;
+}
+
+impl<S: AsRef<str>, F: Fn(&mut TestEnv) -> TestResult> NewTestCase for (S, F) {
+    fn get_name(&self) -> &str {
+        self.0.as_ref()
+    }
+
+    fn expected_result(&self) -> TestConclusion {
+        TestConclusion::Pass
+    }
+
+    fn run(&self, env: &mut TestEnv) -> TestResult {
+        (self.1)(env)
+    }
+}
+
+impl NewTestCase for TestCase<'_> {
+    fn get_name(&self) -> &str {
+        self.name
+    }
+
+    fn expected_result(&self) -> TestConclusion {
+        self.conclusion
+    }
+
+    fn run(&self, _env: &mut TestEnv) -> TestResult {
+        (self.test_fn)(self.params)
+    }
+}
+
+impl<T: NewTestCase + ?Sized> NewTestCase for &T {
+    fn get_name(&self) -> &str {
+        (*self).get_name()
+    }
+
+    fn expected_result(&self) -> TestConclusion {
+        (*self).expected_result()
+    }
+
+    fn run(&self, env: &mut TestEnv) -> TestResult {
+        (*self).run(env)
+    }
+}
 
 pub struct TestParams<'a> {
     pub cmd: &'a cmd::FlashromCmd,
@@ -89,36 +449,20 @@ fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, 
     }
 }
 
-fn run_test(t: &TestCase) -> (TestConclusion, Option<TestError>) {
-    let params = &t.params;
+pub fn run_all_tests<T>(
+    chip: FlashChip,
+    cmd: &FlashromCmd,
+    ts: &[T],
+) -> Vec<(String, (TestConclusion, Option<TestError>))>
+where
+    T: NewTestCase,
+{
+    let mut env = TestEnv::create(chip, cmd).expect("Failed to set up test environment");
 
-    if let Some(msg) = params.log_text {
-        info!("{}", msg);
-    }
-
-    if params.pre_fn.is_some() {
-        params.pre_fn.unwrap()(params);
-    }
-
-    let res = (t.test_fn)(params);
-
-    if let Some(f) = params.post_fn {
-        f(params);
-    }
-
-    decode_test_result(res, t.conclusion)
-}
-
-pub fn run_all_tests<'a>(
-    ts: &[&TestCase<'a>],
-) -> Vec<(&'a str, (TestConclusion, Option<TestError>))> {
     let mut results = Vec::new();
     for t in ts {
-        info!("Begin test: {}", t.name);
-        let result = run_test(t);
-        info!("Completed {}: {:?}", t.name, result);
-
-        results.push((t.name, result));
+        let result = decode_test_result(env.run_test(t), t.expected_result());
+        results.push((t.get_name().into(), result));
     }
     results
 }
@@ -146,7 +490,7 @@ impl std::str::FromStr for OutputFormat {
 }
 
 pub fn collate_all_test_runs(
-    truns: &[(&str, (TestConclusion, Option<TestError>))],
+    truns: &[(String, (TestConclusion, Option<TestError>))],
     meta_data: ReportMetaData,
     format: OutputFormat,
 ) {
@@ -202,12 +546,12 @@ pub fn collate_all_test_runs(
                 };
 
                 assert!(
-                    !tests.contains_key(*name),
+                    !tests.contains_key(name),
                     "Found multiple tests named {:?}",
                     name
                 );
                 tests.insert(
-                    (*name).into(),
+                    name.into(),
                     json!({
                         "pass": passed,
                         "error": error,
@@ -232,67 +576,26 @@ pub fn collate_all_test_runs(
 
 #[cfg(test)]
 mod tests {
-    use crate::cmd::FlashromCmd;
-    use crate::types::FlashChip;
-    use std::sync::atomic::{AtomicBool, Ordering};
-
     #[test]
-    fn run_test() {
+    fn decode_test_result() {
+        use super::decode_test_result;
         use super::TestConclusion::*;
-        use super::{run_test, TestCase, TestParams};
 
-        // Hack around TestParams not accepting closures with statics.
-        // This is safe for parallel testing because the statics are private
-        // to this test case.
-        static RAN_PRE: AtomicBool = AtomicBool::new(false);
-        static RAN_POST: AtomicBool = AtomicBool::new(false);
+        let (result, err) = decode_test_result(Ok(()), Pass);
+        assert_eq!(result, Pass);
+        assert!(err.is_none());
 
-        let expected_pass = TestCase {
-            name: "ExpectedPass",
-            test_fn: |_| Ok(()),
-            params: &TestParams {
-                cmd: &FlashromCmd {
-                    path: "".to_string(),
-                    fc: FlashChip::EC,
-                },
-                fc: FlashChip::HOST,
-                log_text: None,
-                pre_fn: Some(|_| RAN_PRE.store(true, Ordering::SeqCst)),
-                post_fn: Some(|_| RAN_POST.store(true, Ordering::SeqCst)),
-            },
-            conclusion: Pass,
-        };
+        let (result, err) = decode_test_result(Ok(()), Fail);
+        assert_eq!(result, UnexpectedPass);
+        assert!(err.is_none());
 
-        let (conclusion, error) = run_test(&expected_pass);
-        assert_eq!(conclusion, Pass);
-        assert!(error.is_none());
-        // Check functions ran and reset flags at the same time
-        assert_eq!(RAN_PRE.swap(false, Ordering::SeqCst), true);
-        assert_eq!(RAN_POST.swap(false, Ordering::SeqCst), true);
+        let (result, err) = decode_test_result(Err("broken".into()), Pass);
+        assert_eq!(result, UnexpectedFail);
+        assert!(err.is_some());
 
-        let unexpected_fail = TestCase {
-            test_fn: |_| Err("I'm a failure".into()),
-            ..expected_pass
-        };
-        let (conclusion, error) = run_test(&unexpected_fail);
-        assert_eq!(conclusion, UnexpectedFail);
-        assert_eq!(format!("{}", error.expect("not an error")), "I'm a failure");
-
-        let expected_fail = TestCase {
-            conclusion: Fail,
-            ..unexpected_fail
-        };
-        let (conclusion, error) = run_test(&expected_fail);
-        assert_eq!(conclusion, Pass);
-        assert!(error.is_none());
-
-        let unexpected_pass = TestCase {
-            conclusion: Fail,
-            ..expected_pass
-        };
-        let (conclusion, error) = run_test(&unexpected_pass);
-        assert_eq!(conclusion, UnexpectedPass);
-        assert!(error.is_none());
+        let (result, err) = decode_test_result(Err("broken".into()), Fail);
+        assert_eq!(result, Pass);
+        assert!(err.is_none());
     }
 
     #[test]

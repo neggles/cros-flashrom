@@ -37,7 +37,7 @@ use super::cmd;
 use super::flashrom::{self, Flashrom, FlashromError};
 use super::mosys;
 use super::rand_util;
-use super::tester::{self, OutputFormat, TestResult};
+use super::tester::{self, NewTestCase, OutputFormat, TestResult};
 use super::types;
 use super::utils;
 use std::collections::HashMap;
@@ -417,7 +417,7 @@ pub fn generic(
     //  ================================================
 
     // Register tests to run:
-    let tests = [
+    let tests: &[&dyn NewTestCase] = &[
         &tester::TestCase {
             name: "Get device name",
             params: &default_test_params,
@@ -439,11 +439,10 @@ pub fn generic(
         &lock_top_half_test,
         &coreboot_elog_sanity_test,
         &test_host_is_chrome,
-        &consistent_exit_test,
     ];
     // ------------------------.
     // Run all the tests and collate the findings:
-    let results = tester::run_all_tests(&tests);
+    let results = tester::run_all_tests(fc, &cmd, tests);
 
     let chip_name = flashrom::name(&cmd)
         .map(|x| format!("vendor=\"{}\" name=\"{}\"", x.0, x.1))

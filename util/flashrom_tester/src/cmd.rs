@@ -39,6 +39,7 @@ use super::utils;
 
 use std::process::Command;
 
+#[derive(PartialEq, Debug)]
 pub struct FlashromCmd {
     pub path: String,
     pub fc: types::FlashChip,

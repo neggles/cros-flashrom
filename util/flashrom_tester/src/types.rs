@@ -61,6 +61,17 @@ impl FlashChip {
         };
         return r;
     }
+
+    /// Return whether the hardware write protect signal can be controlled.
+    ///
+    /// Servo and dediprog adapters are assumed to always have hardware write protect
+    /// disabled.
+    pub fn can_control_hw_wp(&self) -> bool {
+        match self {
+            FlashChip::HOST | FlashChip::EC => true,
+            FlashChip::SERVO | FlashChip::DEDIPROG => false,
+        }
+    }
 }
 
 pub const BOLD: &str = "\x1b[1m";
