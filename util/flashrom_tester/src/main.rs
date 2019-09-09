@@ -95,6 +95,11 @@ fn main() {
                 .required(true)
                 .possible_values(&["host", "ec", "servo"]),
         )
+        .arg(
+            Arg::with_name("print-layout")
+                .long("print-layout")
+                .help("Print the layout file's contents before running tests"),
+        )
         .get_matches();
 
     let flashrom_path = matches
@@ -107,7 +112,9 @@ fn main() {
     )
     .expect("ccd_target_type should admit only known types");
 
-    if let Err(e) = tests::generic(flashrom_path, ccd_type) {
+    let print_layout = matches.is_present("print-layout");
+
+    if let Err(e) = tests::generic(flashrom_path, ccd_type, print_layout) {
         eprintln!("Failed to run tests: {:?}", e);
     }
 }

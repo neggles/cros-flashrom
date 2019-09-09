@@ -41,13 +41,18 @@ use super::tester::{self, TestResult};
 use super::types;
 use super::utils;
 use std::fs::File;
+use std::io::Write;
 
 const LAYOUT_FILE: &'static str = "/tmp/layout.file";
 
 /// Run tests.
 ///
 /// Only returns an Error if there was an internal error; test failures are Ok.
-pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::error::Error>> {
+pub fn generic(
+    path: &str,
+    fc: types::FlashChip,
+    print_layout: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let p = path.to_string();
     let cmd = cmd::FlashromCmd { path: p, fc };
 
@@ -57,7 +62,19 @@ pub fn generic(path: &str, fc: types::FlashChip) -> Result<(), Box<dyn std::erro
     info!("Calculate ROM partition sizes & Create the layout file.");
     let rom_sz: i64 = cmd.get_size()?;
     let layout_sizes = utils::get_layout_sizes(rom_sz)?;
-    utils::construct_layout_file(File::create(LAYOUT_FILE)?, &layout_sizes)?;
+    {
+        let mut f = File::create(LAYOUT_FILE)?;
+        let mut buf: Vec<u8> = vec![];
+        utils::construct_layout_file(&mut buf, &layout_sizes)?;
+
+        f.write_all(&buf)?;
+        if print_layout {
+            info!(
+                "Dumping layout file as requested:\n{}",
+                String::from_utf8_lossy(&buf)
+            );
+        }
+    }
 
     info!("Create a Binary with random contents.");
     rand_util::gen_rand_testdata("/tmp/random_content.bin", rom_sz as usize)?;
