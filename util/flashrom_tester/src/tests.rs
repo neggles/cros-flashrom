@@ -165,10 +165,14 @@ pub fn generic(
         println!("Replace battery to assert hardware write-protect.");
         utils::toggle_hw_wp(false)?;
         if flashrom::erase(&param.cmd).is_ok() {
-            warn!("flash image in an inconsistent state! Attempting to restore..");
-            flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-            flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-            return Err("Hardware write protect asserted however can still erase!".into());
+            info!("Flashrom returned Ok but this may be incorrect; verifying");
+            if flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat").is_err() {
+                warn!("flash image in an inconsistent state! Attempting to restore..");
+                flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+                flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
+                return Err("Hardware write protect asserted however can still erase!".into());
+            }
+            info!("Erase claimed to succeed but verify is Ok; assume erase failed");
         }
         println!("Remove battery to de-assert hardware write-protect.");
         utils::toggle_hw_wp(true)?;
