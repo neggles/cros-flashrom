@@ -20,10 +20,15 @@
 #ifndef __FLASH_H__
 #define __FLASH_H__ 1
 
+#include "platform.h"
+
+#include <inttypes.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdarg.h>
 #include <stdbool.h>
-#ifdef _WIN32
+#if IS_WINDOWS
 #include <windows.h>
 #undef min
 #undef max
@@ -32,12 +37,21 @@
 /* Are timers broken? */
 extern int broken_timer;
 
+#define KiB (1024)
+#define MiB (1024 * KiB)
+
+/* Assumes `n` and `a` are at most 64-bit wide (to avoid typeof() operator). */
+#define ALIGN_DOWN(n, a) ((n) & ~((uint64_t)(a) - 1))
+
 struct flashctx; /* forward declare */
 #define ERROR_PTR ((void*)-1)
 
 /* Error codes */
+#define ERROR_OOM	-100
 #define TIMEOUT_ERROR	-101
 
+/* TODO: check using code for correct usage of types */
+typedef uintptr_t chipaddr;
 #define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
 
 /* for verify_it variable in flashrom.c and cli_classic.c */
@@ -46,8 +60,6 @@ enum {
 	VERIFY_FULL,
 	VERIFY_PARTIAL,
 };
-
-typedef unsigned long chipaddr;
 
 int register_shutdown(int (*function) (void *data), void *data);
 #define CHIP_RESTORE_CALLBACK	int (*func) (struct flashctx *flash, uint8_t status)
@@ -413,7 +425,10 @@ enum flashrom_log_level {
 /* Let gcc and clang check for correct printf-style format strings. */
 int print(enum flashrom_log_level level, const char *fmt, ...)
 #ifdef __MINGW32__
-__attribute__((format(gnu_printf, 2, 3)));
+#  ifndef __MINGW_PRINTF_FORMAT
+#    define __MINGW_PRINTF_FORMAT gnu_printf
+#  endif
+__attribute__((format(__MINGW_PRINTF_FORMAT, 2, 3)));
 #else
 __attribute__((format(printf, 2, 3)));
 #endif
