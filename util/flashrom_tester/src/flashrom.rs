@@ -35,7 +35,6 @@
 
 use super::cmd;
 use super::types;
-use super::utils;
 
 pub type FlashromError = String;
 
@@ -93,7 +92,34 @@ pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
     let eoutput = String::from_utf8_lossy(stderr.as_slice());
     debug!("name()'stdout: {:#?}.", output);
     debug!("name()'stderr: {:#?}.", eoutput);
-    Ok(utils::vgrep(&output, "coreboot").trim_end().to_string())
+
+    match extract_flash_name(&output) {
+        None => Err("Didn't find chip vendor/name in flashrom output".into()),
+        Some((vendor, name)) => Ok(format!("vendor=\"{}\" name=\"{}\"", vendor, name)),
+    }
+}
+
+/// Get a flash vendor and name from the first matching line of flashrom output.
+///
+/// The target line looks like 'vendor="foo" name="bar"', as output by flashrom --flash-name.
+/// This is usually the last line of output.
+fn extract_flash_name(stdout: &str) -> Option<(&str, &str)> {
+    for line in stdout.lines() {
+        if !line.starts_with("vendor=\"") {
+            continue;
+        }
+
+        let tail = line.trim_start_matches("vendor=\"");
+        let mut split = tail.splitn(2, "\" name=\"");
+        let vendor = split.next();
+        let name = split.next().map(|s| s.trim_end_matches('"'));
+
+        match (vendor, name) {
+            (Some(v), Some(n)) => return Some((v, n)),
+            _ => continue,
+        }
+    }
+    None
 }
 
 pub struct ROMWriteSpecifics<'a> {
@@ -285,4 +311,29 @@ pub fn erase(cmd: &cmd::FlashromCmd) -> Result<(), FlashromError> {
     let output = String::from_utf8_lossy(stdout.as_slice());
     debug!("erase():\n{}", output);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn extract_flash_name() {
+        use super::extract_flash_name;
+
+        assert_eq!(
+            extract_flash_name(
+                "coreboot table found at 0x7cc13000\n\
+                 Found chipset \"Intel Braswell\". Enabling flash write... OK.\n\
+                 vendor=\"Winbond\" name=\"W25Q64DW\"\n"
+            ),
+            Some(("Winbond", "W25Q64DW"))
+        );
+
+        assert_eq!(
+            extract_flash_name(
+                "vendor name is TEST\n\
+                 Something failed!"
+            ),
+            None
+        )
+    }
 }

@@ -36,10 +36,6 @@
 use std::io::prelude::*;
 use std::process::Command;
 
-pub fn vgrep(s: &str, m: &str) -> String {
-    s.lines().filter(|&x| !x.contains(m)).collect()
-}
-
 pub fn hex_string(v: i64) -> String {
     format!("{:#08X}", v).to_string()
 }
@@ -186,24 +182,6 @@ fn parse_crosssystem(s: &str) -> Result<(Vec<&str>, bool), &'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn vgrep() {
-        use super::vgrep;
-
-        let s = "XXXqcYYY";
-        let m = "qc";
-        let n = "zz";
-
-        assert_eq!("", vgrep(s, s));
-        assert_eq!("", vgrep(s, m));
-        assert_eq!(s, vgrep(s, n));
-
-        let x = "idk\nLALLA\nZZZ\nQQ";
-        let xs = "LA";
-
-        assert_eq!("idkZZZQQ", vgrep(x, xs));
-    }
 
     #[test]
     fn construct_layout_file() {
