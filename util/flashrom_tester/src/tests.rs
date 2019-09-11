@@ -56,9 +56,6 @@ pub fn generic(
     let p = path.to_string();
     let cmd = cmd::FlashromCmd { path: p, fc };
 
-    let chip_name = flashrom::name(&cmd)?;
-    info!("Found chip name: {}.", chip_name);
-
     info!("Calculate ROM partition sizes & Create the layout file.");
     let rom_sz: i64 = cmd.get_size()?;
     let layout_sizes = utils::get_layout_sizes(rom_sz)?;
@@ -394,6 +391,16 @@ pub fn generic(
 
     // Register tests to run:
     let tests = [
+        &tester::TestCase {
+            name: "Get device name",
+            params: &default_test_params,
+            test_fn: |params| {
+                // Success means we got something back, which is good enough.
+                flashrom::name(&params.cmd)?;
+                Ok(())
+            },
+            conclusion: tester::TestConclusion::Pass,
+        },
         &wp_test,
         &read_test,
         &erase_write_test,
@@ -410,9 +417,13 @@ pub fn generic(
     // Run all the tests and collate the findings:
     let results = tester::run_all_tests(&tests);
 
+    let chip_name = flashrom::name(&cmd)
+        .map(|x| format!("vendor=\"{}\" name=\"{}\"", x.0, x.1))
+        .unwrap_or("<Unknown chip>".into());
     let os_rel = sys_info::os_release().unwrap_or("<Unknown OS>".to_string());
     let system_info = mosys::system_info().unwrap_or("<Unknown System>".to_string());
     let bios_info = mosys::bios_info().unwrap_or("<Unknown BIOS>".to_string());
+
     let meta_data = tester::ReportMetaData {
         chip_name: chip_name,
         os_release: os_rel,

@@ -76,7 +76,7 @@ pub trait Flashrom {
     fn dispatch(&self, fropt: FlashromOpt) -> Result<(Vec<u8>, Vec<u8>), FlashromError>;
 }
 
-pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
+pub fn name(cmd: &cmd::FlashromCmd) -> Result<(String, String), FlashromError> {
     let opts = FlashromOpt {
         io_opt: IOOpt {
             ..Default::default()
@@ -95,7 +95,7 @@ pub fn name(cmd: &cmd::FlashromCmd) -> Result<String, FlashromError> {
 
     match extract_flash_name(&output) {
         None => Err("Didn't find chip vendor/name in flashrom output".into()),
-        Some((vendor, name)) => Ok(format!("vendor=\"{}\" name=\"{}\"", vendor, name)),
+        Some((vendor, name)) => Ok((vendor.into(), name.into())),
     }
 }
 
