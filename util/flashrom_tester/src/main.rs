@@ -41,38 +41,21 @@ mod types;
 
 mod cmd;
 mod flashrom;
+mod logger;
 mod mosys;
 mod rand_util;
 mod tester;
 mod tests;
 mod utils;
 
-use chrono::Local;
 use clap::{App, Arg};
-use env_logger::Builder;
-use log::LevelFilter;
-use std::env;
-use std::io::Write;
+use std::path::PathBuf;
 
 pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
 fn main() {
-    Builder::new()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "{} [ {} ] - {}",
-                style!(Local::now().format("%Y-%m-%dT%H:%M:%S"), types::MAGENTA),
-                style!(record.level(), types::YELLOW),
-                record.args()
-            )
-        })
-        .filter(None, LevelFilter::Info)
-        .parse_filters(&env::var("FLASHROM_TESTER_LOG").unwrap_or_default())
-        .init();
-
     let matches = App::new("flashrom_tester")
         .long_version(&*format!(
             "{}-{}\n\
@@ -100,7 +83,25 @@ fn main() {
                 .long("print-layout")
                 .help("Print the layout file's contents before running tests"),
         )
+        .arg(
+            Arg::with_name("log-file")
+                .long("log-file")
+                .takes_value(true)
+                .help("Write logs to a file rather than stdout"),
+        )
+        .arg(
+            Arg::with_name("log_debug")
+                .short("d")
+                .long("debug")
+                .help("Write detailed logs, for debugging"),
+        )
         .get_matches();
+
+    logger::init(
+        matches.value_of_os("log-file").map(PathBuf::from),
+        matches.is_present("log_debug"),
+    );
+    debug!("Args parsed and logging initialized OK");
 
     let flashrom_path = matches
         .value_of("flashrom_binary")

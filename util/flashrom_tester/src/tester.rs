@@ -89,7 +89,7 @@ fn run_test(t: &TestCase) -> (TestConclusion, Option<TestError>) {
     let params = &t.params;
 
     if params.log_text.is_some() {
-        println!("{:?}", params.log_text);
+        info!("{:?}", params.log_text);
     }
 
     if params.pre_fn.is_some() {

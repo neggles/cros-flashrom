@@ -95,15 +95,16 @@ pub fn toggle_hw_wp(dis: bool) -> Result<(), String> {
     // The easist way to toggle the harware write-protect is
     // to {dis}connect the battery.
     let s = if dis { "dis" } else { "" };
-    info!(" > {}connect the battery", s);
+    info!("Prompt for hardware WP {}able", s);
+    eprintln!(" > {}connect the battery", s);
     pause();
     let wp = get_hardware_wp()?;
     if wp && dis {
-        warn!("Hardware write protect is still ENABLED!");
+        eprintln!("Hardware write protect is still ENABLED!");
         return toggle_hw_wp(dis);
     }
     if !wp && !dis {
-        warn!("Hardware write protect is still DISABLED!");
+        eprintln!("Hardware write protect is still DISABLED!");
         return toggle_hw_wp(dis);
     }
     Ok(())

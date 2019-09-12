@@ -159,7 +159,6 @@ pub fn generic(
         flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
 
         flashrom::wp_toggle(&param.cmd, true)?;
-        println!("Replace battery to assert hardware write-protect.");
         utils::toggle_hw_wp(false)?;
         if flashrom::erase(&param.cmd).is_ok() {
             info!("Flashrom returned Ok but this may be incorrect; verifying");
@@ -171,7 +170,6 @@ pub fn generic(
             }
             info!("Erase claimed to succeed but verify is Ok; assume erase failed");
         }
-        println!("Remove battery to de-assert hardware write-protect.");
         utils::toggle_hw_wp(true)?;
         flashrom::wp_toggle(&param.cmd, false)?;
 
@@ -179,7 +177,6 @@ pub fn generic(
         flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
 
         flashrom::wp_toggle(&param.cmd, true)?;
-        println!("Replace battery to assert hardware write-protect.");
         utils::toggle_hw_wp(false)?;
         Ok(())
     };
@@ -204,7 +201,6 @@ pub fn generic(
     //  ================================================
     //
     fn lock_test_fn(param: &tester::TestParams) -> TestResult {
-        println!("Remove battery to de-assert hardware write-protect.");
         utils::toggle_hw_wp(true)?;
 
         // Don't assume soft write-protect state, and so toggle back on.
@@ -239,7 +235,6 @@ pub fn generic(
 
         // --- deal with the other case of hardware wp being asserted. //
 
-        println!("Replace battery to assert hardware write-protect.");
         utils::toggle_hw_wp(false)?;
 
         // TODO(quasisec): Should this be in generic() ?

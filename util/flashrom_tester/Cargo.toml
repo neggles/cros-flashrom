@@ -6,13 +6,12 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
-rand = "0.6.4"
-chrono = "0.4"
-log = "0.4"
-env_logger = { version = "0.6.1", default-features = false }
-sys-info = "0.5.7"
 built = { version = "0.3", default-features = false, features = ["serialized_time", "serialized_version"] }
+chrono = "0.4"
 clap = { version = "2.33", default-features = false }
+log = { version = "0.4", features = ["std"] }
+rand = "0.6.4"
+sys-info = "0.5.7"
 
 [build-dependencies]
 built = { version = "0.3", default-features = false, features = ["serialized_time", "serialized_version"] }
