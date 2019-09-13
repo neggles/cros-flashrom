@@ -108,7 +108,7 @@ pub fn generic(
         //       However, we will warn when it does fail.
         match flashrom::wp_list(&param.cmd) {
             Ok(list_str) => info!("\n{}", list_str),
-            Err(e) => warn!("{:?}", e),
+            Err(e) => warn!("{}", e),
         };
 
         if !wpen && flashrom::wp_status(&param.cmd, true)? {

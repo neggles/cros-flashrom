@@ -88,8 +88,8 @@ fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, 
 fn run_test(t: &TestCase) -> (TestConclusion, Option<TestError>) {
     let params = &t.params;
 
-    if params.log_text.is_some() {
-        info!("{:?}", params.log_text);
+    if let Some(msg) = params.log_text {
+        info!("{}", msg);
     }
 
     if params.pre_fn.is_some() {
