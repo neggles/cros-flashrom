@@ -2532,7 +2532,7 @@ const struct flashchip flashchips[] = {
 		.total_size	= 1024,
 		.page_size	= 256,
 		.feature_bits	= FEATURE_WRSR_EITHER,
-		.tested		= TEST_UNTESTED,
+		.tested		= TEST_OK_PREW,
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.block_erasers	=
@@ -2551,6 +2551,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_1,
 		.read		= spi_chip_read,
