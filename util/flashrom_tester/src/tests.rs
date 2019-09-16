@@ -37,7 +37,7 @@ use super::cmd;
 use super::flashrom::{self, Flashrom, FlashromError};
 use super::mosys;
 use super::rand_util;
-use super::tester::{self, TestResult};
+use super::tester::{self, OutputFormat, TestResult};
 use super::types;
 use super::utils;
 use std::collections::HashMap;
@@ -53,6 +53,7 @@ pub fn generic(
     path: &str,
     fc: types::FlashChip,
     print_layout: bool,
+    output_format: OutputFormat,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let p = path.to_string();
     let cmd = cmd::FlashromCmd { path: p, fc };
@@ -457,7 +458,7 @@ pub fn generic(
         system_info: system_info,
         bios_info: bios_info,
     };
-    tester::collate_all_test_runs(&results, meta_data);
+    tester::collate_all_test_runs(&results, meta_data, output_format);
     Ok(())
 }
 

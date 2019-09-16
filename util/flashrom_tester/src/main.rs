@@ -95,6 +95,16 @@ fn main() {
                 .long("debug")
                 .help("Write detailed logs, for debugging"),
         )
+        .arg(
+            Arg::with_name("output-format")
+                .short("f")
+                .long("output-format")
+                .help("Set the test report format")
+                .takes_value(true)
+                .case_insensitive(true)
+                .possible_values(&["pretty", "json"])
+                .default_value("pretty"),
+        )
         .get_matches();
 
     logger::init(
@@ -114,8 +124,13 @@ fn main() {
     .expect("ccd_target_type should admit only known types");
 
     let print_layout = matches.is_present("print-layout");
+    let output_format = matches
+        .value_of("output-format")
+        .expect("output-format should have a default value")
+        .parse::<tester::OutputFormat>()
+        .expect("output-format is not a parseable OutputFormat");
 
-    if let Err(e) = tests::generic(flashrom_path, ccd_type, print_layout) {
+    if let Err(e) = tests::generic(flashrom_path, ccd_type, print_layout, output_format) {
         eprintln!("Failed to run tests: {:?}", e);
         std::process::exit(1);
     }

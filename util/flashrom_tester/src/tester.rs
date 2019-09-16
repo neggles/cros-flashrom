@@ -35,6 +35,7 @@
 
 use super::cmd;
 use super::types;
+use serde_json::json;
 
 // type-signature comes from the return type of flashrom.rs workers.
 type TestError = Box<dyn std::error::Error>;
@@ -122,44 +123,111 @@ pub fn run_all_tests<'a>(
     results
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum OutputFormat {
+    Pretty,
+    Json,
+}
+
+impl std::str::FromStr for OutputFormat {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use OutputFormat::*;
+
+        if s.eq_ignore_ascii_case("pretty") {
+            Ok(Pretty)
+        } else if s.eq_ignore_ascii_case("json") {
+            Ok(Json)
+        } else {
+            Err(())
+        }
+    }
+}
+
 pub fn collate_all_test_runs(
     truns: &[(&str, (TestConclusion, Option<TestError>))],
     meta_data: ReportMetaData,
+    format: OutputFormat,
 ) {
-    println!();
-    println!("  =============================");
-    println!("  =====  AVL qual RESULTS  ====");
-    println!("  =============================");
-    println!();
-    println!("  %---------------------------%");
-    println!("   os release: {}", meta_data.os_release);
-    println!("   chip name: {}", meta_data.chip_name);
-    println!("   system info: \n{}", meta_data.system_info);
-    println!("   bios info: \n{}", meta_data.bios_info);
-    println!("  %---------------------------%");
-    println!();
+    match format {
+        OutputFormat::Pretty => {
+            println!();
+            println!("  =============================");
+            println!("  =====  AVL qual RESULTS  ====");
+            println!("  =============================");
+            println!();
+            println!("  %---------------------------%");
+            println!("   os release: {}", meta_data.os_release);
+            println!("   chip name: {}", meta_data.chip_name);
+            println!("   system info: \n{}", meta_data.system_info);
+            println!("   bios info: \n{}", meta_data.bios_info);
+            println!("  %---------------------------%");
+            println!();
 
-    for trun in truns.iter() {
-        let (name, (result, error)) = trun;
-        if *result != TestConclusion::Pass {
-            println!(
-                " {} {}",
-                style!(format!(" <+> {} test:", name), types::BOLD),
-                style_dbg!(result, types::RED)
-            );
-            match error {
-                None => {}
-                Some(e) => info!(" - {} failure details:\n{}", name, e.to_string()),
-            };
-        } else {
-            println!(
-                " {} {}",
-                style!(format!(" <+> {} test:", name), types::BOLD),
-                style_dbg!(result, types::GREEN)
-            );
+            for trun in truns.iter() {
+                let (name, (result, error)) = trun;
+                if *result != TestConclusion::Pass {
+                    println!(
+                        " {} {}",
+                        style!(format!(" <+> {} test:", name), types::BOLD),
+                        style_dbg!(result, types::RED)
+                    );
+                    match error {
+                        None => {}
+                        Some(e) => info!(" - {} failure details:\n{}", name, e.to_string()),
+                    };
+                } else {
+                    println!(
+                        " {} {}",
+                        style!(format!(" <+> {} test:", name), types::BOLD),
+                        style_dbg!(result, types::GREEN)
+                    );
+                }
+            }
+            println!();
+        }
+        OutputFormat::Json => {
+            use serde_json::{Map, Value};
+
+            let mut all_pass = true;
+            let mut tests = Map::<String, Value>::new();
+            for (name, (result, error)) in truns {
+                let passed = *result == TestConclusion::Pass;
+                all_pass &= passed;
+
+                let error = match error {
+                    Some(e) => Value::String(format!("{:#?}", e)),
+                    None => Value::Null,
+                };
+
+                assert!(
+                    !tests.contains_key(*name),
+                    "Found multiple tests named {:?}",
+                    name
+                );
+                tests.insert(
+                    (*name).into(),
+                    json!({
+                        "pass": passed,
+                        "error": error,
+                    }),
+                );
+            }
+
+            let json = json!({
+                "pass": all_pass,
+                "metadata": {
+                    "os_release": meta_data.os_release,
+                    "chip_name": meta_data.chip_name,
+                    "system_info": meta_data.system_info,
+                    "bios_info": meta_data.bios_info,
+                },
+                "tests": tests,
+            });
+            println!("{:#}", json);
         }
     }
-    println!();
 }
 
 #[cfg(test)]
@@ -225,5 +293,13 @@ mod tests {
         let (conclusion, error) = run_test(&unexpected_pass);
         assert_eq!(conclusion, UnexpectedPass);
         assert!(error.is_none());
+    }
+
+    #[test]
+    fn output_format_round_trip() {
+        use super::OutputFormat::{self, *};
+
+        assert_eq!(format!("{:?}", Pretty).parse::<OutputFormat>(), Ok(Pretty));
+        assert_eq!(format!("{:?}", Json).parse::<OutputFormat>(), Ok(Json));
     }
 }
