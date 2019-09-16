@@ -117,5 +117,6 @@ fn main() {
 
     if let Err(e) = tests::generic(flashrom_path, ccd_type, print_layout) {
         eprintln!("Failed to run tests: {:?}", e);
+        std::process::exit(1);
     }
 }
