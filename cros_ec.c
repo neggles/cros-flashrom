@@ -1213,7 +1213,7 @@ int cros_ec_probe_size(struct flashctx *flash) {
 			cros_ec_priv->ideal_write_size = info.write_ideal_size;
 			if (info.flags & EC_FLASH_INFO_ERASE_TO_0)
 				flash->chip->feature_bits |=
-					FEATURE_ERASE_TO_ZERO;
+					FEATURE_ERASED_ZERO;
 		}
 		flash->chip->total_size = info.flash_size / 1024;
 
@@ -1283,7 +1283,7 @@ int cros_ec_probe_size(struct flashctx *flash) {
 		 * setting this flag properly.
 		 */
 		if (info_2_p->flags & EC_FLASH_INFO_ERASE_TO_0)
-			flash->chip->feature_bits |= FEATURE_ERASE_TO_ZERO;
+			flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
 #endif
 		free(info_2_p);
 	}
@@ -1302,7 +1302,7 @@ int cros_ec_probe_size(struct flashctx *flash) {
 		return 0;
 	}
 	if (!strncmp(chip_info.name, "stm32l1", 7))
-		flash->chip->feature_bits |= FEATURE_ERASE_TO_ZERO;
+		flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
 
 
 

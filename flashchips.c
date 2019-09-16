@@ -2505,7 +2505,7 @@ const struct flashchip flashchips[] = {
 		.bustype	= BUS_SPI,
 		.total_size	= 128,
 		.page_size	= 128,
-		.feature_bits	= FEATURE_ERASE_TO_ZERO,
+		.feature_bits	= FEATURE_ERASED_ZERO,
 		.tested		= TEST_OK_PREW,
 		.spi_cmd_set	= SPI_EDI,
 		.probe		= edi_probe_kb9012,
@@ -10874,12 +10874,12 @@ const struct flashchip flashchips_hwseq[] = {
 
 int flash_erase_value(struct flashctx *flash)
 {
-	return flash->chip->feature_bits & FEATURE_ERASE_TO_ZERO ? 0 : 0xff;
+	return flash->chip->feature_bits & FEATURE_ERASED_ZERO ? 0 : 0xff;
 }
 
 int flash_unerased_value(struct flashctx *flash)
 {
-	return flash->chip->feature_bits & FEATURE_ERASE_TO_ZERO ? 0xff : 0;
+	return flash->chip->feature_bits & FEATURE_ERASED_ZERO ? 0xff : 0;
 }
 
 const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model_id)

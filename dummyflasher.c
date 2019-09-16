@@ -852,7 +852,7 @@ int probe_variable_size(struct flashctx *flash)
 	         flash->chip->total_size);
 
 	if (erase_to_zero)
-		flash->chip->feature_bits |= FEATURE_ERASE_TO_ZERO;
+		flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
 
 	/* Update eraser count */
 	for (i = 0; i < NUM_ERASEFUNCTIONS; i++) {
