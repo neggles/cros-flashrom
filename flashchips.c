@@ -2645,7 +2645,7 @@ const struct flashchip flashchips[] = {
 		.feature_bits	= FEATURE_REGISTERMAP, /* TODO: LPC OK too? */
 		.tested		= TEST_UNTESTED,
 		.probe		= probe_82802ab, /* TODO: 0xff cmd not documented? */
-		.probe_timing	= TIMING_FIXME,
+		.probe_timing	= TIMING_ZERO,
 		.block_erasers	=
 		{
 			{
@@ -2655,16 +2655,16 @@ const struct flashchip flashchips[] = {
 					{8 * 1024, 2},
 					{16 * 1024, 1},
 				},
-				.block_erase = erase_block_82802ab,
+				.block_erase = NULL, /* TODO: Implement. */
 			}, {
 				.eraseblocks = {
 					{64 * 1024, 4},
 				},
-				.block_erase = NULL, /* TODO: Implement. */
+				.block_erase = erase_block_82802ab,
 			},
 		},
-		.printlock	= NULL, /* TODO */
-		.unlock		= NULL, /* unlock_82802ab() not correct(?) */
+		.printlock	= printlock_regspace2_block_eraser_0,
+		.unlock		= unlock_regspace2_block_eraser_0,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600},
