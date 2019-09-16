@@ -107,6 +107,19 @@ uint8_t read_status_opaque(const struct flashctx *flash);
 int write_status_opaque(const struct flashctx *flash, int status);
 int check_access_opaque(const struct flashctx *flash, unsigned int start, unsigned int len, int read);
 
+/* at45db.c */
+int probe_spi_at45db(struct flashctx *flash);
+int spi_prettyprint_status_register_at45db(struct flashctx *flash);
+int spi_disable_blockprotect_at45db(struct flashctx *flash);
+int spi_read_at45db(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
+int spi_read_at45db_e8(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
+int spi_write_at45db(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+int spi_erase_at45db_page(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
+int spi_erase_at45db_block(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
+int spi_erase_at45db_sector(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
+int spi_erase_at45db_chip(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
+int spi_erase_at45cs_sector(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
+
 /* 82802ab.c */
 uint8_t wait_82802ab(struct flashctx *flash);
 int probe_82802ab(struct flashctx *flash);
