@@ -40,8 +40,9 @@ use super::rand_util;
 use super::tester::{self, TestResult};
 use super::types;
 use super::utils;
+use std::collections::HashMap;
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufRead, Write};
 
 const LAYOUT_FILE: &'static str = "/tmp/layout.file";
 
@@ -370,6 +371,36 @@ pub fn generic(
         conclusion: tester::TestConclusion::Pass,
     };
 
+    let test_host_is_chrome = tester::TestCase {
+        name: "Host is ChromeOS",
+        params: &default_test_params,
+        test_fn: |_params| {
+            let release_info = if let Ok(f) = File::open("/etc/os-release") {
+                let buf = std::io::BufReader::new(f);
+                parse_os_release(buf.lines().flatten())
+            } else {
+                info!("Unable to read /etc/os-release to probe system information");
+                HashMap::new()
+            };
+
+            match release_info.get("ID") {
+                Some(id) if id == "chromeos" || id == "chromiumos" => Ok(()),
+                oid => {
+                    let id = match oid {
+                        Some(s) => s,
+                        None => "UNKNOWN",
+                    };
+                    Err(format!(
+                        "Test host os-release \"{}\" should be but is not chromeos",
+                        id
+                    )
+                    .into())
+                }
+            }
+        },
+        conclusion: tester::TestConclusion::Pass,
+    };
+
     //  ================================================
     //
     let consistent_exit_test_fn =
@@ -406,6 +437,7 @@ pub fn generic(
         &lock_bottom_half_test,
         &lock_top_half_test,
         &coreboot_elog_sanity_test,
+        &test_host_is_chrome,
         &consistent_exit_test,
     ];
     // ------------------------.
@@ -473,6 +505,53 @@ fn test_section(
         return Err("Section didn't locked, has been overwritable with random data!".into());
     }
     Ok(())
+}
+
+/// Ad-hoc parsing of os-release(5); mostly according to the spec,
+/// but ignores quotes and escaping.
+fn parse_os_release<I: IntoIterator<Item = String>>(lines: I) -> HashMap<String, String> {
+    fn parse_line(line: String) -> Option<(String, String)> {
+        if line.is_empty() || line.starts_with('#') {
+            return None;
+        }
+
+        let delimiter = match line.find('=') {
+            Some(idx) => idx,
+            None => {
+                warn!("os-release entry seems malformed: {:?}", line);
+                return None;
+            }
+        };
+        Some((
+            line[..delimiter].to_owned(),
+            line[delimiter + 1..].to_owned(),
+        ))
+    }
+
+    lines.into_iter().filter_map(parse_line).collect()
+}
+
+#[test]
+fn test_parse_os_release() {
+    let lines = [
+        "BUILD_ID=12516.0.0",
+        "# this line is a comment followed by an empty line",
+        "",
+        "ID_LIKE=chromiumos",
+        "ID=chromeos",
+        "VERSION=79",
+        "EMPTY_VALUE=",
+    ];
+    let map = parse_os_release(lines.iter().map(|&s| s.to_owned()));
+
+    fn get<'a, 'b>(m: &'a HashMap<String, String>, k: &'b str) -> Option<&'a str> {
+        m.get(k).map(|s| s.as_ref())
+    }
+
+    assert_eq!(get(&map, "ID"), Some("chromeos"));
+    assert_eq!(get(&map, "BUILD_ID"), Some("12516.0.0"));
+    assert_eq!(get(&map, "EMPTY_VALUE"), Some(""));
+    assert_eq!(get(&map, ""), None);
 }
 
 // ================================================
