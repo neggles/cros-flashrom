@@ -47,8 +47,11 @@ type PostFunction = fn(&TestParams) -> ();
 pub struct TestParams<'a> {
     pub cmd: &'a cmd::FlashromCmd,
     pub fc: types::FlashChip,
+    #[deprecated]
     pub log_text: Option<&'a str>,
+    #[deprecated]
     pub pre_fn: Option<PreFunction>,
+    #[deprecated]
     pub post_fn: Option<PostFunction>,
 }
 
