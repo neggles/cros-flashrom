@@ -92,22 +92,32 @@ impl<'a> TestEnv<'a> {
         }
         out
     }
+
+    /// Return true if the current Flash contents are the same as the golden image
+    /// that was present at the start of testing.
+    pub fn is_golden(&self) -> bool {
+        flashrom::verify(&self.cmd, &self.original_flash_contents).is_ok()
+    }
+
+    /// Do whatever is necessary to make the current Flash contents the same as they
+    /// were at the start of testing.
+    pub fn ensure_golden(&mut self) -> Result<(), String> {
+        self.wp.set_hw(false)?.set_sw(false)?;
+        flashrom::write(&self.cmd, &self.original_flash_contents)
+    }
+
+    /// Attempt to erase the flash.
+    pub fn erase(&self) -> Result<(), String> {
+        flashrom::erase(self.cmd)
+    }
 }
 
 impl Drop for TestEnv<'_> {
     fn drop(&mut self) {
         info!("Verifying flash remains unmodified");
-        if let Err(e) = flashrom::verify(&self.cmd, &self.original_flash_contents) {
+        if !self.is_golden() {
             warn!("ROM seems to be in a different state at finish; restoring original");
-            warn!("flashrom error: {:?}", e);
-
-            // Ensure write protects are disabled and attempt to write back the original image.
-            let status = self
-                .wp
-                .set_hw(false)
-                .and_then(|_| self.wp.set_sw(false))
-                .and_then(|_| flashrom::write(&self.cmd, &self.original_flash_contents));
-            if let Err(e) = status {
+            if let Err(e) = self.ensure_golden() {
                 error!("Failed to write back golden image: {:?}", e);
             }
         }
@@ -200,16 +210,16 @@ impl<'a, 'p> WriteProtectState<'a, 'p> {
     }
 
     /// Set the software write protect.
-    pub fn set_sw(&mut self, enable: bool) -> Result<(), String> {
+    pub fn set_sw(&mut self, enable: bool) -> Result<&mut Self, String> {
         if self.current.1 != enable {
             super::flashrom::wp_toggle(self.cmd, /* en= */ enable)?;
             self.current.1 = enable;
         }
-        Ok(())
+        Ok(self)
     }
 
     /// Set the hardware write protect.
-    pub fn set_hw(&mut self, enable: bool) -> Result<(), String> {
+    pub fn set_hw(&mut self, enable: bool) -> Result<&mut Self, String> {
         if self.current.0 != enable {
             if self.can_control_hw_wp() {
                 super::utils::toggle_hw_wp(/* dis= */ !enable)?;
@@ -221,7 +231,7 @@ impl<'a, 'p> WriteProtectState<'a, 'p> {
                 );
             }
         }
-        Ok(())
+        Ok(self)
     }
 
     /// Stack a new write protect state on top of the current one.

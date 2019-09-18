@@ -37,8 +37,8 @@ use super::cmd;
 use super::flashrom::{self, Flashrom, FlashromError};
 use super::mosys;
 use super::rand_util;
-use super::tester::{self, NewTestCase, OutputFormat, TestResult};
-use super::types;
+use super::tester::{self, NewTestCase, OutputFormat, TestEnv, TestResult};
+use super::types::{self, FlashChip};
 use super::utils;
 use std::collections::HashMap;
 use std::fs::File;
@@ -90,55 +90,6 @@ pub fn generic(
         types::FlashChip::HOST => host(&cmd),
         types::FlashChip::SERVO => servo(&cmd),
         types::FlashChip::DEDIPROG => dediprog(&cmd),
-    };
-
-    //  ================================================
-    //
-    let read_test_fn = |param: &tester::TestParams| {
-        flashrom::read(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-        flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-        Ok(())
-    };
-    let read_test = tester::TestCase {
-        name: "Read",
-        params: &default_test_params,
-        test_fn: read_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
-    let erase_write_test_fn = |param: &tester::TestParams| {
-        flashrom::read(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-        flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-
-        flashrom::wp_toggle(&param.cmd, true)?;
-        utils::toggle_hw_wp(false)?;
-        if flashrom::erase(&param.cmd).is_ok() {
-            info!("Flashrom returned Ok but this may be incorrect; verifying");
-            if flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat").is_err() {
-                warn!("flash image in an inconsistent state! Attempting to restore..");
-                flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-                flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-                return Err("Hardware write protect asserted however can still erase!".into());
-            }
-            info!("Erase claimed to succeed but verify is Ok; assume erase failed");
-        }
-        utils::toggle_hw_wp(true)?;
-        flashrom::wp_toggle(&param.cmd, false)?;
-
-        flashrom::erase(&param.cmd)?;
-        flashrom::write(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
-
-        flashrom::wp_toggle(&param.cmd, true)?;
-        utils::toggle_hw_wp(false)?;
-        Ok(())
-    };
-    let erase_write_test = tester::TestCase {
-        name: "Erase/Write",
-        params: &default_test_params,
-        test_fn: erase_write_test_fn,
-        conclusion: tester::TestConclusion::Pass,
     };
 
     //  ================================================
@@ -381,8 +332,7 @@ pub fn generic(
             conclusion: tester::TestConclusion::Pass,
         },
         &("Toggle WP", wp_toggle_test),
-        &read_test,
-        &erase_write_test,
+        &("Erase/Write", erase_write_test),
         &verify_fail_test,
         &lock_test,
         &lock_top_quad_test,
@@ -413,10 +363,36 @@ pub fn generic(
     Ok(())
 }
 
-fn wp_toggle_test(env: &mut super::tester::TestEnv) -> TestResult {
+fn wp_toggle_test(env: &mut TestEnv) -> TestResult {
     // Fails if unable to set either one
     env.wp.set_hw(false)?;
     env.wp.set_sw(false)?;
+    Ok(())
+}
+
+fn erase_write_test(env: &mut TestEnv) -> TestResult {
+    if !env.is_golden() {
+        info!("Memory has been modified; reflashing to ensure erasure can be detected");
+        env.ensure_golden()?;
+    }
+
+    // With write protect enabled erase should fail.
+    env.wp.set_sw(true)?.set_hw(true)?;
+    if env.erase().is_ok() {
+        info!("Flashrom returned Ok but this may be incorrect; verifying");
+        if !env.is_golden() {
+            return Err("Hardware write protect asserted however can still erase!".into());
+        }
+        info!("Erase claimed to succeed but verify is Ok; assume erase failed");
+    }
+
+    // With write protect disabled erase should succeed.
+    env.wp.set_hw(false)?.set_sw(false)?;
+    env.erase()?;
+    if env.is_golden() {
+        return Err("Successful erase didn't modify memory".into());
+    }
+
     Ok(())
 }
 
