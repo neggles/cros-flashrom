@@ -105,82 +105,6 @@ pub fn generic(
 
     //  ================================================
     //
-    fn lock_test_fn(param: &tester::TestParams) -> TestResult {
-        utils::toggle_hw_wp(true)?;
-
-        // Don't assume soft write-protect state, and so toggle back on.
-        flashrom::wp_toggle(&param.cmd, true)?;
-
-        // TODO(quasisec): Should this be in generic() ?
-        let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
-        {
-            let wp = utils::get_hardware_wp()?;
-            let state = if wp { "EN" } else { "DIS" };
-            info!("Hardware write protect is {}ABLED", state);
-            wp
-        } else {
-            true
-        };
-
-        if !wpen && flashrom::wp_status(&param.cmd, true)? {
-            info!("WP should unlock since hardware WP is de-asserted.  Attempting to disable..");
-            flashrom::wp_toggle(&param.cmd, false)?;
-        } else {
-            return Err("Hardware write protect still asserted!".into());
-        }
-
-        // Validate we successfully disabled soft write-protect when hardware write-protect was
-        // de-asserted.
-        if flashrom::wp_status(&param.cmd, true)? {
-            return Err("Cannot disable write protect.  Cannot continue.".into());
-        }
-
-        // Toggle soft write-protect back on after we are done.
-        flashrom::wp_toggle(&param.cmd, true)?;
-
-        // --- deal with the other case of hardware wp being asserted. //
-
-        utils::toggle_hw_wp(false)?;
-
-        // TODO(quasisec): Should this be in generic() ?
-        let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
-        {
-            let wp = utils::get_hardware_wp()?;
-            let state = if wp { "EN" } else { "DIS" };
-            info!("Hardware write protect is {}ABLED", state);
-            wp
-        } else {
-            true
-        };
-
-        if wpen && flashrom::wp_status(&param.cmd, true)? {
-            info!("WP should stay locked since hardware WP is asserted.  Attempting to disable..");
-            if flashrom::wp_toggle(&param.cmd, false).is_ok() {
-                return Err(
-                    "Soft write-protect didn't stay locked however hardware WP was asserted."
-                        .into(),
-                );
-            }
-        } else {
-            return Err("Hardware write protect was not asserted!".into());
-        }
-
-        // Validate we successfully disabled soft write-protect when hardware write-protect was
-        // de-asserted.
-        if flashrom::wp_status(&param.cmd, false)? {
-            return Err("Soft write protect wasn't enabled.".into());
-        }
-        Ok(())
-    };
-    let lock_test = tester::TestCase {
-        name: "Lock",
-        params: &default_test_params,
-        test_fn: lock_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
     let lock_top_quad_test_fn = |param: &tester::TestParams| {
         let rom_sz: i64 = param.cmd.get_size()?;
         let layout_sizes = utils::get_layout_sizes(rom_sz)?;
@@ -247,78 +171,6 @@ pub fn generic(
         conclusion: tester::TestConclusion::Pass,
     };
 
-    //  ================================================
-    //
-    let coreboot_elog_sanity_test = tester::TestCase {
-        name: "Coreboot ELOG sanity",
-        params: &default_test_params,
-        test_fn: |params| {
-            // Check that the elog contains *something*, as an indication that Coreboot
-            // is actually able to write to the Flash. Because this invokes mosys on the
-            // host, it doesn't make sense to run for other chips.
-            if params.fc != types::FlashChip::HOST {
-                info!("Skipping ELOG sanity check for non-host chip");
-                return Ok(());
-            }
-            // Output is one event per line, drop empty lines in the interest of being defensive.
-            let event_count = mosys::eventlog_list()?
-                .lines()
-                .filter(|l| !l.is_empty())
-                .count();
-
-            if event_count == 0 {
-                Err("ELOG contained no events".into())
-            } else {
-                Ok(())
-            }
-        },
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    let test_host_is_chrome = tester::TestCase {
-        name: "Host is ChromeOS",
-        params: &default_test_params,
-        test_fn: |_params| {
-            let release_info = if let Ok(f) = File::open("/etc/os-release") {
-                let buf = std::io::BufReader::new(f);
-                parse_os_release(buf.lines().flatten())
-            } else {
-                info!("Unable to read /etc/os-release to probe system information");
-                HashMap::new()
-            };
-
-            match release_info.get("ID") {
-                Some(id) if id == "chromeos" || id == "chromiumos" => Ok(()),
-                oid => {
-                    let id = match oid {
-                        Some(s) => s,
-                        None => "UNKNOWN",
-                    };
-                    Err(format!(
-                        "Test host os-release \"{}\" should be but is not chromeos",
-                        id
-                    )
-                    .into())
-                }
-            }
-        },
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
-    let consistent_exit_test_fn =
-        |param: &tester::TestParams| Ok(consistent_flash_checks(&param.cmd)?);
-    let consistent_exit_test = tester::TestCase {
-        name: "Flash image consistency check at end of tests",
-        params: &default_test_params,
-        test_fn: consistent_exit_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    // run generic tests:
-    //  ================================================
-
     // Register tests to run:
     let tests: &[&dyn NewTestCase] = &[
         &tester::TestCase {
@@ -334,13 +186,13 @@ pub fn generic(
         &("Toggle WP", wp_toggle_test),
         &("Erase/Write", erase_write_test),
         &verify_fail_test,
-        &lock_test,
+        &("Lock", lock_test),
         &lock_top_quad_test,
         &lock_bottom_quad_test,
         &lock_bottom_half_test,
         &lock_top_half_test,
-        &coreboot_elog_sanity_test,
-        &test_host_is_chrome,
+        &("Coreboot ELOG sanity", elog_sanity_test),
+        &("Host is ChromeOS", host_is_chrome_test),
     ];
     // ------------------------.
     // Run all the tests and collate the findings:
@@ -394,6 +246,72 @@ fn erase_write_test(env: &mut TestEnv) -> TestResult {
     }
 
     Ok(())
+}
+
+fn lock_test(env: &mut TestEnv) -> TestResult {
+    if !env.wp.can_control_hw_wp() {
+        return Err("Lock test requires ability to control hardware write protect".into());
+    }
+
+    env.wp.set_hw(false)?;
+    // Toggling software WP off should work when hardware is off.
+    // Then enable again for another go.
+    env.wp.push().set_sw(false)?;
+
+    env.wp.set_hw(true)?;
+    // Clearing should fail when hardware is enabled
+    if env.wp.set_sw(false).is_ok() {
+        return Err("Software WP was reset despite hardware WP being enabled".into());
+    }
+    Ok(())
+}
+
+fn elog_sanity_test(env: &mut TestEnv) -> TestResult {
+    // Check that the elog contains *something*, as an indication that Coreboot
+    // is actually able to write to the Flash. Because this invokes mosys on the
+    // host, it doesn't make sense to run for other chips.
+    if env.chip_type() != FlashChip::HOST {
+        info!("Skipping ELOG sanity check for non-host chip");
+        return Ok(());
+    }
+    // mosys reads the flash, it should be back in the golden state
+    env.ensure_golden()?;
+    // Output is one event per line, drop empty lines in the interest of being defensive.
+    let event_count = mosys::eventlog_list()?
+        .lines()
+        .filter(|l| !l.is_empty())
+        .count();
+
+    if event_count == 0 {
+        Err("ELOG contained no events".into())
+    } else {
+        Ok(())
+    }
+}
+
+fn host_is_chrome_test(_env: &mut TestEnv) -> TestResult {
+    let release_info = if let Ok(f) = File::open("/etc/os-release") {
+        let buf = std::io::BufReader::new(f);
+        parse_os_release(buf.lines().flatten())
+    } else {
+        info!("Unable to read /etc/os-release to probe system information");
+        HashMap::new()
+    };
+
+    match release_info.get("ID") {
+        Some(id) if id == "chromeos" || id == "chromiumos" => Ok(()),
+        oid => {
+            let id = match oid {
+                Some(s) => s,
+                None => "UNKNOWN",
+            };
+            Err(format!(
+                "Test host os-release \"{}\" should be but is not chromeos",
+                id
+            )
+            .into())
+        }
+    }
 }
 
 fn consistent_flash_checks(cmd: &cmd::FlashromCmd) -> Result<(), FlashromError> {

@@ -93,6 +93,12 @@ impl<'a> TestEnv<'a> {
         out
     }
 
+    pub fn chip_type(&self) -> FlashChip {
+        // This field is not public because it should be immutable to tests,
+        // so this getter enforces that it is copied.
+        self.chip_type
+    }
+
     /// Return true if the current Flash contents are the same as the golden image
     /// that was present at the start of testing.
     pub fn is_golden(&self) -> bool {
