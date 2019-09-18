@@ -94,54 +94,6 @@ pub fn generic(
 
     //  ================================================
     //
-    let wp_test_fn = |param: &tester::TestParams| {
-        // TODO(quasisec): Should this be in generic() ?
-        let wpen = if param.fc != types::FlashChip::SERVO && param.fc != types::FlashChip::DEDIPROG
-        {
-            let wp = utils::get_hardware_wp()?;
-            let state = if wp { "EN" } else { "DIS" };
-            info!("Hardware write protect is {}ABLED", state);
-            wp
-        } else {
-            true
-        };
-
-        // NOTE: This is not strictly a 'test' as it is allowed to fail on some platforms.
-        //       However, we will warn when it does fail.
-        match flashrom::wp_list(&param.cmd) {
-            Ok(list_str) => info!("\n{}", list_str),
-            Err(e) => warn!("{}", e),
-        };
-
-        if !wpen && flashrom::wp_status(&param.cmd, true)? {
-            warn!("ROM is write protected.  Attempting to disable..");
-            flashrom::wp_toggle(&param.cmd, false)?;
-        }
-        if wpen && flashrom::wp_status(&param.cmd, true)? {
-            warn!(
-                "Hardware write protect seems to be asserted, attempt to get user to de-assert it."
-            );
-            utils::toggle_hw_wp(true)?;
-            warn!("ROM is write protected.  Attempting to disable..");
-            flashrom::wp_toggle(&param.cmd, false)?;
-        }
-        if flashrom::wp_status(&param.cmd, true)? {
-            // TODO(quasisec): Should fail the whole test suite here?
-            return Err("Cannot disable write protect.  Cannot continue.".into());
-        }
-
-        info!("Successfully disable Write-protect");
-        Ok(())
-    };
-    let wp_test = tester::TestCase {
-        name: "Toggle WP",
-        params: &default_test_params,
-        test_fn: wp_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
     let read_test_fn = |param: &tester::TestParams| {
         flashrom::read(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
         flashrom::verify(&param.cmd, "/tmp/flashrom_tester_read.dat")?;
@@ -428,7 +380,7 @@ pub fn generic(
             },
             conclusion: tester::TestConclusion::Pass,
         },
-        &wp_test,
+        &("Toggle WP", wp_toggle_test),
         &read_test,
         &erase_write_test,
         &verify_fail_test,
@@ -458,6 +410,13 @@ pub fn generic(
         bios_info: bios_info,
     };
     tester::collate_all_test_runs(&results, meta_data, output_format);
+    Ok(())
+}
+
+fn wp_toggle_test(env: &mut super::tester::TestEnv) -> TestResult {
+    // Fails if unable to set either one
+    env.wp.set_hw(false)?;
+    env.wp.set_sw(false)?;
     Ok(())
 }
 
