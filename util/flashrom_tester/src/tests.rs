@@ -36,7 +36,7 @@
 use super::cmd;
 use super::flashrom::{self, Flashrom};
 use super::mosys;
-use super::tester::{self, NewTestCase, OutputFormat, TestEnv, TestResult};
+use super::tester::{self, OutputFormat, TestCase, TestEnv, TestResult};
 use super::types::{self, FlashChip};
 use super::utils::{self, LayoutNames};
 use std::collections::HashMap;
@@ -79,27 +79,9 @@ pub fn generic(
         utils::collect_crosssystem()?
     );
 
-    // run specialization tests:
-    //  ================================================
-    let default_test_params = match fc {
-        types::FlashChip::EC => ec(&cmd),
-        types::FlashChip::HOST => host(&cmd),
-        types::FlashChip::SERVO => servo(&cmd),
-        types::FlashChip::DEDIPROG => dediprog(&cmd),
-    };
-
     // Register tests to run:
-    let tests: &[&dyn NewTestCase] = &[
-        &tester::TestCase {
-            name: "Get device name",
-            params: &default_test_params,
-            test_fn: |params| {
-                // Success means we got something back, which is good enough.
-                flashrom::name(&params.cmd)?;
-                Ok(())
-            },
-            conclusion: tester::TestConclusion::Pass,
-        },
+    let tests: &[&dyn TestCase] = &[
+        &("Get device name", get_device_name_test),
         &("Toggle WP", wp_toggle_test),
         &("Erase/Write", erase_write_test),
         &("Fail to verify", verify_fail_test),
@@ -135,6 +117,12 @@ pub fn generic(
         bios_info: bios_info,
     };
     tester::collate_all_test_runs(&results, meta_data, output_format);
+    Ok(())
+}
+
+fn get_device_name_test(env: &mut TestEnv) -> TestResult {
+    // Success means we got something back, which is good enough.
+    flashrom::name(env.cmd)?;
     Ok(())
 }
 
@@ -319,52 +307,4 @@ fn test_parse_os_release() {
     assert_eq!(get(&map, "BUILD_ID"), Some("12516.0.0"));
     assert_eq!(get(&map, "EMPTY_VALUE"), Some(""));
     assert_eq!(get(&map, ""), None);
-}
-
-// ================================================
-// Specialization tests:
-// ================================================
-
-fn host(cmd: &cmd::FlashromCmd) -> tester::TestParams {
-    return tester::TestParams {
-        cmd: &cmd,
-        fc: types::FlashChip::HOST,
-        log_text: None,
-        pre_fn: None,
-        post_fn: None,
-    };
-}
-
-fn ec(_cmd: &cmd::FlashromCmd) -> tester::TestParams {
-    panic!("Error: Unimplemented in this version, Please use 'host' parameter.");
-}
-
-fn servo(cmd: &cmd::FlashromCmd) -> tester::TestParams {
-    let pre_fn = |_: &tester::TestParams| {
-        if cmd::dut_ctrl_toggle_wp(false).is_err() {
-            error!("failed to dispatch dut_ctrl_toggle_wp()!");
-        }
-    };
-    let post_fn = |_: &tester::TestParams| {
-        if cmd::dut_ctrl_toggle_wp(true).is_err() {
-            error!("failed to dispatch dut_ctrl_toggle_wp()!");
-        }
-    };
-    return tester::TestParams {
-        cmd: &cmd,
-        fc: types::FlashChip::SERVO,
-        log_text: None,
-        pre_fn: Some(pre_fn),
-        post_fn: Some(post_fn),
-    };
-}
-
-fn dediprog(cmd: &cmd::FlashromCmd) -> tester::TestParams {
-    return tester::TestParams {
-        cmd: &cmd,
-        fc: types::FlashChip::DEDIPROG,
-        log_text: None,
-        pre_fn: None,
-        post_fn: None,
-    };
 }

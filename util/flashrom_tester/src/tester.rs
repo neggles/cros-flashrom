@@ -46,10 +46,6 @@ use std::sync::Mutex;
 type TestError = Box<dyn std::error::Error>;
 pub type TestResult = Result<(), TestError>;
 
-type TestFunction = fn(&TestParams) -> TestResult;
-type PreFunction = fn(&TestParams) -> ();
-type PostFunction = fn(&TestParams) -> ();
-
 pub struct TestEnv<'a> {
     chip_type: FlashChip,
     /// Flashrom instantiation information.
@@ -91,7 +87,7 @@ impl<'a> TestEnv<'a> {
         Ok(out)
     }
 
-    pub fn run_test<T: NewTestCase>(&mut self, test: T) -> TestResult {
+    pub fn run_test<T: TestCase>(&mut self, test: T) -> TestResult {
         let use_dut_control = self.chip_type == FlashChip::SERVO;
         if use_dut_control && cmd::dut_ctrl_toggle_wp(false).is_err() {
             error!("failed to dispatch dut_ctrl_toggle_wp()!");
@@ -406,13 +402,13 @@ impl<'a, 'p> Drop for WriteProtectState<'a, 'p> {
     }
 }
 
-pub trait NewTestCase {
+pub trait TestCase {
     fn get_name(&self) -> &str;
     fn expected_result(&self) -> TestConclusion;
     fn run(&self, env: &mut TestEnv) -> TestResult;
 }
 
-impl<S: AsRef<str>, F: Fn(&mut TestEnv) -> TestResult> NewTestCase for (S, F) {
+impl<S: AsRef<str>, F: Fn(&mut TestEnv) -> TestResult> TestCase for (S, F) {
     fn get_name(&self) -> &str {
         self.0.as_ref()
     }
@@ -426,21 +422,7 @@ impl<S: AsRef<str>, F: Fn(&mut TestEnv) -> TestResult> NewTestCase for (S, F) {
     }
 }
 
-impl NewTestCase for TestCase<'_> {
-    fn get_name(&self) -> &str {
-        self.name
-    }
-
-    fn expected_result(&self) -> TestConclusion {
-        self.conclusion
-    }
-
-    fn run(&self, _env: &mut TestEnv) -> TestResult {
-        (self.test_fn)(self.params)
-    }
-}
-
-impl<T: NewTestCase + ?Sized> NewTestCase for &T {
+impl<T: TestCase + ?Sized> TestCase for &T {
     fn get_name(&self) -> &str {
         (*self).get_name()
     }
@@ -454,31 +436,12 @@ impl<T: NewTestCase + ?Sized> NewTestCase for &T {
     }
 }
 
-pub struct TestParams<'a> {
-    pub cmd: &'a cmd::FlashromCmd,
-    pub fc: types::FlashChip,
-    #[deprecated]
-    pub log_text: Option<&'a str>,
-    #[deprecated]
-    pub pre_fn: Option<PreFunction>,
-    #[deprecated]
-    pub post_fn: Option<PostFunction>,
-}
-
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum TestConclusion {
     Pass,
     Fail,
     UnexpectedPass,
     UnexpectedFail,
-}
-
-pub struct TestCase<'a> {
-    pub name: &'a str,
-    pub test_fn: TestFunction,
-    pub params: &'a TestParams<'a>,
-    /// The conclusion returned by this case if `test_fn` returns Ok.
-    pub conclusion: TestConclusion,
 }
 
 pub struct ReportMetaData {
@@ -504,7 +467,7 @@ pub fn run_all_tests<T>(
     ts: &[T],
 ) -> Vec<(String, (TestConclusion, Option<TestError>))>
 where
-    T: NewTestCase,
+    T: TestCase,
 {
     let mut env = TestEnv::create(chip, cmd).expect("Failed to set up test environment");
 
