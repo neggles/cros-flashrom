@@ -33,11 +33,11 @@
 // Software Foundation.
 //
 
-use super::cmd;
-use super::flashrom;
-use super::types;
-use crate::cmd::FlashromCmd;
-use crate::types::FlashChip;
+use super::cmd::{self, FlashromCmd};
+use super::flashrom::{self, Flashrom};
+use super::rand_util;
+use super::types::{self, FlashChip};
+use super::utils::{self, LayoutSizes};
 use serde_json::json;
 use std::mem::MaybeUninit;
 use std::sync::Mutex;
@@ -52,26 +52,41 @@ type PostFunction = fn(&TestParams) -> ();
 
 pub struct TestEnv<'a> {
     chip_type: FlashChip,
-    cmd: &'a cmd::FlashromCmd,
+    /// Flashrom instantiation information.
+    ///
+    /// Where possible, prefer to use methods on the TestEnv rather than delegating
+    /// to the raw flashrom functions.
+    pub cmd: &'a cmd::FlashromCmd,
+    layout: LayoutSizes,
 
     pub wp: WriteProtectState<'a, 'static>,
     /// The path to a file containing the flash contents at test start.
     // TODO(pmarheine) migrate this to a PathBuf for clarity
     original_flash_contents: String,
+    /// The path to a file containing flash-sized random data
+    // TODO(pmarheine) make this a PathBuf too
+    random_data: String,
 }
 
 impl<'a> TestEnv<'a> {
     pub fn create(chip_type: FlashChip, cmd: &'a cmd::FlashromCmd) -> Result<Self, String> {
+        let rom_sz = cmd.get_size()?;
         let out = TestEnv {
             chip_type: chip_type,
             cmd: cmd,
+            layout: utils::get_layout_sizes(rom_sz)?,
             wp: WriteProtectState::from_hardware(cmd)?,
             original_flash_contents: "/tmp/flashrom_tester_golden.bin".into(),
+            random_data: "/tmp/random_content.bin".into(),
         };
 
         info!("Stashing golden image for verification/recovery on completion");
         super::flashrom::read(&out.cmd, &out.original_flash_contents)?;
         super::flashrom::verify(&out.cmd, &out.original_flash_contents)?;
+
+        info!("Generating random flash-sized data");
+        rand_util::gen_rand_testdata(&out.random_data, rom_sz as usize)
+            .map_err(|io_err| format!("I/O error writing random data file: {:#}", io_err))?;
 
         Ok(out)
     }
@@ -99,6 +114,16 @@ impl<'a> TestEnv<'a> {
         self.chip_type
     }
 
+    /// Return the path to a file that contains random data and is the same size
+    /// as the flash chip.
+    pub fn random_data_file(&self) -> &str {
+        &self.random_data
+    }
+
+    pub fn layout(&self) -> &LayoutSizes {
+        &self.layout
+    }
+
     /// Return true if the current Flash contents are the same as the golden image
     /// that was present at the start of testing.
     pub fn is_golden(&self) -> bool {
@@ -115,6 +140,14 @@ impl<'a> TestEnv<'a> {
     /// Attempt to erase the flash.
     pub fn erase(&self) -> Result<(), String> {
         flashrom::erase(self.cmd)
+    }
+
+    /// Verify that the current Flash contents are the same as the file at the given
+    /// path.
+    ///
+    /// Returns Err if they are not the same.
+    pub fn verify(&self, contents_path: &str) -> Result<(), String> {
+        flashrom::verify(self.cmd, contents_path)
     }
 }
 

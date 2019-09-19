@@ -40,7 +40,7 @@ pub fn hex_string(v: i64) -> String {
     format!("{:#08X}", v).to_string()
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum LayoutNames {
     TopQuad,
     TopHalf,
@@ -48,7 +48,7 @@ pub enum LayoutNames {
     BottomQuad,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct LayoutSizes {
     half_sz: i64,
     quad_sz: i64,

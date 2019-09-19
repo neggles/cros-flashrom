@@ -34,12 +34,11 @@
 //
 
 use super::cmd;
-use super::flashrom::{self, Flashrom, FlashromError};
+use super::flashrom::{self, Flashrom};
 use super::mosys;
-use super::rand_util;
 use super::tester::{self, NewTestCase, OutputFormat, TestEnv, TestResult};
 use super::types::{self, FlashChip};
-use super::utils;
+use super::utils::{self, LayoutNames};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, Write};
@@ -75,9 +74,6 @@ pub fn generic(
         }
     }
 
-    info!("Create a Binary with random contents.");
-    rand_util::gen_rand_testdata("/tmp/random_content.bin", rom_sz as usize)?;
-
     info!(
         "Record crossystem information.\n{}",
         utils::collect_crosssystem()?
@@ -90,85 +86,6 @@ pub fn generic(
         types::FlashChip::HOST => host(&cmd),
         types::FlashChip::SERVO => servo(&cmd),
         types::FlashChip::DEDIPROG => dediprog(&cmd),
-    };
-
-    //  ================================================
-    //
-    let verify_fail_test_fn =
-        |param: &tester::TestParams| Ok(flashrom::verify(&param.cmd, "/tmp/random_content.bin")?);
-    let verify_fail_test = tester::TestCase {
-        name: "Fail to verify",
-        params: &default_test_params,
-        test_fn: verify_fail_test_fn,
-        conclusion: tester::TestConclusion::Fail,
-    };
-
-    //  ================================================
-    //
-    let lock_top_quad_test_fn = |param: &tester::TestParams| {
-        let rom_sz: i64 = param.cmd.get_size()?;
-        let layout_sizes = utils::get_layout_sizes(rom_sz)?;
-
-        let topq_sec = utils::layout_section(&layout_sizes, utils::LayoutNames::TopQuad);
-        test_section(&param.cmd, topq_sec)?;
-        Ok(())
-    };
-    let lock_top_quad_test = tester::TestCase {
-        name: "Lock top quad",
-        params: &default_test_params,
-        test_fn: lock_top_quad_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
-    let lock_top_half_test_fn = |param: &tester::TestParams| {
-        let rom_sz: i64 = param.cmd.get_size()?;
-        let layout_sizes = utils::get_layout_sizes(rom_sz)?;
-
-        let toph_sec = utils::layout_section(&layout_sizes, utils::LayoutNames::TopHalf);
-        test_section(&param.cmd, toph_sec)?;
-        Ok(())
-    };
-    let lock_top_half_test = tester::TestCase {
-        name: "Lock top half",
-        params: &default_test_params,
-        test_fn: lock_top_half_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
-    let lock_bottom_half_test_fn = |param: &tester::TestParams| {
-        let rom_sz: i64 = param.cmd.get_size()?;
-        let layout_sizes = utils::get_layout_sizes(rom_sz)?;
-
-        let both_sec = utils::layout_section(&layout_sizes, utils::LayoutNames::BottomHalf);
-        test_section(&param.cmd, both_sec)?;
-        Ok(())
-    };
-    let lock_bottom_half_test = tester::TestCase {
-        name: "Lock bottom half",
-        params: &default_test_params,
-        test_fn: lock_bottom_half_test_fn,
-        conclusion: tester::TestConclusion::Pass,
-    };
-
-    //  ================================================
-    //
-    let lock_bottom_quad_test_fn = |param: &tester::TestParams| {
-        let rom_sz: i64 = param.cmd.get_size()?;
-        let layout_sizes = utils::get_layout_sizes(rom_sz)?;
-
-        let botq_sec = utils::layout_section(&layout_sizes, utils::LayoutNames::BottomQuad);
-        test_section(&param.cmd, botq_sec)?;
-        Ok(())
-    };
-    let lock_bottom_quad_test = tester::TestCase {
-        name: "Lock bottom quad",
-        params: &default_test_params,
-        test_fn: lock_bottom_quad_test_fn,
-        conclusion: tester::TestConclusion::Pass,
     };
 
     // Register tests to run:
@@ -185,12 +102,18 @@ pub fn generic(
         },
         &("Toggle WP", wp_toggle_test),
         &("Erase/Write", erase_write_test),
-        &verify_fail_test,
+        &("Fail to verify", verify_fail_test),
         &("Lock", lock_test),
-        &lock_top_quad_test,
-        &lock_bottom_quad_test,
-        &lock_bottom_half_test,
-        &lock_top_half_test,
+        &("Lock top quad", partial_lock_test(LayoutNames::TopQuad)),
+        &(
+            "Lock bottom quad",
+            partial_lock_test(LayoutNames::BottomQuad),
+        ),
+        &(
+            "Lock bottom half",
+            partial_lock_test(LayoutNames::BottomHalf),
+        ),
+        &("Lock top half", partial_lock_test(LayoutNames::TopHalf)),
         &("Coreboot ELOG sanity", elog_sanity_test),
         &("Host is ChromeOS", host_is_chrome_test),
     ];
@@ -314,50 +237,41 @@ fn host_is_chrome_test(_env: &mut TestEnv) -> TestResult {
     }
 }
 
-fn consistent_flash_checks(cmd: &cmd::FlashromCmd) -> Result<(), FlashromError> {
-    if flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat").is_ok() {
-        return Ok(());
+fn partial_lock_test(section: LayoutNames) -> impl Fn(&mut TestEnv) -> TestResult {
+    move |env: &mut TestEnv| {
+        // Need a clean image for verification
+        env.ensure_golden()?;
+
+        let (name, start, len) = utils::layout_section(env.layout(), section);
+        // Disable software WP so we can do range protection, but hardware WP
+        // must remain enabled for (most) range protection to do anything.
+        env.wp.set_hw(false)?.set_sw(false)?.set_hw(true)?;
+        flashrom::wp_range(env.cmd, (start, len), true)?;
+
+        let rws = flashrom::ROMWriteSpecifics {
+            layout_file: Some(LAYOUT_FILE),
+            write_file: Some(env.random_data_file()),
+            name_file: Some(name),
+        };
+        if flashrom::write_file_with_layout(env.cmd, &rws).is_ok() {
+            return Err(
+                "Section should be locked, should not have been overwritable with random data"
+                    .into(),
+            );
+        }
+        if !env.is_golden() {
+            return Err("Section didn't lock, has been overwritten with random data!".into());
+        }
+        Ok(())
     }
-    warn!("flash image in an inconsistent state! Attempting to restore..");
-    flashrom::write(&cmd, "/tmp/flashrom_tester_read.dat")?;
-    flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat")
 }
 
-fn test_section(
-    cmd: &cmd::FlashromCmd,
-    section: (&'static str, i64, i64),
-) -> Result<(), Box<dyn std::error::Error>> {
-    let (name, start, len) = section;
-
-    debug!("test_section() :: name = '{}' ..", name);
-    debug!("-------------------------------------------");
-
-    consistent_flash_checks(&cmd)?;
-
-    let rws = flashrom::ROMWriteSpecifics {
-        layout_file: Some(LAYOUT_FILE),
-        write_file: Some("/tmp/random_content.bin"),
-        name_file: Some(name),
-    };
-
-    utils::toggle_hw_wp(true)?; // disconnect battery.
-    flashrom::wp_toggle(&cmd, false)?;
-    utils::toggle_hw_wp(false)?; // connect battery.
-    flashrom::wp_status(&cmd, false)?;
-
-    flashrom::wp_range(&cmd, (start, len), true)?;
-    flashrom::wp_status(&cmd, false)?;
-
-    if flashrom::write_file_with_layout(&cmd, &rws).is_ok() {
-        return Err(
-            "Section should be locked, should not have been overwritable with random data".into(),
-        );
+fn verify_fail_test(env: &mut TestEnv) -> TestResult {
+    // Comparing the flash contents to random data says they're not the same.
+    match env.verify(env.random_data_file()) {
+        Ok(_) => Err("Verification says flash is full of random data".into()),
+        Err(_) => Ok(()),
     }
-
-    if flashrom::verify(&cmd, "/tmp/flashrom_tester_read.dat").is_err() {
-        return Err("Section didn't locked, has been overwritable with random data!".into());
-    }
-    Ok(())
 }
 
 /// Ad-hoc parsing of os-release(5); mostly according to the spec,
