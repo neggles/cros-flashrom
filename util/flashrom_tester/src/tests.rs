@@ -127,6 +127,13 @@ fn get_device_name_test(env: &mut TestEnv) -> TestResult {
 }
 
 fn wp_toggle_test(env: &mut TestEnv) -> TestResult {
+    // NOTE: This is not strictly a 'test' as it is allowed to fail on some platforms.
+    //       However, we will warn when it does fail.
+    // List the write-protected regions of flash.
+    match flashrom::wp_list(env.cmd) {
+        Ok(list_str) => info!("\n{}", list_str),
+        Err(e) => warn!("{}", e),
+    };
     // Fails if unable to set either one
     env.wp.set_hw(false)?;
     env.wp.set_sw(false)?;
