@@ -75,11 +75,6 @@ impl flashrom::Flashrom for FlashromCmd {
         flashrom_extract_size(&sz)
     }
 
-    // do I need this?
-    fn new(path: String, fc: types::FlashChip) -> Self {
-        FlashromCmd { path, fc }
-    }
-
     fn dispatch(&self, fropt: flashrom::FlashromOpt) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
         let params = flashrom_decode_opts(fropt);
         flashrom_dispatch(self.path.as_str(), &params, self.fc)

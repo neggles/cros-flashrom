@@ -34,7 +34,6 @@
 //
 
 use super::cmd;
-use super::types;
 
 pub type FlashromError = String;
 
@@ -70,9 +69,6 @@ pub struct IOOpt<'a> {
 
 pub trait Flashrom {
     fn get_size(&self) -> Result<i64, FlashromError>;
-
-    fn new(path: String, fc: types::FlashChip) -> Self;
-
     fn dispatch(&self, fropt: FlashromOpt) -> Result<(Vec<u8>, Vec<u8>), FlashromError>;
 }
 
