@@ -80,11 +80,13 @@ fn main() {
         )
         .arg(
             Arg::with_name("print-layout")
+                .short("l")
                 .long("print-layout")
                 .help("Print the layout file's contents before running tests"),
         )
         .arg(
             Arg::with_name("log-file")
+                .short("o")
                 .long("log-file")
                 .takes_value(true)
                 .help("Write logs to a file rather than stdout"),
