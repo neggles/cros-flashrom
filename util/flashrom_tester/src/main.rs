@@ -105,6 +105,11 @@ fn main() {
                 .possible_values(&["pretty", "json"])
                 .default_value("pretty"),
         )
+        .arg(
+            Arg::with_name("test_name")
+                .multiple(true)
+                .help("Names of individual tests to run (run all if unspecified)"),
+        )
         .get_matches();
 
     logger::init(
@@ -129,8 +134,15 @@ fn main() {
         .expect("output-format should have a default value")
         .parse::<tester::OutputFormat>()
         .expect("output-format is not a parseable OutputFormat");
+    let test_names = matches.values_of("test_name");
 
-    if let Err(e) = tests::generic(flashrom_path, ccd_type, print_layout, output_format) {
+    if let Err(e) = tests::generic(
+        flashrom_path,
+        ccd_type,
+        print_layout,
+        output_format,
+        test_names,
+    ) {
         eprintln!("Failed to run tests: {:?}", e);
         std::process::exit(1);
     }

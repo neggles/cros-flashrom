@@ -461,13 +461,14 @@ fn decode_test_result(res: TestResult, con: TestConclusion) -> (TestConclusion, 
     }
 }
 
-pub fn run_all_tests<T>(
+pub fn run_all_tests<T, TS>(
     chip: FlashChip,
     cmd: &FlashromCmd,
-    ts: &[T],
+    ts: TS,
 ) -> Vec<(String, (TestConclusion, Option<TestError>))>
 where
-    T: TestCase,
+    T: TestCase + Copy,
+    TS: IntoIterator<Item = T>,
 {
     let mut env = TestEnv::create(chip, cmd).expect("Failed to set up test environment");
 

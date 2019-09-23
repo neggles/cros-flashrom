@@ -39,20 +39,51 @@ use super::mosys;
 use super::tester::{self, OutputFormat, TestCase, TestEnv, TestResult};
 use super::types::{self, FlashChip};
 use super::utils::{self, LayoutNames};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, Write};
 
 const LAYOUT_FILE: &'static str = "/tmp/layout.file";
 
+/// Iterate over tests, yielding only those tests with names matching filter_names.
+///
+/// If filter_names is None, all tests will be run. None is distinct from Some(∅);
+//  Some(∅) runs no tests.
+///
+/// Name comparisons are performed in lower-case: values in filter_names must be
+/// converted to lowercase specifically.
+///
+/// When an entry in filter_names matches a test, it is removed from that set.
+/// This allows the caller to determine if any entries in the original set failed
+/// to match any test, which may be user error.
+fn filter_tests<'n, 't: 'n, T: TestCase>(
+    tests: &'t [T],
+    filter_names: &'n mut Option<HashSet<String>>,
+) -> impl 'n + Iterator<Item = &'t T> {
+    tests.iter().filter(move |test| match filter_names {
+        // Accept all tests if no names are given
+        None => true,
+        Some(ref mut filter_names) => {
+            // Pop a match to the test name from the filter set, retaining the test
+            // if there was a match.
+            filter_names.remove(&test.get_name().to_lowercase())
+        }
+    })
+}
+
 /// Run tests.
 ///
 /// Only returns an Error if there was an internal error; test failures are Ok.
-pub fn generic(
+///
+/// test_names is the case-insensitive names of tests to run; if None, then all
+/// tests are run. Provided names that don't match any known test will be logged
+/// as a warning.
+pub fn generic<'a, TN: Iterator<Item = &'a str>>(
     path: &str,
     fc: types::FlashChip,
     print_layout: bool,
     output_format: OutputFormat,
+    test_names: Option<TN>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let p = path.to_string();
     let cmd = cmd::FlashromCmd { path: p, fc };
@@ -99,9 +130,24 @@ pub fn generic(
         &("Coreboot ELOG sanity", elog_sanity_test),
         &("Host is ChromeOS", host_is_chrome_test),
     ];
+
+    // Limit the tests to only those requested, unless none are requested
+    // in which case all tests are included.
+    let mut filter_names: Option<HashSet<String>> = if let Some(names) = test_names {
+        Some(names.map(|s| s.to_lowercase()).collect())
+    } else {
+        None
+    };
+    let tests = filter_tests(tests, &mut filter_names);
+
     // ------------------------.
     // Run all the tests and collate the findings:
     let results = tester::run_all_tests(fc, &cmd, tests);
+
+    // Any leftover filtered names were specified to be run but don't exist
+    for leftover in filter_names.iter().flatten() {
+        warn!("No test matches filter name \"{}\"", leftover);
+    }
 
     let chip_name = flashrom::name(&cmd)
         .map(|x| format!("vendor=\"{}\" name=\"{}\"", x.0, x.1))
@@ -314,4 +360,25 @@ fn test_parse_os_release() {
     assert_eq!(get(&map, "BUILD_ID"), Some("12516.0.0"));
     assert_eq!(get(&map, "EMPTY_VALUE"), Some(""));
     assert_eq!(get(&map, ""), None);
+}
+
+#[test]
+fn test_name_filter() {
+    let test_one = ("Test One", |_: &mut TestEnv| Ok(()));
+    let test_two = ("Test Two", |_: &mut TestEnv| Ok(()));
+    let tests: &[&dyn TestCase] = &[&test_one, &test_two];
+
+    let mut names = None;
+    // All tests pass through
+    assert_eq!(filter_tests(tests, &mut names).count(), 2);
+
+    names = Some(["test two"].iter().map(|s| s.to_string()).collect());
+    // Filtered out test one
+    assert_eq!(filter_tests(tests, &mut names).count(), 1);
+
+    names = Some(["test three"].iter().map(|s| s.to_string()).collect());
+    // No tests emitted
+    assert_eq!(filter_tests(tests, &mut names).count(), 0);
+    // Name got left behind because no test matched it
+    assert_eq!(names.unwrap().len(), 1);
 }
