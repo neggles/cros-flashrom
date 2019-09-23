@@ -436,6 +436,7 @@ impl<T: TestCase + ?Sized> TestCase for &T {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum TestConclusion {
     Pass,
