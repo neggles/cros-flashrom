@@ -33,16 +33,15 @@
 // Software Foundation.
 //
 
-use super::cmd::{self, FlashromCmd};
-use super::flashrom::{self, Flashrom};
 use super::rand_util;
-use super::types::{self, FlashChip};
+use super::types;
 use super::utils::{self, LayoutSizes};
+use flashrom::{FlashChip, Flashrom, FlashromCmd};
 use serde_json::json;
 use std::mem::MaybeUninit;
 use std::sync::Mutex;
 
-// type-signature comes from the return type of flashrom.rs workers.
+// type-signature comes from the return type of lib.rs workers.
 type TestError = Box<dyn std::error::Error>;
 pub type TestResult = Result<(), TestError>;
 
@@ -52,7 +51,7 @@ pub struct TestEnv<'a> {
     ///
     /// Where possible, prefer to use methods on the TestEnv rather than delegating
     /// to the raw flashrom functions.
-    pub cmd: &'a cmd::FlashromCmd,
+    pub cmd: &'a FlashromCmd,
     layout: LayoutSizes,
 
     pub wp: WriteProtectState<'a, 'static>,
@@ -65,7 +64,7 @@ pub struct TestEnv<'a> {
 }
 
 impl<'a> TestEnv<'a> {
-    pub fn create(chip_type: FlashChip, cmd: &'a cmd::FlashromCmd) -> Result<Self, String> {
+    pub fn create(chip_type: FlashChip, cmd: &'a FlashromCmd) -> Result<Self, String> {
         let rom_sz = cmd.get_size()?;
         let out = TestEnv {
             chip_type: chip_type,
@@ -77,8 +76,8 @@ impl<'a> TestEnv<'a> {
         };
 
         info!("Stashing golden image for verification/recovery on completion");
-        super::flashrom::read(&out.cmd, &out.original_flash_contents)?;
-        super::flashrom::verify(&out.cmd, &out.original_flash_contents)?;
+        flashrom::read(&out.cmd, &out.original_flash_contents)?;
+        flashrom::verify(&out.cmd, &out.original_flash_contents)?;
 
         info!("Generating random flash-sized data");
         rand_util::gen_rand_testdata(&out.random_data, rom_sz as usize)
@@ -89,7 +88,7 @@ impl<'a> TestEnv<'a> {
 
     pub fn run_test<T: TestCase>(&mut self, test: T) -> TestResult {
         let use_dut_control = self.chip_type == FlashChip::SERVO;
-        if use_dut_control && cmd::dut_ctrl_toggle_wp(false).is_err() {
+        if use_dut_control && flashrom::dut_ctrl_toggle_wp(false).is_err() {
             error!("failed to dispatch dut_ctrl_toggle_wp()!");
         }
 
@@ -98,7 +97,7 @@ impl<'a> TestEnv<'a> {
         let out = test.run(self);
         info!("Completed test: {}; result {:?}", name, out);
 
-        if use_dut_control && cmd::dut_ctrl_toggle_wp(true).is_err() {
+        if use_dut_control && flashrom::dut_ctrl_toggle_wp(true).is_err() {
             error!("failed to dispatch dut_ctrl_toggle_wp()!");
         }
         out
@@ -231,7 +230,7 @@ impl<'a> WriteProtectState<'a, 'static> {
 
     /// Get the actual software write protect state.
     fn get_sw(cmd: &FlashromCmd) -> Result<bool, String> {
-        super::flashrom::wp_status(cmd, true)
+        flashrom::wp_status(cmd, true)
     }
 }
 
@@ -247,7 +246,7 @@ impl<'a, 'p> WriteProtectState<'a, 'p> {
     /// Set the software write protect.
     pub fn set_sw(&mut self, enable: bool) -> Result<&mut Self, String> {
         if self.current.1 != enable {
-            super::flashrom::wp_toggle(self.cmd, /* en= */ enable)?;
+            flashrom::wp_toggle(self.cmd, /* en= */ enable)?;
             self.current.1 = enable;
         }
         Ok(self)
@@ -361,7 +360,7 @@ impl<'a, 'p> WriteProtectState<'a, 'p> {
         // Toggle both protects back to their initial states.
         // Software first because we can't change it once hardware is enabled.
         if sw != self.current.1 {
-            super::flashrom::wp_toggle(self.cmd, /* en= */ sw).map_err(|e| {
+            flashrom::wp_toggle(self.cmd, /* en= */ sw).map_err(|e| {
                 format!(
                     "Failed to {}able software write protect: {}",
                     enable_str(sw),

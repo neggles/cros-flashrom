@@ -36,10 +36,6 @@
 use std::io::prelude::*;
 use std::process::Command;
 
-pub fn hex_string(v: i64) -> String {
-    format!("{:#08X}", v).to_string()
-}
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum LayoutNames {
     TopQuad,

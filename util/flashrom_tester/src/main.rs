@@ -39,8 +39,6 @@ extern crate log;
 #[macro_use]
 mod types;
 
-mod cmd;
-mod flashrom;
 mod logger;
 mod mosys;
 mod rand_util;
@@ -49,6 +47,7 @@ mod tests;
 mod utils;
 
 use clap::{App, Arg};
+use flashrom::FlashChip;
 use std::path::PathBuf;
 
 pub mod built_info {
@@ -123,7 +122,7 @@ fn main() {
     let flashrom_path = matches
         .value_of("flashrom_binary")
         .expect("flashrom_binary should be required");
-    let ccd_type = types::FlashChip::from(
+    let ccd_type = FlashChip::from(
         matches
             .value_of("ccd_target_type")
             .expect("ccd_target_type should be required"),

@@ -33,16 +33,14 @@
 // Software Foundation.
 //
 
-use super::flashrom::{self, FlashromError};
-use super::types;
-use super::utils;
+use crate::{FlashChip, FlashromError, FlashromOpt};
 
 use std::process::Command;
 
 #[derive(PartialEq, Debug)]
 pub struct FlashromCmd {
     pub path: String,
-    pub fc: types::FlashChip,
+    pub fc: FlashChip,
 }
 
 /// Attempt to determine the Flash size given stdout from `flashrom --get-size`
@@ -67,7 +65,7 @@ fn flashrom_extract_size(stdout: &str) -> Result<i64, FlashromError> {
     }
 }
 
-impl flashrom::Flashrom for FlashromCmd {
+impl crate::Flashrom for FlashromCmd {
     fn get_size(&self) -> Result<i64, FlashromError> {
         let (stdout, _) = flashrom_dispatch(self.path.as_str(), &["--get-size"], self.fc)?;
         let sz = String::from_utf8_lossy(&stdout);
@@ -75,13 +73,13 @@ impl flashrom::Flashrom for FlashromCmd {
         flashrom_extract_size(&sz)
     }
 
-    fn dispatch(&self, fropt: flashrom::FlashromOpt) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
+    fn dispatch(&self, fropt: FlashromOpt) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
         let params = flashrom_decode_opts(fropt);
         flashrom_dispatch(self.path.as_str(), &params, self.fc)
     }
 }
 
-fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<String> {
+fn flashrom_decode_opts(opts: FlashromOpt) -> Vec<String> {
     let mut params = Vec::<String>::new();
 
     // ------------ WARNING !!! ------------
@@ -92,8 +90,8 @@ fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<String> {
     if opts.wp_opt.range.is_some() {
         let (x0, x1) = opts.wp_opt.range.unwrap();
         params.push("--wp-range".to_string());
-        params.push(utils::hex_string(x0));
-        params.push(utils::hex_string(x1));
+        params.push(hex_string(x0));
+        params.push(hex_string(x1));
     }
     if opts.wp_opt.status {
         params.push("--wp-status".to_string());
@@ -145,11 +143,11 @@ fn flashrom_decode_opts(opts: flashrom::FlashromOpt) -> Vec<String> {
 fn flashrom_dispatch<S: AsRef<str>>(
     path: &str,
     params: &[S],
-    fc: types::FlashChip,
+    fc: FlashChip,
 ) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
     // from man page:
     //  ' -p, --programmer <name>[:parameter[,parameter[,parameter]]] '
-    let mut args: Vec<&str> = vec!["-p", types::FlashChip::to(fc)];
+    let mut args: Vec<&str> = vec!["-p", FlashChip::to(fc)];
     args.extend(params.iter().map(S::as_ref));
 
     info!("flashrom_dispatch() running: {} {:?}", path, args);
@@ -203,10 +201,14 @@ pub fn dut_ctrl_toggle_wp(en: bool) -> Result<(Vec<u8>, Vec<u8>), FlashromError>
     Ok((output.stdout, output.stderr))
 }
 
+fn hex_string(v: i64) -> String {
+    format!("{:#08X}", v).to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::flashrom_decode_opts;
-    use crate::flashrom::{FlashromOpt, IOOpt, WPOpt};
+    use crate::{FlashromOpt, IOOpt, WPOpt};
 
     #[test]
     fn decode_wp_opt() {

@@ -33,47 +33,6 @@
 // Software Foundation.
 //
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum FlashChip {
-    EC,
-    HOST,
-    SERVO,
-    DEDIPROG,
-}
-
-impl FlashChip {
-    pub fn from(s: &str) -> Result<FlashChip, &str> {
-        let r = match s {
-            "ec" => Ok(FlashChip::EC),
-            "host" => Ok(FlashChip::HOST),
-            "servo" => Ok(FlashChip::SERVO),
-            "dediprog" => Ok(FlashChip::DEDIPROG),
-            _ => Err("cannot convert str to enum"),
-        };
-        return r;
-    }
-    pub fn to(fc: FlashChip) -> &'static str {
-        let r = match fc {
-            FlashChip::EC => "ec",
-            FlashChip::HOST => "host",
-            FlashChip::SERVO => "ft2232_spi:type=servo-v2",
-            FlashChip::DEDIPROG => "dediprog",
-        };
-        return r;
-    }
-
-    /// Return whether the hardware write protect signal can be controlled.
-    ///
-    /// Servo and dediprog adapters are assumed to always have hardware write protect
-    /// disabled.
-    pub fn can_control_hw_wp(&self) -> bool {
-        match self {
-            FlashChip::HOST | FlashChip::EC => true,
-            FlashChip::SERVO | FlashChip::DEDIPROG => false,
-        }
-    }
-}
-
 pub const BOLD: &str = "\x1b[1m";
 
 pub const RESET: &str = "\x1b[0m";

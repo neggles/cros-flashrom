@@ -33,12 +33,10 @@
 // Software Foundation.
 //
 
-use super::cmd;
-use super::flashrom::{self, Flashrom};
 use super::mosys;
 use super::tester::{self, OutputFormat, TestCase, TestEnv, TestResult};
-use super::types::{self, FlashChip};
 use super::utils::{self, LayoutNames};
+use flashrom::{FlashChip, Flashrom, FlashromCmd};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, Write};
@@ -80,13 +78,13 @@ fn filter_tests<'n, 't: 'n, T: TestCase>(
 /// as a warning.
 pub fn generic<'a, TN: Iterator<Item = &'a str>>(
     path: &str,
-    fc: types::FlashChip,
+    fc: FlashChip,
     print_layout: bool,
     output_format: OutputFormat,
     test_names: Option<TN>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let p = path.to_string();
-    let cmd = cmd::FlashromCmd { path: p, fc };
+    let cmd = FlashromCmd { path: p, fc };
 
     info!("Calculate ROM partition sizes & Create the layout file.");
     let rom_sz: i64 = cmd.get_size()?;
