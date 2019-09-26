@@ -36,18 +36,11 @@
 #[macro_use]
 extern crate log;
 
-#[macro_use]
-mod types;
-
 mod logger;
-mod mosys;
-mod rand_util;
-mod tester;
-mod tests;
-mod utils;
 
 use clap::{App, Arg};
 use flashrom::FlashChip;
+use flashrom_tester::{tester, tests};
 use std::path::PathBuf;
 
 pub mod built_info {

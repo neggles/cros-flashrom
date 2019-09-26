@@ -272,15 +272,19 @@ impl<'a, 'p> WriteProtectState<'a, 'p> {
     ///
     /// This is useful if you need to temporarily make a change to write protection:
     ///
-    /// ```
-    /// let wp: WriteProtectState<'_, '_>;
+    /// ```no_run
+    /// # fn main() -> Result<(), String> {
+    /// # let cmd: flashrom::FlashromCmd = unimplemented!();
+    /// let wp = flashrom_tester::tester::WriteProtectState::from_hardware(&cmd)?;
     /// {
-    ///     let wp = wp.push();
+    ///     let mut wp = wp.push();
     ///     wp.set_sw(false)?;
     ///     // Do something with software write protect disabled
     /// }
     /// // Now software write protect returns to its original state, even if
     /// // set_sw() failed.
+    /// # Ok(())
+    /// # }
     /// ```
     ///
     /// This returns a new state which restores the original when it is dropped- the new state

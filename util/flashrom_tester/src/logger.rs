@@ -33,7 +33,7 @@
 // Software Foundation.
 //
 
-use super::types;
+use flashrom_tester::types;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
