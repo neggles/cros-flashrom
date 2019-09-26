@@ -184,10 +184,19 @@ static void cli_classic_usage(const char *name)
 	       "If no operation is specified, flashrom will only probe for flash chips.\n");
 }
 
-static void cli_classic_abort_usage(void)
+static void cli_classic_abort_usage(const char *msg)
 {
+	if (msg)
+		fprintf(stderr, "%s", msg);
 	printf("Please run \"flashrom --help\" for usage info.\n");
 	exit(1);
+}
+
+static void cli_classic_validate_singleop(int *operation_specified)
+{
+	if (++(*operation_specified) > 1) {
+		cli_classic_abort_usage("More than one operation specified. Aborting.\n");
+	}
 }
 
 static int check_filename(char *filename, char *type)
@@ -306,11 +315,7 @@ int main(int argc, char *argv[])
 				  long_options, &option_index)) != EOF) {
 		switch (opt) {
 		case 'r':
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			read_it = 1;
 #if CONFIG_USE_OS_TIMER == 0
 			/* horrible workaround for excess time spent in
@@ -319,11 +324,7 @@ int main(int argc, char *argv[])
 #endif
 			break;
 		case 'w':
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			write_it = 1;
 #if CONFIG_USE_OS_TIMER == 0
 			/* horrible workaround for excess time spent in
@@ -333,14 +334,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'v':
 			//FIXME: gracefully handle superfluous -v
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			if (dont_verify_it) {
-				msg_gerr("--verify and --noverify are mutually exclusive. Aborting.\n");
-				cli_classic_abort_usage();
+				cli_classic_abort_usage("--verify and --noverify are mutually exclusive. Aborting.\n");
 			}
 			if (!verify_it) verify_it = VERIFY_FULL;
 #if CONFIG_USE_OS_TIMER == 0
@@ -351,8 +347,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'n':
 			if (verify_it) {
-				msg_gerr("--verify and --noverify are mutually exclusive. Aborting.\n");
-				cli_classic_abort_usage();
+				cli_classic_abort_usage("--verify and --noverify are mutually exclusive. Aborting.\n");
 			}
 			dont_verify_it = 1;
 			break;
@@ -365,11 +360,7 @@ int main(int argc, char *argv[])
 				verbose_logfile = verbose_screen;
 			break;
 		case 'E':
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			erase_it = 1;
 #if CONFIG_USE_OS_TIMER == 0
 			/* horrible workaround for excess time spent in
@@ -381,58 +372,41 @@ int main(int argc, char *argv[])
 			force = 1;
 			break;
 		case 'l':
-			if (layoutfile) {
-				fprintf(stderr, "Error: --layout specified "
-					"more than once. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			if (layoutfile)
+				cli_classic_abort_usage("Error: --layout specified more than once. Aborting.\n");
 			layoutfile = strdup(optarg);
 			break;
 		case 'i':
 			tempstr = strdup(optarg);
 			if (register_include_arg(tempstr) < 0) {
 				free(tempstr);
-				cli_classic_abort_usage();
+				cli_classic_abort_usage(NULL);
 			}
 			break;
 		case 'L':
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			list_supported = 1;
 			break;
 		case 'x':
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			extract_it = 1;
 			break;
 		case 'z':
 #if CONFIG_PRINT_WIKI == 1
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			list_supported_wiki = 1;
 #else
-			msg_gerr("Error: Wiki output was not compiled "
-				"in. Aborting.\n");
-			cli_classic_abort_usage();
+			cli_classic_abort_usage("Error: Wiki output was not"
+					"compiled in. Aborting.\n");
 #endif
 			break;
 		case 'p':
 			if (prog != PROGRAMMER_INVALID) {
-				msg_gerr("Error: --programmer specified "
+				cli_classic_abort_usage("Error: --programmer specified "
 					"more than once. You can separate "
 					"multiple\nparameters for a programmer "
 					"with \",\". Please see the man page "
 					"for details.\n");
-				cli_classic_abort_usage();
 			}
 			for (prog = 0; prog < PROGRAMMER_INVALID; prog++) {
 				name = programmer_table[prog].name;
@@ -495,42 +469,30 @@ int main(int argc, char *argv[])
 			if ((prog == PROGRAMMER_INVALID) && !alias) {
 				msg_gerr("Error: Unknown programmer "
 					"%s.\n", optarg);
-				cli_classic_abort_usage();
+				cli_classic_abort_usage(NULL);
 			}
 
 			if ((prog != PROGRAMMER_INVALID) && alias) {
-				msg_gerr("Error: Alias cannot be used "
-					"with programmer name.\n");
-				cli_classic_abort_usage();
+				cli_classic_abort_usage("Error: Alias cannot be used with programmer name.\n");
 			}
 			break;
 		case 'R':
 			/* print_version() is always called during startup. */
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			exit(0);
 			break;
 		case 'h':
-			if (++operation_specified > 1) {
-				msg_gerr("More than one operation "
-					"specified. Aborting.\n");
-				cli_classic_abort_usage();
-			}
+			cli_classic_validate_singleop(&operation_specified);
 			cli_classic_usage(argv[0]);
 			exit(0);
 			break;
 		case 'o':
 #ifdef STANDALONE
-			fprintf(stderr, "Log file not supported in standalone mode. Aborting.\n");
-			cli_classic_abort_usage();
+			cli_classic_abort_usage("Log file not supported in standalone mode. Aborting.\n");
 #else /* STANDALONE */
 			logfile = strdup(optarg);
 			if (logfile[0] == '\0') {
-				fprintf(stderr, "No log filename specified.\n");
-				cli_classic_abort_usage();
+				cli_classic_abort_usage("No log filename specified.\n");
 			}
 #endif /* STANDALONE */
 			break;
@@ -577,7 +539,7 @@ int main(int argc, char *argv[])
 			set_ignore_lock = 1;
 			break;
 		default:
-			cli_classic_abort_usage();
+			cli_classic_abort_usage(NULL);
 			break;
 		}
 	}
@@ -597,28 +559,23 @@ int main(int argc, char *argv[])
 #endif
 
 #if 0
-	if (optind < argc) {
-		msg_gerr("Error: Extra parameter found.\n");
-		cli_classic_abort_usage();
-	}
+	if (optind < argc)
+		cli_classic_abort_usage("Error: Extra parameter found.\n");
 #endif
 
-	if (layoutfile && check_filename(layoutfile, "layout")) {
-		cli_classic_abort_usage();
-	}
+	if (layoutfile && check_filename(layoutfile, "layout"))
+		cli_classic_abort_usage(NULL);
 
 
 	if (!do_diff && diff_file) {
-		msg_gerr("Both --diff and --do-not-diff set, "
-			 "what do you want to do?\n");
-		cli_classic_abort_usage();
+		cli_classic_abort_usage("Both --diff and --do-not-diff set, what do you want to do?\n");
 	}
 
 #ifndef STANDALONE
 	if (logfile && check_filename(logfile, "log"))
-		cli_classic_abort_usage();
+		cli_classic_abort_usage(NULL);
 	if (logfile && open_logfile(logfile))
-		cli_classic_abort_usage();
+		cli_classic_abort_usage(NULL);
 #endif /* !STANDALONE */
 
 	if (read_it || write_it || verify_it) {
@@ -638,7 +595,7 @@ int main(int argc, char *argv[])
 	msg_gdbg("\n");
 
 	if (layoutfile && read_romlayout(layoutfile)) {
-		cli_classic_abort_usage();
+		cli_classic_abort_usage(NULL);
 	}
 
 	/* Does a chip with the requested name exist in the flashchips array? */
