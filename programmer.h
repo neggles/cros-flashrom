@@ -620,7 +620,7 @@ extern enum ich_chipset g_ich_generation;
 extern int ich_dry_run;
 extern uint32_t ichspi_bbar;
 int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generation);
-int via_init_spi(struct pci_dev *dev);
+int via_init_spi(uint32_t mmio_base);
 
 /* ene_lpc.c */
 int ene_probe_spi_flash(const char *name);

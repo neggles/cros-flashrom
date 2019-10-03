@@ -677,7 +677,7 @@ static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 static int enable_flash_vt8237s_spi(struct pci_dev *dev, const char *name)
 {
 	/* Do we really need no write enable? */
-	return via_init_spi(dev);
+	return via_init_spi(pci_read_long(dev, 0xbc) << 8);
 }
 
 static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,

@@ -2492,14 +2492,11 @@ static const struct spi_master spi_master_via = {
 	.write_256 = default_spi_write_256,
 };
 
-int via_init_spi(struct pci_dev *dev)
+int via_init_spi(uint32_t mmio_base)
 {
-	uint32_t mmio_base;
 	int i;
 
-	mmio_base = (pci_read_long(dev, 0xbc)) << 8;
-	msg_pdbg("MMIO base at = 0x%x\n", mmio_base);
-	ich_spibar = physmap("VT8237S MMIO registers", mmio_base, 0x70);
+	ich_spibar = rphysmap("VT8237S MMIO registers", mmio_base, 0x70);
 	if (ich_spibar == ERROR_PTR)
 		return ERROR_FATAL;
 
