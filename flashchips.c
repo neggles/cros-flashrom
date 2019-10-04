@@ -10070,13 +10070,13 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Winbond",
-		.name		= "W25Q64DW",
+		.name		= "W25Q64.W",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= WINBOND_NEX_ID,
 		.model_id	= WINBOND_NEX_W25Q64_W,
 		.total_size	= 8192,
 		.page_size	= 256,
-		.feature_bits	= FEATURE_WRSR_WREN,
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
 		.tested		= TEST_OK_PREW,
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
@@ -10099,6 +10099,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
