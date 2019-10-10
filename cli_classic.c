@@ -206,7 +206,7 @@ static int check_filename(char *filename, char *type)
 
 enum LONGOPT_RETURN_VALUES {
 	/* start after ASCII chars */
-	LONGOPT_GET_SIZE = 256,
+	LONGOPT_FLASH_SIZE = 256,
 	LONGOPT_DIFF,
 	LONGOPT_FLASH_NAME,
 	LONGOPT_WP_STATUS,
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 	int option_index = 0;
 	int force = 0;
 	int read_it = 0, write_it = 0, erase_it = 0, verify_it = 0,
-		get_size = 0, dont_verify_it = 0, list_supported = 0,
+		flash_size = 0, dont_verify_it = 0, list_supported = 0,
 		extract_it = 0, flash_name = 0, do_diff = 1;
 	int set_wp_range = 0, set_wp_region = 0, set_wp_enable = 0,
 	    set_wp_disable = 0, wp_status = 0, wp_list = 0;
@@ -269,7 +269,8 @@ int main(int argc, char *argv[])
 		{"help", 		0, 0, 'h'},
 		{"version", 		0, 0, 'R'},
 		{"output", 		1, 0, 'o'},
-		{"get-size", 		0, 0, LONGOPT_GET_SIZE},
+		{"get-size", 		0, 0, LONGOPT_FLASH_SIZE},
+		{"flash-size", 		0, 0, LONGOPT_FLASH_SIZE},
 		{"flash-name", 		0, 0, LONGOPT_FLASH_NAME},
 		{"diff", 		1, 0, LONGOPT_DIFF},
 		{"do-not-diff",		0, 0, LONGOPT_DO_NOT_DIFF},
@@ -536,8 +537,8 @@ int main(int argc, char *argv[])
 			}
 #endif /* STANDALONE */
 			break;
-		case LONGOPT_GET_SIZE:
-			get_size = 1;
+		case LONGOPT_FLASH_SIZE:
+			flash_size = 1;
 			break;
 		case LONGOPT_DO_NOT_DIFF:
 			do_diff = 0;
@@ -785,7 +786,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (!(read_it | write_it | verify_it | erase_it | flash_name |
-	      get_size | set_wp_range | set_wp_region | set_wp_enable |
+	      flash_size | set_wp_range | set_wp_region | set_wp_enable |
 	      set_wp_disable | wp_status | wp_list | extract_it)) {
 		msg_gerr("No operations were specified.\n");
 		// FIXME: flash writes stay enabled!
@@ -1001,7 +1002,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (get_size) {
+	if (flash_size) {
 		msg_ginfo("%d\n", fill_flash->chip->total_size * 1024);
 		goto out_shutdown;
 	}
