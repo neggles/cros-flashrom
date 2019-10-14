@@ -12,7 +12,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 /*
@@ -256,7 +255,8 @@ int probe_spi_res1(struct flashctx *flash)
 	/* Check if REMS is usable and does not return 0xff 0xff or
 	 * 0x00 0x00. In that case, RES is pointless.
 	 */
-	if (!spi_rems(flash, readarr) && memcmp(readarr, allff, JEDEC_REMS_INSIZE) &&
+	if (!spi_rems(flash, readarr) &&
+	    memcmp(readarr, allff, JEDEC_REMS_INSIZE) &&
 	    memcmp(readarr, all00, JEDEC_REMS_INSIZE)) {
 		msg_cdbg("Ignoring RES in favour of REMS.\n");
 		return 0;
@@ -370,7 +370,7 @@ static int spi_prepare_address(struct flashctx *const flash, uint8_t cmd_buf[],
 		} else if (addr >> 24) {
 			msg_cerr("Can't handle 4-byte address for opcode '0x%02x'\n"
 				 "with this chip/programmer combination.\n", cmd_buf[0]);
-				return -1;
+			return -1;
 		}
 		cmd_buf[1] = (addr >> 16) & 0xff;
 		cmd_buf[2] = (addr >>  8) & 0xff;
@@ -385,7 +385,7 @@ static int spi_prepare_address(struct flashctx *const flash, uint8_t cmd_buf[],
  *
  * @param flash       the flash chip's context
  * @param op          the operation to execute
- * @param native_4ba  where `op` always takes a 4-byte address
+ * @param native_4ba  whether `op` always takes a 4-byte address
  * @param addr        the address parameter to `op`
  * @param out_bytes   bytes to send after the address,
  *                    may be NULL if and only if `out_bytes` is 0
@@ -449,7 +449,8 @@ int spi_chip_erase_c7(struct flashctx *flash)
 	return spi_simple_write_cmd(flash, 0xc7, 1000 * 1000);
 }
 
-int spi_block_erase_52(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+int spi_block_erase_52(struct flashctx *flash, unsigned int addr,
+		       unsigned int blocklen)
 {
 	/* This usually takes 100-4000ms, so wait in 100ms steps. */
 	return spi_write_cmd(flash, 0x52, false, addr, NULL, 0, 100 * 1000);
@@ -469,7 +470,8 @@ int spi_block_erase_c4(struct flashctx *flash, unsigned int addr, unsigned int b
  * 32k for SST
  * 4-32k non-uniform for EON
  */
-int spi_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+int spi_block_erase_d8(struct flashctx *flash, unsigned int addr,
+		       unsigned int blocklen)
 {
 	/* This usually takes 100-4000ms, so wait in 100ms steps. */
 	return spi_write_cmd(flash, 0xd8, false, addr, NULL, 0, 100 * 1000);
@@ -478,7 +480,8 @@ int spi_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int b
 /* Block size is usually
  * 4k for PMC
  */
-int spi_block_erase_d7(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+int spi_block_erase_d7(struct flashctx *flash, unsigned int addr,
+		       unsigned int blocklen)
 {
 	/* This usually takes 100-4000ms, so wait in 100ms steps. */
 	return spi_write_cmd(flash, 0xd7, false, addr, NULL, 0, 100 * 1000);
@@ -493,7 +496,8 @@ int spi_block_erase_db(struct flashctx *flash, unsigned int addr, unsigned int b
 }
 
 /* Sector size is usually 4k, though Macronix eliteflash has 64k */
-int spi_block_erase_20(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+int spi_block_erase_20(struct flashctx *flash, unsigned int addr,
+		       unsigned int blocklen)
 {
 	/* This usually takes 15-800ms, so wait in 10ms steps. */
 	return spi_write_cmd(flash, 0x20, false, addr, NULL, 0, 10 * 1000);
@@ -511,7 +515,8 @@ int spi_block_erase_81(struct flashctx *flash, unsigned int addr, unsigned int b
 	return spi_write_cmd(flash, 0x81, false, addr, NULL, 0, 1 * 1000);
 }
 
-int spi_block_erase_60(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+int spi_block_erase_60(struct flashctx *flash, unsigned int addr,
+		       unsigned int blocklen)
 {
 	if ((addr != 0) || (blocklen != flash->chip->total_size * 1024)) {
 		msg_cerr("%s called with incorrect arguments\n",
@@ -531,7 +536,8 @@ int spi_block_erase_62(struct flashctx *flash, unsigned int addr, unsigned int b
 	return spi_chip_erase_62(flash);
 }
 
-int spi_block_erase_c7(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
+int spi_block_erase_c7(struct flashctx *flash, unsigned int addr,
+		       unsigned int blocklen)
 {
 	if ((addr != 0) || (blocklen != flash->chip->total_size * 1024)) {
 		msg_cerr("%s called with incorrect arguments\n",
@@ -661,7 +667,8 @@ static int spi_nbyte_program(struct flashctx *flash, unsigned int addr, const ui
 	return spi_write_cmd(flash, op, native_4ba, addr, bytes, len, 10);
 }
 
-int spi_nbyte_read(struct flashctx *flash, unsigned int address, uint8_t *bytes, unsigned int len)
+int spi_nbyte_read(struct flashctx *flash, unsigned int address, uint8_t *bytes,
+		   unsigned int len)
 {
 	const bool native_4ba = flash->chip->feature_bits & FEATURE_4BA_READ && spi_master_4ba(flash);
 	uint8_t cmd[1 + JEDEC_MAX_ADDR_LEN] = { native_4ba ? JEDEC_READ_4BA : JEDEC_READ, };
@@ -679,7 +686,8 @@ int spi_nbyte_read(struct flashctx *flash, unsigned int address, uint8_t *bytes,
  * FIXME: Use the chunk code from Michael Karcher instead.
  * Each naturally aligned area is read separately in chunks with a maximum size of chunksize.
  */
-int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len, unsigned int chunksize)
+int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start,
+		     unsigned int len, unsigned int chunksize)
 {
 	int rc = 0, chunk_status = 0;
 	unsigned int i, j, starthere, lenhere, toread;
@@ -730,7 +738,8 @@ int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start, u
  * FIXME: Use the chunk code from Michael Karcher instead.
  * Each page is written separately in chunks with a maximum size of chunksize.
  */
-int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len, unsigned int chunksize)
+int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int start,
+		      unsigned int len, unsigned int chunksize)
 {
 	unsigned int i, j, starthere, lenhere, towrite;
 	/* FIXME: page_size is the wrong variable. We need max_writechunk_size
@@ -757,6 +766,7 @@ int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int s
 		lenhere = min(start + len, (i + 1) * page_size) - starthere;
 		for (j = 0; j < lenhere; j += chunksize) {
 			int rc;
+
 			towrite = min(chunksize, lenhere - j);
 			rc = spi_nbyte_program(flash, starthere + j, buf + starthere - start + j, towrite);
 			if (rc)
@@ -842,7 +852,7 @@ int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start
 		cmd[1] = buf[pos++ - start];
 		cmd[2] = buf[pos++ - start];
 		result = spi_send_command(flash, JEDEC_AAI_WORD_PROGRAM_CONT_OUTSIZE, 0, cmd, NULL);
-		if (result) {
+		if (result != 0) {
 			msg_cerr("%s failed during followup AAI command execution: %d\n", __func__, result);
 			goto bailout;
 		}
