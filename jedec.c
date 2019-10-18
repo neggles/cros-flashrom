@@ -20,6 +20,7 @@
  */
 
 #include "flash.h"
+#include <inttypes.h>
 
 #define MAX_REFLASH_TRIES 0x10
 #define MASK_FULL 0xffff
@@ -368,7 +369,7 @@ int write_jedec_1(struct flashctx *flash, uint8_t *src, unsigned int start, unsi
 		dst++, src++;
 	}
 	if (failed)
-		msg_cerr(" writing sector at 0x%lx failed!\n", olddst);
+		msg_cerr(" writing sector at 0x%" PRIxPTR " failed!\n", olddst);
 
 	return failed;
 }
@@ -408,7 +409,7 @@ retry:
 		goto retry;
 	}
 	if (failed) {
-		msg_cerr(" page 0x%lx failed!\n",
+		msg_cerr(" page 0x%" PRIxPTR " failed!\n",
 			(d - bios) / page_size);
 	}
 	return failed;

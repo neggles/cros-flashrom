@@ -47,7 +47,7 @@ enum {
 	VERIFY_PARTIAL,
 };
 
-typedef unsigned long chipaddr;
+typedef uintptr_t chipaddr;
 
 int register_shutdown(int (*function) (void *data), void *data);
 #define CHIP_RESTORE_CALLBACK	int (*func) (struct flashctx *flash, uint8_t status)

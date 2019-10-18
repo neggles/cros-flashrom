@@ -17,6 +17,7 @@
 
 #include "flash.h"
 #include "chipdrivers.h"
+#include <inttypes.h>
 
 /* FIXME: The datasheet is unclear whether we should use toggle_ready_jedec
  * or wait_82802ab.
@@ -34,7 +35,7 @@ int erase_lhf00l04_block(struct flashctx *flash, unsigned int blockaddr, unsigne
 	status = wait_82802ab(flash);
 	print_status_82802ab(status);
 	// clear write protect
-	msg_cspew("write protect is at 0x%lx\n", (wrprotect));
+	msg_cspew("write protect is at 0x%" PRIxPTR "\n", (wrprotect));
 	msg_cspew("write protect is 0x%x\n", chip_readb(flash, wrprotect));
 	chip_writeb(flash, 0, wrprotect);
 	msg_cspew("write protect is 0x%x\n", chip_readb(flash, wrprotect));
