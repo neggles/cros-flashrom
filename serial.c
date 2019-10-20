@@ -40,13 +40,6 @@
 
 fdtype sp_fd = SER_INV_FD;
 
-// Non-exist function on upstream, but should be left here for compat for a while
-void __attribute__((noreturn)) sp_die(char *msg)
-{
-	perror(msg);
-	exit(1);
-}
-
 /* There is no way defined by POSIX to use arbitrary baud rates. It only defines some macros that can be used to
  * specify respective baud rates and many implementations extend this list with further macros, cf. TERMIOS(3)
  * and http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=blob;f=include/uapi/asm-generic/termbits.h
