@@ -86,6 +86,8 @@ pub fn generic<'a, TN: Iterator<Item = &'a str>>(
     let p = path.to_string();
     let cmd = FlashromCmd { path: p, fc };
 
+    utils::ac_power_warning();
+
     info!("Calculate ROM partition sizes & Create the layout file.");
     let rom_sz: i64 = cmd.get_size()?;
     let layout_sizes = utils::get_layout_sizes(rom_sz)?;

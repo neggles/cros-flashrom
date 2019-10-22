@@ -106,6 +106,13 @@ pub fn toggle_hw_wp(dis: bool) -> Result<(), String> {
     Ok(())
 }
 
+pub fn ac_power_warning() {
+    info!("*****************************");
+    info!("AC power *must be* connected!");
+    info!("*****************************");
+    pause();
+}
+
 fn pause() {
     let mut stdout = std::io::stdout();
     // We want the cursor to stay at the end of the line, so we print without a newline
