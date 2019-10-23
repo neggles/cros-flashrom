@@ -181,8 +181,11 @@ pub fn dut_ctrl_toggle_wp(en: bool) -> Result<(Vec<u8>, Vec<u8>), FlashromError>
     } else {
         ["fw_wp_en:on", "fw_wp:off"]
     };
+    dut_ctrl(&args)
+}
 
-    let output = match Command::new("dut-control").args(&args).output() {
+fn dut_ctrl(args: &[&str]) -> Result<(Vec<u8>, Vec<u8>), FlashromError> {
+    let output = match Command::new("dut-control").args(args).output() {
         Ok(x) => x,
         Err(e) => return Err(format!("Failed to run dut-control: {}", e)),
     };
