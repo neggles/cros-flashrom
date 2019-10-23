@@ -89,10 +89,10 @@ pub fn construct_layout_file<F: Write>(mut target: F, ls: &LayoutSizes) -> std::
 
 pub fn toggle_hw_wp(dis: bool) -> Result<(), String> {
     // The easist way to toggle the harware write-protect is
-    // to {dis}connect the battery.
+    // to {dis}connect the battery (and/or open the WP screw).
     let s = if dis { "dis" } else { "" };
     info!("Prompt for hardware WP {}able", s);
-    eprintln!(" > {}connect the battery", s);
+    eprintln!(" > {}connect the battery (and/or open the WP screw)", s);
     pause();
     let wp = get_hardware_wp()?;
     if wp && dis {
