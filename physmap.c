@@ -375,6 +375,11 @@ void *physmap_ro(const char *descr, uintptr_t phys_addr, size_t len)
 	return physmap_common(descr, phys_addr, len, PHYSM_RO, PHYSM_NOCLEANUP, PHYSM_ROUND);
 }
 
+void *physmap_ro_unaligned(const char *descr, uintptr_t phys_addr, size_t len)
+{
+	return physmap_common(descr, phys_addr, len, PHYSM_RO, PHYSM_NOCLEANUP, PHYSM_EXACT);
+}
+
 #if defined(__i386__) || defined(__x86_64__)
 
 #ifdef __linux__
