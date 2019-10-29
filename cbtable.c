@@ -290,7 +290,7 @@ int cb_parse_table(const char **vendor, const char **model)
 #else
 	start = 0x0;
 #endif
-	table_area = physmap_ro("low megabyte", start, BYTES_TO_MAP - start);
+	table_area = physmap_ro_unaligned("low megabyte", start, BYTES_TO_MAP - start);
 	if (ERROR_PTR == table_area) {
 		msg_perr("Failed getting access to coreboot low tables.\n");
 		return -1;
@@ -304,7 +304,7 @@ int cb_parse_table(const char **vendor, const char **model)
 			(((char *)lb_table) + lb_table->header_bytes);
 		if (forward->tag == LB_TAG_FORWARD) {
 			start = forward->forward;
-			physunmap(table_area, BYTES_TO_MAP);
+			physunmap_unaligned(table_area, BYTES_TO_MAP);
 			lb_table = find_lb_table_remap(start, &table_area);
 		}
 	}
@@ -315,7 +315,7 @@ int cb_parse_table(const char **vendor, const char **model)
 	}
 
 	addr = ((char *)lb_table) - ((char *)table_area) + start;
-	msg_pinfo("coreboot table found at 0x%lx.\n", 
+	msg_pinfo("coreboot table found at 0x%lx.\n",
 		(unsigned long)lb_table - (unsigned long)table_area + start);
 	rec = (struct lb_record *)(((char *)lb_table) + lb_table->header_bytes);
 	last = (struct lb_record *)(((char *)rec) + lb_table->table_bytes);
