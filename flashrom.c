@@ -440,6 +440,7 @@ void *programmer_map_flash_region(const char *descr, unsigned long phys_addr,
 void programmer_unmap_flash_region(void *virt_addr, size_t len)
 {
 	programmer_table[programmer].unmap_flash_region(virt_addr, len);
+	msg_gspew("%s: unmapped 0x%0*" PRIxPTR "\n", __func__, PRIxPTR_WIDTH, (uintptr_t)virt_addr);
 }
 
 void chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr)
@@ -493,6 +494,61 @@ void map_flash_registers(struct flashctx *flash)
 	/* Flash registers live 4 MByte below the flash. */
 	/* FIXME: This is incorrect for nonstandard flashbase. */
 	flash->virtual_registers = (chipaddr)programmer_map_flash_region("flash chip registers", (0xFFFFFFFF - 0x400000 - size + 1), size);
+}
+
+void unmap_flash(struct flashctx *flash)
+{
+	if (flash->virtual_registers != (chipaddr)ERROR_PTR) {
+		programmer_unmap_flash_region((void *)flash->virtual_registers, flash->chip->total_size * 1024);
+		flash->physical_registers = 0;
+		flash->virtual_registers = (chipaddr)ERROR_PTR;
+	}
+
+	if (flash->virtual_memory != (chipaddr)ERROR_PTR) {
+		programmer_unmap_flash_region((void *)flash->virtual_memory, flash->chip->total_size * 1024);
+		flash->physical_memory = 0;
+		flash->virtual_memory = (chipaddr)ERROR_PTR;
+	}
+}
+
+int map_flash(struct flashctx *flash)
+{
+	/* Init pointers to the fail-safe state to distinguish them later from legit values. */
+	flash->virtual_memory = (chipaddr)ERROR_PTR;
+	flash->virtual_registers = (chipaddr)ERROR_PTR;
+
+	/* FIXME: This avoids mapping (and unmapping) of flash chip definitions with size 0.
+	 * These are used for various probing-related hacks that would not map successfully anyway and should be
+	 * removed ASAP. */
+	if (flash->chip->total_size == 0)
+		return 0;
+
+	const chipsize_t size = flash->chip->total_size * 1024;
+	uintptr_t base = flashbase ? flashbase : (0xffffffff - size + 1);
+	void *addr = programmer_map_flash_region(flash->chip->name, base, size);
+	if (addr == ERROR_PTR) {
+		msg_perr("Could not map flash chip %s at 0x%0*" PRIxPTR ".\n",
+			 flash->chip->name, PRIxPTR_WIDTH, base);
+		return 1;
+	}
+	flash->physical_memory = base;
+	flash->virtual_memory = (chipaddr)addr;
+
+	/* FIXME: Special function registers normally live 4 MByte below flash space, but it might be somewhere
+	 * completely different on some chips and programmers, or not mappable at all.
+	 * Ignore these problems for now and always report success. */
+	if (flash->chip->feature_bits & FEATURE_REGISTERMAP) {
+		base = 0xffffffff - size - 0x400000 + 1;
+		addr = programmer_map_flash_region("flash chip registers", base, size);
+		if (addr == ERROR_PTR) {
+			msg_pdbg2("Could not map flash chip registers %s at 0x%0*" PRIxPTR ".\n",
+				 flash->chip->name, PRIxPTR_WIDTH, base);
+			return 0;
+		}
+		flash->physical_registers = base;
+		flash->virtual_registers = (chipaddr)addr;
+	}
+	return 0;
 }
 
 int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, int unsigned len)
@@ -1158,9 +1214,12 @@ int probe_flash(struct registered_master *mst, int startchip,
 		memcpy(flash->chip, chip, sizeof(struct flashchip));
 		flash->mst = mst;
 
-		base = flashbase ? flashbase : (0xffffffff - size + 1);
-		flash->virtual_memory = (chipaddr)programmer_map_flash_region("flash chip", base, size);
+		if (map_flash(flash) != 0)
+			goto notfound;
 
+		/* We handle a forced match like a real match, we just avoid probing. Note that probe_flash()
+		 * is only called with force=1 after normal probing failed.
+		 */
 		if (force)
 			break;
 
@@ -1179,7 +1238,7 @@ int probe_flash(struct registered_master *mst, int startchip,
 			break;
 
 notfound:
-		programmer_unmap_flash_region((void *)flash->virtual_memory, size);
+		unmap_flash(flash);
 		free(flash->chip);
 		flash->chip = NULL;
 	}
@@ -1207,6 +1266,9 @@ notfound:
 	if (!force)
 		if (flash->chip->printlock)
 			flash->chip->printlock(flash);
+
+	/* Get out of the way for later runs. */
+	unmap_flash(flash);
 
 	/* Return position of matching chip. */
 	return chip - flash_list;
