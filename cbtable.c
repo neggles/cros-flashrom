@@ -94,10 +94,10 @@ static unsigned long compute_checksum(void *addr, unsigned long length)
 		((((char *)rec) + rec->size) <= (((char *)head) + sizeof(*head) + head->table_bytes)); \
 		rec = (struct lb_record *)(((char *)rec) + rec->size))
 
-static int count_lb_records(struct lb_header *head)
+static unsigned int count_lb_records(struct lb_header *head)
 {
 	struct lb_record *rec;
-	int count;
+	unsigned int count;
 
 	count = 0;
 	for_each_lbrec(head, rec) {
