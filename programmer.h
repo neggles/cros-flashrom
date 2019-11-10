@@ -113,9 +113,27 @@ static inline int programming_ec(void) {
 	return alias && (alias->type == ALIAS_EC);
 }
 
+enum programmer_type {
+	PCI = 1, /* to detect uninitialized values */
+	USB,
+	OTHER,
+};
+
+struct dev_entry {
+	uint16_t vendor_id;
+	uint16_t device_id;
+	const enum test_state status;
+	const char *vendor_name;
+	const char *device_name;
+};
+
 struct programmer_entry {
-	const char *vendor;
 	const char *name;
+	const enum programmer_type type;
+	union {
+		const struct dev_entry *const dev;
+		const char *const note;
+	} devs;
 
 	int (*init) (void);
 
@@ -225,13 +243,6 @@ void internal_delay(unsigned int usecs);
 #if NEED_PCI == 1
 /* pcidev.c */
 extern struct pci_access *pacc;
-struct dev_entry {
-	uint16_t vendor_id;
-	uint16_t device_id;
-	int status;
-	const char *vendor_name;
-	const char *device_name;
-};
 int pci_init_common(void);
 uintptr_t pcidev_readbar(struct pci_dev *dev, int bar);
 uintptr_t pcidev_validate(struct pci_dev *dev, int bar, const struct dev_entry *devs);

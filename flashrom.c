@@ -5,6 +5,8 @@
  * Copyright (C) 2004 Tyan Corp <yhlu@tyan.com>
  * Copyright (C) 2005-2008 coresystems GmbH
  * Copyright (C) 2008,2009 Carl-Daniel Hailfinger
+ * Copyright (C) 2016 secunet Security Networks AG
+ * (Written by Nico Huber <nico.huber@secunet.com> for secunet)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +17,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <stdio.h>
@@ -87,6 +88,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_INTERNAL == 1
 	{
 		.name			= "internal",
+		.type			= OTHER,
+		.devs.note		= NULL,
 		.init			= internal_init,
 		.map_flash_region	= physmap,
 		.unmap_flash_region	= physunmap,
@@ -104,6 +107,9 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_DUMMY == 1
 	{
 		.name			= "dummy",
+		.type			= OTHER,
+					/* FIXME */
+		.devs.note		= "Dummy device, does nothing and logs all accesses\n",
 		.init			= dummy_init,
 		.map_flash_region	= dummy_map,
 		.unmap_flash_region	= dummy_unmap,
@@ -114,6 +120,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_NIC3COM == 1
 	{
 		.name			= "nic3com",
+		.type			= PCI,
+		.devs.dev		= nics_3com,
 		.init			= nic3com_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -125,7 +133,8 @@ const struct programmer_entry programmer_table[] = {
 	{
 		/* This programmer works for Realtek RTL8139 and SMC 1211. */
 		.name			= "nicrealtek",
-		//.name			= "nicsmc1211",
+		.type			= PCI,
+		.devs.dev		= nics_realtek,
 		.init			= nicrealtek_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -136,6 +145,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_NICNATSEMI == 1
 	{
 		.name			= "nicnatsemi",
+		.type			= PCI,
+		.devs.dev		= nics_natsemi,
 		.init			= nicnatsemi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -146,6 +157,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_GFXNVIDIA == 1
 	{
 		.name			= "gfxnvidia",
+		.type			= PCI,
+		.devs.dev		= gfx_nvidia,
 		.init			= gfxnvidia_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -156,6 +169,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_DRKAISER == 1
 	{
 		.name			= "drkaiser",
+		.type			= PCI,
+		.devs.dev		= drkaiser_pcidev,
 		.init			= drkaiser_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -166,6 +181,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_SATASII == 1
 	{
 		.name			= "satasii",
+		.type			= PCI,
+		.devs.dev		= satas_sii,
 		.init			= satasii_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -176,6 +193,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_ATAHPT == 1
 	{
 		.name			= "atahpt",
+		.type			= PCI,
+		.devs.dev		= ata_hpt,
 		.init			= atahpt_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -186,6 +205,7 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_FT2232_SPI == 1
 	{
 		.name			= "ft2232_spi",
+		.type			= USB,
 		.init			= ft2232_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -196,6 +216,9 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_SERPROG == 1
 	{
 		.name			= "serprog",
+		.type			= OTHER,
+					/* FIXME */
+		.devs.note		= "All programmer devices speaking the serprog protocol\n",
 		.init			= serprog_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -206,6 +229,9 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_BUSPIRATE_SPI == 1
 	{
 		.name			= "buspirate_spi",
+		.type			= OTHER,
+					/* FIXME */
+		.devs.note		= "Dangerous Prototypes Bus Pirate\n",
 		.init			= buspirate_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -216,6 +242,7 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_RAIDEN_DEBUG_SPI == 1
 	{
 		.name			= "raiden_debug_spi",
+		.type			= OTHER,
 		.init			= raiden_debug_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -226,6 +253,7 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_DEDIPROG == 1
 	{
 		.name			= "dediprog",
+		.type			= USB,
 		.init			= dediprog_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -236,6 +264,9 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_RAYER_SPI == 1
 	{
 		.name			= "rayer_spi",
+		.type			= OTHER,
+					/* FIXME */
+		.devs.note		= "RayeR parallel port programmer\n",
 		.init			= rayer_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -246,6 +277,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_NICINTEL == 1
 	{
 		.name			= "nicintel",
+		.type			= PCI,
+		.devs.dev		= nics_intel,
 		.init			= nicintel_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -256,6 +289,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_NICINTEL_SPI == 1
 	{
 		.name			= "nicintel_spi",
+		.type			= PCI,
+		.devs.dev		= nics_intel_spi,
 		.init			= nicintel_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -266,6 +301,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_OGP_SPI == 1
 	{
 		.name			= "ogp_spi",
+		.type			= PCI,
+		.devs.dev		= ogp_spi,
 		.init			= ogp_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -276,6 +313,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_SATAMV == 1
 	{
 		.name			= "satamv",
+		.type			= PCI,
+		.devs.dev		= satas_mv,
 		.init			= satamv_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -286,6 +325,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_LINUX_MTD == 1
 	{
 		.name			= "linux_mtd",
+		.type			= OTHER,
+		.devs.note		= "Device files /dev/mtd*\n",
 		.init			= linux_mtd_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -296,6 +337,8 @@ const struct programmer_entry programmer_table[] = {
 #if CONFIG_LINUX_SPI == 1
 	{
 		.name			= "linux_spi",
+		.type			= OTHER,
+		.devs.note		= "Device files /dev/spidev*.*\n",
 		.init			= linux_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
