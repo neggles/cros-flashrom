@@ -963,7 +963,6 @@ static int parse_voltage(char *voltage)
 
 #if 0
 static const struct spi_master spi_master_dediprog = {
-	.type		= SPI_CONTROLLER_DEDIPROG,
 	.max_data_read	= MAX_DATA_UNSPECIFIED,
 	.max_data_write	= MAX_DATA_UNSPECIFIED,
 	.command	= dediprog_spi_send_command,
@@ -974,7 +973,6 @@ static const struct spi_master spi_master_dediprog = {
 };
 #endif
 static const struct spi_master spi_master_dediprog = {
-	.type		= SPI_CONTROLLER_DEDIPROG,
 	.max_data_read	= MAX_DATA_UNSPECIFIED,
 	.max_data_write	= MAX_DATA_UNSPECIFIED,
 	.command	= dediprog_spi_send_command,

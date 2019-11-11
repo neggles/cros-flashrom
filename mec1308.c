@@ -399,7 +399,6 @@ mec1308_spi_send_command_exit:
 }
 
 static const struct spi_master spi_master_mec1308 = {
-	.type = SPI_CONTROLLER_MEC1308,
 	.max_data_read = 256,	/* FIXME: should be MAX_DATA_READ_UNLIMITED? */
 	.max_data_write = 256,	/* FIXME: should be MAX_DATA_WRITE_UNLIMITED? */
 	.command = mec1308_spi_send_command,

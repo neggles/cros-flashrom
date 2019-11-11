@@ -502,52 +502,6 @@ char *extract_programmer_param(const char *param_name);
 int show_id(uint8_t *bios, int size, int force);
 
 /* spi.c */
-enum spi_controller {
-	SPI_CONTROLLER_NONE,
-#if CONFIG_INTERNAL == 1
-#if defined(__i386__) || defined(__x86_64__)
-	SPI_CONTROLLER_ICH7,
-	SPI_CONTROLLER_ICH9,
-	SPI_CONTROLLER_ICH_HWSEQ,
-	SPI_CONTROLLER_IT85XX,
-	SPI_CONTROLLER_IT87XX,
-	SPI_CONTROLLER_MEC1308,
-	SPI_CONTROLLER_SB600,
-	SPI_CONTROLLER_YANGTZE,
-	SPI_CONTROLLER_VIA,
-	SPI_CONTROLLER_WBSIO,
-	SPI_CONTROLLER_WPCE775X,
-	SPI_CONTROLLER_ENE,
-#endif
-#if defined(__arm__)
-	SPI_CONTROLLER_TEGRA2,
-#endif
-#endif
-#if CONFIG_FT2232_SPI == 1
-	SPI_CONTROLLER_FT2232,
-#endif
-#if CONFIG_DUMMY == 1
-	SPI_CONTROLLER_DUMMY,
-#endif
-#if CONFIG_BUSPIRATE_SPI == 1
-	SPI_CONTROLLER_BUSPIRATE,
-#endif
-#if CONFIG_RAIDEN_DEBUG_SPI == 1
-	SPI_CONTROLLER_RAIDEN_DEBUG,
-#endif
-#if CONFIG_DEDIPROG == 1
-	SPI_CONTROLLER_DEDIPROG,
-#endif
-#if CONFIG_BITBANG_SPI == 1
-	SPI_CONTROLLER_BITBANG,
-#endif
-#if CONFIG_LINUX_SPI == 1
-	SPI_CONTROLLER_LINUX,
-#endif
-#if CONFIG_SERPROG == 1
-	SPI_CONTROLLER_SERPROG,
-#endif
-};
 extern const int spi_master_count;
 
 #define MAX_DATA_UNSPECIFIED 0
@@ -559,7 +513,6 @@ extern const int spi_master_count;
 						        register, 4BA mode switch) don't work */
 
 struct spi_master {
-	enum spi_controller type;
 	uint32_t features;
 	unsigned int max_data_read;
 	unsigned int max_data_write;

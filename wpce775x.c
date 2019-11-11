@@ -904,7 +904,6 @@ static int wpce775x_shutdown(void *data)
 }
 
 static const struct spi_master spi_master_wpce775x = {
-	.type = SPI_CONTROLLER_WPCE775X,
 	.max_data_read = 256,	/* FIXME: should be MAX_DATA_READ_UNLIMITED? */
 	.max_data_write = 256,	/* FIXME: should be MAX_DATA_WRITE_UNLIMITED? */
 	.command = wpce775x_spi_send_command,

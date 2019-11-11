@@ -1015,11 +1015,6 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 	/* max_data_read == max_data_write for all Intel/VIA SPI masters */
 	uint8_t maxlength = spi_master->max_data_read;
 
-	if (spi_master->type == SPI_CONTROLLER_NONE) {
-		msg_perr("%s: unsupported chipset\n", __func__);
-		return -1;
-	}
-
 	if (datalength > maxlength) {
 		msg_perr("%s: Internal command size error for "
 			"opcode 0x%02x, got datalength=%i, want <=%i\n",
@@ -2153,7 +2148,6 @@ static void ich9_set_pr(int i, int read_prot, int write_prot, int chipset)
 }
 
 static const struct spi_master spi_master_ich7 = {
-	.type = SPI_CONTROLLER_ICH7,
 	.max_data_read = 64,
 	.max_data_write = 64,
 	.command = ich_spi_send_command,
@@ -2163,7 +2157,6 @@ static const struct spi_master spi_master_ich7 = {
 };
 
 static const struct spi_master spi_master_ich9 = {
-	.type = SPI_CONTROLLER_ICH9,
 	.max_data_read = 64,
 	.max_data_write = 64,
 	.command = ich_spi_send_command,
@@ -2495,7 +2488,6 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 }
 
 static const struct spi_master spi_master_via = {
-	.type = SPI_CONTROLLER_VIA,
 	.max_data_read = 16,
 	.max_data_write = 16,
 	.command = ich_spi_send_command,

@@ -502,7 +502,6 @@ exit:
 }
 
 static const struct spi_master spi_master_ene = {
-	.type = SPI_CONTROLLER_ENE,
 	.max_data_read = 256,
 	.max_data_write = 256,
 	.command = ene_spi_send_command,

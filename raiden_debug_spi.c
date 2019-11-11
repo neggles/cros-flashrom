@@ -353,7 +353,6 @@ static int send_command(const struct flashctx *flash,
 #define MAX_DATA_SIZE   (PAYLOAD_SIZE - JEDEC_BYTE_PROGRAM_OUTSIZE)
 
 static const struct spi_master spi_master_raiden_debug = {
-	.type           = SPI_CONTROLLER_RAIDEN_DEBUG,
 	.features       = SPI_MASTER_4BA,
 	.max_data_read  = MAX_DATA_SIZE,
 	.max_data_write = MAX_DATA_SIZE,
