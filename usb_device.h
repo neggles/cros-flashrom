@@ -43,10 +43,29 @@
  * by the programmer.
  */
 
-#include "check.h"
-
 #include <libusb.h>
 #include <stdint.h>
+
+/*
+ * Check Macro
+ *
+ * The check macro simplifies common return error code checking logic.  If the
+ * expression does not evaluate to zero then the string error is printed and
+ * the expressions result is imediately returned, else the result is available
+ * as the value of the CHECK expression statement.
+ */
+
+#define CHECK(expression, string...)		\
+	({					\
+		int error__ = (expression);	\
+						\
+		if (error__ != 0) {		\
+			msg_perr(string);	\
+			return error__;		\
+		}				\
+						\
+		error__;			\
+	})
 
 /*
  * The LIBUSB macro converts a libusb failure code into an error code that

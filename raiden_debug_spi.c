@@ -48,7 +48,6 @@
  *     chip/stm32/usb_spi.c
  */
 
-#include "check.h"
 #include "programmer.h"
 #include "spi.h"
 #include "usb_device.h"
