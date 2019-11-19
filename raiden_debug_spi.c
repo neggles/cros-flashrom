@@ -181,22 +181,22 @@ static int match_endpoint(struct libusb_endpoint_descriptor const *descriptor,
 		 LIBUSB_TRANSFER_TYPE_BULK));
 }
 
-static int find_endpoints(void)
+static int find_endpoints(struct usb_device *dev, uint8_t *in_ep, uint8_t *out_ep)
 {
 	int i;
 	int in_count  = 0;
 	int out_count = 0;
 
-	for (i = 0; i < device->interface_descriptor->bNumEndpoints; i++) {
+	for (i = 0; i < dev->interface_descriptor->bNumEndpoints; i++) {
 		struct libusb_endpoint_descriptor const  *endpoint =
-			&device->interface_descriptor->endpoint[i];
+			&dev->interface_descriptor->endpoint[i];
 
 		if (match_endpoint(endpoint, LIBUSB_ENDPOINT_IN)) {
 			in_count++;
-			in_endpoint = endpoint->bEndpointAddress;
+			*in_ep = endpoint->bEndpointAddress;
 		} else if (match_endpoint(endpoint, LIBUSB_ENDPOINT_OUT)) {
 			out_count++;
-			out_endpoint = endpoint->bEndpointAddress;
+			*out_ep = endpoint->bEndpointAddress;
 		}
 	}
 
@@ -208,8 +208,8 @@ static int find_endpoints(void)
 		return 1;
 	}
 
-	msg_pdbg("Raiden: Found IN  endpoint = 0x%02x\n",  in_endpoint);
-	msg_pdbg("Raiden: Found OUT endpoint = 0x%02x\n", out_endpoint);
+	msg_pdbg("Raiden: Found IN  endpoint = 0x%02x\n", *in_ep);
+	msg_pdbg("Raiden: Found OUT endpoint = 0x%02x\n", *out_ep);
 
 	return 0;
 }
@@ -274,7 +274,7 @@ int raiden_debug_spi_init(void)
 	while (current) {
 		device = current;
 
-		if (find_endpoints()) {
+		if (find_endpoints(device, &in_endpoint, &out_endpoint)) {
 		      msg_pdbg("Raiden: Failed to find valid endpoints on device");
 		      usb_device_show(" ", current);
 		      goto loop_end;
