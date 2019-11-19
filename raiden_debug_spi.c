@@ -236,15 +236,11 @@ static int shutdown(void * data)
 	return 0;
 }
 
-int raiden_debug_spi_init(void)
+static int get_target()
 {
-	struct usb_match match;
 	int request_enable = RAIDEN_DEBUG_SPI_REQ_ENABLE;
-	char *target_str = extract_programmer_param("target");
-	char *serial = extract_programmer_param("serial");
-	struct usb_device *current;
-	int found = 0;
 
+	char *target_str = extract_programmer_param("target");
 	if (target_str) {
 		if (!strcasecmp(target_str, "ap"))
 			request_enable = RAIDEN_DEBUG_SPI_REQ_ENABLE_AP;
@@ -252,11 +248,24 @@ int raiden_debug_spi_init(void)
 			request_enable = RAIDEN_DEBUG_SPI_REQ_ENABLE_EC;
 		else {
 			msg_perr("Invalid target: %s\n", target_str);
-			free(target_str);
-			return 1;
+			request_enable = -1;
 		}
 	}
 	free(target_str);
+
+	return request_enable;
+}
+
+int raiden_debug_spi_init(void)
+{
+	struct usb_match match;
+	char *serial = extract_programmer_param("serial");
+	struct usb_device *current;
+	int found = 0;
+
+	int request_enable = get_target();
+	if (request_enable < 0)
+		return 1;
 
 	usb_match_init(&match);
 
