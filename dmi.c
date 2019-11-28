@@ -34,28 +34,13 @@
 #include "flash.h"
 #include "programmer.h"
 
-int has_dmi_support = 0;
-
-#if STANDALONE
-
-/* Stub to indicate missing DMI functionality.
- * has_dmi_support is 0 by default, so nothing to do here.
- * Because dmidecode is not available on all systems, the goal is to implement
- * the DMI subset we need directly in this file.
- */
-void dmi_init(void)
-{
-}
-
-int dmi_match(const char *pattern)
-{
-	return 0;
-}
-
-#else /* STANDALONE */
+/* Enable SMBIOS decoding. Currently legacy DMI decoding is enough. */
+#define SM_SUPPORT 0
 
 /* Strings longer than 4096 in DMI are just insane. */
 #define DMI_MAX_ANSWER_LEN 4096
+
+int has_dmi_support = 0;
 
 static struct {
 	const char *const keyword;
@@ -102,6 +87,204 @@ static const struct {
 	{0x18, 0, "Sealed-case PC"}, /* used by Supermicro (X8SIE) */
 	{0x19, 0, "Multi-system"}, /* used by Supermicro (X7DWT) */
 };
+
+#if CONFIG_INTERNAL_DMI == 1
+static bool dmi_checksum(const uint8_t * const buf, size_t len)
+{
+	uint8_t sum = 0;
+	size_t a;
+
+	for (a = 0; a < len; a++)
+		sum += buf[a];
+	return (sum == 0);
+}
+
+/** Retrieve a DMI string.
+ *
+ * See SMBIOS spec. section 6.1.3 "Text strings".
+ * The table will be unmapped ASAP, hence return a duplicated & sanitized string that needs to be freed later.
+ *
+ * \param buf		the buffer to search through (usually appended directly to a DMI structure)
+ * \param string_id	index of the string to look for
+ * \param limit		pointer to the first byte beyond \em buf
+ */
+static char *dmi_string(const char *buf, uint8_t string_id, const char *limit)
+{
+	size_t i, len;
+
+	if (string_id == 0)
+		return strdup("Not Specified");
+
+	while (string_id > 1 && string_id--) {
+		if (buf >= limit) {
+			msg_perr("DMI table is broken (string portion out of bounds)!\n");
+			return strdup("<OUT OF BOUNDS>");
+		}
+		buf += strnlen(buf, limit - buf) + 1;
+	}
+
+	if (!*buf) /* as long as the current byte we're on isn't null */
+		return strdup("<BAD INDEX>");
+
+	len = strnlen(buf, limit - buf);
+	char *newbuf = malloc(len + 1);
+	if (newbuf == NULL) {
+		msg_perr("Out of memory!\n");
+		return NULL;
+	}
+
+	/* fix junk bytes in the string */
+	for (i = 0; i < len && buf[i] != '\0'; i++) {
+		if (isprint((unsigned char)buf[i]))
+			newbuf[i] = buf[i];
+		else
+			newbuf[i] = ' ';
+	}
+	newbuf[i] = '\0';
+
+	return newbuf;
+}
+
+static void dmi_chassis_type(uint8_t code)
+{
+	unsigned int i;
+	code &= 0x7f; /* bits 6:0 are chassis type, 7th bit is the lock bit */
+	is_laptop = 2;
+	for (i = 0; i < ARRAY_SIZE(dmi_chassis_types); i++) {
+		if (code == dmi_chassis_types[i].type) {
+			msg_pdbg("DMI string chassis-type: \"%s\"\n", dmi_chassis_types[i].name);
+			is_laptop = dmi_chassis_types[i].is_laptop;
+			break;
+		}
+	}
+}
+
+static void dmi_table(uint32_t base, uint16_t len, uint16_t num)
+{
+	unsigned int i = 0, j = 0;
+
+	uint8_t *dmi_table_mem = physmap_ro("DMI Table", base, len);
+	if (dmi_table_mem == NULL) {
+		msg_perr("Unable to access DMI Table\n");
+		return;
+	}
+
+	uint8_t *data = dmi_table_mem;
+	uint8_t *limit = dmi_table_mem + len;
+
+	/* SMBIOS structure header is always 4 B long and contains:
+	 *  - uint8_t type;	// see dmi_chassis_types's type
+	 *  - uint8_t length;	// data section w/ header w/o strings
+	 *  - uint16_t handle;
+	 */
+	while (i < num && data + 4 < limit) {
+		/* - If a short entry is found (less than 4 bytes), not only it
+		 *   is invalid, but we cannot reliably locate the next entry.
+		 * - If the length value indicates that this structure spreads
+		 *   across the table border, something is fishy too.
+		 * Better stop at this point, and let the user know his/her
+		 * table is broken.
+		 */
+		if (data[1] < 4 || data + data[1] >= limit) {
+			msg_perr("DMI table is broken (bogus header)!\n");
+			break;
+		}
+
+		if(data[0] == 3) {
+			if (data + 5 < limit)
+				dmi_chassis_type(data[5]);
+			else /* the table is broken, but laptop detection is optional, hence continue. */
+				msg_pwarn("DMI table is broken (chassis_type out of bounds)!\n");
+		} else
+			for (j = 0; j < ARRAY_SIZE(dmi_strings); j++) {
+				uint8_t offset = dmi_strings[j].offset;
+				uint8_t type = dmi_strings[j].type;
+
+				if (data[0] != type)
+					continue;
+
+				if (data[1] <= offset || data + offset >= limit) {
+					msg_perr("DMI table is broken (offset out of bounds)!\n");
+					goto out;
+				}
+
+				dmi_strings[j].value = dmi_string((const char *)(data + data[1]), data[offset],
+								  (const char *)limit);
+			}
+		/* Find next structure by skipping data and string sections */
+		data += data[1];
+		while (data + 1 <= limit) {
+			if (data[0] == 0 && data[1] == 0)
+				break;
+			data++;
+		}
+		data += 2;
+		i++;
+	}
+out:
+	physunmap(dmi_table_mem, len);
+}
+
+#if SM_SUPPORT
+static int smbios_decode(uint8_t *buf)
+{
+	/* TODO: other checks mentioned in the conformance guidelines? */
+	if (!dmi_checksum(buf, buf[0x05]) ||
+	    (memcmp(buf + 0x10, "_DMI_", 5) != 0) ||
+	    !dmi_checksum(buf + 0x10, 0x0F))
+			return 0;
+
+	dmi_table(mmio_readl(buf + 0x18), mmio_readw(buf + 0x16), mmio_readw(buf + 0x1C));
+
+	return 1;
+}
+#endif
+
+static int legacy_decode(uint8_t *buf)
+{
+	if (!dmi_checksum(buf, 0x0F))
+		return 1;
+
+	dmi_table(mmio_readl(buf + 0x08), mmio_readw(buf + 0x06), mmio_readw(buf + 0x0C));
+
+	return 0;
+}
+
+static int dmi_fill(void)
+{
+	size_t fp;
+	uint8_t *dmi_mem;
+	int ret = 1;
+
+	msg_pdbg("Using Internal DMI decoder.\n");
+	/* There are two ways specified to gain access to the SMBIOS table:
+	 * - EFI's configuration table contains a pointer to the SMBIOS table. On linux it can be obtained from
+	 *   sysfs. EFI's SMBIOS GUID is: {0xeb9d2d31,0x2d88,0x11d3,0x9a,0x16,0x0,0x90,0x27,0x3f,0xc1,0x4d}
+	 * - Scanning physical memory address range 0x000F0000h to 0x000FFFFF for the anchor-string(s). */
+	dmi_mem = physmap_ro("DMI", 0xF0000, 0x10000);
+	if (dmi_mem == ERROR_PTR)
+		return ret;
+
+	for (fp = 0; fp <= 0xFFF0; fp += 16) {
+#if SM_SUPPORT
+		if (memcmp(dmi_mem + fp, "_SM_", 4) == 0 && fp <= 0xFFE0) {
+			if (smbios_decode(dmi_mem + fp)) // FIXME: length check
+				goto out;
+		} else
+#endif
+		if (memcmp(dmi_mem + fp, "_DMI_", 5) == 0)
+			if (legacy_decode(dmi_mem + fp) == 0) {
+				ret = 0;
+				goto out;
+			}
+	}
+	msg_pinfo("No DMI table found.\n");
+out:
+	physunmap(dmi_mem, 0x10000);
+	return ret;
+}
+
+#else /* CONFIG_INTERNAL_DMI */
 
 #define DMI_COMMAND_LEN_MAX 300
 #if IS_WINDOWS
@@ -188,6 +371,8 @@ static int dmi_fill(void)
 	free(chassis_type);
 	return 0;
 }
+
+#endif /* CONFIG_INTERNAL_DMI */
 
 static int dmi_shutdown(void *data)
 {
@@ -293,5 +478,3 @@ int dmi_match(const char *pattern)
 
 	return 0;
 }
-
-#endif /* STANDALONE */
