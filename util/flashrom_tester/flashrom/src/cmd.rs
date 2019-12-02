@@ -43,7 +43,7 @@ pub struct FlashromCmd {
     pub fc: FlashChip,
 }
 
-/// Attempt to determine the Flash size given stdout from `flashrom --get-size`
+/// Attempt to determine the Flash size given stdout from `flashrom --flash-size`
 fn flashrom_extract_size(stdout: &str) -> Result<i64, FlashromError> {
     // Search for the last line of output that contains only digits, assuming
     // that's the actual size. flashrom sadly tends to write additional messages
@@ -67,7 +67,7 @@ fn flashrom_extract_size(stdout: &str) -> Result<i64, FlashromError> {
 
 impl crate::Flashrom for FlashromCmd {
     fn get_size(&self) -> Result<i64, FlashromError> {
-        let (stdout, _) = flashrom_dispatch(self.path.as_str(), &["--get-size"], self.fc)?;
+        let (stdout, _) = flashrom_dispatch(self.path.as_str(), &["--flash-size"], self.fc)?;
         let sz = String::from_utf8_lossy(&stdout);
 
         flashrom_extract_size(&sz)
