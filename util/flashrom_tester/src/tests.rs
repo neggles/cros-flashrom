@@ -113,6 +113,8 @@ pub fn generic<'a, TN: Iterator<Item = &'a str>>(
     // Register tests to run:
     let tests: &[&dyn TestCase] = &[
         &("Get device name", get_device_name_test),
+        &("Coreboot ELOG sanity", elog_sanity_test),
+        &("Host is ChromeOS", host_is_chrome_test),
         &("Toggle WP", wp_toggle_test),
         &("Erase/Write", erase_write_test),
         &("Fail to verify", verify_fail_test),
@@ -127,8 +129,6 @@ pub fn generic<'a, TN: Iterator<Item = &'a str>>(
             partial_lock_test(LayoutNames::BottomHalf),
         ),
         &("Lock top half", partial_lock_test(LayoutNames::TopHalf)),
-        &("Coreboot ELOG sanity", elog_sanity_test),
-        &("Host is ChromeOS", host_is_chrome_test),
     ];
 
     // Limit the tests to only those requested, unless none are requested
