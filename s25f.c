@@ -325,7 +325,7 @@ static int s25f_get_tbprot_o(const struct flashctx *flash)
 
 /* fills modifier_bits struct, returns 0 to indicate success */
 int s25f_get_modifier_bits(const struct flashctx *flash,
-					struct generic_modifier_bits *m)
+					struct modifier_bits *m)
 {
 	int tmp;
 
@@ -340,7 +340,7 @@ int s25f_get_modifier_bits(const struct flashctx *flash,
 }
 
 int s25f_set_modifier_bits(const struct flashctx *flash,
-					struct generic_modifier_bits *m)
+					struct modifier_bits *m)
 {
 	int cr1, cr1_orig;
 

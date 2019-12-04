@@ -86,9 +86,7 @@ enum wp_mode get_wp_mode(const char *mode_str);
  * Generic write-protect stuff
  */
 
-/* For now, use one struct for all modifier bits on all devices. We can get
- * more specific to certain chips if needed later on. */
-struct generic_modifier_bits {
+struct modifier_bits {
 	int sec;	/* if 1, bp bits describe sectors */
 	int tb;		/* value of top/bottom select bit */
 };

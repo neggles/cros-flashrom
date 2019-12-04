@@ -66,7 +66,7 @@ struct status_register_layout {
  * bp: Bitmask representing the number of affected sectors/blocks.
  */
 struct generic_range {
-	struct generic_modifier_bits m;
+	struct modifier_bits m;
 	unsigned int bp;		/* block protect bitfield */
 	struct wp_range range;
 };
@@ -82,9 +82,9 @@ struct generic_wp {
 	 * any chip-specific operations necessary to get/set these bit values.
 	 */
 	int (*get_modifier_bits)(const struct flashctx *flash,
-			struct generic_modifier_bits *m);
+			struct modifier_bits *m);
 	int (*set_modifier_bits)(const struct flashctx *flash,
-			struct generic_modifier_bits *m);
+			struct modifier_bits *m);
 };
 
 /*
@@ -2289,7 +2289,7 @@ static int generic_status_to_range(const struct flashctx *flash,
 	struct generic_range *r;
 	int num_entries, i, status_found = 0;
 	uint8_t sr1_bp;
-	struct generic_modifier_bits m;
+	struct modifier_bits m;
 
 	if (generic_range_table(flash, &wp, &num_entries))
 		return -1;
