@@ -1486,15 +1486,12 @@ static int w25_enable_writeprotect(const struct flashctx *flash,
 {
 	int ret;
 
-	switch (wp_mode) {
-	case WP_MODE_HARDWARE:
-		ret = w25_set_srp0(flash, 1);
-		break;
-	default:
+	if (wp_mode != WP_MODE_HARDWARE) {
 		msg_cerr("%s(): unsupported write-protect mode\n", __func__);
 		return 1;
 	}
 
+	ret = w25_set_srp0(flash, 1);
 	if (ret)
 		msg_cerr("%s(): error=%d.\n", __func__, ret);
 	return ret;
@@ -2427,17 +2424,15 @@ static int generic_enable_writeprotect(const struct flashctx *flash,
 {
 	int ret;
 
-	switch (wp_mode) {
-	case WP_MODE_HARDWARE:
-		ret = generic_set_srp0(flash, 1);
-		break;
-	default:
+	if (wp_mode != WP_MODE_HARDWARE) {
 		msg_cerr("%s(): unsupported write-protect mode\n", __func__);
 		return 1;
 	}
 
+	ret = generic_set_srp0(flash, 1);
 	if (ret)
 		msg_cerr("%s(): error=%d.\n", __func__, ret);
+
 	return ret;
 }
 
