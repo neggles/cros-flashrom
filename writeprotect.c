@@ -1273,13 +1273,13 @@ static int w25_set_range(const struct flashctx *flash,
 
 	tmp = do_read_status(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
-	if ((tmp & MASK_WP_AREA) == (expected & MASK_WP_AREA)) {
-		return 0;
-	} else {
+	if ((tmp & MASK_WP_AREA) != (expected & MASK_WP_AREA)) {
 		msg_cerr("expected=0x%02x, but actual=0x%02x.\n",
 		          expected, tmp);
 		return 1;
 	}
+
+	return 0;
 }
 
 /* Print out the current status register value with human-readable text. */
@@ -1425,13 +1425,13 @@ static int w25q_large_set_range(const struct flashctx *flash,
 
 	tmp = do_read_status(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
-	if ((tmp & MASK_WP_AREA_LARGE) == (expected & MASK_WP_AREA_LARGE)) {
-		return 0;
-	} else {
+	if ((tmp & MASK_WP_AREA_LARGE) != (expected & MASK_WP_AREA_LARGE)) {
 		msg_cerr("expected=0x%02x, but actual=0x%02x.\n",
 		          expected, tmp);
 		return 1;
 	}
+
+	return 0;
 }
 
 static int w25q_large_wp_status(const struct flashctx *flash)
