@@ -2351,10 +2351,8 @@ static int generic_status_to_range(const struct flashctx *flash,
 		return -1;
 
 	/* modifier bits may be compared more than once, so get them here */
-	if (wp->get_modifier_bits) {
-		if (wp->get_modifier_bits(flash, &m) < 0)
+	if (wp->get_modifier_bits && wp->get_modifier_bits(flash, &m) < 0)
 			return -1;
-	}
 
 	sr1_bp = (sr1 >> wp->sr1.bp0_pos) & ((1 << wp->sr1.bp_bits) - 1);
 
