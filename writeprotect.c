@@ -1171,7 +1171,9 @@ int w25_range_to_status(const struct flashctx *flash,
 	int i, range_found = 0;
 	int num_entries;
 
-	if (w25_range_table(flash, &w25q_ranges, &num_entries)) return -1;
+	if (w25_range_table(flash, &w25q_ranges, &num_entries))
+		return -1;
+
 	for (i = 0; i < num_entries; i++) {
 		struct wp_range *r = &w25q_ranges[i].range;
 
@@ -1193,6 +1195,7 @@ int w25_range_to_status(const struct flashctx *flash,
 		msg_cerr("matching range not found\n");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -1204,7 +1207,9 @@ int w25_status_to_range(const struct flashctx *flash,
 	int i, status_found = 0;
 	int num_entries;
 
-	if (w25_range_table(flash, &w25q_ranges, &num_entries)) return -1;
+	if (w25_range_table(flash, &w25q_ranges, &num_entries))
+		return -1;
+
 	for (i = 0; i < num_entries; i++) {
 		int bp;
 		int table_bp, table_tb, table_sec;
@@ -1232,6 +1237,7 @@ int w25_status_to_range(const struct flashctx *flash,
 		msg_cerr("matching status not found\n");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -1250,7 +1256,8 @@ static int w25_set_range(const struct flashctx *flash,
 	memcpy(&status, &tmp, 1);
 	msg_cdbg("%s: old status: 0x%02x\n", __func__, tmp);
 
-	if (w25_range_to_status(flash, start, len, &status)) return -1;
+	if (w25_range_to_status(flash, start, len, &status))
+		return -1;
 
 	msg_cdbg("status.busy: %x\n", status.busy);
 	msg_cdbg("status.wel: %x\n", status.wel);
@@ -1312,6 +1319,7 @@ static int w25q_large_range_to_status(const struct flashctx *flash,
 
 	if (w25_range_table(flash, &w25q_ranges, &num_entries))
 		return -1;
+
 	for (i = 0; i < num_entries; i++) {
 		struct wp_range *r = &w25q_ranges[i].range;
 
@@ -1340,6 +1348,7 @@ static int w25q_large_range_to_status(const struct flashctx *flash,
 		msg_cerr("matching range not found\n");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -1353,6 +1362,7 @@ static int w25_large_status_to_range(const struct flashctx *flash,
 
 	if (w25_range_table(flash, &w25q_ranges, &num_entries))
 		return -1;
+
 	for (i = 0; i < num_entries; i++) {
 		int bp;
 		int table_bp, table_tb;
@@ -1378,6 +1388,7 @@ static int w25_large_status_to_range(const struct flashctx *flash,
 		msg_cerr("matching status not found\n");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -1504,6 +1515,7 @@ static int w25_disable_writeprotect(const struct flashctx *flash)
 	ret = w25_set_srp0(flash, 0);
 	if (ret)
 		msg_cerr("%s(): error=%d.\n", __func__, ret);
+
 	return ret;
 }
 
@@ -1512,7 +1524,9 @@ static int w25_list_ranges(const struct flashctx *flash)
 	struct w25q_range *w25q_ranges;
 	int i, num_entries;
 
-	if (w25_range_table(flash, &w25q_ranges, &num_entries)) return -1;
+	if (w25_range_table(flash, &w25q_ranges, &num_entries))
+		return -1;
+
 	for (i = 0; i < num_entries; i++) {
 		msg_cinfo("start: 0x%06x, length: 0x%06x\n",
 		          w25q_ranges[i].range.start,
@@ -1672,6 +1686,7 @@ static int w25q_disable_writeprotect(const struct flashctx *flash,
 
 	if (ret)
 		msg_cerr("%s(): error=%d.\n", __func__, ret);
+
 	return ret;
 }
 
@@ -2319,6 +2334,7 @@ static int generic_range_to_status(const struct flashctx *flash,
 		msg_cerr("matching range not found\n");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -2360,6 +2376,7 @@ static int generic_status_to_range(const struct flashctx *flash,
 		msg_cerr("matching status not found\n");
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -2443,6 +2460,7 @@ static int generic_disable_writeprotect(const struct flashctx *flash)
 	ret = generic_set_srp0(flash, 0);
 	if (ret)
 		msg_cerr("%s(): error=%d.\n", __func__, ret);
+
 	return ret;
 }
 
