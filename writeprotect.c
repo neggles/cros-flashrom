@@ -65,7 +65,7 @@ struct status_register_layout {
  *       the flash memory's address space or at the bottom.
  * bp: Bitmask representing the number of affected sectors/blocks.
  */
-struct generic_range {
+struct wp_range_descriptor {
 	struct modifier_bits m;
 	unsigned int bp;		/* block protect bitfield */
 	struct wp_range range;
@@ -73,7 +73,7 @@ struct generic_range {
 
 struct generic_wp {
 	struct status_register_layout sr1;	/* status register 1 */
-	struct generic_range *ranges;
+	struct wp_range_descriptor *descrs;
 
 	/*
 	 * Some chips store modifier bits in one or more special control
@@ -100,7 +100,7 @@ struct generic_wp {
 #define MASK_WP_AREA_LARGE (0x9C)
 #define MASK_WP2_AREA (0x01)
 
-struct generic_range en25f40_ranges[] = {
+struct wp_range_descriptor en25f40_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 504 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 496 * 1024} },
@@ -111,7 +111,7 @@ struct generic_range en25f40_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0x7, {0x000000, 512 * 1024} },
 };
 
-struct generic_range en25q40_ranges[] = {
+struct wp_range_descriptor en25q40_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 504 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 496 * 1024} },
@@ -123,7 +123,7 @@ struct generic_range en25q40_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x3, {0x000000, 512 * 1024} },
 };
 
-struct generic_range en25q80_ranges[] = {
+struct wp_range_descriptor en25q80_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 1016 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 1008 * 1024} },
@@ -134,7 +134,7 @@ struct generic_range en25q80_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0x7, {0x000000, 1024 * 1024} },
 };
 
-struct generic_range en25q32_ranges[] = {
+struct wp_range_descriptor en25q32_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 4032 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 3968 * 1024} },
@@ -154,7 +154,7 @@ struct generic_range en25q32_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 4096 * 1024} },
 };
 
-struct generic_range en25q64_ranges[] = {
+struct wp_range_descriptor en25q64_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 8128 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 8064 * 1024} },
@@ -174,7 +174,7 @@ struct generic_range en25q64_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 8192 * 1024} },
 };
 
-struct generic_range en25q128_ranges[] = {
+struct wp_range_descriptor en25q128_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 16320 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 16256 * 1024} },
@@ -194,7 +194,7 @@ struct generic_range en25q128_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 16384 * 1024} },
 };
 
-struct generic_range en25s64_ranges[] = {
+struct wp_range_descriptor en25s64_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 8064 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 7936 * 1024} },
@@ -215,21 +215,21 @@ struct generic_range en25s64_ranges[] = {
 };
 
 /* mx25l1005 ranges also work for the mx25l1005c */
-static struct generic_range mx25l1005_ranges[] = {
+static struct wp_range_descriptor mx25l1005_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = X, .tb = X }, 0x1, {0x010000, 64 * 1024} },
 	{ .m = { .sec = X, .tb = X }, 0x2, {0x000000, 128 * 1024} },
 	{ .m = { .sec = X, .tb = X }, 0x3, {0x000000, 128 * 1024} },
 };
 
-static struct generic_range mx25l2005_ranges[] = {
+static struct wp_range_descriptor mx25l2005_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = X, .tb = X }, 0x1, {0x030000, 64 * 1024} },
 	{ .m = { .sec = X, .tb = X }, 0x2, {0x020000, 128 * 1024} },
 	{ .m = { .sec = X, .tb = X }, 0x3, {0x000000, 256 * 1024} },
 };
 
-static struct generic_range mx25l4005_ranges[] = {
+static struct wp_range_descriptor mx25l4005_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = X, .tb = X }, 0x1, {0x070000, 64 * 1 * 1024} },	/* block 7 */
 	{ .m = { .sec = X, .tb = X }, 0x2, {0x060000, 64 * 2 * 1024} },	/* blocks 6-7 */
@@ -240,7 +240,7 @@ static struct generic_range mx25l4005_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x7, {0x000000, 512 * 1024} },
 };
 
-static struct generic_range mx25l8005_ranges[] = {
+static struct wp_range_descriptor mx25l8005_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = X, .tb = X }, 0x1, {0x0f0000, 64 * 1 * 1024} },	/* block 15 */
 	{ .m = { .sec = X, .tb = X }, 0x2, {0x0e0000, 64 * 2 * 1024} },	/* blocks 14-15 */
@@ -251,7 +251,7 @@ static struct generic_range mx25l8005_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x7, {0x000000, 1024 * 1024} },
 };
 
-static struct generic_range mx25l1605d_ranges[] = {
+static struct wp_range_descriptor mx25l1605d_ranges[] = {
 	{ .m = { .sec = X, .tb = 0 }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = X, .tb = 0 }, 0x1, {0x1f0000, 64 * 1 * 1024} },	/* block 31 */
 	{ .m = { .sec = X, .tb = 0 }, 0x2, {0x1e0000, 64 * 2 * 1024} },	/* blocks 30-31 */
@@ -272,7 +272,7 @@ static struct generic_range mx25l1605d_ranges[] = {
 };
 
 /* FIXME: Is there an mx25l3205 (without a trailing letter)? */
-static struct generic_range mx25l3205d_ranges[] = {
+static struct wp_range_descriptor mx25l3205d_ranges[] = {
 	{ .m = { .sec = X, .tb = 0 }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = X, .tb = 0 }, 0x1, {0x3f0000, 64 * 1024} },
 	{ .m = { .sec = X, .tb = 0 }, 0x2, {0x3e0000, 128 * 1024} },
@@ -292,7 +292,7 @@ static struct generic_range mx25l3205d_ranges[] = {
 	{ .m = { .sec = X, .tb = 1 }, 0x7, {0x000000, 4096 * 1024} },
 };
 
-static struct generic_range mx25u3235e_ranges[] = {
+static struct wp_range_descriptor mx25u3235e_ranges[] = {
 	{ .m = { .sec = X, .tb = 0 }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x3f0000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x3e0000, 128 * 1024} },
@@ -312,7 +312,7 @@ static struct generic_range mx25u3235e_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 4096 * 1024} },
 };
 
-static struct generic_range mx25u6435e_ranges[] = {
+static struct wp_range_descriptor mx25u6435e_ranges[] = {
 	{ .m = { .sec = X, .tb = 0 }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x7f0000,   1 * 64 * 1024} },	/* block 127 */
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x7e0000,   2 * 64 * 1024} },	/* blocks 126-127 */
@@ -333,7 +333,7 @@ static struct generic_range mx25u6435e_ranges[] = {
 };
 
 #define MX25U12835E_TB	(1 << 3)
-static struct generic_range mx25u12835e_tb0_ranges[] = {
+static struct wp_range_descriptor mx25u12835e_tb0_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0xff0000,   1 * 64 * 1024} },	/* block 255 */
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0xfe0000,   2 * 64 * 1024} },	/* blocks 254-255 */
@@ -352,7 +352,7 @@ static struct generic_range mx25u12835e_tb0_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0xf, {0x000000,  256 * 64 * 1024} },	/* blocks all */
 };
 
-static struct generic_range mx25u12835e_tb1_ranges[] = {
+static struct wp_range_descriptor mx25u12835e_tb1_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x1, {0x000000,   1 * 64 * 1024} },	/* block 0 */
 	{ .m = { .sec = 0, .tb = 1 }, 0x2, {0x000000,   2 * 64 * 1024} },	/* blocks 0-1 */
 	{ .m = { .sec = 0, .tb = 1 }, 0x3, {0x000000,   4 * 64 * 1024} },	/* blocks 0-3 */
@@ -370,7 +370,7 @@ static struct generic_range mx25u12835e_tb1_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0xf, {0x000000,  256 * 64 * 1024} },	/* blocks all */
 };
 
-static struct generic_range n25q064_ranges[] = {
+static struct wp_range_descriptor n25q064_ranges[] = {
 	/*
 	 * Note: For N25Q064, sec (usually in bit position 6) is called BP3
 	 * (block protect bit 3). It is only useful when all blocks are to
@@ -404,7 +404,7 @@ static struct generic_range n25q064_ranges[] = {
 	{ .m = { .sec = X, .tb = 1 }, 0x7, {0x000000, 128 * 64 * 1024} },	/* all */
 };
 
-static struct generic_range w25q16_ranges[] = {
+static struct wp_range_descriptor w25q16_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x1f0000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x1e0000, 128 * 1024} },
@@ -433,7 +433,7 @@ static struct generic_range w25q16_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x5, {0x000000, 32 * 1024} },
 };
 
-static struct generic_range w25q32_ranges[] = {
+static struct wp_range_descriptor w25q32_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x3f0000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x3e0000, 128 * 1024} },
@@ -463,7 +463,7 @@ static struct generic_range w25q32_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x5, {0x000000, 32 * 1024} },
 };
 
-static struct generic_range w25q80_ranges[] = {
+static struct wp_range_descriptor w25q80_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x0f0000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x0e0000, 128 * 1024} },
@@ -490,7 +490,7 @@ static struct generic_range w25q80_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x5, {0x000000, 32 * 1024} },
 };
 
-static struct generic_range w25q64_ranges[] = {
+static struct wp_range_descriptor w25q64_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x7e0000, 128 * 1024} },
@@ -521,7 +521,7 @@ static struct generic_range w25q64_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x5, {0x000000, 32 * 1024} },
 };
 
-static struct generic_range w25rq128_cmp0_ranges[] = {
+static struct wp_range_descriptor w25rq128_cmp0_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },				/* NONE */
 
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0xfc0000, 256 * 1024} },		/* Upper 1/64 */
@@ -553,7 +553,7 @@ static struct generic_range w25rq128_cmp0_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x5, {0x000000, 32 * 1024} },		/* Lower 1/512 */
 };
 
-static struct generic_range w25rq128_cmp1_ranges[] = {
+static struct wp_range_descriptor w25rq128_cmp1_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x0, {0x000000, 16 * 1024 * 1024} },	/* ALL */
 
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 16128 * 1024} },	/* Lower 63/64 */
@@ -585,7 +585,7 @@ static struct generic_range w25rq128_cmp1_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x5, {0x008000, 16352 * 1024} },	/* Upper 511/512 */
 };
 
-static struct generic_range w25rq256_cmp0_ranges[] = {
+static struct wp_range_descriptor w25rq256_cmp0_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x0, {0x0000000, 0x0000000} },		/* NONE */
 
 	{ .m = { .sec = X, .tb = 0 }, 0x1, {0x1ff0000, 64 * 1 * 1024} },	/* Upper 1/512 */
@@ -616,7 +616,7 @@ static struct generic_range w25rq256_cmp0_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0xf, {0x0000000, 64 * 512 * 1024} },	/* ALL */
 };
 
-static struct generic_range w25rq256_cmp1_ranges[] = {
+static struct wp_range_descriptor w25rq256_cmp1_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x0, {0x0000000, 64 * 512 * 1024} },	/* ALL */
 
 	{ .m = { .sec = X, .tb = 0 }, 0x1, {0x0000000, 64 * 511 * 1024} },	/* Lower 511/512 */
@@ -647,7 +647,7 @@ static struct generic_range w25rq256_cmp1_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0xf, {0x0000000, 0x0000000} },		/* NONE */
 };
 
-struct generic_range w25x10_ranges[] = {
+struct wp_range_descriptor w25x10_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x010000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 1 }, 0x1, {0x000000, 64 * 1024} },
@@ -655,7 +655,7 @@ struct generic_range w25x10_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x3, {0x000000, 128 * 1024} },
 };
 
-struct generic_range w25x20_ranges[] = {
+struct wp_range_descriptor w25x20_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x030000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x020000, 128 * 1024} },
@@ -664,7 +664,7 @@ struct generic_range w25x20_ranges[] = {
 	{ .m = { .sec = 0, .tb = X }, 0x3, {0x000000, 256 * 1024} },
 };
 
-struct generic_range w25x40_ranges[] = {
+struct wp_range_descriptor w25x40_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x070000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x060000, 128 * 1024} },
@@ -678,7 +678,7 @@ struct generic_range w25x40_ranges[] = {
 	{ .m = { .sec = 0, .tb = X }, 0x7, {0x000000, 512 * 1024} },
 };
 
-struct generic_range w25x80_ranges[] = {
+struct wp_range_descriptor w25x80_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x0F0000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x0E0000, 128 * 1024} },
@@ -693,7 +693,7 @@ struct generic_range w25x80_ranges[] = {
 	{ .m = { .sec = 0, .tb = X }, 0x7, {0x000000, 1024 * 1024} },
 };
 
-static struct generic_range gd25q40_cmp0_ranges[] = {
+static struct wp_range_descriptor gd25q40_cmp0_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* None */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x070000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x060000, 128 * 1024} },
@@ -720,7 +720,7 @@ static struct generic_range gd25q40_cmp0_ranges[] = {
 	{ .m = { .sec = 1, .tb = X }, 0x7, {0x000000, 512 * 1024} }, /* All */
 };
 
-static struct generic_range gd25q40_cmp1_ranges[] = {
+static struct wp_range_descriptor gd25q40_cmp1_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x0, {0x000000, 512 * 1024} }, /* ALL */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 448 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 384 * 1024} },
@@ -752,7 +752,7 @@ static struct generic_range gd25q40_cmp1_ranges[] = {
 	{ .m = { .sec = 1, .tb = X }, 0x7, {0x000000, 0} }, /* None */
 };
 
-static struct generic_range gd25q64_ranges[] = {
+static struct wp_range_descriptor gd25q64_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x7e0000, 128 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x7c0000, 256 * 1024} },
@@ -784,7 +784,7 @@ static struct generic_range gd25q64_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x6, {0x000000, 32 * 1024} },
 };
 
-static struct generic_range a25l040_ranges[] = {
+static struct wp_range_descriptor a25l040_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x0, {0, 0} },	/* none */
 	{ .m = { .sec = X, .tb = X }, 0x1, {0x70000, 64 * 1024} },
 	{ .m = { .sec = X, .tb = X }, 0x2, {0x60000, 128 * 1024} },
@@ -850,50 +850,50 @@ uint8_t mx25l_read_config_register(const struct flashctx *flash)
 
 /* Given a flash chip, this function returns its range table. */
 static int w25_range_table(const struct flashctx *flash,
-                           struct generic_range **ranges,
+                           struct wp_range_descriptor **descrs,
                            int *num_entries)
 {
 	uint8_t cr;
 
-	*ranges = 0;
+	*descrs = 0;
 	*num_entries = 0;
 
 	switch (flash->chip->manufacture_id) {
 	case WINBOND_NEX_ID:
 		switch(flash->chip->model_id) {
 		case WINBOND_NEX_W25X10:
-			*ranges = w25x10_ranges;
+			*descrs = w25x10_ranges;
 			*num_entries = ARRAY_SIZE(w25x10_ranges);
 			break;
 		case WINBOND_NEX_W25X20:
-			*ranges = w25x20_ranges;
+			*descrs = w25x20_ranges;
 			*num_entries = ARRAY_SIZE(w25x20_ranges);
 			break;
 		case WINBOND_NEX_W25X40:
-			*ranges = w25x40_ranges;
+			*descrs = w25x40_ranges;
 			*num_entries = ARRAY_SIZE(w25x40_ranges);
 			break;
 		case WINBOND_NEX_W25X80:
-			*ranges = w25x80_ranges;
+			*descrs = w25x80_ranges;
 			*num_entries = ARRAY_SIZE(w25x80_ranges);
 			break;
 		case WINBOND_NEX_W25Q80_V:
-			*ranges = w25q80_ranges;
+			*descrs = w25q80_ranges;
 			*num_entries = ARRAY_SIZE(w25q80_ranges);
 			break;
 		case WINBOND_NEX_W25Q16_V:
-			*ranges = w25q16_ranges;
+			*descrs = w25q16_ranges;
 			*num_entries = ARRAY_SIZE(w25q16_ranges);
 			break;
 		case WINBOND_NEX_W25Q32_V:
 		case WINBOND_NEX_W25Q32_W:
 		case WINBOND_NEX_W25Q32JW:
-			*ranges = w25q32_ranges;
+			*descrs = w25q32_ranges;
 			*num_entries = ARRAY_SIZE(w25q32_ranges);
 			break;
 		case WINBOND_NEX_W25Q64_V:
                 case WINBOND_NEX_W25Q64_W:
-			*ranges = w25q64_ranges;
+			*descrs = w25q64_ranges;
 			*num_entries = ARRAY_SIZE(w25q64_ranges);
 			break;
 		case WINBOND_NEX_W25Q128_DTR:
@@ -902,22 +902,22 @@ static int w25_range_table(const struct flashctx *flash,
 		case WINBOND_NEX_W25Q128_W:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
-				*ranges = w25rq128_cmp1_ranges;
+				*descrs = w25rq128_cmp1_ranges;
 				*num_entries = ARRAY_SIZE(w25rq128_cmp1_ranges);
 			} else {
 				/* CMP == 0 */
-				*ranges = w25rq128_cmp0_ranges;
+				*descrs = w25rq128_cmp0_ranges;
 				*num_entries = ARRAY_SIZE(w25rq128_cmp0_ranges);
 			}
 			break;
 		case WINBOND_NEX_W25Q256JV_M:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
-				*ranges = w25rq256_cmp1_ranges;
+				*descrs = w25rq256_cmp1_ranges;
 				*num_entries = ARRAY_SIZE(w25rq256_cmp1_ranges);
 			} else {
 				/* CMP == 0 */
-				*ranges = w25rq256_cmp0_ranges;
+				*descrs = w25rq256_cmp0_ranges;
 				*num_entries = ARRAY_SIZE(w25rq256_cmp0_ranges);
 			}
 			break;
@@ -931,31 +931,31 @@ static int w25_range_table(const struct flashctx *flash,
 	case EON_ID_NOPREFIX:
 		switch (flash->chip->model_id) {
 		case EON_EN25F40:
-			*ranges = en25f40_ranges;
+			*descrs = en25f40_ranges;
 			*num_entries = ARRAY_SIZE(en25f40_ranges);
 			break;
 		case EON_EN25Q40:
-			*ranges = en25q40_ranges;
+			*descrs = en25q40_ranges;
 			*num_entries = ARRAY_SIZE(en25q40_ranges);
 			break;
 		case EON_EN25Q80:
-			*ranges = en25q80_ranges;
+			*descrs = en25q80_ranges;
 			*num_entries = ARRAY_SIZE(en25q80_ranges);
 			break;
 		case EON_EN25Q32:
-			*ranges = en25q32_ranges;
+			*descrs = en25q32_ranges;
 			*num_entries = ARRAY_SIZE(en25q32_ranges);
 			break;
 		case EON_EN25Q64:
-			*ranges = en25q64_ranges;
+			*descrs = en25q64_ranges;
 			*num_entries = ARRAY_SIZE(en25q64_ranges);
 			break;
 		case EON_EN25Q128:
-			*ranges = en25q128_ranges;
+			*descrs = en25q128_ranges;
 			*num_entries = ARRAY_SIZE(en25q128_ranges);
 			break;
 		case EON_EN25S64:
-			*ranges = en25s64_ranges;
+			*descrs = en25s64_ranges;
 			*num_entries = ARRAY_SIZE(en25s64_ranges);
 			break;
 		default:
@@ -968,46 +968,46 @@ static int w25_range_table(const struct flashctx *flash,
 	case MACRONIX_ID:
 		switch (flash->chip->model_id) {
 		case MACRONIX_MX25L1005:
-			*ranges = mx25l1005_ranges;
+			*descrs = mx25l1005_ranges;
 			*num_entries = ARRAY_SIZE(mx25l1005_ranges);
 			break;
 		case MACRONIX_MX25L2005:
-			*ranges = mx25l2005_ranges;
+			*descrs = mx25l2005_ranges;
 			*num_entries = ARRAY_SIZE(mx25l2005_ranges);
 			break;
 		case MACRONIX_MX25L4005:
-			*ranges = mx25l4005_ranges;
+			*descrs = mx25l4005_ranges;
 			*num_entries = ARRAY_SIZE(mx25l4005_ranges);
 			break;
 		case MACRONIX_MX25L8005:
-			*ranges = mx25l8005_ranges;
+			*descrs = mx25l8005_ranges;
 			*num_entries = ARRAY_SIZE(mx25l8005_ranges);
 			break;
 		case MACRONIX_MX25L1605:
 			/* FIXME: MX25L1605 and MX25L1605D have different write
 			 * protection capabilities, but share IDs */
-			*ranges = mx25l1605d_ranges;
+			*descrs = mx25l1605d_ranges;
 			*num_entries = ARRAY_SIZE(mx25l1605d_ranges);
 			break;
 		case MACRONIX_MX25L3205:
-			*ranges = mx25l3205d_ranges;
+			*descrs = mx25l3205d_ranges;
 			*num_entries = ARRAY_SIZE(mx25l3205d_ranges);
 			break;
 		case MACRONIX_MX25U3235E:
-			*ranges = mx25u3235e_ranges;
+			*descrs = mx25u3235e_ranges;
 			*num_entries = ARRAY_SIZE(mx25u3235e_ranges);
 			break;
 		case MACRONIX_MX25U6435E:
-			*ranges = mx25u6435e_ranges;
+			*descrs = mx25u6435e_ranges;
 			*num_entries = ARRAY_SIZE(mx25u6435e_ranges);
 			break;
 		case MACRONIX_MX25U12835E:
 			cr = mx25l_read_config_register(flash);
 			if (cr & MX25U12835E_TB) {	/* T/B == 1 */
-				*ranges = mx25u12835e_tb1_ranges;
+				*descrs = mx25u12835e_tb1_ranges;
 				*num_entries = ARRAY_SIZE(mx25u12835e_tb1_ranges);
 			} else {			/* T/B == 0 */
-				*ranges = mx25u12835e_tb0_ranges;
+				*descrs = mx25u12835e_tb0_ranges;
 				*num_entries = ARRAY_SIZE(mx25u12835e_tb0_ranges);
 			}
 			break;
@@ -1022,7 +1022,7 @@ static int w25_range_table(const struct flashctx *flash,
 		switch(flash->chip->model_id) {
 		case ST_N25Q064__1E:
 		case ST_N25Q064__3E:
-			*ranges = n25q064_ranges;
+			*descrs = n25q064_ranges;
 			*num_entries = ARRAY_SIZE(n25q064_ranges);
 			break;
 		default:
@@ -1035,38 +1035,38 @@ static int w25_range_table(const struct flashctx *flash,
 	case GIGADEVICE_ID:
 		switch(flash->chip->model_id) {
 		case GIGADEVICE_GD25LQ32:
-			*ranges = w25q32_ranges;
+			*descrs = w25q32_ranges;
 			*num_entries = ARRAY_SIZE(w25q32_ranges);
 			break;
 		case GIGADEVICE_GD25Q40:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
-				*ranges = gd25q40_cmp1_ranges;
+				*descrs = gd25q40_cmp1_ranges;
 				*num_entries = ARRAY_SIZE(gd25q40_cmp1_ranges);
 			} else {
-				*ranges = gd25q40_cmp0_ranges;
+				*descrs = gd25q40_cmp0_ranges;
 				*num_entries = ARRAY_SIZE(gd25q40_cmp0_ranges);
 			}
 			break;
 		case GIGADEVICE_GD25Q64:
 		case GIGADEVICE_GD25LQ64:
-			*ranges = gd25q64_ranges;
+			*descrs = gd25q64_ranges;
 			*num_entries = ARRAY_SIZE(gd25q64_ranges);
 			break;
 		case GIGADEVICE_GD25Q128:
 		case GIGADEVICE_GD25LQ128CD:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
-				*ranges = w25rq128_cmp1_ranges;
+				*descrs = w25rq128_cmp1_ranges;
 				*num_entries = ARRAY_SIZE(w25rq128_cmp1_ranges);
 			} else {
 				/* CMP == 0 */
-				*ranges = w25rq128_cmp0_ranges;
+				*descrs = w25rq128_cmp0_ranges;
 				*num_entries = ARRAY_SIZE(w25rq128_cmp0_ranges);
 			}
 			break;
 		case GIGADEVICE_GD25Q256D:
-			*ranges = w25rq256_cmp0_ranges;
+			*descrs = w25rq256_cmp0_ranges;
 			*num_entries = ARRAY_SIZE(w25rq256_cmp0_ranges);
 			break;
 		default:
@@ -1079,7 +1079,7 @@ static int w25_range_table(const struct flashctx *flash,
 	case AMIC_ID_NOPREFIX:
 		switch(flash->chip->model_id) {
 		case AMIC_A25L040:
-			*ranges = a25l040_ranges;
+			*descrs = a25l040_ranges;
 			*num_entries = ARRAY_SIZE(a25l040_ranges);
 			break;
 		default:
@@ -1095,11 +1095,11 @@ static int w25_range_table(const struct flashctx *flash,
 		case ATMEL_AT25SL128A:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
-				*ranges = w25rq128_cmp1_ranges;
+				*descrs = w25rq128_cmp1_ranges;
 				*num_entries = ARRAY_SIZE(w25rq128_cmp1_ranges);
 			} else {
 				/* CMP == 0 */
-				*ranges = w25rq128_cmp0_ranges;
+				*descrs = w25rq128_cmp0_ranges;
 				*num_entries = ARRAY_SIZE(w25rq128_cmp0_ranges);
 			}
 			break;
@@ -1123,24 +1123,24 @@ int w25_range_to_status(const struct flashctx *flash,
                         unsigned int start, unsigned int len,
                         struct w25q_status *status)
 {
-	struct generic_range *ranges;
+	struct wp_range_descriptor *descrs;
 	int i, range_found = 0;
 	int num_entries;
 
-	if (w25_range_table(flash, &ranges, &num_entries))
+	if (w25_range_table(flash, &descrs, &num_entries))
 		return -1;
 
 	for (i = 0; i < num_entries; i++) {
-		struct wp_range *r = &ranges[i].range;
+		struct wp_range *r = &descrs[i].range;
 
 		msg_cspew("comparing range 0x%x 0x%x / 0x%x 0x%x\n",
 			  start, len, r->start, r->len);
 		if ((start == r->start) && (len == r->len)) {
-			status->bp0 = ranges[i].bp & 1;
-			status->bp1 = ranges[i].bp >> 1;
-			status->bp2 = ranges[i].bp >> 2;
-			status->tb = ranges[i].m.tb;
-			status->sec = ranges[i].m.sec;
+			status->bp0 = descrs[i].bp & 1;
+			status->bp1 = descrs[i].bp >> 1;
+			status->bp2 = descrs[i].bp >> 2;
+			status->tb = descrs[i].m.tb;
+			status->sec = descrs[i].m.sec;
 
 			range_found = 1;
 			break;
@@ -1159,11 +1159,11 @@ int w25_status_to_range(const struct flashctx *flash,
                         const struct w25q_status *status,
                         unsigned int *start, unsigned int *len)
 {
-	struct generic_range *ranges;
+	struct wp_range_descriptor *descrs;
 	int i, status_found = 0;
 	int num_entries;
 
-	if (w25_range_table(flash, &ranges, &num_entries))
+	if (w25_range_table(flash, &descrs, &num_entries))
 		return -1;
 
 	for (i = 0; i < num_entries; i++) {
@@ -1172,17 +1172,17 @@ int w25_status_to_range(const struct flashctx *flash,
 
 		bp = status->bp0 | (status->bp1 << 1) | (status->bp2 << 2);
 		msg_cspew("comparing  0x%x 0x%x / 0x%x 0x%x / 0x%x 0x%x\n",
-		          bp, ranges[i].bp,
-		          status->tb, ranges[i].m.tb,
-		          status->sec, ranges[i].m.sec);
-		table_bp = ranges[i].bp;
-		table_tb = ranges[i].m.tb;
-		table_sec = ranges[i].m.sec;
+		          bp, descrs[i].bp,
+		          status->tb, descrs[i].m.tb,
+		          status->sec, descrs[i].m.sec);
+		table_bp = descrs[i].bp;
+		table_tb = descrs[i].m.tb;
+		table_sec = descrs[i].m.sec;
 		if ((bp == table_bp || table_bp == X) &&
 		    (status->tb == table_tb || table_tb == X) &&
 		    (status->sec == table_sec || table_sec == X)) {
-			*start = ranges[i].range.start;
-			*len = ranges[i].range.len;
+			*start = descrs[i].range.start;
+			*len = descrs[i].range.len;
 
 			status_found = 1;
 			break;
@@ -1269,23 +1269,23 @@ static int w25q_large_range_to_status(const struct flashctx *flash,
 				      unsigned int start, unsigned int len,
 				      struct w25q_status_large *status)
 {
-	struct generic_range *ranges;
+	struct wp_range_descriptor *descrs;
 	int i, range_found = 0;
 	int num_entries;
 
-	if (w25_range_table(flash, &ranges, &num_entries))
+	if (w25_range_table(flash, &descrs, &num_entries))
 		return -1;
 
 	for (i = 0; i < num_entries; i++) {
-		struct wp_range *r = &ranges[i].range;
+		struct wp_range *r = &descrs[i].range;
 
 		msg_cspew("comparing range 0x%x 0x%x / 0x%x 0x%x\n",
 			  start, len, r->start, r->len);
 		if ((start == r->start) && (len == r->len)) {
-			status->bp0 = ranges[i].bp & 1;
-			status->bp1 = ranges[i].bp >> 1;
-			status->bp2 = ranges[i].bp >> 2;
-			status->bp3 = ranges[i].bp >> 3;
+			status->bp0 = descrs[i].bp & 1;
+			status->bp1 = descrs[i].bp >> 1;
+			status->bp2 = descrs[i].bp >> 2;
+			status->bp3 = descrs[i].bp >> 3;
 			/*
 			 * For MX25U12835E chip, Top/Bottom (T/B) bit is not
 			 * part of status register and in that bit position is
@@ -1293,7 +1293,7 @@ static int w25q_large_range_to_status(const struct flashctx *flash,
 			 */
 			if (flash->chip->manufacture_id != MACRONIX_ID ||
 			    flash->chip->model_id != MACRONIX_MX25U12835E)
-				status->tb = ranges[i].m.tb;
+				status->tb = descrs[i].m.tb;
 
 			range_found = 1;
 			break;
@@ -1312,11 +1312,11 @@ static int w25_large_status_to_range(const struct flashctx *flash,
 				     const struct w25q_status_large *status,
 				     unsigned int *start, unsigned int *len)
 {
-	struct generic_range *ranges;
+	struct wp_range_descriptor *descrs;
 	int i, status_found = 0;
 	int num_entries;
 
-	if (w25_range_table(flash, &ranges, &num_entries))
+	if (w25_range_table(flash, &descrs, &num_entries))
 		return -1;
 
 	for (i = 0; i < num_entries; i++) {
@@ -1326,14 +1326,14 @@ static int w25_large_status_to_range(const struct flashctx *flash,
 		bp = status->bp0 | (status->bp1 << 1) | (status->bp2 << 2) |
 			(status->bp3 << 3);
 		msg_cspew("comparing  0x%x 0x%x / 0x%x 0x%x\n",
-		          bp, ranges[i].bp,
-		          status->tb, ranges[i].m.tb);
-		table_bp = ranges[i].bp;
-		table_tb = ranges[i].m.tb;
+		          bp, descrs[i].bp,
+		          status->tb, descrs[i].m.tb);
+		table_bp = descrs[i].bp;
+		table_tb = descrs[i].m.tb;
 		if ((bp == table_bp || table_bp == X) &&
 		    (status->tb == table_tb || table_tb == X)) {
-			*start = ranges[i].range.start;
-			*len = ranges[i].range.len;
+			*start = descrs[i].range.start;
+			*len = descrs[i].range.len;
 
 			status_found = 1;
 			break;
@@ -1477,16 +1477,16 @@ static int w25_disable_writeprotect(const struct flashctx *flash)
 
 static int w25_list_ranges(const struct flashctx *flash)
 {
-	struct generic_range *ranges;
+	struct wp_range_descriptor *descrs;
 	int i, num_entries;
 
-	if (w25_range_table(flash, &ranges, &num_entries))
+	if (w25_range_table(flash, &descrs, &num_entries))
 		return -1;
 
 	for (i = 0; i < num_entries; i++) {
 		msg_cinfo("start: 0x%06x, length: 0x%06x\n",
-		          ranges[i].range.start,
-		          ranges[i].range.len);
+		          descrs[i].range.start,
+		          descrs[i].range.len);
 	}
 
 	return 0;
@@ -1762,7 +1762,7 @@ struct wp wp_w25q_large = {
 	.wp_status	= w25q_large_wp_status,
 };
 
-struct generic_range gd25q32_cmp0_ranges[] = {
+struct wp_range_descriptor gd25q32_cmp0_ranges[] = {
 	/* none, bp4 and bp3 => don't care */
 	{ { }, 0x00, {0, 0} },
 	{ { }, 0x08, {0, 0} },
@@ -1804,7 +1804,7 @@ struct generic_range gd25q32_cmp0_ranges[] = {
 	{ { }, 0x1e, {0x000000, 32 * 1024} },
 };
 
-struct generic_range gd25q32_cmp1_ranges[] = {
+struct wp_range_descriptor gd25q32_cmp1_ranges[] = {
 	/* All, bp4 and bp3 => don't care */
 	{ { }, 0x00, {0x000000, 4096 * 1024} }, /* All */
 	{ { }, 0x08, {0x000000, 4096 * 1024} },
@@ -1851,7 +1851,7 @@ static struct generic_wp gd25q32_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 5, .srp_pos = 7 },
 };
 
-struct generic_range gd25q128_cmp0_ranges[] = {
+struct wp_range_descriptor gd25q128_cmp0_ranges[] = {
 	/* none, bp4 and bp3 => don't care, others = 0 */
 	{ { .tb = 0  }, 0x00, {0, 0} },
 	{ { .tb = 0  }, 0x08, {0, 0} },
@@ -1892,7 +1892,7 @@ struct generic_range gd25q128_cmp0_ranges[] = {
 	{ { .tb = 0 }, 0x1e, {0x000000, 32 * 1024} },
 };
 
-struct generic_range gd25q128_cmp1_ranges[] = {
+struct wp_range_descriptor gd25q128_cmp1_ranges[] = {
 	/* none, bp4 and bp3 => don't care, others = 0 */
 	{ { .tb = 1 }, 0x00, {0x000000, 16384 * 1024} },
 	{ { .tb = 1 }, 0x08, {0x000000, 16384 * 1024} },
@@ -1940,7 +1940,7 @@ static struct generic_wp gd25q128_wp = {
 };
 
 /* FIXME: MX25L6406 has same ID as MX25L6405D */
-struct generic_range mx25l6406e_ranges[] = {
+struct wp_range_descriptor mx25l6406e_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x7e0000, 64 * 2 * 1024} },	/* blocks 126-127 */
 	{ { }, 0x2, {0x7c0000, 64 * 4 * 1024} },	/* blocks 124-127 */
@@ -1962,10 +1962,10 @@ struct generic_range mx25l6406e_ranges[] = {
 
 static struct generic_wp mx25l6406e_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
-	.ranges = &mx25l6406e_ranges[0],
+	.descrs = &mx25l6406e_ranges[0],
 };
 
-struct generic_range mx25l6495f_tb0_ranges[] = {
+struct wp_range_descriptor mx25l6495f_tb0_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x7f0000, 64 * 1 * 1024} },	/* block 127 */
 	{ { }, 0x2, {0x7e0000, 64 * 2 * 1024} },	/* blocks 126-127 */
@@ -1985,7 +1985,7 @@ struct generic_range mx25l6495f_tb0_ranges[] = {
 	{ { }, 0xf, {0x000000, 64 * 128 * 1024} },	/* all */
 };
 
-struct generic_range mx25l6495f_tb1_ranges[] = {
+struct wp_range_descriptor mx25l6495f_tb1_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x000000, 64 * 1 * 1024} },	/* block 0 */
 	{ { }, 0x2, {0x000000, 64 * 2 * 1024} },	/* blocks 0-1 */
@@ -2008,7 +2008,7 @@ static struct generic_wp mx25l6495f_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 };
 
-struct generic_range mx25l25635f_tb0_ranges[] = {
+struct wp_range_descriptor mx25l25635f_tb0_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x1ff0000, 64 * 1 * 1024} },	/* block 511 */
 	{ { }, 0x2, {0x1fe0000, 64 * 2 * 1024} },	/* blocks 510-511 */
@@ -2027,7 +2027,7 @@ struct generic_range mx25l25635f_tb0_ranges[] = {
 	{ { }, 0xf, {0x0000000, 64 * 512 * 1024} },	/* all */
 };
 
-struct generic_range mx25l25635f_tb1_ranges[] = {
+struct wp_range_descriptor mx25l25635f_tb1_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x000000, 64 * 1 * 1024} },	/* block 0 */
 	{ { }, 0x2, {0x000000, 64 * 2 * 1024} },	/* blocks 0-1 */
@@ -2050,7 +2050,7 @@ static struct generic_wp mx25l25635f_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 };
 
-struct generic_range s25fs128s_ranges[] = {
+struct wp_range_descriptor s25fs128s_ranges[] = {
 	{ { .tb = 1 }, 0, {0, 0} },	/* none */
 	{ { .tb = 1 }, 0x1, {0x000000, 256 * 1024} },	/* lower 64th */
 	{ { .tb = 1 }, 0x2, {0x000000, 512 * 1024} },	/* lower 32nd */
@@ -2077,7 +2077,7 @@ static struct generic_wp s25fs128s_wp = {
 };
 
 
-struct generic_range s25fl256s_ranges[] = {
+struct wp_range_descriptor s25fl256s_ranges[] = {
 	{ { .tb = 1 }, 0, {0, 0} },	/* none */
 	{ { .tb = 1 }, 0x1, {0x000000, 512 * 1024} },		/* lower 64th */
 	{ { .tb = 1 }, 0x2, {0x000000, 1024 * 1024} },		/* lower 32nd */
@@ -2121,10 +2121,10 @@ static int generic_range_table(const struct flashctx *flash,
 			*wp = &gd25q32_wp;
 
 			if (!(sr1 & (1 << 6))) {	/* CMP == 0 */
-				(*wp)->ranges = &gd25q32_cmp0_ranges[0];
+				(*wp)->descrs = &gd25q32_cmp0_ranges[0];
 				*num_entries = ARRAY_SIZE(gd25q32_cmp0_ranges);
 			} else {			/* CMP == 1 */
-				(*wp)->ranges = &gd25q32_cmp1_ranges[0];
+				(*wp)->descrs = &gd25q32_cmp1_ranges[0];
 				*num_entries = ARRAY_SIZE(gd25q32_cmp1_ranges);
 			}
 
@@ -2136,10 +2136,10 @@ static int generic_range_table(const struct flashctx *flash,
 			*wp = &gd25q128_wp;
 
 			if (!(sr1 & (1 << 6))) {	/* CMP == 0 */
-				(*wp)->ranges = &gd25q128_cmp0_ranges[0];
+				(*wp)->descrs = &gd25q128_cmp0_ranges[0];
 				*num_entries = ARRAY_SIZE(gd25q128_cmp0_ranges);
 			} else {			/* CMP == 1 */
-				(*wp)->ranges = &gd25q128_cmp1_ranges[0];
+				(*wp)->descrs = &gd25q128_cmp1_ranges[0];
 				*num_entries = ARRAY_SIZE(gd25q128_cmp1_ranges);
 			}
 
@@ -2165,10 +2165,10 @@ static int generic_range_table(const struct flashctx *flash,
 
 			*wp = &mx25l6495f_wp;
 			if (!(cr & (1 << 3))) {	/* T/B == 0 */
-				(*wp)->ranges = &mx25l6495f_tb0_ranges[0];
+				(*wp)->descrs = &mx25l6495f_tb0_ranges[0];
 				*num_entries = ARRAY_SIZE(mx25l6495f_tb0_ranges);
 			} else {		/* T/B == 1 */
-				(*wp)->ranges = &mx25l6495f_tb1_ranges[0];
+				(*wp)->descrs = &mx25l6495f_tb1_ranges[0];
 				*num_entries = ARRAY_SIZE(mx25l6495f_tb1_ranges);
 			}
 			break;
@@ -2178,10 +2178,10 @@ static int generic_range_table(const struct flashctx *flash,
 
 			*wp = &mx25l25635f_wp;
 			if (!(cr & (1 << 3))) {	/* T/B == 0 */
-				(*wp)->ranges = &mx25l25635f_tb0_ranges[0];
+				(*wp)->descrs = &mx25l25635f_tb0_ranges[0];
 				*num_entries = ARRAY_SIZE(mx25l25635f_tb0_ranges);
 			} else {		/* T/B == 1 */
-				(*wp)->ranges = &mx25l25635f_tb1_ranges[0];
+				(*wp)->descrs = &mx25l25635f_tb1_ranges[0];
 				*num_entries = ARRAY_SIZE(mx25l25635f_tb1_ranges);
 			}
 			break;
@@ -2198,14 +2198,14 @@ static int generic_range_table(const struct flashctx *flash,
 		case SPANSION_S25FS128S_L:
 		case SPANSION_S25FS128S_S: {
 			*wp = &s25fs128s_wp;
-			(*wp)->ranges = s25fs128s_ranges;
+			(*wp)->descrs = s25fs128s_ranges;
 			*num_entries = ARRAY_SIZE(s25fs128s_ranges);
 			break;
 		}
 		case SPANSION_S25FL256S_UL:
 		case SPANSION_S25FL256S_US: {
 			*wp = &s25fl256s_wp;
-			(*wp)->ranges = s25fl256s_ranges;
+			(*wp)->descrs = s25fl256s_ranges;
 			*num_entries = ARRAY_SIZE(s25fl256s_ranges);
 			break;
 		}
@@ -2244,7 +2244,7 @@ static int generic_range_to_status(const struct flashctx *flash,
                         uint8_t *status, uint8_t *check_mask)
 {
 	struct generic_wp *wp;
-	struct generic_range *r;
+	struct wp_range_descriptor *r;
 	int i, range_found = 0, num_entries;
 	uint8_t bp_mask;
 
@@ -2253,7 +2253,7 @@ static int generic_range_to_status(const struct flashctx *flash,
 
 	bp_mask = generic_get_bp_mask(wp);
 
-	for (i = 0, r = &wp->ranges[0]; i < num_entries; i++, r++) {
+	for (i = 0, r = &wp->descrs[0]; i < num_entries; i++, r++) {
 		msg_cspew("comparing range 0x%x 0x%x / 0x%x 0x%x\n",
 			  start, len, r->range.start, r->range.len);
 		if ((start == r->range.start) && (len == r->range.len)) {
@@ -2286,7 +2286,7 @@ static int generic_status_to_range(const struct flashctx *flash,
 		const uint8_t sr1, unsigned int *start, unsigned int *len)
 {
 	struct generic_wp *wp;
-	struct generic_range *r;
+	struct wp_range_descriptor *r;
 	int num_entries, i, status_found = 0;
 	uint8_t sr1_bp;
 	struct modifier_bits m;
@@ -2300,7 +2300,7 @@ static int generic_status_to_range(const struct flashctx *flash,
 
 	sr1_bp = (sr1 >> wp->sr1.bp0_pos) & ((1 << wp->sr1.bp_bits) - 1);
 
-	for (i = 0, r = &wp->ranges[0]; i < num_entries; i++, r++) {
+	for (i = 0, r = &wp->descrs[0]; i < num_entries; i++, r++) {
 		if (wp->get_modifier_bits) {
 			if (memcmp(&m, &r->m, sizeof(m)))
 				continue;
@@ -2414,13 +2414,13 @@ static int generic_disable_writeprotect(const struct flashctx *flash)
 static int generic_list_ranges(const struct flashctx *flash)
 {
 	struct generic_wp *wp;
-	struct generic_range *r;
+	struct wp_range_descriptor *r;
 	int i, num_entries;
 
 	if (generic_range_table(flash, &wp, &num_entries))
 		return -1;
 
-	r = &wp->ranges[0];
+	r = &wp->descrs[0];
 	for (i = 0; i < num_entries; i++) {
 		msg_cinfo("start: 0x%06x, length: 0x%06x\n",
 		          r->range.start, r->range.len);
