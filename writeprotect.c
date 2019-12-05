@@ -71,7 +71,7 @@ struct wp_range_descriptor {
 	struct wp_range range;
 };
 
-struct generic_wp {
+struct wp_context {
 	struct status_register_layout sr1;	/* status register 1 */
 	struct wp_range_descriptor *descrs;
 
@@ -1846,7 +1846,7 @@ struct wp_range_descriptor gd25q32_cmp1_ranges[] = {
 	{ { }, 0x1e, {0x080000, 4064 * 1024} },
 };
 
-static struct generic_wp gd25q32_wp = {
+static struct wp_context gd25q32_wp = {
 	/* TODO: map second status register */
 	.sr1 = { .bp0_pos = 2, .bp_bits = 5, .srp_pos = 7 },
 };
@@ -1934,7 +1934,7 @@ struct wp_range_descriptor gd25q128_cmp1_ranges[] = {
 	{ { .tb = 1 }, 0x1e, {0x008000, 16352 * 1024} },
 };
 
-static struct generic_wp gd25q128_wp = {
+static struct wp_context gd25q128_wp = {
 	/* TODO: map second and third status registers */
 	.sr1 = { .bp0_pos = 2, .bp_bits = 5, .srp_pos = 7 },
 };
@@ -1960,7 +1960,7 @@ struct wp_range_descriptor mx25l6406e_ranges[] = {
 	{ { }, 0xf, {0x000000, 64 * 128 * 1024} },	/* all */
 };
 
-static struct generic_wp mx25l6406e_wp = {
+static struct wp_context mx25l6406e_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 	.descrs = &mx25l6406e_ranges[0],
 };
@@ -2004,7 +2004,7 @@ struct wp_range_descriptor mx25l6495f_tb1_ranges[] = {
 	{ { }, 0xf, {0x000000, 64 * 128 * 1024} },	/* all */
 };
 
-static struct generic_wp mx25l6495f_wp = {
+static struct wp_context mx25l6495f_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 };
 
@@ -2046,7 +2046,7 @@ struct wp_range_descriptor mx25l25635f_tb1_ranges[] = {
 	{ { }, 0xf, {0x000000, 64 * 512 * 1024} },	/* all */
 };
 
-static struct generic_wp mx25l25635f_wp = {
+static struct wp_context mx25l25635f_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 };
 
@@ -2070,7 +2070,7 @@ struct wp_range_descriptor s25fs128s_ranges[] = {
 	{ { .tb = 0 }, 0x7, {0x000000, 16384 * 1024} },	/* all */
 };
 
-static struct generic_wp s25fs128s_wp = {
+static struct wp_context s25fs128s_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 3, .srp_pos = 7 },
 	.get_modifier_bits = s25f_get_modifier_bits,
 	.set_modifier_bits = s25f_set_modifier_bits,
@@ -2097,7 +2097,7 @@ struct wp_range_descriptor s25fl256s_ranges[] = {
 	{ { .tb = 0 }, 0x7, {0x000000, 32768 * 1024} },		/* all */
 };
 
-static struct generic_wp s25fl256s_wp = {
+static struct wp_context s25fl256s_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 3, .srp_pos = 7 },
 	.get_modifier_bits = s25f_get_modifier_bits,
 	.set_modifier_bits = s25f_set_modifier_bits,
@@ -2105,7 +2105,7 @@ static struct generic_wp s25fl256s_wp = {
 
 /* Given a flash chip, this function returns its writeprotect info. */
 static int generic_range_table(const struct flashctx *flash,
-                           struct generic_wp **wp,
+                           struct wp_context **wp,
                            int *num_entries)
 {
 	*wp = NULL;
@@ -2225,13 +2225,13 @@ static int generic_range_table(const struct flashctx *flash,
 	return 0;
 }
 
-static uint8_t generic_get_bp_mask(struct generic_wp *wp)
+static uint8_t generic_get_bp_mask(struct wp_context *wp)
 {
 	return ((1 << (wp->sr1.bp0_pos + wp->sr1.bp_bits)) - 1) ^ \
 		  ((1 << wp->sr1.bp0_pos) - 1);
 }
 
-static uint8_t generic_get_status_check_mask(struct generic_wp *wp)
+static uint8_t generic_get_status_check_mask(struct wp_context *wp)
 {
 	return generic_get_bp_mask(wp) | 1 << wp->sr1.srp_pos;
 }
@@ -2243,7 +2243,7 @@ static int generic_range_to_status(const struct flashctx *flash,
                         unsigned int start, unsigned int len,
                         uint8_t *status, uint8_t *check_mask)
 {
-	struct generic_wp *wp;
+	struct wp_context *wp;
 	struct wp_range_descriptor *r;
 	int i, range_found = 0, num_entries;
 	uint8_t bp_mask;
@@ -2285,7 +2285,7 @@ static int generic_range_to_status(const struct flashctx *flash,
 static int generic_status_to_range(const struct flashctx *flash,
 		const uint8_t sr1, unsigned int *start, unsigned int *len)
 {
-	struct generic_wp *wp;
+	struct wp_context *wp;
 	struct wp_range_descriptor *r;
 	int num_entries, i, status_found = 0;
 	uint8_t sr1_bp;
@@ -2353,7 +2353,7 @@ static int generic_set_range(const struct flashctx *flash,
 static int generic_set_srp0(const struct flashctx *flash, int enable)
 {
 	uint8_t status, expected, check_mask;
-	struct generic_wp *wp;
+	struct wp_context *wp;
 	int num_entries;
 
 	if (generic_range_table(flash, &wp, &num_entries))
@@ -2413,7 +2413,7 @@ static int generic_disable_writeprotect(const struct flashctx *flash)
 
 static int generic_list_ranges(const struct flashctx *flash)
 {
-	struct generic_wp *wp;
+	struct wp_context *wp;
 	struct wp_range_descriptor *r;
 	int i, num_entries;
 
@@ -2430,12 +2430,12 @@ static int generic_list_ranges(const struct flashctx *flash)
 	return 0;
 }
 
-static int generic_wp_status(const struct flashctx *flash)
+static int wp_context_status(const struct flashctx *flash)
 {
 	uint8_t sr1;
 	unsigned int start, len;
 	int ret = 0;
-	struct generic_wp *wp;
+	struct wp_context *wp;
 	int num_entries, wp_en;
 
 	if (generic_range_table(flash, &wp, &num_entries))
@@ -2468,5 +2468,5 @@ struct wp wp_generic = {
 	.set_range	= generic_set_range,
 	.enable		= generic_enable_writeprotect,
 	.disable	= generic_disable_writeprotect,
-	.wp_status	= generic_wp_status,
+	.wp_status	= wp_context_status,
 };
