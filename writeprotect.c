@@ -87,6 +87,43 @@ struct wp_context {
 			struct modifier_bits *m);
 };
 
+struct w25q_status {
+	/* this maps to register layout -- do not change ordering */
+	unsigned char busy : 1;
+	unsigned char wel : 1;
+	unsigned char bp0 : 1;
+	unsigned char bp1 : 1;
+	unsigned char bp2 : 1;
+	unsigned char tb : 1;
+	unsigned char sec : 1;
+	unsigned char srp0 : 1;
+} __attribute__ ((packed));
+
+/* Status register for large flash layouts with 4 BP bits */
+struct w25q_status_large {
+	unsigned char busy : 1;
+	unsigned char wel : 1;
+	unsigned char bp0 : 1;
+	unsigned char bp1 : 1;
+	unsigned char bp2 : 1;
+	unsigned char bp3 : 1;
+	unsigned char tb : 1;
+	unsigned char srp0 : 1;
+} __attribute__ ((packed));
+
+struct w25q_status_2 {
+	unsigned char srp1 : 1;
+	unsigned char qe : 1;
+	unsigned char rsvd : 6;
+} __attribute__ ((packed));
+
+int w25_range_to_status(const struct flashctx *flash,
+                        unsigned int start, unsigned int len,
+                        struct w25q_status *status);
+int w25_status_to_range(const struct flashctx *flash,
+                        const struct w25q_status *status,
+                        unsigned int *start, unsigned int *len);
+
 /*
  * Mask to extract write-protect enable and range bits
  *   Status register 1:
