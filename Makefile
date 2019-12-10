@@ -404,7 +404,7 @@ CHIP_OBJS = jedec.o stm50flw0x0x.o w39.o w29ee011.o \
 	sst49lfxxxc.o sst_fwhub.o edi.o flashchips.o flashchips_hwseq.o spi.o spi25.o sharplhf00l04.o \
 	s25f.o spi4ba.o opaque.o writeprotect.o spi25_statusreg.o
 
-LIB_OBJS = android.o layout.o file.o fmap.o power.o search.o
+LIB_OBJS = layout.o file.o fmap.o power.o search.o
 
 ifeq ($(CONFIG_FDTMAP), yes)
 FEATURE_CFLAGS += -D'CONFIG_FDTMAP=1'

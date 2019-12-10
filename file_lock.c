@@ -55,7 +55,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "android.h"
 #include "flash.h"
 #include "ipc_lock.h"
 #include "locks.h"
@@ -93,33 +92,18 @@ static int test_dir(const char *path)
 static int file_lock_open_or_create(struct ipc_lock *lock)
 {
 	char path[PATH_MAX];
+	const char *dir = SYSTEM_LOCKFILE_DIR;
+	const char fallback[] = "/tmp";
 
-	if (in_android()) {
-		char *tmpdir;
-
-		tmpdir = android_tmpdir_path();
-		if (!tmpdir)
-			return -1;
-
-		if (snprintf(path, sizeof(path), "%s/%s",
-				tmpdir, lock->filename) < 0) {
-			return -1;
-		}
-	} else {
-		const char *dir = SYSTEM_LOCKFILE_DIR;
-		const char fallback[] = "/tmp";
-
-		if (test_dir(dir)) {
-			dir = fallback;
-			msg_gerr("Trying fallback directory: %s\n", dir);
-			if (test_dir(dir))
-				return -1;
-		}
-
-		if (snprintf(path, sizeof(path),
-			"%s/%s", dir, lock->filename) < 0)
+	if (test_dir(dir)) {
+		dir = fallback;
+		msg_gerr("Trying fallback directory: %s\n", dir);
+		if (test_dir(dir))
 			return -1;
 	}
+
+	if (snprintf(path, sizeof(path), "%s/%s", dir, lock->filename) < 0)
+		return -1;
 
 	lock->fd = open(path, O_RDWR | O_CREAT, 0600);
 	if (lock->fd < 0) {
