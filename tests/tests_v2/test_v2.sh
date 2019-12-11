@@ -595,9 +595,9 @@ fi
 #
 # Now the fun begins.
 #
-cmd $DO_REMOTE "$NEW_FLASHROM $PRIMARY_OPTS --get-size" "${LOCAL_TMPDIR}/chip_size.txt"
+cmd $DO_REMOTE "$NEW_FLASHROM $PRIMARY_OPTS --flash-size" "${LOCAL_TMPDIR}/chip_size.txt"
 tmp=$(cat ${LOCAL_TMPDIR}/chip_size.txt)
-cmd $DO_REMOTE "$OLD_FLASHROM $PRIMARY_OPTS --get-size" "${LOCAL_TMPDIR}/chip_size.txt"
+cmd $DO_REMOTE "$OLD_FLASHROM $PRIMARY_OPTS --flash-size" "${LOCAL_TMPDIR}/chip_size.txt"
 CHIP_SIZE=$(cat ${LOCAL_TMPDIR}/chip_size.txt)
 CHIP_SIZE_KB=$(($CHIP_SIZE / $K))
 CHIP_SIZE_HALF=$(($CHIP_SIZE / 2))

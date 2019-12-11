@@ -37,7 +37,7 @@
 logfile="${0}.log"
 
 # Try to write protect the uppermost block
-new_wp_range_start=$((($(./flashrom ${FLASHROM_PARAM} --get-size 2>/dev/null) - 0x010000)))
+new_wp_range_start=$((($(./flashrom ${FLASHROM_PARAM} --flash-size 2>/dev/null) - 0x010000)))
 new_wp_range_len=0x010000
 
 # Back-up old settings

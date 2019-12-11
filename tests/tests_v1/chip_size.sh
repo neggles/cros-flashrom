@@ -23,7 +23,7 @@
 
 logfile="${0}.log"
 
-reported_size=$(./flashrom ${FLASHROM_PARAM} --get-size 2>/dev/null | tail -n 1)
+reported_size=$(./flashrom ${FLASHROM_PARAM} --flash-size 2>/dev/null | tail -n 1)
 actual_size=$(stat --printf="%s\n" ${BACKUP})
 echo -n "$0: ${reported_size} ?= ${actual_size} ... " >> ${logfile}
 if [ "$reported_size" != "$actual_size" ]; then
