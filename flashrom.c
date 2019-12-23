@@ -1222,7 +1222,8 @@ int probe_flash(struct registered_master *mst, int startchip,
 			break;
 
 notfound:
-		programmer_unmap_flash_region((void *)flash->virtual_memory, size);
+		if (size)
+			programmer_unmap_flash_region((void *)flash->virtual_memory, size);
 		free(flash->chip);
 		flash->chip = NULL;
 	}
