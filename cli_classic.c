@@ -151,7 +151,7 @@ static void cli_classic_usage(const char *name)
 	       "   -L | --list-supported             print supported devices\n"
 	       "   -x | --extract                    extract regions to files\n"
 #if CONFIG_PRINT_WIKI == 1
-	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
+	       "   -z | --list-supported-wiki        print supported devices in wiki syntax\n"
 #endif
 	       "   -b | --broken-timers              assume system timers are "
 	         "broken\n"
