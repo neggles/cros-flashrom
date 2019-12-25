@@ -2027,6 +2027,7 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x34a4, OK, "Intel", "Icelake", enable_flash_sunrisepoint},
 	{0x8086, 0x02a4, OK, "Intel", "Cometlake", enable_flash_sunrisepoint},
 	{0x8086, 0x4da4, OK, "Intel", "Jasperlake", enable_flash_sunrisepoint},
+	{0x8086, 0xa0a4, OK, "Intel", "Tigerlake", enable_flash_sunrisepoint},
 #endif
 	{0},
 };
