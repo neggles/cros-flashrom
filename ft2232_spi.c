@@ -323,7 +323,7 @@ int ft2232_spi_init(void)
 
 	if (clock_5x) {
 		msg_pdbg("Disable divide-by-5 front stage\n");
-		buf[0] = 0x8a;		/* Disable divide-by-5. */
+		buf[0] = DIS_DIV_5;
 		if (send_buf(ftdic, buf, 1)) {
 			ret = -5;
 			goto ftdi_err;
@@ -343,8 +343,7 @@ int ft2232_spi_init(void)
 	}
 
 	msg_pdbg("Set clock divisor\n");
-	buf[0] = 0x86;		/* command "set divisor" */
-	/* valueL/valueH are (desired_divisor - 1) */
+	buf[0] = TCK_DIVISOR;
 	buf[1] = (divide_by - 1) & 0xff;
 	buf[2] = ((divide_by - 1) >> 8) & 0xff;
 	if (send_buf(ftdic, buf, 3)) {
@@ -358,7 +357,7 @@ int ft2232_spi_init(void)
 
 	/* Disconnect TDI/DO to TDO/DI for loopback. */
 	msg_pdbg("No loopback of TDI/DO TDO/DI\n");
-	buf[0] = 0x85;
+	buf[0] = LOOPBACK_END;
 	if (send_buf(ftdic, buf, 1)) {
 		ret = -7;
 		goto ftdi_err;
@@ -373,8 +372,6 @@ int ft2232_spi_init(void)
 		goto ftdi_err;
 	}
 
-	// msg_pdbg("\nft2232 chosen\n");
-
 	register_spi_master(&spi_master_ft2232);
 
 	return 0;
@@ -384,7 +381,6 @@ ftdi_err:
 		msg_perr("Unable to close FTDI device: %d (%s)\n", f,
 		         ftdi_get_error_string(ftdic));
 	}
-
 	return ret;
 }
 
@@ -427,7 +423,7 @@ static int ft2232_spi_send_command(const struct flashctx *flash, unsigned int wr
 	buf[i++] = pindir;
 
 	if (writecnt) {
-		buf[i++] = 0x11;
+		buf[i++] = MPSSE_DO_WRITE | MPSSE_WRITE_NEG;
 		buf[i++] = (writecnt - 1) & 0xff;
 		buf[i++] = ((writecnt - 1) >> 8) & 0xff;
 		memcpy(buf + i, writearr, writecnt);
@@ -439,7 +435,7 @@ static int ft2232_spi_send_command(const struct flashctx *flash, unsigned int wr
 	 * read command, then do the fetch of the results.
 	 */
 	if (readcnt) {
-		buf[i++] = 0x20;
+		buf[i++] = MPSSE_DO_READ;
 		buf[i++] = (readcnt - 1) & 0xff;
 		buf[i++] = ((readcnt - 1) >> 8) & 0xff;
 		ret = send_buf(ftdic, buf, i);
