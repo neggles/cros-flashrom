@@ -217,7 +217,7 @@ fn lock_test(env: &mut TestEnv) -> TestResult {
         return Err("Lock test requires ability to control hardware write protect".into());
     }
 
-    env.wp.set_hw(false)?;
+    env.wp.set_hw(false)?.set_sw(true)?;
     // Toggling software WP off should work when hardware is off.
     // Then enable again for another go.
     env.wp.push().set_sw(false)?;

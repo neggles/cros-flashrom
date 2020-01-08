@@ -245,6 +245,7 @@ impl<'a, 'p> WriteProtectState<'a, 'p> {
 
     /// Set the software write protect.
     pub fn set_sw(&mut self, enable: bool) -> Result<&mut Self, String> {
+        info!("request={}, current={}", enable, self.current.1);
         if self.current.1 != enable {
             flashrom::wp_toggle(self.cmd, /* en= */ enable)?;
             self.current.1 = enable;
