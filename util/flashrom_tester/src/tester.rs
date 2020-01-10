@@ -365,6 +365,16 @@ impl<'a, 'p> WriteProtectState<'a, 'p> {
         // Toggle both protects back to their initial states.
         // Software first because we can't change it once hardware is enabled.
         if sw != self.current.1 {
+            // Is the hw wp currently enabled?
+            if self.current.0 {
+                super::utils::toggle_hw_wp(/* dis= */ true).map_err(|e| {
+                    format!(
+                        "Failed to {}able hardware write protect: {}",
+                        enable_str(false),
+                        e
+                    )
+                })?;
+            }
             flashrom::wp_toggle(self.cmd, /* en= */ sw).map_err(|e| {
                 format!(
                     "Failed to {}able software write protect: {}",

@@ -286,8 +286,9 @@ fn partial_lock_test(section: LayoutNames) -> impl Fn(&mut TestEnv) -> TestResul
         let (name, start, len) = utils::layout_section(env.layout(), section);
         // Disable software WP so we can do range protection, but hardware WP
         // must remain enabled for (most) range protection to do anything.
-        env.wp.set_hw(false)?.set_sw(false)?.set_hw(true)?;
+        env.wp.set_hw(false)?.set_sw(false)?;
         flashrom::wp_range(env.cmd, (start, len), true)?;
+        env.wp.set_hw(true)?;
 
         let rws = flashrom::ROMWriteSpecifics {
             layout_file: Some(LAYOUT_FILE),
