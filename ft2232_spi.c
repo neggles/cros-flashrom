@@ -79,17 +79,7 @@ const struct usbdev_status devs_ft2232spi[] = {
 	{0},
 };
 
-/*
- * The 'H' chips can run internally at either 12MHz or 60MHz.
- * The non-H chips can only run at 12MHz.
- */
-static uint8_t clock_5x = 1;
-
-/*
- * In either case, the divisor is a simple integer clock divider.
- * If clock_5x is set, this divisor divides 30MHz, else it divides 6MHz.
- */
-#define DIVIDE_BY 3  /* e.g. '3' will give either 10MHz or 2MHz SPI clock. */
+#define DEFAULT_DIVISOR 2
 
 #define BITMODE_BITBANG_NORMAL	1
 #define BITMODE_BITBANG_SPI	2
@@ -176,16 +166,31 @@ static const struct spi_master spi_master_ft2232 = {
 /* Returns 0 upon success, a negative number upon errors. */
 int ft2232_spi_init(void)
 {
-	int f, ret = 0;
+	int ret = 0;
 	struct ftdi_context *ftdic = &ftdic_context;
 	unsigned char buf[512];
 	int ft2232_vid = FTDI_VID;
 	int ft2232_type = FTDI_FT4232H_PID;
 	int channel_count = 4; /* Stores the number of channels of the device. */
 	enum ftdi_interface ft2232_interface = INTERFACE_A;
-	char *endp;
+	/*
+	 * The 'H' chips can run with an internal clock of either 12 MHz or 60 MHz,
+	 * but the non-H chips can only run at 12 MHz. We disable the divide-by-5
+	 * prescaler on 'H' chips so they run at 60MHz.
+	 */
+	uint8_t clock_5x = 1;
+	/* In addition to the prescaler mentioned above there is also another
+	 * configurable one on all versions of the chips. Its divisor div can be
+	 * set by a 16 bit value x according to the following formula:
+	 * div = (1 + x) * 2 <-> x = div / 2 - 1
+	 * Hence the expressible divisors are all even numbers between 2 and
+	 * 2^17 (=131072) resulting in SCK frequencies of 6 MHz down to about
+	 * 92 Hz for 12 MHz inputs and 30 MHz down to about 458 Hz for 60 MHz
+	 * inputs.
+	 */
 	double spi_mhz = 0;
-	uint16_t divide_by = DIVIDE_BY;
+	uint32_t divisor = DEFAULT_DIVISOR;
+	int f;
 	char *arg;
 	double mpsse_clk;
 
@@ -262,6 +267,8 @@ int ft2232_spi_init(void)
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_V2_PID1;
 			channel_count = 2;
+			/* Default divisor is too fast, and chip ID fails */
+			divisor = 6;
 		} else if (!strcasecmp(arg, "servo-v2-legacy")) {
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_V2_PID0;
@@ -314,8 +321,9 @@ int ft2232_spi_init(void)
 	free(arg);
 	arg = extract_programmer_param("spi_mhz");
         if (arg) {
-		spi_mhz = strtod(arg, &endp);
-		if (arg == endp) {
+		char *endptr;
+		spi_mhz = strtod(arg, &endptr);
+		if (arg == endptr) {
 			msg_perr("%s: Invalid clock %s MHz.  Will use "
 				 "default\n", __func__, arg);
 		}
@@ -379,31 +387,30 @@ int ft2232_spi_init(void)
 			goto ftdi_err;
 		}
 		mpsse_clk = 60.0;
-		if (spi_mhz)
-			divide_by = (uint16_t)(mpsse_clk / (spi_mhz * 2));
 	} else {
 		mpsse_clk = 12.0;
-		if (spi_mhz)
-			divide_by = (uint16_t)((mpsse_clk * 5) / (spi_mhz * 2));
 	}
-	if (divide_by < 1) {
+
+	if (spi_mhz)
+		divisor = (uint16_t)(mpsse_clk / spi_mhz);
+
+	if (divisor < 2) {
 		msg_perr("Can't set SPI clock to %f MHz, will be %f MHz\n",
 			 spi_mhz, mpsse_clk / 2);
-		divide_by = 1;
+		divisor = 2;
 	}
 
 	msg_pdbg("Set clock divisor\n");
 	buf[0] = TCK_DIVISOR;
-	buf[1] = (divide_by - 1) & 0xff;
-	buf[2] = ((divide_by - 1) >> 8) & 0xff;
+	buf[1] = (divisor / 2 - 1) & 0xff;
+	buf[2] = ((divisor / 2 - 1) >> 8) & 0xff;
 	if (send_buf(ftdic, buf, 3)) {
 		ret = -6;
 		goto ftdi_err;
 	}
 
-	msg_pdbg("MPSSE clock: %f MHz divisor: %d "
-		 "SPI clock: %f MHz\n", mpsse_clk, divide_by,
-		 (double)(mpsse_clk / (((divide_by - 1) + 1) * 2)));
+	msg_pdbg("MPSSE clock: %f MHz, divisor: %u, SPI clock: %f MHz\n",
+		 mpsse_clk, divisor, (double)(mpsse_clk / divisor));
 
 	/* Disconnect TDI/DO to TDO/DI for loopback. */
 	msg_pdbg("No loopback of TDI/DO TDO/DI\n");
