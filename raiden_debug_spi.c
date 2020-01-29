@@ -88,6 +88,7 @@ static int send_command(const struct flashctx *flash,
 {
 	uint8_t  buffer[MAX_PACKET_SIZE];
 	int      transferred;
+	int      ret;
 
 	if (write_count > MAX_PACKET_SIZE - PACKET_HEADER_SIZE) {
 		msg_perr("Raiden: invalid write_count of %d\n", write_count);
@@ -104,17 +105,19 @@ static int send_command(const struct flashctx *flash,
 
 	memcpy(buffer + PACKET_HEADER_SIZE, write_buffer, write_count);
 
-	CHECK(LIBUSB(libusb_bulk_transfer(device->handle,
+	ret = LIBUSB(libusb_bulk_transfer(device->handle,
 					  out_endpoint,
 					  buffer,
 					  write_count + PACKET_HEADER_SIZE,
 					  &transferred,
-					  TRANSFER_TIMEOUT_MS)),
-	      "Raiden: OUT transfer failed\n"
-	      "    write_count = %d\n"
-	      "    read_count  = %d\n",
-	      write_count,
-	      read_count);
+					  TRANSFER_TIMEOUT_MS));
+	if (ret != 0) {
+		msg_perr("Raiden: OUT transfer failed\n"
+				"    write_count = %d\n"
+				"    read_count  = %d\n",
+				write_count, read_count);
+		return ret;
+	}
 
 	if (transferred != write_count + PACKET_HEADER_SIZE) {
 		msg_perr("Raiden: Write failure (wrote %d, expected %d)\n",
@@ -122,17 +125,19 @@ static int send_command(const struct flashctx *flash,
 		return 0x10001;
 	}
 
-	CHECK(LIBUSB(libusb_bulk_transfer(device->handle,
+	ret = LIBUSB(libusb_bulk_transfer(device->handle,
 					  in_endpoint,
 					  buffer,
 					  read_count + PACKET_HEADER_SIZE,
 					  &transferred,
-					  TRANSFER_TIMEOUT_MS)),
-	      "Raiden: IN transfer failed\n"
-	      "    write_count = %d\n"
-	      "    read_count  = %d\n",
-	      write_count,
-	      read_count);
+					  TRANSFER_TIMEOUT_MS));
+	if (ret != 0) {
+		msg_perr("Raiden: IN transfer failed\n"
+				"    write_count = %d\n"
+				"    read_count  = %d\n",
+				write_count, read_count);
+		return ret;
+	}
 
 	if (transferred != read_count + PACKET_HEADER_SIZE) {
 		msg_perr("Raiden: Read failure (read %d, expected %d)\n",
@@ -215,7 +220,7 @@ static int find_endpoints(struct usb_device *dev, uint8_t *in_ep, uint8_t *out_e
 
 static int shutdown(void * data)
 {
-	CHECK(LIBUSB(libusb_control_transfer(
+	int ret = LIBUSB(libusb_control_transfer(
 			     device->handle,
 			     LIBUSB_ENDPOINT_OUT |
 			     LIBUSB_REQUEST_TYPE_VENDOR |
@@ -225,8 +230,11 @@ static int shutdown(void * data)
 			     device->interface_descriptor->bInterfaceNumber,
 			     NULL,
 			     0,
-			     TRANSFER_TIMEOUT_MS)),
-		"Raiden: Failed to disable SPI bridge\n");
+			     TRANSFER_TIMEOUT_MS));
+	if (ret != 0) {
+		msg_perr("Raiden: Failed to disable SPI bridge\n");
+		return ret;
+	}
 
 	usb_device_free(device);
 
@@ -262,6 +270,7 @@ int raiden_debug_spi_init(void)
 	char *serial = extract_programmer_param("serial");
 	struct usb_device *current;
 	int found = 0;
+	int ret;
 
 	int request_enable = get_target();
 	if (request_enable < 0)
@@ -274,10 +283,17 @@ int raiden_debug_spi_init(void)
 	usb_match_value_default(&match.subclass, GOOGLE_RAIDEN_SPI_SUBCLASS);
 	usb_match_value_default(&match.protocol, GOOGLE_RAIDEN_SPI_PROTOCOL);
 
-	CHECK(LIBUSB(libusb_init(NULL)), "Raiden: libusb_init failed\n");
+	ret = LIBUSB(libusb_init(NULL));
+	if (ret != 0) {
+		msg_perr("Raiden: libusb_init failed\n");
+		return ret;
+	}
 
-	CHECK(usb_device_find(&match, &current),
-	      "Raiden: Failed to find devices\n");
+	ret = usb_device_find(&match, &current);
+	if (ret != 0) {
+		msg_perr("Raiden: Failed to find devices\n");
+		return ret;
+	}
 
 	while (current) {
 		device = current;
@@ -344,7 +360,7 @@ loop_end:
 	while (current)
 		current = usb_device_free(current);
 
-	CHECK(LIBUSB(libusb_control_transfer(
+	ret = LIBUSB(libusb_control_transfer(
 			     device->handle,
 			     LIBUSB_ENDPOINT_OUT |
 			     LIBUSB_REQUEST_TYPE_VENDOR |
@@ -354,8 +370,11 @@ loop_end:
 			     device->interface_descriptor->bInterfaceNumber,
 			     NULL,
 			     0,
-			     TRANSFER_TIMEOUT_MS)),
-		"Raiden: Failed to enable SPI bridge\n");
+			     TRANSFER_TIMEOUT_MS));
+	if (ret != 0) {
+		msg_perr("Raiden: Failed to enable SPI bridge\n");
+		return ret;
+	}
 
 	register_spi_master(&spi_master_raiden_debug);
 	register_shutdown(shutdown, NULL);

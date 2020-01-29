@@ -194,11 +194,13 @@ static int find_config(struct usb_match const *match,
 	int i;
 
 	for (i = 0; i < device_descriptor->bNumConfigurations; ++i) {
-		CHECK(LIBUSB(libusb_get_config_descriptor(
-				     current->device,
-				     i,
-				     &current->config_descriptor)),
-		      "USB: Failed to get config descriptor");
+		int ret = LIBUSB(libusb_get_config_descriptor(
+				current->device, i,
+				&current->config_descriptor));
+		if (ret != 0) {
+			msg_perr("USB: Failed to get config descriptor");
+			return ret;
+		}
 
 		if (check_match(&match->config,
 				current->config_descriptor->
@@ -220,8 +222,11 @@ int usb_device_find(struct usb_match const *match, struct usb_device **devices)
 
 	*devices = NULL;
 
-	CHECK(LIBUSB(count = libusb_get_device_list(NULL, &list)),
-	      "USB: Failed to get device list");
+	int ret = LIBUSB(count = libusb_get_device_list(NULL, &list));
+	if (ret != 0) {
+		msg_perr("USB: Failed to get device list");
+		return ret;
+	}
 
 	for (i = 0; i < count; ++i) {
 		struct libusb_device_descriptor descriptor;
@@ -238,19 +243,26 @@ int usb_device_find(struct usb_match const *match, struct usb_device **devices)
 			 bus,
 			 address);
 
-		CHECK(LIBUSB(libusb_get_device_descriptor(list[i],
-							  &descriptor)),
-		      "USB: Failed to get device descriptor");
+		ret = LIBUSB(libusb_get_device_descriptor(list[i],
+							  &descriptor));
+		      if (ret != 0) {
+			      msg_perr("USB: Failed to get device descriptor");
+			      return ret;
+		      }
 
 		if (check_match(&match->vid,     descriptor.idVendor) &&
 		    check_match(&match->pid,     descriptor.idProduct) &&
 		    check_match(&match->bus,     bus) &&
-		    check_match(&match->address, address))
-			CHECK(find_config(match,
+		    check_match(&match->address, address)) {
+			ret = find_config(match,
 					  &current,
 					  &descriptor,
-					  devices),
-			      "USB: Failed to find config");
+					  devices);
+			if (ret != 0) {
+				msg_perr("USB: Failed to find config");
+				return ret;
+			}
+		}
 	}
 
 	libusb_free_device_list(list, 1);
@@ -267,9 +279,13 @@ int usb_device_find(struct usb_match const *match, struct usb_device **devices)
  */
 static int usb_device_open(struct usb_device *device)
 {
-	if (device->handle == NULL)
-		CHECK(LIBUSB(libusb_open(device->device, &device->handle)),
-		      "USB: Failed to open device\n");
+	if (device->handle == NULL) {
+		int ret = LIBUSB(libusb_open(device->device, &device->handle));
+		if (ret != 0) {
+			msg_perr("USB: Failed to open device\n");
+			return ret;
+		}
+	}
 
 	return 0;
 }
@@ -278,18 +294,29 @@ int usb_device_show(char const *prefix, struct usb_device *device)
 {
 	struct libusb_device_descriptor descriptor;
 	unsigned char                   product[256];
+	int ret;
 
-	CHECK(usb_device_open(device), "USB: Failed to open device\n");
+	ret = usb_device_open(device);
+	if (ret != 0) {
+	       msg_perr("USB: Failed to open device\n");
+	       return ret;
+	}
 
-	CHECK(LIBUSB(libusb_get_device_descriptor(device->device, &descriptor)),
-	      "USB: Failed to get device descriptor\n");
+	ret = LIBUSB(libusb_get_device_descriptor(device->device, &descriptor));
+	if (ret != 0) {
+		msg_perr("USB: Failed to get device descriptor\n");
+		return ret;
+	}
 
-	CHECK(LIBUSB(libusb_get_string_descriptor_ascii(
+	ret = LIBUSB(libusb_get_string_descriptor_ascii(
 			     device->handle,
 			     descriptor.iProduct,
 			     product,
-			     sizeof(product))),
-	      "USB: Failed to get device product string\n");
+			     sizeof(product)));
+	if (ret != 0) {
+		msg_perr("USB: Failed to get device product string\n");
+		return ret;
+	}
 
 	product[255] = '\0';
 
@@ -306,43 +333,64 @@ int usb_device_claim(struct usb_device *device)
 {
 	int current_config;
 
-	CHECK(usb_device_open(device), "USB: Failed to open device\n");
+	int ret = usb_device_open(device);
+	if (ret != 0) {
+		msg_perr("USB: Failed to open device\n");
+		return ret;
+	}
 
-	CHECK(LIBUSB(libusb_get_configuration(device->handle,
-					      &current_config)),
-	      "USB: Failed to get current device configuration\n");
+	ret = LIBUSB(libusb_get_configuration(device->handle,
+					      &current_config));
+	if (ret != 0) {
+		msg_perr("USB: Failed to get current device configuration\n");
+		return ret;
+	}
 
-	if (current_config != device->config_descriptor->bConfigurationValue)
-		CHECK(LIBUSB(libusb_set_configuration(
+	if (current_config != device->config_descriptor->bConfigurationValue) {
+		ret = LIBUSB(libusb_set_configuration(
 				     device->handle,
 				     device->
 				     config_descriptor->
-				     bConfigurationValue)),
-		      "USB: Failed to set new configuration from %d to %d\n",
-		      current_config,
-		      device->config_descriptor->bConfigurationValue);
+				     bConfigurationValue));
+		if (ret != 0) {
+			msg_perr("USB: Failed to set new configuration from %d to %d\n",
+					current_config,
+					device->config_descriptor->bConfigurationValue);
+			return ret;
+		}
+	}
 
-	CHECK(LIBUSB(libusb_set_auto_detach_kernel_driver(device->handle, 1)),
-	      "USB: Failed to enable auto kernel driver detach\n");
+	ret = LIBUSB(libusb_set_auto_detach_kernel_driver(device->handle, 1));
+	if (ret != 0) {
+		msg_perr("USB: Failed to enable auto kernel driver detach\n");
+		return ret;
+	}
 
-	CHECK(LIBUSB(libusb_claim_interface(device->handle,
+	ret = LIBUSB(libusb_claim_interface(device->handle,
 					    device->
 					    interface_descriptor->
-					    bInterfaceNumber)),
-	      "USB: Could not claim device interface %d\n",
-	      device->interface_descriptor->bInterfaceNumber);
+					    bInterfaceNumber));
+	if (ret != 0) {
+		msg_perr("USB: Could not claim device interface %d\n",
+				device->interface_descriptor->bInterfaceNumber);
+		return ret;
+	}
 
-	if (device->interface_descriptor->bAlternateSetting != 0)
-		CHECK(LIBUSB(libusb_set_interface_alt_setting(
+	if (device->interface_descriptor->bAlternateSetting != 0) {
+		ret = LIBUSB(libusb_set_interface_alt_setting(
 				     device->handle,
 				     device->
 				     interface_descriptor->
 				     bInterfaceNumber,
 				     device->
 				     interface_descriptor->
-				     bAlternateSetting)),
-		      "USB: Failed to set alternate setting %d\n",
-		      device->interface_descriptor->bAlternateSetting);
+				     bAlternateSetting));
+		if (ret != 0) {
+			msg_perr("USB: Failed to set alternate setting %d\n",
+					device->interface_descriptor->bAlternateSetting);
+			return ret;
+		}
+	}
 
 	return 0;
 }
