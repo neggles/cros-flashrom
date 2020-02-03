@@ -14,6 +14,9 @@
  * GNU General Public License for more details.
  */
 
+#ifndef USB_DEVICE_H
+#define USB_DEVICE_H
+
 /*
  * USB device matching framework
  *
@@ -157,3 +160,5 @@ int usb_device_claim(struct usb_device *device);
  *     The next device in the device list.
  */
 struct usb_device *usb_device_free(struct usb_device *device);
+
+#endif /* USB_DEVICE_H */
