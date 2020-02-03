@@ -428,7 +428,7 @@ static int shutdown(void * data)
 	return 0;
 }
 
-static int get_target()
+static int get_target(void)
 {
 	int request_enable = RAIDEN_DEBUG_SPI_REQ_ENABLE;
 
