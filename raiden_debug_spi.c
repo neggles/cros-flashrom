@@ -46,6 +46,53 @@
  * that respository:
  *
  *     chip/stm32/usb_spi.c
+ *
+ * Version 1:
+ * SPI transactions of up to 62B in each direction with every command having
+ * a response. The initial packet from host contains a 2B header indicating
+ * write and read counts with an optional payload length equal to the write
+ * count. The device will respond with a message that reports the 2B status
+ * code and an optional payload response length equal to read count.
+ *
+ * Message Format:
+ *
+ * Command Packet:
+ *     +------------------+-----------------+------------------------+
+ *     | write count : 1B | read count : 1B | write payload : <= 62B |
+ *     +------------------+-----------------+------------------------+
+ *
+ *     write count:   1 byte, zero based count of bytes to write
+ *
+ *     read count:    1 byte, zero based count of bytes to read
+ *
+ *     write payload: Up to 62 bytes of data to write to SPI, the total
+ *                    length of all TX packets must match write count.
+ *                    Due to data alignment constraints, this must be an
+ *                    even number of bytes unless this is the final packet.
+ *
+ * Response Packet:
+ *     +-------------+-----------------------+
+ *     | status : 2B | read payload : <= 62B |
+ *     +-------------+-----------------------+
+ *
+ *     status: 2 byte status
+ *         0x0000: Success
+ *         0x0001: SPI timeout
+ *         0x0002: Busy, try again
+ *             This can happen if someone else has acquired the shared memory
+ *             buffer that the SPI driver uses as /dev/null
+ *         0x0003: Write count invalid (V1 > 62B)
+ *         0x0004: Read count invalid (V1 > 62B)
+ *         0x0005: The SPI bridge is disabled.
+ *         0x8000: Unknown error mask
+ *             The bottom 15 bits will contain the bottom 15 bits from the EC
+ *             error code.
+ *
+ *     read payload: Up to 62 bytes of data read from SPI, the total
+ *                   length of all RX packets must match read count
+ *                   unless an error status was returned. Due to data
+ *                   alignment constraints, this must be a even number
+ *                   of bytes unless this is the final packet.
  */
 
 #include "programmer.h"
@@ -58,9 +105,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#define GOOGLE_VID                 0x18D1
-#define GOOGLE_RAIDEN_SPI_SUBCLASS 0x51
-#define GOOGLE_RAIDEN_SPI_PROTOCOL 0x01
+#define GOOGLE_VID                  (0x18D1)
+#define GOOGLE_RAIDEN_SPI_SUBCLASS  (0x51)
+#define GOOGLE_RAIDEN_SPI_PROTOCOL  (0x01)
 
 enum raiden_debug_spi_request {
 	RAIDEN_DEBUG_SPI_REQ_ENABLE    = 0x0000,
@@ -69,54 +116,68 @@ enum raiden_debug_spi_request {
 	RAIDEN_DEBUG_SPI_REQ_ENABLE_EC = 0x0003,
 };
 
-#define PACKET_HEADER_SIZE	2
-#define MAX_PACKET_SIZE		64
+#define PACKET_HEADER_SIZE      (2)
+#define MAX_PACKET_SIZE         (64)
+#define PAYLOAD_SIZE            (MAX_PACKET_SIZE - PACKET_HEADER_SIZE)
 
 /*
  * This timeout is so large because the Raiden SPI timeout is 800ms.
  */
-#define TRANSFER_TIMEOUT_MS	1000
+#define TRANSFER_TIMEOUT_MS     (1000)
 
 struct usb_device *device       = NULL;
 uint8_t            in_endpoint  = 0;
 uint8_t            out_endpoint = 0;
 
-static int send_command(const struct flashctx *flash,
-			unsigned int write_count,
-			unsigned int read_count,
-			const unsigned char *write_buffer,
-			unsigned char *read_buffer)
-{
-	uint8_t  buffer[MAX_PACKET_SIZE];
-	int      transferred;
-	int      ret;
+typedef struct {
+	int8_t write_count;
+	/* -1 Indicates readback all on halfduplex compliant devices. */
+	int8_t read_count;
+	uint8_t data[PAYLOAD_SIZE];
+} __attribute__((packed)) usb_spi_command_t;
 
-	if (write_count > MAX_PACKET_SIZE - PACKET_HEADER_SIZE) {
+typedef struct {
+	uint16_t status_code;
+	uint8_t data[PAYLOAD_SIZE];
+} __attribute__((packed)) usb_spi_response_t;
+
+static int write_command(const struct flashctx *flash,
+                         unsigned int write_count,
+                         unsigned int read_count,
+                         const unsigned char *write_buffer,
+                         unsigned char *read_buffer)
+{
+
+	int transferred;
+	int ret;
+	usb_spi_command_t command_packet;
+
+	if (write_count > PAYLOAD_SIZE) {
 		msg_perr("Raiden: invalid write_count of %d\n", write_count);
 		return SPI_INVALID_LENGTH;
 	}
 
-	if (read_count > MAX_PACKET_SIZE - PACKET_HEADER_SIZE) {
+	if (read_count > PAYLOAD_SIZE) {
 		msg_perr("Raiden: invalid read_count of %d\n", read_count);
 		return SPI_INVALID_LENGTH;
 	}
 
-	buffer[0] = write_count;
-	buffer[1] = read_count;
+	command_packet.write_count = write_count;
+	command_packet.read_count = read_count;
 
-	memcpy(buffer + PACKET_HEADER_SIZE, write_buffer, write_count);
+	memcpy(command_packet.data, write_buffer, write_count);
 
 	ret = LIBUSB(libusb_bulk_transfer(device->handle,
-					  out_endpoint,
-					  buffer,
-					  write_count + PACKET_HEADER_SIZE,
-					  &transferred,
-					  TRANSFER_TIMEOUT_MS));
+	                                  out_endpoint,
+	                                  (void*)&command_packet,
+	                                  write_count + PACKET_HEADER_SIZE,
+	                                  &transferred,
+	                                  TRANSFER_TIMEOUT_MS));
 	if (ret != 0) {
 		msg_perr("Raiden: OUT transfer failed\n"
-				"    write_count = %d\n"
-				"    read_count  = %d\n",
-				write_count, read_count);
+		         "    write_count = %d\n"
+		         "    read_count  = %d\n",
+		         write_count, read_count);
 		return ret;
 	}
 
@@ -126,29 +187,65 @@ static int send_command(const struct flashctx *flash,
 		return 0x10001;
 	}
 
+	return 0;
+}
+
+static int read_response(const struct flashctx *flash,
+                         unsigned int write_count,
+                         unsigned int read_count,
+                         const unsigned char *write_buffer,
+                         unsigned char *read_buffer)
+{
+
+	int transferred;
+	int ret;
+	usb_spi_response_t response_packet;
+
 	ret = LIBUSB(libusb_bulk_transfer(device->handle,
-					  in_endpoint,
-					  buffer,
-					  read_count + PACKET_HEADER_SIZE,
-					  &transferred,
-					  TRANSFER_TIMEOUT_MS));
+	                                  in_endpoint,
+	                                  (void*)&response_packet,
+	                                  read_count + PACKET_HEADER_SIZE,
+	                                  &transferred,
+	                                  TRANSFER_TIMEOUT_MS));
 	if (ret != 0) {
 		msg_perr("Raiden: IN transfer failed\n"
-				"    write_count = %d\n"
-				"    read_count  = %d\n",
-				write_count, read_count);
+		         "    write_count = %d\n"
+		         "    read_count  = %d\n",
+		         write_count, read_count);
 		return ret;
 	}
 
 	if (transferred != read_count + PACKET_HEADER_SIZE) {
 		msg_perr("Raiden: Read failure (read %d, expected %d)\n",
-			 transferred, read_count + PACKET_HEADER_SIZE);
+		         transferred, read_count + PACKET_HEADER_SIZE);
 		return 0x10002;
 	}
 
-	memcpy(read_buffer, buffer + PACKET_HEADER_SIZE, read_count);
+	memcpy(read_buffer, response_packet.data, read_count);
 
-	return buffer[0] | (buffer[1] << 8);
+	return response_packet.status_code;
+}
+
+static int send_command(const struct flashctx *flash,
+                        unsigned int write_count,
+                        unsigned int read_count,
+                        const unsigned char *write_buffer,
+                        unsigned char *read_buffer)
+{
+
+	int status = -1;
+
+	status = write_command(flash, write_count, read_count,
+	                       write_buffer, read_buffer);
+
+	if (status) {
+		return status;
+	}
+
+	status = read_response(flash, write_count, read_count,
+	                       write_buffer, read_buffer);
+
+	return status;
 }
 
 /*
@@ -162,23 +259,21 @@ static int send_command(const struct flashctx *flash,
  * The largest command that flashrom generates is the byte program command, so
  * we use that command header maximum size here.
  */
-#define MAX_DATA_SIZE	(MAX_PACKET_SIZE -			\
-			 PACKET_HEADER_SIZE -			\
-			 JEDEC_BYTE_PROGRAM_OUTSIZE)
+#define MAX_DATA_SIZE   (PAYLOAD_SIZE - JEDEC_BYTE_PROGRAM_OUTSIZE)
 
 static const struct spi_master spi_master_raiden_debug = {
-	.type		= SPI_CONTROLLER_RAIDEN_DEBUG,
-	.features	= SPI_MASTER_4BA,
-	.max_data_read	= MAX_DATA_SIZE,
-	.max_data_write	= MAX_DATA_SIZE,
-	.command	= send_command,
-	.multicommand	= default_spi_send_multicommand,
-	.read		= default_spi_read,
-	.write_256	= default_spi_write_256,
+	.type           = SPI_CONTROLLER_RAIDEN_DEBUG,
+	.features       = SPI_MASTER_4BA,
+	.max_data_read  = MAX_DATA_SIZE,
+	.max_data_write = MAX_DATA_SIZE,
+	.command        = send_command,
+	.multicommand   = default_spi_send_multicommand,
+	.read           = default_spi_read,
+	.write_256      = default_spi_write_256,
 };
 
 static int match_endpoint(struct libusb_endpoint_descriptor const *descriptor,
-			  enum libusb_endpoint_direction direction)
+                          enum libusb_endpoint_direction direction)
 {
 	return (((descriptor->bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) ==
 		 direction) &&
@@ -186,7 +281,8 @@ static int match_endpoint(struct libusb_endpoint_descriptor const *descriptor,
 		 LIBUSB_TRANSFER_TYPE_BULK));
 }
 
-static int find_endpoints(struct usb_device *dev, uint8_t *in_ep, uint8_t *out_ep)
+static int find_endpoints(struct usb_device *dev, uint8_t *in_ep,
+                          uint8_t *out_ep)
 {
 	int i;
 	int in_count  = 0;
@@ -334,10 +430,12 @@ int raiden_debug_spi_init(void)
 				LIBUSB(rc);
 			} else {
 				if (strcmp(serial, (char *)dev_serial)) {
-					msg_pdbg("Raiden: Serial number %s did not match device", serial);
+					msg_pdbg("Raiden: Serial number %s did not match device",
+					         serial);
 					usb_device_show(" ", current);
 				} else {
-					msg_pinfo("Raiden: Serial number %s matched device", serial);
+					msg_pinfo("Raiden: Serial number %s matched device",
+					          serial);
 					usb_device_show(" ", current);
 					found = 1;
 				}
