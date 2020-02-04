@@ -56,6 +56,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define GOOGLE_VID                 0x18D1
 #define GOOGLE_RAIDEN_SPI_SUBCLASS 0x51
@@ -375,6 +376,15 @@ loop_end:
 		msg_perr("Raiden: Failed to enable SPI bridge\n");
 		return ret;
 	}
+
+	/*
+	 * Allow for power to settle on the AP and EC flash devices.
+	 * Load switches can have a 1-3 ms turn on time, and SPI flash devices
+	 * can require up to 10 ms from power on to the first write.
+	 */
+	if ((request_enable == RAIDEN_DEBUG_SPI_REQ_ENABLE_AP) ||
+		(request_enable == RAIDEN_DEBUG_SPI_REQ_ENABLE_EC))
+		usleep(50 * 1000);
 
 	register_spi_master(&spi_master_raiden_debug);
 	register_shutdown(shutdown, NULL);
