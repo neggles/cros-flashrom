@@ -120,6 +120,10 @@ enum raiden_debug_spi_request {
 #define MAX_PACKET_SIZE         (64)
 #define PAYLOAD_SIZE            (MAX_PACKET_SIZE - PACKET_HEADER_SIZE)
 
+#define WRITE_RETY_ATTEMPTS     (3)
+#define READ_RETY_ATTEMPTS      (3)
+#define RETY_INTERVAL_US        (100 * 1000)
+
 /*
  * This timeout is so large because the Raiden SPI timeout is 800ms.
  */
@@ -235,16 +239,41 @@ static int send_command(const struct flashctx *flash,
 
 	int status = -1;
 
-	status = write_command(flash, write_count, read_count,
-	                       write_buffer, read_buffer);
+	for (int write_attempt = 0; write_attempt < WRITE_RETY_ATTEMPTS;
+	         write_attempt++) {
 
-	if (status) {
-		return status;
+		status = write_command(flash, write_count, read_count,
+		                       write_buffer, read_buffer);
+
+		if (status) {
+			/* Write operation failed. */
+			msg_perr("Raiden: Write command failed\n"
+			         "Write attempt = %d\n"
+			         "status = %d\n",
+			         write_attempt + 1, status);
+			programmer_delay(RETY_INTERVAL_US);
+			continue;
+		}
+		for (int read_attempt = 0; read_attempt < READ_RETY_ATTEMPTS;
+		         read_attempt++) {
+
+			status = read_response(flash, write_count, read_count,
+			                       write_buffer, read_buffer);
+
+			if (status != 0) {
+				/* Read operation failed. */
+				msg_perr("Raiden: Read response failed\n"
+				         "Write attempt = %d\n"
+				         "Read attempt = %d\n"
+				         "status = %d\n",
+				         write_attempt + 1, read_attempt + 1, status);
+				programmer_delay(RETY_INTERVAL_US);
+			} else {
+				/* We were successful at performing the SPI transfer. */
+				return status;
+			}
+		}
 	}
-
-	status = read_response(flash, write_count, read_count,
-	                       write_buffer, read_buffer);
-
 	return status;
 }
 
