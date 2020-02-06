@@ -391,14 +391,14 @@ int ft2232_spi_init(void)
 		mpsse_clk = 12.0;
 	}
 
-	if (spi_mhz)
-		divisor = (uint16_t)(mpsse_clk / spi_mhz);
-
-	if (divisor < 2) {
-		msg_perr("Can't set SPI clock to %f MHz, will be %f MHz\n",
-			 spi_mhz, mpsse_clk / 2);
-		divisor = 2;
-	}
+	if (spi_mhz) {
+		divisor = (uint32_t)(mpsse_clk / spi_mhz);
+		if (divisor < 2 || divisor > 131072) {
+			divisor = divisor < 2 ? 2 : 131072;
+			msg_perr("Can't set SPI clock to %f MHz, will be %f MHz\n",
+				spi_mhz, mpsse_clk / divisor);
+		}
+        }
 
 	msg_pdbg("Set clock divisor\n");
 	buf[0] = TCK_DIVISOR;
