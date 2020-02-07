@@ -319,8 +319,14 @@ int ft2232_spi_init(void)
 		}
 	}
 	free(arg);
+
 	arg = extract_programmer_param("spi_mhz");
         if (arg) {
+                msg_perr("\n========================================================================\n"
+			 "Warning: The spi_mhz argument is depricated and will be removed soon.\n"
+			 "Please use the divisor argument instead.\n"
+			 "========================================================================\n\n");
+
 		char *endptr;
 		spi_mhz = strtod(arg, &endptr);
 		if (arg == endptr) {
@@ -328,6 +334,21 @@ int ft2232_spi_init(void)
 				 "default\n", __func__, arg);
 		}
 		msg_pdbg("Clock %f MHz\n", spi_mhz);
+	}
+	free(arg);
+
+	arg = extract_programmer_param("divisor");
+	if (arg && strlen(arg)) {
+		unsigned int temp = 0;
+		char *endptr;
+		temp = strtoul(arg, &endptr, 10);
+		if (*endptr || temp < 2 || temp > 131072 || temp & 0x1) {
+			msg_perr("Error: Invalid SPI frequency divisor specified: \"%s\".\n"
+				 "Valid are even values between 2 and 131072.\n", arg);
+			free(arg);
+			return -2;
+		}
+		divisor = (uint32_t)temp;
 	}
 	free(arg);
 
