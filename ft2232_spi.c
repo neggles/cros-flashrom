@@ -84,13 +84,16 @@ const struct usbdev_status devs_ft2232spi[] = {
 #define BITMODE_BITBANG_NORMAL	1
 #define BITMODE_BITBANG_SPI	2
 
-/* Set data bits low-byte command:
+/* The variables cs_bits and pindir store the values for the "set data bits low byte" MPSSE command that
+ * sets the initial state and the direction of the I/O pins. The pin offsets are as follows:
+ * SCK is bit 0.
+ * DO  is bit 1.
+ * DI  is bit 2.
+ * CS  is bit 3.
+ *
+ * The default values (set below) are used for most devices:
  *  value: 0x08  CS=high, DI=low, DO=low, SK=low
  *    dir: 0x0b  CS=output, DI=input, DO=output, SK=output
- *
- * JTAGkey(2) needs to enable its output via Bit4 / GPIOL0
- *  value: 0x18  OE=high, CS=high, DI=low, DO=low, SK=low
- *    dir: 0x1b  OE=output, CS=output, DI=input, DO=output, SK=output
  */
 static uint8_t cs_bits = 0x08;
 static uint8_t pindir = 0x0b;
@@ -149,8 +152,10 @@ static int get_buf(struct ftdi_context *ftdic, const unsigned char *buf,
 	return 0;
 }
 
-static int ft2232_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		const unsigned char *writearr, unsigned char *readarr);
+static int ft2232_spi_send_command(const struct flashctx *flash,
+				   unsigned int writecnt, unsigned int readcnt,
+				   const unsigned char *writearr,
+				   unsigned char *readarr);
 
 static const struct spi_master spi_master_ft2232 = {
 	.type		= SPI_CONTROLLER_FT2232,
@@ -463,8 +468,10 @@ ftdi_err:
 }
 
 /* Returns 0 upon success, a negative number upon errors. */
-static int ft2232_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		const unsigned char *writearr, unsigned char *readarr)
+static int ft2232_spi_send_command(const struct flashctx *flash,
+				   unsigned int writecnt, unsigned int readcnt,
+				   const unsigned char *writearr,
+				   unsigned char *readarr)
 {
 	struct ftdi_context *ftdic = &ftdic_context;
 	static unsigned char *buf = NULL;
