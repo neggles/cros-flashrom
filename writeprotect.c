@@ -2232,12 +2232,23 @@ static int generic_range_table(const struct flashctx *flash,
 	return 0;
 }
 
+static uint8_t generic_get_bp_mask(struct generic_wp *wp)
+{
+	return ((1 << (wp->sr1.bp0_pos + wp->sr1.bp_bits)) - 1) ^ \
+		  ((1 << wp->sr1.bp0_pos) - 1);
+}
+
+static uint8_t generic_get_status_check_mask(struct generic_wp *wp)
+{
+	return generic_get_bp_mask(wp) | 1 << wp->sr1.srp_pos;
+}
+
 /* Given a [start, len], this function finds a block protect bit combination
  * (if possible) and sets the corresponding bits in "status". Remaining bits
  * are preserved. */
 static int generic_range_to_status(const struct flashctx *flash,
                         unsigned int start, unsigned int len,
-                        uint8_t *status)
+                        uint8_t *status, uint8_t *check_mask)
 {
 	struct generic_wp *wp;
 	struct generic_range *r;
@@ -2247,8 +2258,7 @@ static int generic_range_to_status(const struct flashctx *flash,
 	if (generic_range_table(flash, &wp, &num_entries))
 		return -1;
 
-	bp_mask = ((1 << (wp->sr1.bp0_pos + wp->sr1.bp_bits)) - 1) - \
-		  ((1 << wp->sr1.bp0_pos) - 1);
+	bp_mask = generic_get_bp_mask(wp);
 
 	for (i = 0, r = &wp->ranges[0]; i < num_entries; i++, r++) {
 		msg_cspew("comparing range 0x%x 0x%x / 0x%x 0x%x\n",
@@ -2275,6 +2285,7 @@ static int generic_range_to_status(const struct flashctx *flash,
 		return -1;
 	}
 
+	*check_mask = generic_get_status_check_mask(wp);
 	return 0;
 }
 
@@ -2324,32 +2335,31 @@ static int generic_status_to_range(const struct flashctx *flash,
 static int generic_set_range(const struct flashctx *flash,
                          unsigned int start, unsigned int len)
 {
-	uint8_t status, expected;
+	uint8_t status, expected, check_mask;
 
 	status = do_read_status(flash);
 	msg_cdbg("%s: old status: 0x%02x\n", __func__, status);
 
 	expected = status;	/* preserve non-bp bits */
-	if (generic_range_to_status(flash, start, len, &expected))
+	if (generic_range_to_status(flash, start, len, &expected, &check_mask))
 		return -1;
 
 	do_write_status(flash, expected);
 
 	status = do_read_status(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, status);
-	if (status != expected) {
-		msg_cerr("expected=0x%02x, but actual=0x%02x.\n",
-		          expected, status);
+	if ((status & check_mask) != (expected & check_mask)) {
+		msg_cerr("expected=0x%02x, but actual=0x%02x. check mask=0x%02x\n",
+		          expected, status, check_mask);
 		return 1;
 	}
-
 	return 0;
 }
 
 /* Set/clear the status regsiter write protect bit in SR1. */
 static int generic_set_srp0(const struct flashctx *flash, int enable)
 {
-	uint8_t status, expected;
+	uint8_t status, expected, check_mask;
 	struct generic_wp *wp;
 	int num_entries;
 
@@ -2368,8 +2378,14 @@ static int generic_set_srp0(const struct flashctx *flash, int enable)
 
 	status = do_read_status(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, status);
-	if (status != expected)
+
+	check_mask = generic_get_status_check_mask(wp);
+	msg_cdbg("%s: check mask: 0x%02x\n", __func__, check_mask);
+	if ((status & check_mask) != (expected & check_mask)) {
+		msg_cerr("expected=0x%02x, but actual=0x%02x. check mask=0x%02x\n",
+		          expected, status, check_mask);
 		return -1;
+	}
 
 	return 0;
 }
