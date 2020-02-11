@@ -449,7 +449,6 @@ struct usbdev_status {
 };
 int ft2232_spi_init(void);
 extern const struct usbdev_status devs_ft2232spi[];
-void print_supported_usbdevs(const struct usbdev_status *devs);
 #endif
 
 /* rayer_spi.c */

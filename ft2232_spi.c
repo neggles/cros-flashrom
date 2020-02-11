@@ -527,17 +527,4 @@ static int ft2232_spi_send_command(const struct flashctx *flash, unsigned int wr
 	return failed ? -1 : 0;
 }
 
-void print_supported_usbdevs(const struct usbdev_status *devs)
-{
-	int i;
-
-	msg_pinfo("USB devices:\n");
-	for (i = 0; devs[i].vendor_name != NULL; i++) {
-		msg_pinfo("%s %s [%04x:%04x]%s\n", devs[i].vendor_name,
-			  devs[i].device_name, devs[i].vendor_id,
-			  devs[i].device_id,
-			  (devs[i].status == NT) ? " (untested)" : "");
-	}
-}
-
 #endif
