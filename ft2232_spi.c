@@ -523,7 +523,7 @@ static int ft2232_spi_send_command(const struct flashctx *flash,
 	 */
 	msg_pspew("Assert CS#\n");
 	buf[i++] = SET_BITS_LOW;
-	buf[i++] = 0 & ~cs_bits; /* assertive */
+	buf[i++] = ~ 0x08 & cs_bits; /* assert CS (3rd) bit only */
 	buf[i++] = pindir;
 
 	if (writecnt) {
