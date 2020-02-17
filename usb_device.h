@@ -36,7 +36,7 @@
 #define LIBUSB(expression)				      		\
 	({						      		\
 		int libusb_error__ = (expression);		      	\
-							      		\
+									\
 		if (libusb_error__ < 0) {			      	\
 			msg_perr("libusb error: %s:%d %s\n",  		\
 				 __FILE__,		      		\
@@ -46,7 +46,7 @@
 		} else {				      		\
 			libusb_error__ = 0;			      	\
 		}					      		\
-							      		\
+									\
 		libusb_error__;				      		\
 	})
 

@@ -197,7 +197,7 @@ int usb_device_find(struct usb_match const *match, struct usb_device **devices)
 {
 	libusb_device **list;
 	ssize_t         count;
-	size_t          i;
+	ssize_t         i;
 
 	*devices = NULL;
 
