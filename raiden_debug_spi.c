@@ -93,6 +93,17 @@
  *                   unless an error status was returned. Due to data
  *                   alignment constraints, this must be a even number
  *                   of bytes unless this is the final packet.
+ *
+ * USB Error Codes:
+ *
+ * send_command return codes have the following format:
+ *
+ *     0x00000:         Status code success.
+ *     0x00001-0x0FFFF: Error code returned by the USB SPI device.
+ *     0x10001-0x1FFFF: The host has determined an error has occurred.
+ *     0x20001-0x20063  Lower bits store the positive value representation
+ *                      of the libusb_error enum. See the libusb documentation:
+ *                      http://libusb.sourceforge.net/api-1.0/group__misc.html
  */
 
 #include "programmer.h"
@@ -109,6 +120,16 @@
 #define GOOGLE_RAIDEN_SPI_SUBCLASS  (0x51)
 #define GOOGLE_RAIDEN_SPI_PROTOCOL  (0x01)
 
+enum usb_spi_error {
+	USB_SPI_SUCCESS             = 0x0000,
+	USB_SPI_TIMEOUT             = 0x0001,
+	USB_SPI_BUSY                = 0x0002,
+	USB_SPI_WRITE_COUNT_INVALID = 0x0003,
+	USB_SPI_READ_COUNT_INVALID  = 0x0004,
+	USB_SPI_DISABLED            = 0x0005,
+	USB_SPI_UNKNOWN_ERROR       = 0x8000,
+};
+
 enum raiden_debug_spi_request {
 	RAIDEN_DEBUG_SPI_REQ_ENABLE    = 0x0000,
 	RAIDEN_DEBUG_SPI_REQ_DISABLE   = 0x0001,
@@ -120,6 +141,12 @@ enum raiden_debug_spi_request {
 #define MAX_PACKET_SIZE         (64)
 #define PAYLOAD_SIZE            (MAX_PACKET_SIZE - PACKET_HEADER_SIZE)
 
+/*
+ * Servo Micro has an error where it is capable of acknowledging USB packets
+ * without loading it into the USB endpoint buffers or triggering interrupts.
+ * See crbug.com/952494. Retry mechanisms have been implemented to recover
+ * from these rare failures allowing the process to continue.
+ */
 #define WRITE_RETY_ATTEMPTS     (3)
 #define READ_RETY_ATTEMPTS      (3)
 #define RETY_INTERVAL_US        (100 * 1000)
@@ -144,6 +171,29 @@ typedef struct {
 	uint16_t status_code;
 	uint8_t data[PAYLOAD_SIZE];
 } __attribute__((packed)) usb_spi_response_t;
+
+/*
+ * This function will return true when an error code can potentially recover
+ * if we attempt to write SPI data to the device or read from it. We know
+ * that some conditions are not recoverable in the current state so allows us
+ * to bypass the retry logic and terminate early.
+ */
+static bool retry_recovery(int error_code)
+{
+	if (error_code < 0x10000) {
+		/* Handle error codes returned from the device. */
+		if (USB_SPI_WRITE_COUNT_INVALID <= error_code &&
+			error_code <= USB_SPI_DISABLED) {
+			return false;
+		}
+	} else if (usb_device_is_libusb_error(error_code)) {
+		/* Handle error codes returned from libusb. */
+		if (error_code == LIBUSB_ERROR(LIBUSB_ERROR_NO_DEVICE)) {
+			return false;
+		}
+	}
+	return true;
+}
 
 static int write_command(const struct flashctx *flash,
                          unsigned int write_count,
@@ -251,6 +301,10 @@ static int send_command(const struct flashctx *flash,
 			         "Write attempt = %d\n"
 			         "status = %d\n",
 			         write_attempt + 1, status);
+			if (!retry_recovery(status)) {
+				/* Reattempting will not result in a recovery. */
+				return status;
+			}
 			programmer_delay(RETY_INTERVAL_US);
 			continue;
 		}
@@ -267,6 +321,10 @@ static int send_command(const struct flashctx *flash,
 				         "Read attempt = %d\n"
 				         "status = %d\n",
 				         write_attempt + 1, read_attempt + 1, status);
+				if (!retry_recovery(status)) {
+					/* Reattempting will not result in a recovery. */
+					return status;
+				}
 				programmer_delay(RETY_INTERVAL_US);
 			} else {
 				/* We were successful at performing the SPI transfer. */
