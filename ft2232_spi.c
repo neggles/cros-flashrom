@@ -264,20 +264,39 @@ int ft2232_spi_init(void)
 			ft2232_vid = OLIMEX_VID;
 			ft2232_type = OLIMEX_ARM_TINY_H_PID;
 			channel_count = 2;
+		} else if (!strcasecmp(arg, "google-servo")) {
+			ft2232_vid = GOOGLE_VID;
+			ft2232_type = GOOGLE_SERVO_PID;
+			channel_count = 2;
+		} else if (!strcasecmp(arg, "google-servo-v2")) {
+			ft2232_vid = GOOGLE_VID;
+			ft2232_type = GOOGLE_SERVO_V2_PID1;
+			channel_count = 2;
+			/* Default divisor is too fast, and chip ID fails */
+			divisor = 6;
+		} else if (!strcasecmp(arg, "google-servo-v2-legacy")) {
+			ft2232_vid = GOOGLE_VID;
+			ft2232_type = GOOGLE_SERVO_V2_PID0;
+			channel_count = 2;
+		/* vv WARNING: deprecated vv */
 		} else if (!strcasecmp(arg, "servo")) {
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_PID;
 			channel_count = 2;
+			msg_pwarn("Warning: Use 'google-servo' instead!");
 		} else if (!strcasecmp(arg, "servo-v2")) {
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_V2_PID1;
 			channel_count = 2;
+			msg_pwarn("Warning: Use 'google-servo-v2' instead!");
 			/* Default divisor is too fast, and chip ID fails */
 			divisor = 6;
 		} else if (!strcasecmp(arg, "servo-v2-legacy")) {
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_V2_PID0;
 			channel_count = 2;
+			msg_pwarn("Warning: Use 'google-servo-v2-legacy' instead!");
+		/* ^^ WARNING: deprecated ^^ */
 		} else if (!strcasecmp(arg, "flyswatter")) {
 			ft2232_type = FTDI_FT2232H_PID;
 			channel_count = 2;
