@@ -266,6 +266,22 @@ static struct opaque_master opaque_master_cros_ec_i2c = {
 	.erase		= cros_ec_block_erase,
 };
 
+static const char * detect_i2c_name()
+{
+	/**
+	 * We look for the device using two possible names (since the EC landed
+	 * upstream with a different name than the ChromeOS 3.4 kernel).
+	 */
+	const char *path;
+	path = scanft(SYSFS_I2C_DEV_ROOT, "name", CROS_EC_I2C_DEVICE_NAME1, 1);
+	if (path)
+		return path;
+	path = scanft(SYSFS_I2C_DEV_ROOT, "name", CROS_EC_I2C_DEVICE_NAME2, 1);
+	if (path)
+		return path;
+	return NULL;
+}
+
 int cros_ec_probe_i2c(const char *name)
 {
 	const char *path, *s;
@@ -291,19 +307,10 @@ int cros_ec_probe_i2c(const char *name)
 #endif
 
 	msg_pdbg("%s: probing for CROS_EC on I2C...\n", __func__);
-
-	/*
-	 * We look for the device using two possible names (since the EC landed
-	 * upstream with a different name than the ChromeOS 3.4 kernel).
-	 */
-	path = scanft(SYSFS_I2C_DEV_ROOT, "name", CROS_EC_I2C_DEVICE_NAME1, 1);
+	path = detect_i2c_name();
 	if (!path) {
-		path = scanft(SYSFS_I2C_DEV_ROOT, "name", CROS_EC_I2C_DEVICE_NAME2,
-			      1);
-		if (!path) {
-			msg_pdbg("CROS_EC I2C device not found\n");
-			goto cros_ec_probe_i2c_done;
-		}
+		msg_pdbg("CROS_EC I2C device not found\n");
+		goto cros_ec_probe_i2c_done;
 	}
 
 	/*
