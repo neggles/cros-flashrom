@@ -154,7 +154,7 @@ enum raiden_debug_spi_request {
 /*
  * This timeout is so large because the Raiden SPI timeout is 800ms.
  */
-#define TRANSFER_TIMEOUT_MS     (1000)
+#define TRANSFER_TIMEOUT_MS     (200 + 800)
 
 struct usb_device *device       = NULL;
 uint8_t            in_endpoint  = 0;
