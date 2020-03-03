@@ -207,12 +207,12 @@ static int write_command(const struct flashctx *flash,
 	usb_spi_command_t command_packet;
 
 	if (write_count > PAYLOAD_SIZE) {
-		msg_perr("Raiden: invalid write_count of %d\n", write_count);
+		msg_perr("Raiden: Invalid write_count of %d\n", write_count);
 		return SPI_INVALID_LENGTH;
 	}
 
 	if (read_count > PAYLOAD_SIZE) {
-		msg_perr("Raiden: invalid read_count of %d\n", read_count);
+		msg_perr("Raiden: Invalid read_count of %d\n", read_count);
 		return SPI_INVALID_LENGTH;
 	}
 
