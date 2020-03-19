@@ -349,6 +349,10 @@ override CONFIG_RAYER_SPI = no
 endif
 endif
 
+ifeq ($(TARGET_OS), Linux)
+CONFIG_LINUX_I2C_HELPER = yes
+endif
+
 ###############################################################################
 # General architecture-specific settings.
 # Like above for the OS, below we verify user-supplied options depending on the target architecture.
@@ -744,6 +748,11 @@ ifeq ($(CONFIG_LINUX_SPI), yes)
 # This is a totally ugly hack.
 FEATURE_CFLAGS += $(call debug_shell,grep -q "LINUX_SPI_SUPPORT := yes" .features && printf "%s" "-D'CONFIG_LINUX_SPI=1'")
 PROGRAMMER_OBJS += linux_spi.o
+endif
+
+ifeq ($(CONFIG_LINUX_I2C_HELPER), yes)
+LIB_OBJS += i2c_helper_linux.o
+FEATURE_CFLAGS += -D'CONFIG_I2C_SUPPORT=1'
 endif
 
 ifneq ($(NEED_SERIAL), )
