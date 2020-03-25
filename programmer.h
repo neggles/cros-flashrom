@@ -470,16 +470,6 @@ int buspirate_spi_init(void);
 int raiden_debug_spi_init(void);
 #endif
 
-/* linux_i2c.c */
-#if CONFIG_LINUX_I2C == 1
-int linux_i2c_shutdown(void *data);
-int linux_i2c_init(void);
-int linux_i2c_open(int bus, int addr, int force);
-void linux_i2c_close(void);
-int linux_i2c_xfer(int bus, int addr, const void *inbuf,
-		   int insize, const void *outbuf, int outsize);
-#endif
-
 /* linux_mtd.c */
 #if CONFIG_LINUX_MTD == 1
 int linux_mtd_init(void);
@@ -734,9 +724,6 @@ typedef int fdtype;
 
 /* wpce775x.c */
 int wpce775x_probe_spi_flash(const char *name);
-
-/* cros_ec.c */
-int cros_ec_probe_i2c(const char *name);
 
 /**
  * Probe the Google Chrome OS EC device

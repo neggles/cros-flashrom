@@ -497,9 +497,6 @@ CONFIG_BUSPIRATE_SPI ?= yes
 # Raiden Debug SPI-over-USB support.
 CONFIG_RAIDEN_DEBUG_SPI ?= no
 
-# Enable Linux I2C for ChromeOS EC
-CONFIG_LINUX_I2C ?= no
-
 CONFIG_LINUX_MTD ?= no
 
 # Always enable Dediprog SF100 for now.
@@ -578,9 +575,6 @@ ifeq ($(ARCH),x86)
 PROGRAMMER_OBJS += cros_ec_lpc.o it87spi.o it85spi.o mec1308.o sb600spi.o wbsio_spi.o mcp6x_spi.o wpce775x.o ene_lpc.o
 PROGRAMMER_OBJS += ichspi.o ich_descriptors.o amd_imc.o
 else
-ifeq ($(ARCH),arm)
-PROGRAMMER_OBJS += cros_ec_i2c.o
-endif
 NEED_LIBPCI += CONFIG_INTERNAL
 endif
 endif
@@ -727,11 +721,6 @@ ifeq ($(CONFIG_RAIDEN_DEBUG_SPI), yes)
 FEATURE_CFLAGS += -D'CONFIG_RAIDEN_DEBUG_SPI=1'
 PROGRAMMER_OBJS += raiden_debug_spi.o usb_device.o
 NEED_LIBUSB1 += CONFIG_RAIDEN_DEBUG_SPI
-endif
-
-ifeq ($(CONFIG_LINUX_I2C), yes)
-FEATURE_CFLAGS += -D'CONFIG_LINUX_I2C=1'
-PROGRAMMER_OBJS += linux_i2c.o
 endif
 
 ifeq ($(CONFIG_LINUX_MTD), yes)

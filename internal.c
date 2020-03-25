@@ -295,11 +295,7 @@ int internal_init(void)
 		target_bus = BUS_SPI;
 
 	if (target_bus != BUS_SPI) {
-		/*
-		 * Give preference to the cros_ec dev interface if it exists
-		 * and passes the "hello" test, otherwise fall back on raw I2C.
-		 */
-		if (!cros_ec_probe_dev() || !cros_ec_probe_i2c(NULL))
+		if (!cros_ec_probe_dev())
 			return 0;
 	}
 #endif
