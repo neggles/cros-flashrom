@@ -633,7 +633,7 @@ int check_erased_range(struct flashctx *flash, unsigned int start, unsigned int 
 	return ret;
 }
 
-static int compare_chunk(uint8_t *readbuf, uint8_t *cmpbuf, unsigned int start,
+static int compare_chunk(uint8_t *readbuf, const uint8_t *cmpbuf, unsigned int start,
 					unsigned int len, const char *message)
 {
 	int failcount = 0, i;
@@ -661,7 +661,7 @@ static int compare_chunk(uint8_t *readbuf, uint8_t *cmpbuf, unsigned int start,
  * @message	string to print in the "FAILED" message
  * @return	0 for success, -1 for failure
  */
-int verify_range(struct flashctx *flash, uint8_t *cmpbuf, unsigned int start, unsigned int len,
+int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len,
 		 const char *message)
 {
 	uint8_t *readbuf = malloc(len);

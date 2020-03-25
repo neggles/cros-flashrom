@@ -323,7 +323,7 @@ int probe_flash(struct registered_master *master, int startchip, struct flashctx
 int read_flash(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int read_flash_to_file(struct flashctx *flash, const char *filename);
 char *extract_param(char **haystack, const char *needle, const char *delim);
-int verify_range(struct flashctx *flash, uint8_t *cmpbuf, unsigned int start, unsigned int len, const char *message);
+int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len, const char *message);
 void print_version(void);
 void print_buildinfo(void);
 void print_banner(void);

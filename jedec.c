@@ -4,8 +4,9 @@
  * Copyright (C) 2000 Silicon Integrated System Corporation
  * Copyright (C) 2006 Giampiero Giancipoli <gianci@email.it>
  * Copyright (C) 2006 coresystems GmbH <info@coresystems.de>
- * Copyright (C) 2007 Carl-Daniel Hailfinger
+ * Copyright (C) 2007-2012 Carl-Daniel Hailfinger
  * Copyright (C) 2009 Sean Nelson <audiohacked@gmail.com>
+ * Copyright (C) 2014 Stefan Tauner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +17,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include "flash.h"
@@ -35,7 +35,7 @@ uint8_t oddparity(uint8_t val)
 	return (val ^ (val >> 1)) & 0x1;
 }
 
-static void toggle_ready_jedec_common(const struct flashctx *flash, chipaddr dst, int delay)
+static void toggle_ready_jedec_common(const struct flashctx *flash, chipaddr dst, unsigned int delay)
 {
 	unsigned int i = 0;
 	uint8_t tmp1, tmp2;
@@ -64,7 +64,7 @@ void toggle_ready_jedec(const struct flashctx *flash, chipaddr dst)
  * The Winbond W39V040C wants 50 ms between reads on sector erase toggle,
  * but experiments show that 2 ms are already enough. Pick a safety factor
  * of 4 and use an 8 ms delay.
- * Given that erase is slow on all chips, it is recommended to use 
+ * Given that erase is slow on all chips, it is recommended to use
  * toggle_ready_jedec_slow in erase functions.
  */
 static void toggle_ready_jedec_slow(const struct flashctx *flash, chipaddr dst)
@@ -72,7 +72,8 @@ static void toggle_ready_jedec_slow(const struct flashctx *flash, chipaddr dst)
 	toggle_ready_jedec_common(flash, dst, 8 * 1000);
 }
 
-void data_polling_jedec(const struct flashctx *flash, chipaddr dst, uint8_t data)
+void data_polling_jedec(const struct flashctx *flash, chipaddr dst,
+			uint8_t data)
 {
 	unsigned int i = 0;
 	uint8_t tmp;
@@ -89,9 +90,9 @@ void data_polling_jedec(const struct flashctx *flash, chipaddr dst, uint8_t data
 		msg_cdbg("%s: excessive loops, i=0x%x\n", __func__, i);
 }
 
-static unsigned int getaddrmask(struct flashctx *flash)
+static unsigned int getaddrmask(const struct flashchip *chip)
 {
-	switch (flash->chip->feature_bits & FEATURE_ADDR_MASK) {
+	switch (chip->feature_bits & FEATURE_ADDR_MASK) {
 	case FEATURE_ADDR_FULL:
 		return MASK_FULL;
 		break;
@@ -108,7 +109,7 @@ static unsigned int getaddrmask(struct flashctx *flash)
 	}
 }
 
-static void start_program_jedec_common(struct flashctx *flash, unsigned int mask)
+static void start_program_jedec_common(const struct flashctx *flash, unsigned int mask)
 {
 	chipaddr bios = flash->virtual_memory;
 	chip_writeb(flash, 0xAA, bios + (0x5555 & mask));
@@ -236,7 +237,7 @@ static int probe_jedec_common(struct flashctx *flash, unsigned int mask)
 }
 
 static int erase_sector_jedec_common(struct flashctx *flash, unsigned int page,
-			      unsigned int pagesize, unsigned int mask)
+				     unsigned int pagesize, unsigned int mask)
 {
 	chipaddr bios = flash->virtual_memory;
 	int delay_us = 0;
@@ -266,7 +267,7 @@ static int erase_sector_jedec_common(struct flashctx *flash, unsigned int page,
 }
 
 static int erase_block_jedec_common(struct flashctx *flash, unsigned int block,
-			     unsigned int blocksize, unsigned int mask)
+				    unsigned int blocksize, unsigned int mask)
 {
 	chipaddr bios = flash->virtual_memory;
 	int delay_us = 0;
@@ -323,8 +324,8 @@ static int erase_chip_jedec_common(struct flashctx *flash, unsigned int mask)
 	return 0;
 }
 
-static int write_byte_program_jedec_common(struct flashctx *flash, uint8_t *src,
-			     chipaddr dst, unsigned int mask)
+static int write_byte_program_jedec_common(const struct flashctx *flash, const uint8_t *src,
+					   chipaddr dst, unsigned int mask)
 {
 	int tried = 0, failed = 0;
 	chipaddr bios = flash->virtual_memory;
@@ -353,14 +354,16 @@ retry:
 }
 
 /* chunksize is 1 */
-int write_jedec_1(struct flashctx *flash, uint8_t *src, unsigned int start, unsigned int len)
+int write_jedec_1(struct flashctx *flash, const uint8_t *src, unsigned int start,
+		  unsigned int len)
 {
-	int i, failed = 0;
+	unsigned int i;
+	int failed = 0;
 	chipaddr dst = flash->virtual_memory + start;
 	chipaddr olddst;
 	unsigned int mask;
 
-	mask = getaddrmask(flash);
+	mask = getaddrmask(flash->chip);
 
 	olddst = dst;
 	for (i = 0; i < len; i++) {
@@ -374,16 +377,18 @@ int write_jedec_1(struct flashctx *flash, uint8_t *src, unsigned int start, unsi
 	return failed;
 }
 
-int write_page_write_jedec_common(struct flashctx *flash, uint8_t *src, unsigned int start, unsigned int page_size)
+static int write_page_write_jedec_common(struct flashctx *flash, const uint8_t *src,
+					 unsigned int start, unsigned int page_size)
 {
-	int i, tried = 0, failed;
-	uint8_t *s = src;
+	unsigned int i;
+	int tried = 0, failed;
+	const uint8_t *s = src;
 	chipaddr bios = flash->virtual_memory;
 	chipaddr dst = bios + start;
 	chipaddr d = dst;
 	unsigned int mask;
 
-	mask = getaddrmask(flash);
+	mask = getaddrmask(flash->chip);
 
 retry:
 	/* Issue JEDEC Start Program command */
@@ -409,8 +414,7 @@ retry:
 		goto retry;
 	}
 	if (failed) {
-		msg_cerr(" page 0x%" PRIxPTR " failed!\n",
-			(d - bios) / page_size);
+		msg_cerr(" page 0x%" PRIxPTR " failed!\n", (d - bios) / page_size);
 	}
 	return failed;
 }
@@ -422,7 +426,8 @@ retry:
  * This function is a slightly modified copy of spi_write_chunked.
  * Each page is written separately in chunks with a maximum size of chunksize.
  */
-int write_jedec(struct flashctx *flash, uint8_t *buf, unsigned int start, int unsigned len)
+int write_jedec(struct flashctx *flash, const uint8_t *buf, unsigned int start,
+		int unsigned len)
 {
 	unsigned int i, starthere, lenhere;
 	/* FIXME: page_size is the wrong variable. We need max_writechunk_size
@@ -461,7 +466,7 @@ int erase_chip_block_jedec(struct flashctx *flash, unsigned int addr,
 {
 	unsigned int mask;
 
-	mask = getaddrmask(flash);
+	mask = getaddrmask(flash->chip);
 	if ((addr != 0) || (blocksize != flash->chip->total_size * 1024)) {
 		msg_cerr("%s called with incorrect arguments\n",
 			__func__);
@@ -474,23 +479,25 @@ int probe_jedec(struct flashctx *flash)
 {
 	unsigned int mask;
 
-	mask = getaddrmask(flash);
+	mask = getaddrmask(flash->chip);
 	return probe_jedec_common(flash, mask);
 }
 
-int erase_sector_jedec(struct flashctx *flash, unsigned int page, unsigned int size)
+int erase_sector_jedec(struct flashctx *flash, unsigned int page,
+		       unsigned int size)
 {
 	unsigned int mask;
 
-	mask = getaddrmask(flash);
+	mask = getaddrmask(flash->chip);
 	return erase_sector_jedec_common(flash, page, size, mask);
 }
 
-int erase_block_jedec(struct flashctx *flash, unsigned int page, unsigned int size)
+int erase_block_jedec(struct flashctx *flash, unsigned int page,
+		      unsigned int size)
 {
 	unsigned int mask;
 
-	mask = getaddrmask(flash);
+	mask = getaddrmask(flash->chip);
 	return erase_block_jedec_common(flash, page, size, mask);
 }
 
@@ -498,7 +505,7 @@ int erase_chip_jedec(struct flashctx *flash)
 {
 	unsigned int mask;
 
-	mask = getaddrmask(flash);
+	mask = getaddrmask(flash->chip);
 	return erase_chip_jedec_common(flash, mask);
 }
 
@@ -530,7 +537,7 @@ static int regspace2_walk_unlockblocks(const struct flashctx *flash, const struc
 static int printlock_regspace2_block(const struct flashctx *flash, chipaddr lockreg)
 {
 	uint8_t state = chip_readb(flash, lockreg);
-	msg_cdbg("Lock status of block at %p is ", (void *)lockreg);
+	msg_cdbg("Lock status of block at 0x%0*" PRIxPTR " is ", PRIxPTR_WIDTH, lockreg);
 	switch (state & REG2_MASK) {
 	case 0:
 		msg_cdbg("Full Access.\n");
@@ -598,15 +605,15 @@ static int changelock_regspace2_block(const struct flashctx *flash, chipaddr loc
 {
 	/* Only allow changes to known read/write/lockdown bits */
 	if (((cur ^ new) & ~REG2_MASK) != 0) {
-		msg_cerr("Invalid lock change from 0x%02x to 0x%02x requested at %p!\n"
+		msg_cerr("Invalid lock change from 0x%02x to 0x%02x requested at 0x%0*" PRIxPTR "!\n"
 			 "Please report a bug at flashrom@flashrom.org\n",
-			 cur, new, (void *)lockreg);
+			 cur, new, PRIxPTR_WIDTH, lockreg);
 		return -1;
 	}
 
 	/* Exit early if no change (of read/write/lockdown bits) was requested. */
 	if (((cur ^ new) & REG2_MASK) == 0) {
-		msg_cdbg2("Lock bits at %p not changed.\n", (void *) lockreg);
+		msg_cdbg2("Lock bits at 0x%0*" PRIxPTR " not changed.\n", PRIxPTR_WIDTH, lockreg);
 		return 0;
 	}
 
@@ -615,8 +622,8 @@ static int changelock_regspace2_block(const struct flashctx *flash, chipaddr loc
 		chip_writeb(flash, cur & ~REG2_LOCKDOWN, lockreg);
 		cur = chip_readb(flash, lockreg);
 		if ((cur & REG2_LOCKDOWN) == REG2_LOCKDOWN) {
-			msg_cwarn("Lockdown can't be removed at %p! New value: 0x%02x.\n",
-				  (void *) lockreg, cur);
+			msg_cwarn("Lockdown can't be removed at 0x%0*" PRIxPTR "! New value: 0x%02x.\n",
+				  PRIxPTR_WIDTH, lockreg, cur);
 			return -1;
 		}
 	}
@@ -628,11 +635,12 @@ static int changelock_regspace2_block(const struct flashctx *flash, chipaddr loc
 		chip_writeb(flash, wanted, lockreg);
 		cur = chip_readb(flash, lockreg);
 		if (cur != wanted) {
-			msg_cerr("Changing lock bits failed at %p! New value: 0x%02x.\n",
-				 (void *) lockreg, cur);
+			msg_cerr("Changing lock bits failed at 0x%0*" PRIxPTR "! New value: 0x%02x.\n",
+				 PRIxPTR_WIDTH, lockreg, cur);
 			return -1;
 		}
-		msg_cdbg("Changed lock bits at %p to 0x%02x.\n", (void *) lockreg, cur);
+		msg_cdbg("Changed lock bits at 0x%0*" PRIxPTR " to 0x%02x.\n",
+			 PRIxPTR_WIDTH, lockreg, cur);
 	}
 
 	/* Eventually, enable lockdown if requested. */
@@ -640,11 +648,11 @@ static int changelock_regspace2_block(const struct flashctx *flash, chipaddr loc
 		chip_writeb(flash, new, lockreg);
 		cur = chip_readb(flash, lockreg);
 		if (cur != new) {
-			msg_cerr("Enabling lockdown FAILED at %p! New value: 0x%02x.\n",
-				 (void *) lockreg, cur);
+			msg_cerr("Enabling lockdown FAILED at 0x%0*" PRIxPTR "! New value: 0x%02x.\n",
+				 PRIxPTR_WIDTH, lockreg, cur);
 			return -1;
 		}
-		msg_cdbg("Enabled lockdown at %p\n", (void *) lockreg);
+		msg_cdbg("Enabled lockdown at 0x%0*" PRIxPTR ".\n", PRIxPTR_WIDTH, lockreg);
 	}
 
 	return 0;
