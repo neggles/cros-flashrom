@@ -81,25 +81,17 @@ static unsigned int spi_write_256_chunksize = 256;
 static unsigned long int delay_us = 0;
 
 static int dummy_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		      const unsigned char *writearr, unsigned char *readarr);
+				  const unsigned char *writearr, unsigned char *readarr);
 static int dummy_spi_write_256(struct flashctx *flash, const uint8_t *buf,
 			       unsigned int start, unsigned int len);
-static void dummy_chip_writeb(const struct flashctx *flash, uint8_t val,
-			      chipaddr addr);
-static void dummy_chip_writew(const struct flashctx *flash, uint16_t val,
-			      chipaddr addr);
-static void dummy_chip_writel(const struct flashctx *flash, uint32_t val,
-			      chipaddr addr);
-static void dummy_chip_writen(const struct flashctx *flash, uint8_t *buf,
-			      chipaddr addr, size_t len);
-static uint8_t dummy_chip_readb(const struct flashctx *flash,
-				const chipaddr addr);
-static uint16_t dummy_chip_readw(const struct flashctx *flash,
-				 const chipaddr addr);
-static uint32_t dummy_chip_readl(const struct flashctx *flash,
-				 const chipaddr addr);
-static void dummy_chip_readn(const struct flashctx *flash, uint8_t *buf,
-			     const chipaddr addr, size_t len);
+static void dummy_chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr);
+static void dummy_chip_writew(const struct flashctx *flash, uint16_t val, chipaddr addr);
+static void dummy_chip_writel(const struct flashctx *flash, uint32_t val, chipaddr addr);
+static void dummy_chip_writen(const struct flashctx *flash, const uint8_t *buf, chipaddr addr, size_t len);
+static uint8_t dummy_chip_readb(const struct flashctx *flash, const chipaddr addr);
+static uint16_t dummy_chip_readw(const struct flashctx *flash, const chipaddr addr);
+static uint32_t dummy_chip_readl(const struct flashctx *flash, const chipaddr addr);
+static void dummy_chip_readn(const struct flashctx *flash, uint8_t *buf, const chipaddr addr, size_t len);
 
 static const struct spi_master spi_master_dummyflasher = {
 	.type		= SPI_CONTROLLER_DUMMY,
@@ -232,7 +224,7 @@ int dummy_init(void)
 		msg_pdbg("SPI blacklist is ");
 		for (i = 0; i < spi_blacklist_size; i++)
 			msg_pdbg("%02x ", spi_blacklist[i]);
-		msg_pdbg(", size %i\n", spi_blacklist_size);
+		msg_pdbg(", size %u\n", spi_blacklist_size);
 	}
 	free(tmp);
 
@@ -268,7 +260,7 @@ int dummy_init(void)
 		msg_pdbg("SPI ignorelist is ");
 		for (i = 0; i < spi_ignorelist_size; i++)
 			msg_pdbg("%02x ", spi_ignorelist[i]);
-		msg_pdbg(", size %i\n", spi_ignorelist_size);
+		msg_pdbg(", size %u\n", spi_ignorelist_size);
 	}
 	free(tmp);
 
@@ -477,9 +469,7 @@ dummy_init_out:
 	}
 	if (dummy_buses_supported & (BUS_PARALLEL | BUS_LPC | BUS_FWH))
 		register_par_master(&par_master_dummy,
-					dummy_buses_supported &
-						(BUS_PARALLEL | BUS_LPC |
-						 BUS_FWH));
+				    dummy_buses_supported & (BUS_PARALLEL | BUS_LPC | BUS_FWH));
 	if (dummy_buses_supported & BUS_SPI)
 		register_spi_master(&spi_master_dummyflasher);
 
@@ -488,37 +478,35 @@ dummy_init_out:
 
 void *dummy_map(const char *descr, uintptr_t phys_addr, size_t len)
 {
-	msg_pspew("%s: Mapping %s, 0x%lx bytes at %" PRIxPTR "\n",
-		  __func__, descr, (unsigned long)len, phys_addr);
+	msg_pspew("%s: Mapping %s, 0x%zx bytes at 0x%0*" PRIxPTR "\n",
+		  __func__, descr, len, PRIxPTR_WIDTH, phys_addr);
 	return (void *)phys_addr;
 }
 
 void dummy_unmap(void *virt_addr, size_t len)
 {
-	msg_pspew("%s: Unmapping 0x%lx bytes at %p\n",
-		  __func__, (unsigned long)len, virt_addr);
+	msg_pspew("%s: Unmapping 0x%zx bytes at %p\n", __func__, len, virt_addr);
 }
 
-void dummy_chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr)
+static void dummy_chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr)
 {
 	msg_pspew("%s: addr=0x%" PRIxPTR ", val=0x%02x\n", __func__, addr, val);
 }
 
-void dummy_chip_writew(const struct flashctx *flash, uint16_t val, chipaddr addr)
+static void dummy_chip_writew(const struct flashctx *flash, uint16_t val, chipaddr addr)
 {
 	msg_pspew("%s: addr=0x%" PRIxPTR ", val=0x%04x\n", __func__, addr, val);
 }
 
-void dummy_chip_writel(const struct flashctx *flash, uint32_t val, chipaddr addr)
+static void dummy_chip_writel(const struct flashctx *flash, uint32_t val, chipaddr addr)
 {
 	msg_pspew("%s: addr=0x%" PRIxPTR ", val=0x%08x\n", __func__, addr, val);
 }
 
-void dummy_chip_writen(const struct flashctx *flash, uint8_t *buf, chipaddr addr, size_t len)
+static void dummy_chip_writen(const struct flashctx *flash, const uint8_t *buf, chipaddr addr, size_t len)
 {
 	size_t i;
-	msg_pspew("%s: addr=0x%" PRIxPTR ", len=0x%08lx, writing data (hex):",
-		  __func__, addr, (unsigned long)len);
+	msg_pspew("%s: addr=0x%" PRIxPTR ", len=0x%zx, writing data (hex):", __func__, addr, len);
 	for (i = 0; i < len; i++) {
 		if ((i % 16) == 0)
 			msg_pspew("\n");
@@ -526,28 +514,27 @@ void dummy_chip_writen(const struct flashctx *flash, uint8_t *buf, chipaddr addr
 	}
 }
 
-uint8_t dummy_chip_readb(const struct flashctx *flash, const chipaddr addr)
+static uint8_t dummy_chip_readb(const struct flashctx *flash, const chipaddr addr)
 {
 	msg_pspew("%s:  addr=0x%" PRIxPTR ", returning 0xff\n", __func__, addr);
 	return 0xff;
 }
 
-uint16_t dummy_chip_readw(const struct flashctx *flash, const chipaddr addr)
+static uint16_t dummy_chip_readw(const struct flashctx *flash, const chipaddr addr)
 {
 	msg_pspew("%s:  addr=0x%" PRIxPTR ", returning 0xffff\n", __func__, addr);
 	return 0xffff;
 }
 
-uint32_t dummy_chip_readl(const struct flashctx *flash, const chipaddr addr)
+static uint32_t dummy_chip_readl(const struct flashctx *flash, const chipaddr addr)
 {
 	msg_pspew("%s:  addr=0x%" PRIxPTR ", returning 0xffffffff\n", __func__, addr);
 	return 0xffffffff;
 }
 
-void dummy_chip_readn(const struct flashctx *flash, uint8_t *buf, const chipaddr addr, size_t len)
+static void dummy_chip_readn(const struct flashctx *flash, uint8_t *buf, const chipaddr addr, size_t len)
 {
-	msg_pspew("%s:  addr=0x%" PRIxPTR ", len=0x%lx, returning array of 0xff\n",
-		  __func__, addr, (unsigned long)len);
+	msg_pspew("%s:  addr=0x%" PRIxPTR ", len=0x%zx, returning array of 0xff\n", __func__, addr, len);
 	memset(buf, 0xff, len);
 	return;
 }
@@ -779,8 +766,10 @@ static int emulate_spi_chip_response(const struct flashctx *flash, unsigned int 
 }
 #endif
 
-static int dummy_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		      const unsigned char *writearr, unsigned char *readarr)
+static int dummy_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+				  unsigned int readcnt,
+				  const unsigned char *writearr,
+				  unsigned char *readarr)
 {
 	int i;
 
@@ -817,8 +806,7 @@ static int dummy_spi_send_command(const struct flashctx *flash, unsigned int wri
 	return 0;
 }
 
-static int dummy_spi_write_256(struct flashctx *flash, const uint8_t *buf,
-			       unsigned int start, unsigned int len)
+static int dummy_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
 {
 	return spi_write_chunked(flash, buf, start, len,
 				 spi_write_256_chunksize);

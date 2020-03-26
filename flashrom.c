@@ -500,7 +500,7 @@ void chip_writel(const struct flashctx *flash, uint32_t val, chipaddr addr)
 	par_master->chip_writel(flash, val, addr);
 }
 
-void chip_writen(const struct flashctx *flash, uint8_t *buf, chipaddr addr, size_t len)
+void chip_writen(const struct flashctx *flash, const uint8_t *buf, chipaddr addr, size_t len)
 {
 	par_master->chip_writen(flash, buf, addr, len);
 }

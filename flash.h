@@ -289,7 +289,7 @@ extern const struct flashchip flashchips_hwseq[];
 void chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr);
 void chip_writew(const struct flashctx *flash, uint16_t val, chipaddr addr);
 void chip_writel(const struct flashctx *flash, uint32_t val, chipaddr addr);
-void chip_writen(const struct flashctx *flash, uint8_t *buf, chipaddr addr, size_t len);
+void chip_writen(const struct flashctx *flash, const uint8_t *buf, chipaddr addr, size_t len);
 uint8_t chip_readb(const struct flashctx *flash, const chipaddr addr);
 uint16_t chip_readw(const struct flashctx *flash, const chipaddr addr);
 uint32_t chip_readl(const struct flashctx *flash, const chipaddr addr);
