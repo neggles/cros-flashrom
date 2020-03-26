@@ -13,48 +13,10 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include "flash.h"
-
-static int printlock_w39_fwh_block(struct flashctx *flash, unsigned int offset)
-{
-	chipaddr wrprotect = flash->virtual_registers + offset + 2;
-	uint8_t locking;
-
-	locking = chip_readb(flash, wrprotect);
-	msg_cdbg("Lock status of block at 0x%08x is ", offset);
-	switch (locking & 0x7) {
-	case 0:
-		msg_cdbg("Full Access.\n");
-		break;
-	case 1:
-		msg_cdbg("Write Lock (Default State).\n");
-		break;
-	case 2:
-		msg_cdbg("Locked Open (Full Access, Lock Down).\n");
-		break;
-	case 3:
-		msg_cerr("Error: Write Lock, Locked Down.\n");
-		break;
-	case 4:
-		msg_cdbg("Read Lock.\n");
-		break;
-	case 5:
-		msg_cdbg("Read/Write Lock.\n");
-		break;
-	case 6:
-		msg_cerr("Error: Read Lock, Locked Down.\n");
-		break;
-	case 7:
-		msg_cerr("Error: Read/Write Lock, Locked Down.\n");
-		break;
-	}
-
-	/* Read or write lock present? */
-	return (locking & ((1 << 2) | (1 << 0))) ? -1 : 0;
-}
+#include "chipdrivers.h"
 
 static int unlock_w39_fwh_block(struct flashctx *flash, unsigned int offset)
 {
@@ -133,22 +95,10 @@ static int printlock_w39_common(struct flashctx *flash, unsigned int offset)
 	return printlock_w39_tblwp(lock);
 }
 
-static int printlock_w39_fwh(struct flashctx *flash)
-{
-	unsigned int i, total_size = flash->chip->total_size * 1024;
-	int ret = 0;
-	
-	/* Print lock status of the complete chip */
-	for (i = 0; i < total_size; i += flash->chip->page_size)
-		ret |= printlock_w39_fwh_block(flash, i);
-
-	return ret;
-}
-
 static int unlock_w39_fwh(struct flashctx *flash)
 {
 	unsigned int i, total_size = flash->chip->total_size * 1024;
-	
+
 	/* Unlock the complete chip */
 	for (i = 0; i < total_size; i += flash->chip->page_size)
 		if (unlock_w39_fwh_block(flash, i))
@@ -207,7 +157,7 @@ int printlock_w39v040fa(struct flashctx *flash)
 	int ret = 0;
 
 	ret = printlock_w39v040a(flash);
-	ret |= printlock_w39_fwh(flash);
+	ret |= printlock_regspace2_uniform_64k(flash);
 
 	return ret;
 }
@@ -217,7 +167,7 @@ int printlock_w39v040fb(struct flashctx *flash)
 	int ret = 0;
 
 	ret = printlock_w39v040b(flash);
-	ret |= printlock_w39_fwh(flash);
+	ret |= printlock_regspace2_uniform_64k(flash);
 
 	return ret;
 }
@@ -228,7 +178,7 @@ int printlock_w39v040fc(struct flashctx *flash)
 
 	/* W39V040C and W39V040FC use different WP/TBL offsets. */
 	ret = printlock_w39_common(flash, 0x7fff2);
-	ret |= printlock_w39_fwh(flash);
+	ret |= printlock_regspace2_uniform_64k(flash);
 
 	return ret;
 }
@@ -243,7 +193,7 @@ int printlock_w39v080fa(struct flashctx *flash)
 	int ret = 0;
 
 	ret = printlock_w39v080a(flash);
-	ret |= printlock_w39_fwh(flash);
+	ret |= printlock_regspace2_uniform_64k(flash);
 
 	return ret;
 }
