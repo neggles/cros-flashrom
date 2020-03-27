@@ -1185,7 +1185,7 @@ int w25_range_to_status(const struct flashctx *flash,
 	}
 
 	if (!range_found) {
-		msg_cerr("matching range not found\n");
+		msg_cerr("%s: matching range not found\n", __func__);
 		return -1;
 	}
 
@@ -1338,7 +1338,7 @@ static int w25q_large_range_to_status(const struct flashctx *flash,
 	}
 
 	if (!range_found) {
-		msg_cerr("matching range not found\n");
+		msg_cerr("%s: matching range not found\n", __func__);
 		return -1;
 	}
 
@@ -2311,7 +2311,7 @@ static int generic_range_to_status(const struct flashctx *flash,
 	}
 
 	if (!range_found) {
-		msg_cerr("matching range not found\n");
+		msg_cerr("%s: matching range not found\n", __func__);
 		return -1;
 	}
 
