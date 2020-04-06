@@ -648,6 +648,7 @@ int cros_ec_block_erase(struct flashctx *flash,
 	case -EC_RES_BUSY:
 		msg_perr("CROS_EC: Flash erase command "
 				" already in progress\n");
+		return rc;
 	default:
 		return rc;
 	}
