@@ -273,7 +273,7 @@ static int cros_ec_cold_reboot(int flags) {
 static int cros_ec_jump_copy(enum ec_current_image target) {
 	struct ec_params_reboot_ec p;
 	int rc;
-	int current_image;
+	enum ec_current_image current_image;
 
 	/* Since the EC may return EC_RES_SUCCESS twice if the EC doesn't
 	 * jump to different firmware copy. The second EC_RES_SUCCESS would
