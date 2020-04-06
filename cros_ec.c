@@ -1262,7 +1262,7 @@ int cros_ec_probe_size(struct flashctx *flash) {
 			eraser->eraseblocks[i].size =
 				(cros_ec_priv->erase_block_size > 0 ?
 				 cros_ec_priv->erase_block_size :
-				 1 << info_2_p->banks[i].erase_size_exp);
+				 (unsigned) 1 << info_2_p->banks[i].erase_size_exp);
 			eraser->eraseblocks[i].count =
 				info_2_p->banks[i].count <<
 				(info_2_p->banks[i].size_exp -
