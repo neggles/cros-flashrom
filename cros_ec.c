@@ -61,7 +61,6 @@ struct wp_data {
 	unsigned int start;
 	unsigned int len;
 };
-#define WP_STATE_HACK_FILENAME "/mnt/stateful_partition/flashrom_wp_state"
 
 /* If software sync is enabled, then we don't try the latest firmware copy
  * after updating.
