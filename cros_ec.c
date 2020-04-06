@@ -125,7 +125,7 @@ static struct ec_response_flash_region_info regions[EC_FLASH_REGION_COUNT];
  */
 static void cros_ec_invalidate_copy(unsigned int addr, unsigned int len)
 {
-	int i;
+	unsigned i;
 
 	for (i = EC_IMAGE_RO; i < ARRAY_SIZE(fwcopy); i++) {
 		struct fmap_area *fw = &fwcopy[i];
@@ -194,7 +194,7 @@ static int ec_check_features(int feature)
 	static struct ec_response_get_features r;
 	int rc = 0;
 
-	if (feature < 0 || feature >= sizeof(r.flags) * 8)
+	if (feature < 0 || feature >= (int)sizeof(r.flags) * 8)
 		return -1;
 
 	/* We don't cache return code. We retry regardless the return code. */
@@ -377,7 +377,7 @@ static int cros_ec_wp_is_enabled(void)
 		msg_perr("FAILED: Cannot get the write protection status: %d\n",
 			 rc);
 		return -1;
-	} else if (rc < sizeof(r)) {
+	} else if (rc < (int)sizeof(r)) {
 		msg_perr("FAILED: Too little data returned (expected:%zd, "
 			 "actual:%d)\n", sizeof(r), rc);
 		return -1;
@@ -397,7 +397,8 @@ static int cros_ec_wp_is_enabled(void)
  */
 int cros_ec_prepare(uint8_t *image, int size) {
 	struct fmap *fmap;
-	int i, j, wp_status;
+	unsigned i, j;
+	int wp_status;
 
 	if (!(cros_ec_priv && cros_ec_priv->detected)) return 0;
 
@@ -538,7 +539,7 @@ int cros_ec_read(struct flashctx *flash, uint8_t *readarr,
 	struct ec_params_flash_read p;
 	int maxlen = opaque_master->max_data_read;
 	uint8_t buf[maxlen];
-	int offset = 0, count;
+	unsigned offset = 0, count;
 
 	while (offset < readcnt) {
 		count = min(maxlen, readcnt - offset);
@@ -691,7 +692,8 @@ end_flash_erase:
 
 int cros_ec_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
                     unsigned int nbytes) {
-	int i, rc = 0;
+	unsigned i;
+	int rc = 0;
 	unsigned int written = 0, real_write_size;
 	struct ec_params_flash_write p;
 	uint8_t *packet;
@@ -975,7 +977,7 @@ static int cros_ec_wp_status(const struct flashctx *flash) {;
 		msg_perr("FAILED: Cannot get the write protection status: %d\n",
 			 rc);
 		return 1;
-	} else if (rc < sizeof(r)) {
+	} else if (rc < (int)sizeof(r)) {
 		msg_perr("FAILED: Too little data returned (expected:%zd, "
 			 "actual:%d)\n", sizeof(r), rc);
 		return 1;
