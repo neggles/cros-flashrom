@@ -1095,6 +1095,11 @@ int cros_ec_parse_param(struct cros_ec_priv *priv)
 		unsigned int index;
 		char *endptr = NULL;
 
+		msg_perr("=============================================\n"
+		         "Warning: support for the dev argument will be\n"
+		         "removed soon, use the type argument instead.\n"
+		         "=============================================\n");
+
 		errno = 0;
 		/*
 		 * For backward compatibility, check if the index is
