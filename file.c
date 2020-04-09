@@ -247,15 +247,15 @@ static int do_fdt_find_spi_nor_flash(const char *prefix,
 		if (alias[0] != '/')
 			continue;
 
-		snprintf(node, sizeof(node), "%s%s", FDT_ROOT, alias);
-
 		/*
 		 * Descend into this node's directory. According to the DT
 		 * specification, the SPI device node will be a subnode of
 		 * the bus node. Thus, we need to look for:
 		 * <path-to-spi-bus-node>/.../compatible
 		 */
-		sprintf(pattern, "%s/*/compatible", node);
+		snprintf(pattern, sizeof(pattern), "%s%s/*/compatible",
+			 FDT_ROOT, alias);
+
 		msg_pspew("Scanning glob pattern \"%s\"\n", pattern);
 		i = glob(pattern, 0, NULL, &pglob);
 		if (i == GLOB_NOSPACE)
