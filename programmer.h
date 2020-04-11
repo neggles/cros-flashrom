@@ -734,7 +734,6 @@ int wpce775x_probe_spi_flash(const char *name);
  */
 int cros_ec_probe_dev(void);
 
-int cros_ec_probe_lpc(const char *name);
 int cros_ec_need_2nd_pass(void);
 int cros_ec_finish(void);
 int cros_ec_prepare(uint8_t *image, int size);

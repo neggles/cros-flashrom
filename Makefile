@@ -416,9 +416,9 @@ LIBS += -lfdt -lz
 endif
 endif
 
-LOCK_OBJS = big_lock.o file_lock.o cros_ec_lock.o
+LOCK_OBJS = big_lock.o file_lock.o
 LIB_OBJS += $(LOCK_OBJS)
-FEATURE_CFLAGS += -D'USE_BIG_LOCK=1' -D'USE_CROS_EC_LOCK=1'
+FEATURE_CFLAGS += -D'USE_BIG_LOCK=1'
 
 CLI_OBJS = action_descriptor.o cli_classic.o cli_output.o cli_common.o flashrom.o print.o
 
@@ -572,7 +572,7 @@ ifeq ($(CONFIG_INTERNAL), yes)
 FEATURE_CFLAGS += -D'CONFIG_INTERNAL=1'
 PROGRAMMER_OBJS += processor_enable.o chipset_enable.o board_enable.o cbtable.o dmi.o internal.o cros_ec.o
 ifeq ($(ARCH),x86)
-PROGRAMMER_OBJS += cros_ec_lpc.o it87spi.o it85spi.o mec1308.o sb600spi.o wbsio_spi.o mcp6x_spi.o wpce775x.o ene_lpc.o
+PROGRAMMER_OBJS += it87spi.o it85spi.o mec1308.o sb600spi.o wbsio_spi.o mcp6x_spi.o wpce775x.o ene_lpc.o
 PROGRAMMER_OBJS += ichspi.o ich_descriptors.o amd_imc.o
 else
 NEED_LIBPCI += CONFIG_INTERNAL

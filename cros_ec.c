@@ -39,7 +39,6 @@
 #include "flashchips.h"
 #include "fmap.h"
 #include "cros_ec.h"
-#include "cros_ec_lock.h"
 #include "cros_ec_commands.h"
 #include "programmer.h"
 #include "spi.h"

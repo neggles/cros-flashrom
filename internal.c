@@ -434,8 +434,7 @@ int internal_init(void)
 			buses_supported &= ~(BUS_LPC|BUS_SPI);
 			return 0;
 		}
-		if (cros_ec_probe_lpc(NULL) &&
-			wpce775x_probe_spi_flash(NULL) &&
+		if (wpce775x_probe_spi_flash(NULL) &&
 			mec1308_probe_spi_flash(NULL) &&
 			ene_probe_spi_flash(NULL) &&
 			init_superio_ite())
