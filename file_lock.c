@@ -57,7 +57,6 @@
 
 #include "flash.h"
 #include "ipc_lock.h"
-#include "locks.h"
 
 #define SLEEP_INTERVAL_MS	50
 
@@ -89,6 +88,7 @@ static int test_dir(const char *path)
 	return 0;
 }
 
+#define SYSTEM_LOCKFILE_DIR	"/run/lock"
 static int file_lock_open_or_create(struct ipc_lock *lock)
 {
 	char path[PATH_MAX];

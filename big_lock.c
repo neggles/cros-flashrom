@@ -30,8 +30,8 @@
 
 #include "big_lock.h"
 #include "ipc_lock.h"
-#include "locks.h"
 
+#define LOCKFILE_NAME		"firmware_utility_lock"
 static struct ipc_lock big_lock = LOCKFILE_INIT(LOCKFILE_NAME);
 
 int acquire_big_lock(int timeout_secs)
