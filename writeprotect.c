@@ -137,7 +137,7 @@ int w25_status_to_range(const struct flashctx *flash,
 #define MASK_WP_AREA_LARGE (0x9C)
 #define MASK_WP2_AREA (0x01)
 
-struct wp_range_descriptor en25f40_ranges[] = {
+static struct wp_range_descriptor en25f40_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 504 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 496 * 1024} },
@@ -148,7 +148,7 @@ struct wp_range_descriptor en25f40_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0x7, {0x000000, 512 * 1024} },
 };
 
-struct wp_range_descriptor en25q40_ranges[] = {
+static struct wp_range_descriptor en25q40_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 504 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 496 * 1024} },
@@ -160,7 +160,7 @@ struct wp_range_descriptor en25q40_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x3, {0x000000, 512 * 1024} },
 };
 
-struct wp_range_descriptor en25q80_ranges[] = {
+static struct wp_range_descriptor en25q80_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 1016 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 1008 * 1024} },
@@ -171,7 +171,7 @@ struct wp_range_descriptor en25q80_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0x7, {0x000000, 1024 * 1024} },
 };
 
-struct wp_range_descriptor en25q32_ranges[] = {
+static struct wp_range_descriptor en25q32_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 4032 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 3968 * 1024} },
@@ -191,7 +191,7 @@ struct wp_range_descriptor en25q32_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 4096 * 1024} },
 };
 
-struct wp_range_descriptor en25q64_ranges[] = {
+static struct wp_range_descriptor en25q64_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 8128 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 8064 * 1024} },
@@ -211,7 +211,7 @@ struct wp_range_descriptor en25q64_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 8192 * 1024} },
 };
 
-struct wp_range_descriptor en25q128_ranges[] = {
+static struct wp_range_descriptor en25q128_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 16320 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 16256 * 1024} },
@@ -231,7 +231,7 @@ struct wp_range_descriptor en25q128_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 16384 * 1024} },
 };
 
-struct wp_range_descriptor en25s64_ranges[] = {
+static struct wp_range_descriptor en25s64_ranges[] = {
 	{ .m = { .sec = 0, .tb = 0 }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x000000, 8064 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x000000, 7936 * 1024} },
@@ -684,7 +684,7 @@ static struct wp_range_descriptor w25rq256_cmp1_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0xf, {0x0000000, 0x0000000} },		/* NONE */
 };
 
-struct wp_range_descriptor w25x10_ranges[] = {
+static struct wp_range_descriptor w25x10_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x010000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 1 }, 0x1, {0x000000, 64 * 1024} },
@@ -692,7 +692,7 @@ struct wp_range_descriptor w25x10_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0x3, {0x000000, 128 * 1024} },
 };
 
-struct wp_range_descriptor w25x20_ranges[] = {
+static struct wp_range_descriptor w25x20_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x030000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x020000, 128 * 1024} },
@@ -701,7 +701,7 @@ struct wp_range_descriptor w25x20_ranges[] = {
 	{ .m = { .sec = 0, .tb = X }, 0x3, {0x000000, 256 * 1024} },
 };
 
-struct wp_range_descriptor w25x40_ranges[] = {
+static struct wp_range_descriptor w25x40_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x070000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x060000, 128 * 1024} },
@@ -715,7 +715,7 @@ struct wp_range_descriptor w25x40_ranges[] = {
 	{ .m = { .sec = 0, .tb = X }, 0x7, {0x000000, 512 * 1024} },
 };
 
-struct wp_range_descriptor w25x80_ranges[] = {
+static struct wp_range_descriptor w25x80_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },    /* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0x0F0000, 64 * 1024} },
 	{ .m = { .sec = 0, .tb = 0 }, 0x2, {0x0E0000, 128 * 1024} },
@@ -1799,7 +1799,7 @@ struct wp wp_w25q_large = {
 	.wp_status	= w25q_large_wp_status,
 };
 
-struct wp_range_descriptor gd25q32_cmp0_ranges[] = {
+static struct wp_range_descriptor gd25q32_cmp0_ranges[] = {
 	/* none, bp4 and bp3 => don't care */
 	{ { }, 0x00, {0, 0} },
 	{ { }, 0x08, {0, 0} },
@@ -1841,7 +1841,7 @@ struct wp_range_descriptor gd25q32_cmp0_ranges[] = {
 	{ { }, 0x1e, {0x000000, 32 * 1024} },
 };
 
-struct wp_range_descriptor gd25q32_cmp1_ranges[] = {
+static struct wp_range_descriptor gd25q32_cmp1_ranges[] = {
 	/* All, bp4 and bp3 => don't care */
 	{ { }, 0x00, {0x000000, 4096 * 1024} }, /* All */
 	{ { }, 0x08, {0x000000, 4096 * 1024} },
@@ -1888,7 +1888,7 @@ static struct wp_context gd25q32_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 5, .srp_pos = 7 },
 };
 
-struct wp_range_descriptor gd25q128_cmp0_ranges[] = {
+static struct wp_range_descriptor gd25q128_cmp0_ranges[] = {
 	/* none, bp4 and bp3 => don't care, others = 0 */
 	{ { .tb = 0  }, 0x00, {0, 0} },
 	{ { .tb = 0  }, 0x08, {0, 0} },
@@ -1929,7 +1929,7 @@ struct wp_range_descriptor gd25q128_cmp0_ranges[] = {
 	{ { .tb = 0 }, 0x1e, {0x000000, 32 * 1024} },
 };
 
-struct wp_range_descriptor gd25q128_cmp1_ranges[] = {
+static struct wp_range_descriptor gd25q128_cmp1_ranges[] = {
 	/* none, bp4 and bp3 => don't care, others = 0 */
 	{ { .tb = 1 }, 0x00, {0x000000, 16384 * 1024} },
 	{ { .tb = 1 }, 0x08, {0x000000, 16384 * 1024} },
@@ -1977,7 +1977,7 @@ static struct wp_context gd25q128_wp = {
 };
 
 /* FIXME: MX25L6406 has same ID as MX25L6405D */
-struct wp_range_descriptor mx25l6406e_ranges[] = {
+static struct wp_range_descriptor mx25l6406e_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x7e0000, 64 * 2 * 1024} },	/* blocks 126-127 */
 	{ { }, 0x2, {0x7c0000, 64 * 4 * 1024} },	/* blocks 124-127 */
@@ -2002,7 +2002,7 @@ static struct wp_context mx25l6406e_wp = {
 	.descrs = &mx25l6406e_ranges[0],
 };
 
-struct wp_range_descriptor mx25l6495f_tb0_ranges[] = {
+static struct wp_range_descriptor mx25l6495f_tb0_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x7f0000, 64 * 1 * 1024} },	/* block 127 */
 	{ { }, 0x2, {0x7e0000, 64 * 2 * 1024} },	/* blocks 126-127 */
@@ -2022,7 +2022,7 @@ struct wp_range_descriptor mx25l6495f_tb0_ranges[] = {
 	{ { }, 0xf, {0x000000, 64 * 128 * 1024} },	/* all */
 };
 
-struct wp_range_descriptor mx25l6495f_tb1_ranges[] = {
+static struct wp_range_descriptor mx25l6495f_tb1_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x000000, 64 * 1 * 1024} },	/* block 0 */
 	{ { }, 0x2, {0x000000, 64 * 2 * 1024} },	/* blocks 0-1 */
@@ -2045,7 +2045,7 @@ static struct wp_context mx25l6495f_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 };
 
-struct wp_range_descriptor mx25l25635f_tb0_ranges[] = {
+static struct wp_range_descriptor mx25l25635f_tb0_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x1ff0000, 64 * 1 * 1024} },	/* block 511 */
 	{ { }, 0x2, {0x1fe0000, 64 * 2 * 1024} },	/* blocks 510-511 */
@@ -2064,7 +2064,7 @@ struct wp_range_descriptor mx25l25635f_tb0_ranges[] = {
 	{ { }, 0xf, {0x0000000, 64 * 512 * 1024} },	/* all */
 };
 
-struct wp_range_descriptor mx25l25635f_tb1_ranges[] = {
+static struct wp_range_descriptor mx25l25635f_tb1_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x000000, 64 * 1 * 1024} },	/* block 0 */
 	{ { }, 0x2, {0x000000, 64 * 2 * 1024} },	/* blocks 0-1 */
@@ -2087,7 +2087,7 @@ static struct wp_context mx25l25635f_wp = {
 	.sr1 = { .bp0_pos = 2, .bp_bits = 4, .srp_pos = 7 },
 };
 
-struct wp_range_descriptor s25fs128s_ranges[] = {
+static struct wp_range_descriptor s25fs128s_ranges[] = {
 	{ { .tb = 1 }, 0, {0, 0} },	/* none */
 	{ { .tb = 1 }, 0x1, {0x000000, 256 * 1024} },	/* lower 64th */
 	{ { .tb = 1 }, 0x2, {0x000000, 512 * 1024} },	/* lower 32nd */
@@ -2114,7 +2114,7 @@ static struct wp_context s25fs128s_wp = {
 };
 
 
-struct wp_range_descriptor s25fl256s_ranges[] = {
+static struct wp_range_descriptor s25fl256s_ranges[] = {
 	{ { .tb = 1 }, 0, {0, 0} },	/* none */
 	{ { .tb = 1 }, 0x1, {0x000000, 512 * 1024} },		/* lower 64th */
 	{ { .tb = 1 }, 0x2, {0x000000, 1024 * 1024} },		/* lower 32nd */
