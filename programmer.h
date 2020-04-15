@@ -570,6 +570,8 @@ struct spi_master {
 	/* Optimized functions for this master */
 	int (*read)(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 	int (*write_256)(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+	int (*write_aai)(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+	const void *data;
 };
 
 extern const struct spi_master *spi_master;
