@@ -37,6 +37,7 @@ struct flashctx; /* forward declare */
 #define ERROR_PTR ((void*)-1)
 
 /* Error codes */
+#define ERROR_OOM	-100
 #define TIMEOUT_ERROR	-101
 
 #define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
