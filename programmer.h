@@ -88,6 +88,9 @@ enum programmer {
 #if CONFIG_LINUX_SPI == 1
 	PROGRAMMER_LINUX_SPI,
 #endif
+#if CONFIG_LSPCON_I2C_SPI == 1
+	PROGRAMMER_LSPCON_I2C_SPI,
+#endif
 	PROGRAMMER_INVALID /* This must always be the last entry. */
 };
 
@@ -795,5 +798,10 @@ struct libusb_device_handle *usb_dev_get_by_vid_pid_serial(
 		struct libusb_context *usb_ctx, uint16_t vid, uint16_t pid, const char *serialno);
 struct libusb_device_handle *usb_dev_get_by_vid_pid_number(
 		struct libusb_context *usb_ctx, uint16_t vid, uint16_t pid, unsigned int num);
+
+/* lspcon_i2c_spi.c */
+#if CONFIG_LSPCON_I2C_SPI == 1
+int lspcon_i2c_spi_init(void);
+#endif
 
 #endif				/* !__PROGRAMMER_H__ */

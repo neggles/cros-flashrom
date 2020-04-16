@@ -165,6 +165,11 @@ UNSUPPORTED_FEATURES += CONFIG_CH341A_SPI=yes
 else
 override CONFIG_CH341A_SPI = no
 endif
+ifeq ($(CONFIG_LSPCON_I2C_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_LSPCON_I2C_SPI=yes
+else
+override CONFIG_LSPCON_I2C_SPI = no
+endif
 endif
 
 # FIXME: Should we check for Cygwin/MSVC as well?
@@ -261,6 +266,11 @@ UNSUPPORTED_FEATURES += CONFIG_SATAMV=yes
 else
 override CONFIG_SATAMV = no
 endif
+ifeq ($(CONFIG_LSPCON_I2C_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_LSPCON_I2C_SPI=yes
+else
+override CONFIG_LSPCON_I2C_SPI = no
+endif
 endif
 
 ifeq ($(TARGET_OS), libpayload)
@@ -316,6 +326,11 @@ ifeq ($(CONFIG_PICKIT2_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_PICKIT2_SPI=yes
 else
 override CONFIG_PICKIT2_SPI = no
+endif
+ifeq ($(CONFIG_LSPCON_I2C_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_LSPCON_I2C_SPI=yes
+else
+override CONFIG_LSPCON_I2C_SPI = no
 endif
 ifeq ($(CONFIG_CH341A_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_CH341A_SPI=yes
@@ -473,6 +488,9 @@ CONFIG_ATAHPT ?= no
 
 # Always enable FT2232 SPI dongles for now.
 CONFIG_FT2232_SPI ?= yes
+
+# Disables LSPCON support until the i2c helper supports multiple systems.
+CONFIG_LSPCON_I2C_SPI ?= no
 
 # Always enable dummy tracing for now.
 CONFIG_DUMMY ?= yes
@@ -656,6 +674,12 @@ ifeq ($(CONFIG_FT2232_SPI), yes)
 FEATURE_CFLAGS += $(call debug_shell,grep -q "FTDISUPPORT := yes" .features && printf "%s" "-D'CONFIG_FT2232_SPI=1'")
 NEED_LIBFTDI += CONFIG_FT2232_SPI
 PROGRAMMER_OBJS += ft2232_spi.o
+endif
+
+ifeq ($(CONFIG_LSPCON_I2C_SPI), yes)
+FEATURE_CFLAGS += -D'CONFIG_LSPCON_I2C_SPI=1'
+PROGRAMMER_OBJS += lspcon_i2c_spi.o
+NEED_LIBUSB1 += CONFIG_LSPCON_I2C_SPI
 endif
 
 ifneq ($(NEED_LIBFTDI), )
