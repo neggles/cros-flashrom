@@ -21,10 +21,12 @@
 #define __FLASH_H__ 1
 
 #include <inttypes.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdarg.h>
 #include <stdbool.h>
-#ifdef _WIN32
+#if IS_WINDOWS
 #include <windows.h>
 #undef min
 #undef max
@@ -32,6 +34,12 @@
 
 /* Are timers broken? */
 extern int broken_timer;
+
+#define KiB (1024)
+#define MiB (1024 * KiB)
+
+/* Assumes `n` and `a` are at most 64-bit wide (to avoid typeof() operator). */
+#define ALIGN_DOWN(n, a) ((n) & ~((uint64_t)(a) - 1))
 
 struct flashctx; /* forward declare */
 #define ERROR_PTR ((void*)-1)
@@ -49,7 +57,9 @@ enum {
 	VERIFY_PARTIAL,
 };
 
+/* TODO: check using code for correct usage of types */
 typedef uintptr_t chipaddr;
+#define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
 
 int register_shutdown(int (*function) (void *data), void *data);
 #define CHIP_RESTORE_CALLBACK	int (*func) (struct flashctx *flash, uint8_t status)
@@ -58,7 +68,7 @@ int register_chip_restore(CHIP_RESTORE_CALLBACK, struct flashctx *flash, uint8_t
 void *programmer_map_flash_region(const char *descr, unsigned long phys_addr,
 				  size_t len);
 void programmer_unmap_flash_region(void *virt_addr, size_t len);
-void programmer_delay(int usecs);
+void programmer_delay(unsigned int usecs);
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -130,7 +140,7 @@ enum write_granularity {
 #define FEATURE_4BA_ENTER	(1 << 11)
 #define FEATURE_4BA_ENTER_WREN	(1 << 12) /**< Can enter/exit 4BA mode with instructions 0xb7/0xe9 after WREN */
 #define FEATURE_4BA_EXT_ADDR	(1 << 13) /**< Regular 3-byte operations can be used by writing the most
-						significant address byte into an extended address register. */
+					       significant address byte into an extended address register. */
 #define FEATURE_4BA_READ	(1 << 14) /**< Native 4BA read instruction (0x13) is supported. */
 #define FEATURE_4BA_FAST_READ	(1 << 15) /**< Native 4BA fast read instruction (0x0c) is supported. */
 #define FEATURE_4BA_WRITE	(1 << 16) /**< Native 4BA byte program (0x12) is supported. */
@@ -249,7 +259,7 @@ struct flashctx {
 	struct flashchip *chip;
 
 	chipaddr virtual_memory;
-	/* Some flash devices have an additional register space. */
+	/* Some flash devices have an additional register space; semantics are like above. */
 	chipaddr virtual_registers;
 	struct registered_master *mst;
 
@@ -311,19 +321,28 @@ int max(int a, int b);
 int min(int a, int b);
 char *strcat_realloc(char *dest, const char *src);
 void tolower_string(char *str);
+uint8_t reverse_byte(uint8_t x);
+void reverse_bytes(uint8_t *dst, const uint8_t *src, size_t length);
+#ifdef __MINGW32__
+char* strtok_r(char *str, const char *delim, char **nextp);
+char *strndup(const char *str, size_t size);
+#endif
+#if defined(__DJGPP__) || (!defined(__LIBPAYLOAD__) && !defined(HAVE_STRNLEN))
+size_t strnlen(const char *str, size_t n);
+#endif
 
 /* flashrom.c */
 extern const char flashrom_version[];
-extern char *chip_to_probe;
+extern const char *chip_to_probe;
 char *flashbuses_to_text(enum chipbustype bustype);
 extern enum chipbustype buses_supported;
 void map_flash_registers(struct flashctx *flash);
 int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int erase_flash(struct flashctx *flash);
-int probe_flash(struct registered_master *master, int startchip, struct flashctx *fill_flash, int force);
+int probe_flash(struct registered_master *mst, int startchip, struct flashctx *fill_flash, int force);
 int read_flash(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int read_flash_to_file(struct flashctx *flash, const char *filename);
-char *extract_param(char **haystack, const char *needle, const char *delim);
+char *extract_param(const char *const *haystack, const char *needle, const char *delim);
 int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len, const char *message);
 void print_version(void);
 void print_buildinfo(void);
@@ -418,7 +437,10 @@ enum flashrom_log_level {
 /* Let gcc and clang check for correct printf-style format strings. */
 int print(enum flashrom_log_level level, const char *fmt, ...)
 #ifdef __MINGW32__
-__attribute__((format(gnu_printf, 2, 3)));
+#  ifndef __MINGW_PRINTF_FORMAT
+#    define __MINGW_PRINTF_FORMAT gnu_printf
+#  endif
+__attribute__((format(__MINGW_PRINTF_FORMAT, 2, 3)));
 #else
 __attribute__((format(printf, 2, 3)));
 #endif

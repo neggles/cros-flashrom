@@ -42,7 +42,7 @@
 #include "spi.h"
 
 const char flashrom_version[] = FLASHROM_VERSION;
-char *chip_to_probe = NULL;
+const char *chip_to_probe = NULL;
 
 /* Set if any erase/write operation is to be done. This will be used to
  * decide if final verification is needed. */
@@ -67,7 +67,7 @@ int ignore_error(int err) {
 }
 
 static enum programmer programmer = PROGRAMMER_INVALID;
-static char *programmer_param = NULL;
+static const char *programmer_param = NULL;
 
 /* Supported buses for the current programmer. */
 enum chipbustype buses_supported;
@@ -549,7 +549,7 @@ void chip_readn(const struct flashctx *flash, uint8_t *buf, chipaddr addr, size_
 	par_master->chip_readn(flash, buf, addr, len);
 }
 
-void programmer_delay(int usecs)
+void programmer_delay(unsigned int usecs)
 {
 	programmer_table[programmer].delay(usecs);
 }
@@ -572,7 +572,7 @@ int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, int
 /* This is a somewhat hacked function similar in some ways to strtok(). It will
  * look for needle with a subsequent '=' in haystack, return a copy of needle.
  */
-char *extract_param(char **haystack, const char *needle, const char *delim)
+char *extract_param(const char *const *haystack, const char *needle, const char *delim)
 {
 	char *param_pos, *opt_pos;
 	char *opt = NULL;
@@ -624,7 +624,7 @@ char *extract_param(char **haystack, const char *needle, const char *delim)
 	return opt;
 }
 
-char *extract_programmer_param(const char *param_name)
+char *extract_programmer_param(const char *const param_name)
 {
 	return extract_param(&programmer_param, param_name, ",");
 }
