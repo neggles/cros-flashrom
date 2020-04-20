@@ -193,7 +193,6 @@ int ft2232_spi_init(void)
 	 * 92 Hz for 12 MHz inputs and 30 MHz down to about 458 Hz for 60 MHz
 	 * inputs.
 	 */
-	double spi_mhz = 0;
 	uint32_t divisor = DEFAULT_DIVISOR;
 	int f;
 	char *arg;
@@ -344,23 +343,6 @@ int ft2232_spi_init(void)
 	}
 	free(arg);
 
-	arg = extract_programmer_param("spi_mhz");
-        if (arg) {
-                msg_perr("\n========================================================================\n"
-			 "Warning: The spi_mhz argument is depricated and will be removed soon.\n"
-			 "Please use the divisor argument instead.\n"
-			 "========================================================================\n\n");
-
-		char *endptr;
-		spi_mhz = strtod(arg, &endptr);
-		if (arg == endptr) {
-			msg_perr("%s: Invalid clock %s MHz.  Will use "
-				 "default\n", __func__, arg);
-		}
-		msg_pdbg("Clock %f MHz\n", spi_mhz);
-	}
-	free(arg);
-
 	arg = extract_programmer_param("divisor");
 	if (arg && strlen(arg)) {
 		unsigned int temp = 0;
@@ -451,15 +433,6 @@ int ft2232_spi_init(void)
 	} else {
 		mpsse_clk = 12.0;
 	}
-
-	if (spi_mhz) {
-		divisor = (uint32_t)(mpsse_clk / spi_mhz);
-		if (divisor < 2 || divisor > 131072) {
-			divisor = divisor < 2 ? 2 : 131072;
-			msg_perr("Can't set SPI clock to %f MHz, will be %f MHz\n",
-				spi_mhz, mpsse_clk / divisor);
-		}
-        }
 
 	msg_pdbg("Set clock divisor\n");
 	buf[0] = TCK_DIVISOR;
