@@ -132,31 +132,31 @@ if config_atapromise
   srcs += 'atapromise.c'
   cargs += '-DCONFIG_ATAPROMISE=1'
 endif
-if config_atavia
-  srcs += 'atavia.c'
-  cargs += '-DCONFIG_ATAVIA=1'
-endif
+#if config_atavia
+#  srcs += 'atavia.c'
+#  cargs += '-DCONFIG_ATAVIA=1'
+#endif
 if config_buspirate_spi
   srcs += 'buspirate_spi.c'
   cargs += '-DCONFIG_BUSPIRATE_SPI=1'
   need_serial = true
 endif
-if config_ch341a_spi
-  srcs += 'ch341a_spi.c'
-  cargs += '-DCONFIG_CH341A_SPI=1'
-endif
+#if config_ch341a_spi
+#  srcs += 'ch341a_spi.c'
+#  cargs += '-DCONFIG_CH341A_SPI=1'
+#endif
 if config_dediprog
   srcs += 'dediprog.c'
   cargs += '-DCONFIG_DEDIPROG=1'
 endif
-if config_developerbox_spi
-  srcs += 'developerbox_spi.c'
-  cargs += '-DCONFIG_DEVELOPERBOX_SPI=1'
-endif
-if config_digilent_spi
-  srcs += 'digilent_spi.c'
-  cargs += '-DCONFIG_DIGILENT_SPI=1'
-endif
+#if config_developerbox_spi
+#  srcs += 'developerbox_spi.c'
+#  cargs += '-DCONFIG_DEVELOPERBOX_SPI=1'
+#endif
+#if config_digilent_spi
+#  srcs += 'digilent_spi.c'
+#  cargs += '-DCONFIG_DIGILENT_SPI=1'
+#endif
 if config_drkaiser
   srcs += 'drkaiser.c'
   cargs += '-DCONFIG_DRKAISER=1'
@@ -202,10 +202,10 @@ if config_internal
     cargs += '-DCONFIG_INTERNAL_DMI=1'
   endif
 endif
-if config_it8212
-  srcs += 'it8212.c'
-  cargs += '-DCONFIG_IT8212=1'
-endif
+#if config_it8212
+#  srcs += 'it8212.c'
+#  cargs += '-DCONFIG_IT8212=1'
+#endif
 if config_linux_mtd
   srcs += 'linux_mtd.c'
   cargs += '-DCONFIG_LINUX_MTD=1'
@@ -226,10 +226,10 @@ if config_nicintel
   srcs += 'nicintel.c'
   cargs += '-DCONFIG_NICINTEL=1'
 endif
-if config_nicintel_eeprom
-  srcs += 'nicintel_eeprom.c'
-  cargs += '-DCONFIG_NICINTEL_EEPROM=1'
-endif
+#if config_nicintel_eeprom
+#  srcs += 'nicintel_eeprom.c'
+#  cargs += '-DCONFIG_NICINTEL_EEPROM=1'
+#endif
 if config_nicintel_spi
   srcs += 'nicintel_spi.c'
   config_bitbang_spi = true
@@ -248,16 +248,16 @@ if config_ogp_spi
   srcs += 'ogp_spi.c'
   cargs += '-DCONFIG_OGP_SPI=1'
 endif
-if config_pickit2_spi
-  srcs += 'pickit2_spi.c'
-  cargs += '-DCONFIG_PICKIT2_SPI=1'
-endif
-if config_pony_spi
-  srcs += 'pony_spi.c'
-  need_serial = true
-  config_bitbang_spi = true
-  cargs += '-DCONFIG_PONY_SPI=1'
-endif
+#if config_pickit2_spi
+#  srcs += 'pickit2_spi.c'
+#  cargs += '-DCONFIG_PICKIT2_SPI=1'
+#endif
+#if config_pony_spi
+#  srcs += 'pony_spi.c'
+#  need_serial = true
+#  config_bitbang_spi = true
+#  cargs += '-DCONFIG_PONY_SPI=1'
+#endif
 if config_rayer_spi
   srcs += 'rayer_spi.c'
   config_bitbang_spi = true
@@ -277,10 +277,10 @@ if config_serprog
   cargs += '-DCONFIG_SERPROG=1'
   need_serial = true
 endif
-if config_usbblaster_spi
-  srcs += 'usbblaster_spi.c'
-  cargs += '-DCONFIG_USBBLASTER_SPI=1'
-endif
+#if config_usbblaster_spi
+#  srcs += 'usbblaster_spi.c'
+#  cargs += '-DCONFIG_USBBLASTER_SPI=1'
+#endif
 #if config_stlinkv3_spi
 #  srcs += 'stlinkv3_spi.c'
 #  cargs += '-DCONFIG_STLINKV3_SPI=1'
@@ -300,10 +300,10 @@ if config_bitbang_spi
   cargs += '-DCONFIG_BITBANG_SPI=1'
 endif
 
-#if host_machine.system() == 'linux'
-#  srcs += 'i2c_helper_linux.c'
-#  cargs += '-DCONFIG_I2C_SUPPORT=1'
-#endif
+if host_machine.system() == 'linux'
+  srcs += 'i2c_helper_linux.c'
+  cargs += '-DCONFIG_I2C_SUPPORT=1'
+endif
 
 # raw memory, MSR or PCI port I/O access
 if need_raw_access
@@ -331,7 +331,7 @@ install_headers([
 srcs += '82802ab.c'
 srcs += 'at45db.c'
 srcs += 'edi.c'
-srcs += 'en29lv640b.c'
+#srcs += 'en29lv640b.c'
 srcs += 'flashchips.c'
 srcs += 'flashrom.c'
 srcs += 'fmap.c'
@@ -339,42 +339,42 @@ srcs += 'helpers.c'
 srcs += 'ich_descriptors.c'
 srcs += 'jedec.c'
 srcs += 'layout.c'
-srcs += 'libflashrom.c'
+#srcs += 'libflashrom.c'
 srcs += 'opaque.c'
 srcs += 'print.c'
 srcs += 'programmer.c'
-srcs += 'sfdp.c'
+#srcs += 'sfdp.c'
 srcs += 'spi25.c'
 srcs += 'spi25_statusreg.c'
-srcs += 'spi95.c'
+#srcs += 'spi95.c'
 srcs += 'spi.c'
 srcs += 'sst28sf040.c'
 srcs += 'sst49lfxxxc.c'
 srcs += 'sst_fwhub.c'
-srcs += 'stm50.c'
+#srcs += 'stm50.c'
 srcs += 'udelay.c'
 srcs += 'w29ee011.c'
 srcs += 'w39.c'
 
 mapfile = 'libflashrom.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
-flashrom = shared_library(
-  'flashrom',
-  sources : [
-    srcs,
-  ],
-  soversion : lt_current,
-  version : lt_version,
-  dependencies : [
-    deps,
-  ],
-  c_args : [
-    cargs,
-  ],
-  install : true,
-  link_args : vflag,
-  link_depends : mapfile,
-)
+#flashrom = shared_library(
+#  'flashrom',
+#  sources : [
+#    srcs,
+#  ],
+#  soversion : lt_current,
+#  version : lt_version,
+#  dependencies : [
+#    deps,
+#  ],
+#  c_args : [
+#    cargs,
+#  ],
+#  install : true,
+#  link_args : vflag,
+#  link_depends : mapfile,
+#)
 
 version = meson.project_version()
 #strip leading characters
@@ -385,20 +385,20 @@ if version.startswith('p')
   version = version.split('p')[1]
 endif
 
-pkgg = import('pkgconfig')
-pkgg.generate(
-  libraries : flashrom,
-  version : version,
-  name : 'flashrom',
-  filebase : 'flashrom',
-  description : 'library to interact with flashrom',
-)
-
-flashrom_dep = declare_dependency(
-  link_with : flashrom,
-  include_directories : include_directories('.'),
-  dependencies : deps
-)
+#pkgg = import('pkgconfig')
+#pkgg.generate(
+#  libraries : flashrom,
+#  version : version,
+#  name : 'flashrom',
+#  filebase : 'flashrom',
+#  description : 'library to interact with flashrom',
+#)
+#
+#flashrom_dep = declare_dependency(
+#  link_with : flashrom,
+#  include_directories : include_directories('.'),
+#  dependencies : deps
+#)
 
 # we can't just link_with libflashrom as we require all the internal symbols...
 executable(
