@@ -327,6 +327,25 @@ install_headers([
   ],
 )
 
+### CrOS Tree
+srcs += 'ene_lpc.c'
+srcs += 'power.c'
+srcs += 'search.c'
+srcs += 'file.c'
+srcs += 'm29f400bt.c'
+srcs += 'mec1308.c'
+srcs += 'wpce775x.c'
+srcs += 'cros_ec.c'
+srcs += 'cros_ec_lpc.c'
+srcs += 'cros_ec_dev.c'
+srcs += 's25f.c'
+srcs += 'spi4ba.c'
+srcs += 'stm50flw0x0x.c'
+srcs += 'action_descriptor.c'
+srcs += 'flashchips_hwseq.c'
+srcs += 'writeprotect.c'
+###
+
 # core modules needed by both the library and the CLI
 srcs += '82802ab.c'
 srcs += 'at45db.c'
