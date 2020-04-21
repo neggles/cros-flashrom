@@ -423,4 +423,4 @@ executable(
   install_dir : sbindir,
 )
 
-subdir('util')
+#subdir('util')
