@@ -192,6 +192,7 @@ static int print_supported_chips(int host_controller)
 		dev = malloc(strlen(chip->name) + 1);
 		if (dev == NULL) {
 			msg_gerr("Out of memory!\n");
+			free(ven);
 			return 1;
 		}
 		strcpy(dev, chip->name);
@@ -489,7 +490,7 @@ int print_supported(void)
 	       programmer_table[PROGRAMMER_INTERNAL].name);
 	print_supported_chipsets();
 	msg_ginfo("\n");
-	print_supported_boards_helper(boards_known, "boards");
+	print_supported_boards_helper(boards_known, "mainboards");
 	msg_ginfo("\n");
 	print_supported_boards_helper(laptops_known, "mobile devices");
 #endif
@@ -688,6 +689,7 @@ const struct board_info boards_known[] = {
 	B("ASUS",	"P4P800-E Deluxe",	OK, "https://www.asus.com/Motherboards/Intel_Socket_478/P4P800E_Deluxe/", NULL),
 	B("ASUS",	"P4P800-VM",		OK, "https://www.asus.com/Motherboards/Intel_Socket_478/P4P800VM/", NULL),
 	B("ASUS",	"P4P800-X",		OK, "https://www.asus.com/Motherboards/Intel_Socket_478/P4P800X/", NULL),
+	B("ASUS",	"P4P800SE",		OK, "https://www.asus.com/supportonly/P4P800 SE/", NULL),
 	B("ASUS",	"P4PE-X/TE",		NT, "https://www.asus.com/999/html/events/mb/socket478/p4pe-x-te/overview.htm", NULL),
 	B("ASUS",	"P4S533-X",		OK, NULL, NULL),
 	B("ASUS",	"P4S800-MX",		OK, "https://www.asus.com/Motherboards/Intel_Socket_478/P4S800MX/", NULL),
