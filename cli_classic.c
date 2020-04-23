@@ -153,8 +153,6 @@ static void cli_classic_usage(const char *name)
 #if CONFIG_PRINT_WIKI == 1
 	       "   -z | --list-supported-wiki        print supported devices in wiki syntax\n"
 #endif
-	       "   -b | --broken-timers              assume system timers are "
-	         "broken\n"
 	       "   -p | --programmer <name>[:<param>] specify the programmer "
 	         "device\n"
 	);
@@ -280,7 +278,6 @@ int main(int argc, char *argv[])
 		{"wp-enable", 		optional_argument, 0, LONGOPT_WP_ENABLE},
 		{"wp-disable", 		0, 0, LONGOPT_WP_DISABLE},
 		{"wp-list", 		0, 0, LONGOPT_WP_LIST},
-		{"broken-timers", 	0, 0, 'b' },
 		{"ignore-fmap", 	0, 0, LONGOPT_IGNORE_FMAP},
 		{"fast-verify",		0, 0, LONGOPT_FAST_VERIFY},
 		{"ignore-lock",		0, 0, LONGOPT_IGNORE_LOCK},
@@ -575,9 +572,6 @@ int main(int argc, char *argv[])
 			break;
 		case LONGOPT_FAST_VERIFY:
 			verify_it = VERIFY_PARTIAL;
-			break;
-		case 'b':
-			broken_timer = 1;
 			break;
 		case LONGOPT_IGNORE_LOCK:
 			set_ignore_lock = 1;
