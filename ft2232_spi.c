@@ -59,7 +59,7 @@
 #define GOOGLE_SERVO_V2_PID0	0x5002
 #define GOOGLE_SERVO_V2_PID1	0x5003
 
-const struct usbdev_status devs_ft2232spi[] = {
+const struct dev_entry devs_ft2232spi[] = {
 	{FTDI_VID, FTDI_FT2232H_PID, OK, "FTDI", "FT2232H"},
 	{FTDI_VID, FTDI_FT4232H_PID, OK, "FTDI", "FT4232H"},
 	{FTDI_VID, FTDI_FT232H_PID, OK, "FTDI", "FT232H"},

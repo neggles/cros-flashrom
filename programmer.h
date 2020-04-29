@@ -442,15 +442,8 @@ extern const struct dev_entry ata_hpt[];
 
 /* ft2232_spi.c */
 #if CONFIG_FT2232_SPI == 1
-struct usbdev_status {
-	uint16_t vendor_id;
-	uint16_t device_id;
-	int status;
-	const char *vendor_name;
-	const char *device_name;
-};
 int ft2232_spi_init(void);
-extern const struct usbdev_status devs_ft2232spi[];
+extern const struct dev_entry devs_ft2232spi[];
 #endif
 
 /* rayer_spi.c */
