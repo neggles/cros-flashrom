@@ -91,17 +91,13 @@ static const char *sections[] = {
 	"EC_RW",
 };
 
-/*
- * The names of the different device that can be found in a machine.
- * Order is important: for backward compatibilty issue,
- * 'ec' must be 0, 'pd' must be 1.
- */
+/* The names of the different device that can be found in a machine. */
 static const char *ec_type[] = {
-	[0] = "ec",
-	[1] = "pd",
-	[2] = "sh",
-	[3] = "fp",
-	[4] = "tp",
+	"ec",
+	"pd",
+	"sh",
+	"fp",
+	"tp",
 };
 
 static struct ec_response_flash_region_info regions[EC_FLASH_REGION_COUNT];
@@ -1089,36 +1085,6 @@ int cros_ec_parse_param(struct cros_ec_priv *priv)
 {
 	char *p;
 
-	p = extract_programmer_param("dev");
-	if (p) {
-		unsigned int index;
-		char *endptr = NULL;
-
-		msg_perr("=============================================\n"
-		         "Warning: support for the dev argument will be\n"
-		         "removed soon, use the type argument instead.\n"
-		         "=============================================\n");
-
-		errno = 0;
-		/*
-		 * For backward compatibility, check if the index is
-		 * a number: 0: main EC, 1: PD
-		 * works only on Samus.
-		 */
-		index = strtoul(p, &endptr, 10);
-		if (errno || (endptr != (p + 1)) || (strlen(p) > 1)) {
-			msg_perr("Invalid argument: \"%s\"\n", p);
-			return 1;
-		}
-
-		if (index > 1) {
-			msg_perr("%s: Invalid device index\n", __func__);
-			return 1;
-		}
-		priv->dev = ec_type[index];
-		msg_pdbg("Target %s used\n", priv->dev);
-	}
-
 	p = extract_programmer_param("type");
 	if (p) {
 		unsigned int index;
@@ -1127,11 +1093,13 @@ int cros_ec_parse_param(struct cros_ec_priv *priv)
 				break;
 		if (index == ARRAY_SIZE(ec_type)) {
 			msg_perr("Invalid argument: \"%s\"\n", p);
+			free(p);
 			return 1;
 		}
 		priv->dev = ec_type[index];
 		msg_pdbg("Target %s used\n", priv->dev);
 	}
+	free(p);
 
 	p = extract_programmer_param("block");
 	if (p) {
@@ -1142,17 +1110,20 @@ int cros_ec_parse_param(struct cros_ec_priv *priv)
 		block = strtoul(p, &endptr, 0);
 		if (errno || (strlen(p) > 10) || (endptr != (p + strlen(p)))) {
 			msg_perr("Invalid argument: \"%s\"\n", p);
+			free(p);
 			return 1;
 		}
 
 		if (block <= 0) {
 			msg_perr("%s: Invalid block size\n", __func__);
+			free(p);
 			return 1;
 		}
 
 		msg_pdbg("Override block size to 0x%x\n", block);
 		priv->erase_block_size = block;
 	}
+	free(p);
 
 	return 0;
 }
