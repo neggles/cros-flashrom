@@ -13,7 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 /*
@@ -58,7 +57,7 @@ void exit_conf_mode_ite(uint16_t port)
 	sio_write(port, 0x02, 0x02);
 }
 
-uint16_t probe_id_ite(uint16_t port)
+static uint16_t probe_id_ite(uint16_t port)
 {
 	uint16_t id;
 
@@ -90,7 +89,7 @@ void probe_superio_ite(void)
 			break;
 		case 0x85:
 			msg_pdbg("Found ITE EC, ID 0x%04hx, Rev 0x%02x on port 0x%x.\n",
-			         s.model, sio_read(s.port, CHIP_VER_REG), s.port);
+				 s.model, sio_read(s.port, CHIP_VER_REG), s.port);
 			register_superio(s);
 			break;
 		}
@@ -122,10 +121,40 @@ static const struct spi_master spi_master_it87xx = {
 static uint16_t it87spi_probe(uint16_t port)
 {
 	uint8_t tmp = 0;
-	char *param = NULL;
 	uint16_t flashport = 0;
 
 	enter_conf_mode_ite(port);
+
+	char *param = extract_programmer_param("dualbiosindex");
+	if (param != NULL) {
+		sio_write(port, 0x07, 0x07); /* Select GPIO LDN */
+		tmp = sio_read(port, 0xEF);
+		if (*param == '\0') { /* Print current setting only. */
+			free(param);
+		} else {
+			char *dualbiosindex_suffix;
+			errno = 0;
+			long chip_index = strtol(param, &dualbiosindex_suffix, 0);
+			free(param);
+			if (errno != 0 || *dualbiosindex_suffix != '\0' || chip_index < 0 || chip_index > 1) {
+				msg_perr("DualBIOS: Invalid chip index requested - choose 0 or 1.\n");
+				exit_conf_mode_ite(port);
+				return 1;
+			}
+			if (chip_index != (tmp & 1)) {
+				msg_pdbg("DualBIOS: Previous chip index: %d\n", tmp & 1);
+				sio_write(port, 0xEF, (tmp & 0xFE) | chip_index);
+				tmp = sio_read(port, 0xEF);
+				if ((tmp & 1) != chip_index) {
+					msg_perr("DualBIOS: Chip selection failed.\n");
+					exit_conf_mode_ite(port);
+					return 1;
+				}
+			}
+		}
+		msg_pinfo("DualBIOS: Selected chip: %d\n", tmp & 1);
+	}
+
 	/* NOLDN, reg 0x24, mask out lowest bit (suspend) */
 	tmp = sio_read(port, 0x24) & 0xFE;
 	/* Check if LPC->SPI translation is active. */
@@ -234,6 +263,7 @@ int init_superio_ite(void)
 		case 0x8716:
 		case 0x8718:
 		case 0x8720:
+		case 0x8728:
 			if (!it87spi_probe(superios[i].port))
 				chips_found++;
 			break;
@@ -270,7 +300,6 @@ static int it8716f_spi_send_command(const struct flashctx *flash,
 				    unsigned char *readarr)
 {
 	uint8_t busy, writeenc;
-	int i;
 
 	do {
 		busy = INB(it8716f_flashport) & 0x80;
@@ -319,6 +348,8 @@ static int it8716f_spi_send_command(const struct flashctx *flash,
 		| ((readcnt & 0x3) << 2) | (writeenc), it8716f_flashport);
 
 	if (readcnt > 0) {
+		unsigned int i;
+
 		do {
 			busy = INB(it8716f_flashport) & 0x80;
 		} while (busy);
