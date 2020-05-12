@@ -24,17 +24,6 @@
 #include "hwaccess.h"
 
 #if NEED_PCI == 1
-struct pci_dev *pci_dev_find_filter(struct pci_filter filter)
-{
-	struct pci_dev *temp;
-
-	for (temp = pacc->devices; temp; temp = temp->next)
-		if (pci_filter_match(&filter, temp))
-			return temp;
-
-	return NULL;
-}
-
 struct pci_dev *pci_dev_find_vendorclass(uint16_t vendor, uint16_t devclass)
 {
 	struct pci_dev *temp;
@@ -102,11 +91,6 @@ int force_boardmismatch = 0;
 void probe_superio(void)
 {
 	probe_superio_ite();
-#if 0
-	/* Winbond Super I/O code is not yet available. */
-	if (superio.vendor == SUPERIO_VENDOR_NONE)
-		superio = probe_superio_winbond();
-#endif
 }
 
 int superio_count = 0;
