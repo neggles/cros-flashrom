@@ -132,14 +132,6 @@ struct wpce775x_initflash_cfg {
  */
 static struct wpce775x_initflash_cfg *initflash_cfg;
 
-static struct flashctx *flash_internal;
-
-
-/* Indicate the flash chip attached to the WPCE7xxx chip.
- * This variable should be set in probe_wpce775x().
- * 0 means we haven't or cannot detect the chip type. */
-struct flashchip *scan = 0;
-
 /* SuperI/O related definitions and functions. */
 /* Strapping options */
 #define NUVOTON_SIO_PORT1	0x2e	/* No pull-down resistor */
@@ -400,15 +392,10 @@ static int logbase2(int x)
 }
 
 /* initialize initflash_cfg struct */
-static int initflash_cfg_setup(struct flashctx *flash)
+static int initflash_cfg_setup(const struct flashctx *flash)
 {
 	if (!initflash_cfg)
 		initflash_cfg = malloc(sizeof(*initflash_cfg));
-
-	/* Copy flash struct pointer so that raw SPI commands that do not get
-	   it passed in (e.g. called by spi_send_command) can access it. */
-	if (flash)
-		flash_internal = flash;
 
 	/* Set "sane" defaults. If the flash chip is known, then use parameters
 	   from it. */
@@ -582,7 +569,7 @@ static int wpce775x_read(int addr, unsigned char *buf, unsigned int nbytes)
 	return 0;
 }
 
-static int wpce775x_erase_new(int blockaddr, uint8_t opcode) {
+static int wpce775x_erase_new(const struct flashctx *flash, int blockaddr, uint8_t opcode) {
 	unsigned int current;
 	int blocksize;
 	int ret = 0;
@@ -621,7 +608,7 @@ static int wpce775x_erase_new(int blockaddr, uint8_t opcode) {
 	           __func__, blockaddr, blocksize, opcode);
 
 	if (!initflash_cfg)
-		initflash_cfg_setup(flash_internal);
+		initflash_cfg_setup(flash);
 	initflash_cfg->block_erase = opcode;
 	InitFlash();
 
@@ -782,13 +769,13 @@ static int wpce775x_spi_read_status_register(unsigned int readcnt, uint8_t *read
 	return ret;
 }
 
-static int wpce775x_spi_write_status_register(uint8_t val)
+static int wpce775x_spi_write_status_register(const struct flashctx *flash, uint8_t val)
 {
 	assert_ec_is_free();
 	msg_pdbg("%s(): writing 0x%02x to status register\n", __func__, val);
 
 	if (!initflash_cfg)
-		initflash_cfg_setup(flash_internal);
+		initflash_cfg_setup(flash);
 
 	initflash_cfg->status_reg_value = val;
 	if (in_flash_update_mode) {
@@ -835,7 +822,7 @@ static int wpce775x_spi_send_command(const struct flashctx *flash,
 		break;
 	}
 	case JEDEC_WRSR:
-		wpce775x_spi_write_status_register(writearr[1]);
+		wpce775x_spi_write_status_register(flash, writearr[1]);
 		rc = 0;
 		break;
 	case JEDEC_WREN:
@@ -853,7 +840,7 @@ static int wpce775x_spi_send_command(const struct flashctx *flash,
 		                ((int)writearr[2] <<  8) |
 		                      writearr[3];
 
-		rc = wpce775x_erase_new(blockaddr, opcode);
+		rc = wpce775x_erase_new(flash, blockaddr, opcode);
 		break;
 	}
 	case JEDEC_BYTE_PROGRAM:{
