@@ -474,7 +474,6 @@ struct spi_command {
 int spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
 		const unsigned char *writearr, unsigned char *readarr);
 int spi_send_multicommand(const struct flashctx *flash, struct spi_command *cmds);
-uint32_t spi_get_valid_read_addr(struct flashctx *flash);
 
 #define NUM_VOLTAGE_RANGES	16
 extern struct voltage_range voltage_ranges[];
