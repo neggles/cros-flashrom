@@ -176,48 +176,32 @@ static int compare_id(struct flashctx *flash, uint32_t id1, uint32_t id2)
 	return 0;
 }
 
-int probe_spi_rdid(struct flashctx *flash)
+static int probe_spi_rdid_generic(struct flashctx *flash, int bytes)
 {
 	uint32_t id1, id2;
+	enum id_type idty = bytes == 3 ? RDID : RDID4;
 
-	if (!id_cache[RDID].is_cached) {
-		if (spi_rdid(flash, id_cache[RDID].bytes, 3))
+	if (!id_cache[idty].is_cached) {
+		const int ret = spi_rdid(flash, id_cache[idty].bytes, bytes);
+		if (ret == SPI_INVALID_LENGTH)
+			msg_cinfo("%d byte RDID not supported on this SPI controller\n", bytes);
+		if (ret)
 			return 0;
-		id_cache[RDID].is_cached = 1;
+		id_cache[idty].is_cached = 1;
 	}
 
-	rdid_get_ids(id_cache[RDID].bytes, 3, &id1, &id2);
+	rdid_get_ids(id_cache[idty].bytes, bytes, &id1, &id2);
 	return compare_id(flash, id1, id2);
+}
+
+int probe_spi_rdid(struct flashctx *flash)
+{
+	return probe_spi_rdid_generic(flash, 3);
 }
 
 int probe_spi_rdid4(struct flashctx *flash)
 {
-	uint32_t id1, id2;
-
-	/* Some SPI controllers do not support commands with writecnt=1 and
-	 * readcnt=4.
-	 */
-	switch (spi_master->type) {
-#if CONFIG_INTERNAL == 1
-#if defined(__i386__) || defined(__x86_64__)
-	case SPI_CONTROLLER_IT87XX:
-	case SPI_CONTROLLER_WBSIO:
-		msg_cinfo("4 byte RDID not supported on this SPI controller\n");
-		break;
-#endif
-#endif
-	default:
-		break;
-	}
-
-	if (!id_cache[RDID4].is_cached) {
-		if (spi_rdid(flash, id_cache[RDID4].bytes, 4))
-			return 0;
-		id_cache[RDID4].is_cached = 1;
-	}
-
-	rdid_get_ids(id_cache[RDID4].bytes, 4, &id1, &id2);
-	return compare_id(flash, id1, id2);
+	return probe_spi_rdid_generic(flash, 4);
 }
 
 int probe_spi_rems(struct flashctx *flash)
