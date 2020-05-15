@@ -261,11 +261,6 @@ int rpci_write_word(struct pci_dev *dev, int reg, uint16_t data);
 int rpci_write_long(struct pci_dev *dev, int reg, uint32_t data);
 #endif
 
-/* print.c */
-#if CONFIG_NIC3COM+CONFIG_NICREALTEK+CONFIG_NICNATSEMI+CONFIG_GFXNVIDIA+CONFIG_DRKAISER+CONFIG_SATASII+CONFIG_ATAHPT+CONFIG_NICINTEL+CONFIG_NICINTEL_SPI+CONFIG_OGP_SPI+CONFIG_SATAMV >= 1
-void print_supported_pcidevs(const struct dev_entry *devs);
-#endif
-
 #if CONFIG_INTERNAL == 1
 /* board_enable.c */
 void w836xx_ext_enter(uint16_t port);
@@ -497,6 +492,7 @@ struct decode_sizes {
 	uint32_t fwh;
 	uint32_t spi;
 };
+// FIXME: These need to be local, not global
 extern struct decode_sizes max_rom_decode;
 extern int programmer_may_write;
 extern unsigned long flashbase;
@@ -664,7 +660,7 @@ int wbsio_check_for_spi(void);
 struct opaque_master {
 	int max_data_read;
 	int max_data_write;
-	/* Specific functions for this programmer */
+	/* Specific functions for this master */
 	int (*probe) (struct flashctx *flash);
 	int (*read) (struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 	int (*write) (struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
@@ -745,7 +741,6 @@ int cros_ec_prepare(uint8_t *image, int size);
 
 void sp_flush_incoming(void);
 fdtype sp_openserport(char *dev, int baud);
-void __attribute__((noreturn)) sp_die(char *msg);
 extern fdtype sp_fd;
 int serialport_config(fdtype fd, int baud);
 int serialport_shutdown(void *data);
