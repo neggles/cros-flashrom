@@ -148,35 +148,6 @@ uintptr_t pcidev_readbar(struct pci_dev *dev, int bar)
 	return (uintptr_t)addr;
 }
 
-uintptr_t pcidev_validate(struct pci_dev *dev, int bar,
-			 const struct dev_entry *devs)
-{
-	int i;
-
-	for (i = 0; devs[i].device_name != NULL; i++) {
-		if (dev->device_id != devs[i].device_id)
-			continue;
-
-		msg_pinfo("Found \"%s %s\" (%04x:%04x, BDF %02x:%02x.%x).\n",
-		       devs[i].vendor_name, devs[i].device_name,
-		       dev->vendor_id, dev->device_id, dev->bus, dev->dev,
-		       dev->func);
-
-		if (devs[i].status == NT) {
-			msg_pinfo("===\nThis PCI device is UNTESTED. Please "
-				  "report the 'flashrom -p xxxx' output \n"
-				  "to flashrom@flashrom.org if it works "
-				  "for you. Please add the name of your\n"
-				  "PCI device to the subject. Thank you for "
-				  "your help!\n===\n");
-		}
-
-		return pcidev_readbar(dev, bar);
-	}
-
-	return 0;
-}
-
 static int pcidev_shutdown(void *data)
 {
 	if (pacc == NULL) {
@@ -204,14 +175,20 @@ int pci_init_common(void)
 	return 0;
 }
 
+/* pcidev_init gets an array of allowed PCI device IDs and returns a pointer to struct pci_dev iff exactly one
+ * match was found. If the "pci=bb:dd.f" programmer parameter was specified, a match is only considered if it
+ * also matches the specified bus:device.function.
+ * For convenience, this function also registers its own undo handlers.
+ */
 struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar)
 {
 	struct pci_dev *dev;
+	struct pci_dev *found_dev = NULL;
 	struct pci_filter filter;
 	char *pcidev_bdf;
 	char *msg = NULL;
 	int found = 0;
-	uintptr_t addr = 0;
+	int i;
 
 	if (pci_init_common() != 0)
 		return NULL;
@@ -229,10 +206,30 @@ struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar)
 
 	for (dev = pacc->devices; dev; dev = dev->next) {
 		if (pci_filter_match(&filter, dev)) {
+			/* Check against list of supported devices. */
+			for (i = 0; devs[i].device_name != NULL; i++)
+				if ((dev->vendor_id == devs[i].vendor_id) &&
+				    (dev->device_id == devs[i].device_id))
+					break;
+			/* Not supported, try the next one. */
+			if (devs[i].device_name == NULL)
+				continue;
+
+			msg_pdbg("Found \"%s %s\" (%04x:%04x, BDF %02x:%02x.%x).\n", devs[i].vendor_name,
+				 devs[i].device_name, dev->vendor_id, dev->device_id, dev->bus, dev->dev,
+				 dev->func);
+			if (devs[i].status == NT)
+				msg_pinfo("===\nThis PCI device is UNTESTED. Please report the 'flashrom -p "
+					  "xxxx' output\n"
+					  "to flashrom@flashrom.org if it works for you. Please add the name "
+					  "of your\n"
+					  "PCI device to the subject. Thank you for your help!\n===\n");
+
 			/* FIXME: We should count all matching devices, not
 			 * just those with a valid BAR.
 			 */
-			if ((addr = pcidev_validate(dev, bar, devs)) != 0) {
+			if (pcidev_readbar(dev, bar) != 0) {
+				found_dev = dev;
 				found++;
 			}
 		}
@@ -248,7 +245,7 @@ struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar)
 		return NULL;
 	}
 
-	return dev;
+	return found_dev;
 }
 
 enum pci_write_type {
@@ -258,7 +255,7 @@ enum pci_write_type {
 };
 
 struct undo_pci_write_data {
-	struct pci_dev dev;
+	struct pci_dev *dev;
 	int reg;
 	enum pci_write_type type;
 	union {
@@ -268,25 +265,26 @@ struct undo_pci_write_data {
 	};
 };
 
-int undo_pci_write(void *p)
+static int undo_pci_write(void *p)
 {
 	struct undo_pci_write_data *data = p;
-	if (pacc == NULL) {
-		msg_perr("%s: Tried to undo PCI writes without a valid PCI context!\n"
-			 "Please report a bug at flashrom@flashrom.org\n", __func__);
+	if (pacc == NULL || data->dev == NULL) {
+		msg_perr("%s: Tried to undo PCI writes without a valid PCI %s!\n"
+			"Please report a bug at flashrom@flashrom.org\n",
+			__func__, data->dev == NULL ? "device" : "context");
 		return 1;
 	}
 	msg_pdbg("Restoring PCI config space for %02x:%02x:%01x reg 0x%02x\n",
-		 data->dev.bus, data->dev.dev, data->dev.func, data->reg);
+		 data->dev->bus, data->dev->dev, data->dev->func, data->reg);
 	switch (data->type) {
 	case pci_write_type_byte:
-		pci_write_byte(&data->dev, data->reg, data->bytedata);
+		pci_write_byte(data->dev, data->reg, data->bytedata);
 		break;
 	case pci_write_type_word:
-		pci_write_word(&data->dev, data->reg, data->worddata);
+		pci_write_word(data->dev, data->reg, data->worddata);
 		break;
 	case pci_write_type_long:
-		pci_write_long(&data->dev, data->reg, data->longdata);
+		pci_write_long(data->dev, data->reg, data->longdata);
 		break;
 	}
 	/* p was allocated in register_undo_pci_write. */
@@ -294,7 +292,7 @@ int undo_pci_write(void *p)
 	return 0;
 }
 
-#define register_undo_pci_write(a, b, c) 				\
+#define register_undo_pci_write(a, b, c)				\
 {									\
 	struct undo_pci_write_data *undo_pci_write_data;		\
 	undo_pci_write_data = malloc(sizeof(struct undo_pci_write_data)); \
@@ -302,7 +300,11 @@ int undo_pci_write(void *p)
 		msg_gerr("Out of memory!\n");				\
 		exit(1);						\
 	}								\
-	undo_pci_write_data->dev = *a;					\
+	if (pacc)							\
+		undo_pci_write_data->dev = pci_get_dev(pacc,		\
+				a->domain, a->bus, a->dev, a->func);	\
+	else								\
+		undo_pci_write_data->dev =  NULL;			\
 	undo_pci_write_data->reg = b;					\
 	undo_pci_write_data->type = pci_write_type_##c;			\
 	undo_pci_write_data->c##data = pci_read_##c(dev, reg);		\

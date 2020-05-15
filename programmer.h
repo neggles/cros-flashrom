@@ -251,7 +251,6 @@ void internal_delay(unsigned int usecs);
 extern struct pci_access *pacc;
 int pci_init_common(void);
 uintptr_t pcidev_readbar(struct pci_dev *dev, int bar);
-uintptr_t pcidev_validate(struct pci_dev *dev, int bar, const struct dev_entry *devs);
 struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar);
 /* rpci_write_* are reversible writes. The original PCI config space register
  * contents will be restored on shutdown.
