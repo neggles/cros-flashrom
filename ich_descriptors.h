@@ -701,8 +701,7 @@ int read_ich_descriptors_from_dump(const uint32_t *dump, unsigned int len,
 
 #else /* ICH_DESCRIPTORS_FROM_DUMP */
 
-int read_ich_descriptors_via_fdo(void *spibar, struct ich_descriptors *desc,
-					int chipset);
+int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_descriptors *desc);
 int getFCBA_component_density(const struct ich_descriptors *desc, uint8_t idx);
 
 #endif /* ICH_DESCRIPTORS_FROM_DUMP */

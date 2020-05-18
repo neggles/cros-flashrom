@@ -2055,8 +2055,7 @@ static void do_ich9_spi_frap(uint32_t frap, int i)
 			freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
 			if ((freg & HSFSC_FDV) && !(freg & HSFSC_FDOPSS))
 				rwperms = FD_REGION_READ_WRITE;
-			else if (read_ich_descriptors_via_fdo(ich_spibar, &desc,
-						g_ich_generation) == ICH_RET_OK) {
+			else if (read_ich_descriptors_via_fdo(g_ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
 				if (desc.master.pch100.BIOS_EC_r &&
 				    desc.master.pch100.BIOS_EC_w)
 					rwperms = FD_REGION_READ_WRITE;
@@ -2308,8 +2307,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		for (i = 0; i < num_fd_regions; i++)
 			prettyprint_ich9_reg_pr(i, ich_generation);
 		if (desc_valid) {
-			if (read_ich_descriptors_via_fdo(ich_spibar, &desc,
-					ich_generation) == ICH_RET_OK)
+			if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK)
 				prettyprint_ich_descriptors(ich_generation,
 							    &desc);
 		} else {
@@ -2440,8 +2438,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 
 		msg_pdbg("\n");
 		if (desc_valid) {
-			if (read_ich_descriptors_via_fdo(ich_spibar, &desc,
-					ich_generation) == ICH_RET_OK)
+			if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK)
 				prettyprint_ich_descriptors(ich_generation,
 							    &desc);
 			/* If the descriptor is valid and indicates multiple
