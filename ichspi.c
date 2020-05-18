@@ -52,6 +52,28 @@
 #define HSFC_WET_OFF		(21 - 16)	/* 5: Write Enable Type */
 #define HSFC_WET		(0x1 << HSFC_WET_OFF)
 
+#define PCH100_REG_DLOCK    0x0c    /* 32 Bits Discrete Lock Bits */
+#define DLOCK_BMWAG_LOCKDN_OFF  0
+#define DLOCK_BMWAG_LOCKDN  (0x1 << DLOCK_BMWAG_LOCKDN_OFF)
+#define DLOCK_BMRAG_LOCKDN_OFF  1
+#define DLOCK_BMRAG_LOCKDN  (0x1 << DLOCK_BMRAG_LOCKDN_OFF)
+#define DLOCK_SBMWAG_LOCKDN_OFF 2
+#define DLOCK_SBMWAG_LOCKDN (0x1 << DLOCK_SBMWAG_LOCKDN_OFF)
+#define DLOCK_SBMRAG_LOCKDN_OFF 3
+#define DLOCK_SBMRAG_LOCKDN (0x1 << DLOCK_SBMRAG_LOCKDN_OFF)
+#define DLOCK_PR0_LOCKDN_OFF    8
+#define DLOCK_PR0_LOCKDN    (0x1 << DLOCK_PR0_LOCKDN_OFF)
+#define DLOCK_PR1_LOCKDN_OFF    9
+#define DLOCK_PR1_LOCKDN    (0x1 << DLOCK_PR1_LOCKDN_OFF)
+#define DLOCK_PR2_LOCKDN_OFF    10
+#define DLOCK_PR2_LOCKDN    (0x1 << DLOCK_PR2_LOCKDN_OFF)
+#define DLOCK_PR3_LOCKDN_OFF    11
+#define DLOCK_PR3_LOCKDN    (0x1 << DLOCK_PR3_LOCKDN_OFF)
+#define DLOCK_PR4_LOCKDN_OFF    12
+#define DLOCK_PR4_LOCKDN    (0x1 << DLOCK_PR4_LOCKDN_OFF)
+#define DLOCK_SSEQ_LOCKDN_OFF   16
+#define DLOCK_SSEQ_LOCKDN   (0x1 << DLOCK_SSEQ_LOCKDN_OFF)
+
 /* ICH9 controller register definition */
 #define ICH9_REG_HSFS		0x04	/* 16 Bits Hardware Sequencing Flash Status */
 #define HSFS_FDONE_OFF		0	/* 0: Flash Cycle Done */
@@ -448,6 +470,21 @@ static void prettyprint_ich9_reg_ssfc(uint32_t reg_val)
 	pprint_reg(SSFC, DBC, reg_val, ", ");
 	pprint_reg(SSFC, SME, reg_val, ", ");
 	pprint_reg(SSFC, SCF, reg_val, "\n");
+}
+
+static void prettyprint_pch100_reg_dlock(const uint32_t reg_val)
+{
+	msg_pdbg("DLOCK: ");
+	pprint_reg(DLOCK, BMWAG_LOCKDN, reg_val, ", ");
+	pprint_reg(DLOCK, BMRAG_LOCKDN, reg_val, ", ");
+	pprint_reg(DLOCK, SBMWAG_LOCKDN, reg_val, ", ");
+	pprint_reg(DLOCK, SBMRAG_LOCKDN, reg_val, ",\n       ");
+	pprint_reg(DLOCK, PR0_LOCKDN, reg_val, ", ");
+	pprint_reg(DLOCK, PR1_LOCKDN, reg_val, ", ");
+	pprint_reg(DLOCK, PR2_LOCKDN, reg_val, ", ");
+	pprint_reg(DLOCK, PR3_LOCKDN, reg_val, ", ");
+	pprint_reg(DLOCK, PR4_LOCKDN, reg_val, ",\n       ");
+	pprint_reg(DLOCK, SSEQ_LOCKDN, reg_val, "\n");
 }
 
 static uint8_t lookup_spi_type(uint8_t opcode)
@@ -2322,6 +2359,13 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		}
 		tmp = mmio_readl(ich_spibar + PCH100_REG_FADDR);
 		msg_pdbg("0x08: 0x%08x (FADDR)\n", tmp);
+
+		if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT) {
+			const uint32_t dlock = mmio_readl(ich_spibar + PCH100_REG_DLOCK);
+			msg_pdbg("0x0c: 0x%08x (DLOCK)\n", dlock);
+			prettyprint_pch100_reg_dlock(dlock);
+		}
+
 		if (desc_valid) {
 			tmp = mmio_readl(ich_spibar + ICH9_REG_FRAP);
 			msg_cdbg("0x50: 0x%08x (FRAP)\n", tmp);
