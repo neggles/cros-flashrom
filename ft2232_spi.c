@@ -288,19 +288,19 @@ int ft2232_spi_init(void)
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_PID;
 			channel_count = 2;
-			msg_pwarn("Warning: Use 'google-servo' instead!");
+			msg_pwarn("Warning: Use 'google-servo' instead!\n");
 		} else if (!strcasecmp(arg, "servo-v2")) {
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_V2_PID1;
 			channel_count = 2;
-			msg_pwarn("Warning: Use 'google-servo-v2' instead!");
+			msg_pwarn("Warning: Use 'google-servo-v2' instead!\n");
 			/* Default divisor is too fast, and chip ID fails */
 			divisor = 6;
 		} else if (!strcasecmp(arg, "servo-v2-legacy")) {
 			ft2232_vid = GOOGLE_VID;
 			ft2232_type = GOOGLE_SERVO_V2_PID0;
 			channel_count = 2;
-			msg_pwarn("Warning: Use 'google-servo-v2-legacy' instead!");
+			msg_pwarn("Warning: Use 'google-servo-v2-legacy' instead!\n");
 		/* ^^ WARNING: deprecated ^^ */
 		} else if (!strcasecmp(arg, "flyswatter")) {
 			ft2232_type = FTDI_FT2232H_PID;
