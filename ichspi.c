@@ -2117,18 +2117,9 @@ static void prettyprint_ich9_reg_pr(int i, int chipset)
 
 /* Set/Clear the read and write protection enable bits of PR register @i
  * according to @read_prot and @write_prot. */
-static void ich9_set_pr(int i, int read_prot, int write_prot, int chipset)
+static void ich9_set_pr(const size_t reg_pr0, int i, int read_prot, int write_prot)
 {
-	void *addr;
-	switch (chipset) {
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
-		addr = ich_spibar + PCH100_REG_FPR0 + (i * 4);
-		break;
-	default:
-		addr = ich_spibar + ICH9_REG_PR0 + (i * 4);
-		break;
-	}
+	void *addr = ich_spibar + reg_pr0 + (i * 4);
 	uint32_t old = mmio_readl(addr);
 	uint32_t new;
 
@@ -2199,6 +2190,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		ich_hwseq,
 		ich_swseq
 	} ich_spi_mode = ich_auto;
+	size_t reg_pr0;
 
 	g_ich_generation = ich_generation;
 	msg_pdbg("ich_ generation %d\n", ich_generation);
@@ -2206,6 +2198,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 	ich_spibar = spibar;
 	memset(&desc, 0x00, sizeof(struct ich_descriptors));
 
+	reg_pr0         = ICH9_REG_PR0;
 	switch (ich_generation) {
 	case CHIPSET_ICH7:
 		msg_pdbg("0x00: 0x%04x     (SPIS)\n",
@@ -2241,6 +2234,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_APL:
+		reg_pr0         = PCH100_REG_FPR0;
 		arg = extract_programmer_param("ich_spi_mode");
 		if (arg && !strcmp(arg, "hwseq")) {
 			ich_spi_mode = ich_hwseq;
@@ -2310,7 +2304,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		/* try to disable PR locks before printing them */
 		if (!ichspi_lock)
 			for (i = 0; i < num_fd_regions; i++)
-				ich9_set_pr(i, 0, 0, ich_generation);
+				ich9_set_pr(reg_pr0, i, 0, 0);
 		for (i = 0; i < num_fd_regions; i++)
 			prettyprint_ich9_reg_pr(i, ich_generation);
 		if (desc_valid) {
@@ -2395,7 +2389,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		/* try to disable PR locks before printing them */
 		if (!ichspi_lock)
 			for (i = 0; i < num_fd_regions; i++)
-				ich9_set_pr(i, 0, 0, ich_generation);
+				ich9_set_pr(reg_pr0, i, 0, 0);
 		for (i = 0; i < num_fd_regions; i++)
 			prettyprint_ich9_reg_pr(i, ich_generation);
 
