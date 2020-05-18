@@ -2104,7 +2104,7 @@ static int ich_spi_send_multicommand(const struct flashctx *flash, struct spi_co
 #define ICH_BRWA(x)  ((x >>  8) & 0xff)
 #define ICH_BRRA(x)  ((x >>  0) & 0xff)
 
-static void do_ich9_spi_frap(uint32_t frap, int i)
+static void ich9_handle_frap(uint32_t frap, unsigned int i)
 {
 	int rwperms = (((ICH_BRWA(frap) >> i) & 1) << 1) |
 		      (((ICH_BRRA(frap) >> i) & 1) << 0);
@@ -2384,7 +2384,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 
 			/* Decode and print FREGx and FRAP registers */
 			for (i = 0; i < num_fd_regions; i++)
-				do_ich9_spi_frap(tmp, i);
+				ich9_handle_frap(tmp, i);
 		}
 		/* try to disable PR locks before printing them */
 		if (!ichspi_lock)
@@ -2467,7 +2467,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 
 			/* Decode and print FREGx and FRAP registers */
 			for (i = 0; i < num_fd_regions; i++)
-				do_ich9_spi_frap(tmp, i);
+				ich9_handle_frap(tmp, i);
 		}
 
 		/* try to disable PR locks before printing them */
