@@ -74,6 +74,11 @@
 #define DLOCK_SSEQ_LOCKDN_OFF   16
 #define DLOCK_SSEQ_LOCKDN   (0x1 << DLOCK_SSEQ_LOCKDN_OFF)
 
+#define PCH100_REG_SSFSC    0xA0    /* 32 Bits Status (8) + Control (24) */
+#define PCH100_REG_PREOP    0xA4    /* 16 Bits */
+#define PCH100_REG_OPTYPE   0xA6    /* 16 Bits */
+#define PCH100_REG_OPMENU   0xA8    /* 64 Bits */
+
 /* ICH9 controller register definition */
 #define ICH9_REG_HSFS		0x04	/* 16 Bits Hardware Sequencing Flash Status */
 #define HSFS_FDONE_OFF		0	/* 0: Flash Cycle Done */
@@ -487,6 +492,13 @@ static void prettyprint_pch100_reg_dlock(const uint32_t reg_val)
 	pprint_reg(DLOCK, SSEQ_LOCKDN, reg_val, "\n");
 }
 
+static struct {
+	size_t reg_ssfsc;
+	size_t reg_preop;
+	size_t reg_optype;
+	size_t reg_opmenu;
+} swseq_data;
+
 static uint8_t lookup_spi_type(uint8_t opcode)
 {
 	int a;
@@ -592,10 +604,10 @@ static int generate_opcodes(OPCODES * op)
 		break;
 	case CHIPSET_ICH8:
 	default:		/* Future version might behave the same */
-		preop = REGREAD16(ICH9_REG_PREOP);
-		optype = REGREAD16(ICH9_REG_OPTYPE);
-		opmenu[0] = REGREAD32(ICH9_REG_OPMENU);
-		opmenu[1] = REGREAD32(ICH9_REG_OPMENU + 4);
+		preop = REGREAD16(swseq_data.reg_preop);
+		optype = REGREAD16(swseq_data.reg_optype);
+		opmenu[0] = REGREAD32(swseq_data.reg_opmenu);
+		opmenu[1] = REGREAD32(swseq_data.reg_opmenu + 4);
 		break;
 	}
 
@@ -673,15 +685,15 @@ static int program_opcodes(OPCODES *op, int enable_undo)
 	default:		/* Future version might behave the same */
 		/* Register undo only for enable_undo=1, i.e. first call. */
 		if (enable_undo) {
-			rmmio_valw(ich_spibar + ICH9_REG_PREOP);
-			rmmio_valw(ich_spibar + ICH9_REG_OPTYPE);
-			rmmio_vall(ich_spibar + ICH9_REG_OPMENU);
-			rmmio_vall(ich_spibar + ICH9_REG_OPMENU + 4);
+			rmmio_valw(ich_spibar + swseq_data.reg_preop);
+			rmmio_valw(ich_spibar + swseq_data.reg_optype);
+			rmmio_vall(ich_spibar + swseq_data.reg_opmenu);
+			rmmio_vall(ich_spibar + swseq_data.reg_opmenu + 4);
 		}
-		mmio_writew(preop, ich_spibar + ICH9_REG_PREOP);
-		mmio_writew(optype, ich_spibar + ICH9_REG_OPTYPE);
-		mmio_writel(opmenu[0], ich_spibar + ICH9_REG_OPMENU);
-		mmio_writel(opmenu[1], ich_spibar + ICH9_REG_OPMENU + 4);
+		mmio_writew(preop, ich_spibar + swseq_data.reg_preop);
+		mmio_writew(optype, ich_spibar + swseq_data.reg_optype);
+		mmio_writel(opmenu[0], ich_spibar + swseq_data.reg_opmenu);
+		mmio_writel(opmenu[1], ich_spibar + swseq_data.reg_opmenu + 4);
 		break;
 	}
 
@@ -971,7 +983,7 @@ static int ich9_run_opcode(OPCODE op, uint32_t offset,
 	}
 
 	timeout = 100 * 60;	/* 60 ms are 9.6 million cycles at 16 MHz. */
-	while ((REGREAD8(ICH9_REG_SSFS) & SSFS_SCIP) && --timeout) {
+	while ((REGREAD8(swseq_data.reg_ssfsc) & SSFS_SCIP) && --timeout) {
 		programmer_delay(10);
 	}
 	if (!timeout) {
@@ -989,12 +1001,12 @@ static int ich9_run_opcode(OPCODE op, uint32_t offset,
 		ich_fill_data(data, datalength, ICH9_REG_FDATA0);
 
 	/* Assemble SSFS + SSFC */
-	temp32 = REGREAD32(ICH9_REG_SSFS);
+	temp32 = REGREAD32(swseq_data.reg_ssfsc);
 	/* Keep reserved bits only */
 	temp32 &= SSFS_RESERVED_MASK | SSFC_RESERVED_MASK;
 	/* Clear cycle done and cycle error status registers */
 	temp32 |= (SSFS_FDONE | SSFS_FCERR);
-	REGWRITE32(ICH9_REG_SSFS, temp32);
+	REGWRITE32(swseq_data.reg_ssfsc, temp32);
 
 	/* Use 20 MHz */
 	temp32 |= SSFC_SCF_20MHZ;
@@ -1009,8 +1021,8 @@ static int ich9_run_opcode(OPCODE op, uint32_t offset,
 	}
 
 	/* Select opcode */
-	opmenu = REGREAD32(ICH9_REG_OPMENU);
-	opmenu |= ((uint64_t)REGREAD32(ICH9_REG_OPMENU + 4)) << 32;
+	opmenu = REGREAD32(swseq_data.reg_opmenu);
+	opmenu |= ((uint64_t)REGREAD32(swseq_data.reg_opmenu + 4)) << 32;
 
 	for (opcode_index = 0; opcode_index < 8; opcode_index++) {
 		if ((opmenu & 0xff) == op.opcode) {
@@ -1048,21 +1060,21 @@ static int ich9_run_opcode(OPCODE op, uint32_t offset,
 	temp32 |= SSFC_SCGO;
 
 	/* write it */
-	REGWRITE32(ICH9_REG_SSFS, temp32);
+	REGWRITE32(swseq_data.reg_ssfsc, temp32);
 
 	/* Wait for Cycle Done Status or Flash Cycle Error. */
-	while (((REGREAD32(ICH9_REG_SSFS) & (SSFS_FDONE | SSFS_FCERR)) == 0) &&
+	while (((REGREAD32(swseq_data.reg_ssfsc) & (SSFS_FDONE | SSFS_FCERR)) == 0) &&
 	       --timeout) {
 		programmer_delay(10);
 	}
 	if (!timeout) {
-		msg_perr("timeout, ICH9_REG_SSFS=0x%08x\n",
-			 REGREAD32(ICH9_REG_SSFS));
+		msg_perr("timeout, REG_SSFS=0x%08x\n",
+			 REGREAD32(swseq_data.reg_ssfsc));
 		return 1;
 	}
 
 	/* FIXME make sure we do not needlessly cause transaction errors. */
-	temp32 = REGREAD32(ICH9_REG_SSFS);
+	temp32 = REGREAD32(swseq_data.reg_ssfsc);
 	if (temp32 & SSFS_FCERR) {
 		msg_perr("Transaction error!\n");
 		prettyprint_ich9_reg_ssfs(temp32);
@@ -1070,7 +1082,7 @@ static int ich9_run_opcode(OPCODE op, uint32_t offset,
 		/* keep reserved bits */
 		temp32 &= SSFS_RESERVED_MASK | SSFC_RESERVED_MASK;
 		/* Clear the transaction error. */
-		REGWRITE32(ICH9_REG_SSFS, temp32 | SSFS_FCERR);
+		REGWRITE32(swseq_data.reg_ssfsc, temp32 | SSFS_FCERR);
 		return 1;
 	}
 
@@ -2276,7 +2288,21 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 	ich_spibar = spibar;
 	memset(&desc, 0x00, sizeof(struct ich_descriptors));
 
-	reg_pr0         = ICH9_REG_PR0;
+	/* Moving registers / bits */
+	if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT) {
+		reg_pr0         = PCH100_REG_FPR0;
+		swseq_data.reg_ssfsc    = PCH100_REG_SSFSC;
+		swseq_data.reg_preop    = PCH100_REG_PREOP;
+		swseq_data.reg_optype   = PCH100_REG_OPTYPE;
+		swseq_data.reg_opmenu   = PCH100_REG_OPMENU;
+	} else {
+		reg_pr0         = ICH9_REG_PR0;
+		swseq_data.reg_ssfsc    = ICH9_REG_SSFS;
+		swseq_data.reg_preop    = ICH9_REG_PREOP;
+		swseq_data.reg_optype   = ICH9_REG_OPTYPE;
+		swseq_data.reg_opmenu   = ICH9_REG_OPMENU;
+	}
+
 	switch (ich_generation) {
 	case CHIPSET_ICH7:
 		msg_pdbg("0x00: 0x%04x     (SPIS)\n",
@@ -2477,24 +2503,24 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		for (i = 0; i < num_fd_regions; i++)
 			prettyprint_ich9_reg_pr(i, ich_generation);
 
-		tmp = mmio_readl(ich_spibar + ICH9_REG_SSFS);
-		msg_pdbg("0x90: 0x%02x (SSFS)\n", tmp & 0xff);
+		tmp = mmio_readl(ich_spibar + swseq_data.reg_ssfsc);
+		msg_pdbg("0x%zx: 0x%02x (SSFS)\n", swseq_data.reg_ssfsc, tmp & 0xff);
 		prettyprint_ich9_reg_ssfs(tmp);
 		if (tmp & SSFS_FCERR) {
 			msg_pdbg("Clearing SSFS.FCERR\n");
-			mmio_writeb(SSFS_FCERR, ich_spibar + ICH9_REG_SSFS);
+			mmio_writeb(SSFS_FCERR, ich_spibar + swseq_data.reg_ssfsc);
 		}
-		msg_pdbg("0x91: 0x%06x (SSFC)\n", tmp >> 8);
+		msg_pdbg("0x%zx: 0x%06x (SSFC)\n", swseq_data.reg_ssfsc + 1, tmp >> 8);
 		prettyprint_ich9_reg_ssfc(tmp);
 
-		msg_pdbg("0x94: 0x%04x     (PREOP)\n",
-			     mmio_readw(ich_spibar + ICH9_REG_PREOP));
-		msg_pdbg("0x96: 0x%04x     (OPTYPE)\n",
-			     mmio_readw(ich_spibar + ICH9_REG_OPTYPE));
-		msg_pdbg("0x98: 0x%08x (OPMENU)\n",
-			     mmio_readl(ich_spibar + ICH9_REG_OPMENU));
-		msg_pdbg("0x9C: 0x%08x (OPMENU+4)\n",
-			     mmio_readl(ich_spibar + ICH9_REG_OPMENU + 4));
+		msg_pdbg("0x%zx: 0x%04x     (PREOP)\n",
+			 swseq_data.reg_preop, mmio_readw(ich_spibar + swseq_data.reg_preop));
+		msg_pdbg("0x%zx: 0x%04x     (OPTYPE)\n",
+			 swseq_data.reg_optype, mmio_readw(ich_spibar + swseq_data.reg_optype));
+		msg_pdbg("0x%zx: 0x%08x (OPMENU)\n",
+			 swseq_data.reg_opmenu, mmio_readl(ich_spibar + swseq_data.reg_opmenu));
+		msg_pdbg("0x%zx: 0x%08x (OPMENU+4)\n",
+			 swseq_data.reg_opmenu + 4, mmio_readl(ich_spibar + swseq_data.reg_opmenu + 4));
 		if (ich_generation == CHIPSET_ICH8 && desc_valid) {
 			tmp = mmio_readl(ich_spibar + ICH8_REG_VSCC);
 			msg_pdbg("0xC1: 0x%08x (VSCC)\n", tmp);
