@@ -30,6 +30,28 @@
 #include "ich_descriptors.h"
 #include "chipdrivers.h"
 
+/* Sunrise Point */
+
+/* Added HSFS Status bits */
+#define HSFS_WRSDIS_OFF		11	/* 11: Flash Configuration Lock-Down */
+#define HSFS_WRSDIS		(0x1 << HSFS_WRSDIS_OFF)
+#define HSFS_PRR34_LOCKDN_OFF	12	/* 12: PRR3 PRR4 Lock-Down */
+#define HSFS_PRR34_LOCKDN	(0x1 << HSFS_PRR34_LOCKDN_OFF)
+/* HSFS_BERASE vanished */
+
+/*
+ * HSFC and HSFS 16-bit registers are combined into the 32-bit
+ * BIOS_HSFSTS_CTL register in the Sunrise Point datasheet,
+ * however we still treat them separately in order to reuse code.
+ */
+
+/* Changed HSFC Control bits */
+#define PCH100_HSFC_FCYCLE_OFF	(17 - 16)	/* 1-4: FLASH Cycle */
+#define PCH100_HSFC_FCYCLE	(0xf << PCH100_HSFC_FCYCLE_OFF)
+/* New HSFC Control bit */
+#define HSFC_WET_OFF		(21 - 16)	/* 5: Write Enable Type */
+#define HSFC_WET		(0x1 << HSFC_WET_OFF)
+
 /* ICH9 controller register definition */
 #define ICH9_REG_HSFS		0x04	/* 16 Bits Hardware Sequencing Flash Status */
 #define HSFS_FDONE_OFF		0	/* 0: Flash Cycle Done */
@@ -371,7 +393,8 @@ static void prettyprint_opcodes(OPCODES *ops)
 		 ops->preop[1]);
 }
 
-#define pprint_reg(reg, bit, val, sep) msg_pdbg("%s=%d" sep, #bit, (val & reg##_##bit)>>reg##_##bit##_OFF)
+#define _pprint_reg(bit, mask, off, val, sep) msg_pdbg("%s=%d" sep, #bit, (val & mask) >> off)
+#define pprint_reg(reg, bit, val, sep) _pprint_reg(bit, reg##_##bit, reg##_##bit##_OFF, val, sep)
 
 static void prettyprint_ich9_reg_hsfs(uint16_t reg_val)
 {
@@ -379,8 +402,14 @@ static void prettyprint_ich9_reg_hsfs(uint16_t reg_val)
 	pprint_reg(HSFS, FDONE, reg_val, ", ");
 	pprint_reg(HSFS, FCERR, reg_val, ", ");
 	pprint_reg(HSFS, AEL, reg_val, ", ");
-	pprint_reg(HSFS, BERASE, reg_val, ", ");
+	if (g_ich_generation != CHIPSET_100_SERIES_SUNRISE_POINT) {
+		pprint_reg(HSFS, BERASE, reg_val, ", ");
+	}
 	pprint_reg(HSFS, SCIP, reg_val, ", ");
+	if (g_ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT) {
+		pprint_reg(HSFS, PRR34_LOCKDN, reg_val, ", ");
+		pprint_reg(HSFS, WRSDIS, reg_val, ", ");
+	}
 	pprint_reg(HSFS, FDOPSS, reg_val, ", ");
 	pprint_reg(HSFS, FDV, reg_val, ", ");
 	pprint_reg(HSFS, FLOCKDN, reg_val, "\n");
@@ -390,7 +419,12 @@ static void prettyprint_ich9_reg_hsfc(uint16_t reg_val)
 {
 	msg_pdbg("HSFC: ");
 	pprint_reg(HSFC, FGO, reg_val, ", ");
-	pprint_reg(HSFC, FCYCLE, reg_val, ", ");
+	if (g_ich_generation != CHIPSET_100_SERIES_SUNRISE_POINT) {
+		pprint_reg(HSFC, FCYCLE, reg_val, ", ");
+	} else {
+		_pprint_reg(HSFC, PCH100_HSFC_FCYCLE, PCH100_HSFC_FCYCLE_OFF, reg_val, ", ");
+		pprint_reg(HSFC, WET, reg_val, ", ");
+	}
 	pprint_reg(HSFC, FDBC, reg_val, ", ");
 	pprint_reg(HSFC, SME, reg_val, "\n");
 }
