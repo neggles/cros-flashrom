@@ -834,14 +834,13 @@ int getFCBA_component_density(const struct ich_descriptors *desc, uint8_t idx)
 	return (1 << (19 + size_enc));
 }
 
-static uint32_t read_descriptor_reg(uint8_t section, uint16_t offset,
-				void *spibar, int chipset)
+static uint32_t read_descriptor_reg(enum ich_chipset cs, uint8_t section, uint16_t offset, void *spibar)
 {
 	uint32_t control = 0;
 	control |= (section << FDOC_FDSS_OFF) & FDOC_FDSS;
 	control |= (offset << FDOC_FDSI_OFF) & FDOC_FDSI;
-	if ((chipset == CHIPSET_100_SERIES_SUNRISE_POINT) ||
-	    (chipset == CHIPSET_APL)) {
+	if ((cs == CHIPSET_100_SERIES_SUNRISE_POINT) ||
+	    (cs == CHIPSET_APL)) {
 		mmio_le_writel(control, spibar + PCH100_REG_FDOC);
 		return mmio_le_readl(spibar + PCH100_REG_FDOD);
 	} else {
@@ -882,15 +881,15 @@ int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_d
 	msg_pdbg2("Reading flash descriptors "
 		 "mapped by the chipset via FDOC/FDOD...");
 	/* content section */
-	desc->content.FLVALSIG	= read_descriptor_reg(0, 0, spibar, cs);
-	desc->content.FLMAP0	= read_descriptor_reg(0, 1, spibar, cs);
-	desc->content.FLMAP1	= read_descriptor_reg(0, 2, spibar, cs);
-	desc->content.FLMAP2	= read_descriptor_reg(0, 3, spibar, cs);
+	desc->content.FLVALSIG	= read_descriptor_reg(cs, 0, 0, spibar);
+	desc->content.FLMAP0	= read_descriptor_reg(cs, 0, 1, spibar);
+	desc->content.FLMAP1	= read_descriptor_reg(cs, 0, 2, spibar);
+	desc->content.FLMAP2	= read_descriptor_reg(cs, 0, 3, spibar);
 
 	/* component section */
-	desc->component.FLCOMP	= read_descriptor_reg(1, 0, spibar, cs);
-	desc->component.FLILL	= read_descriptor_reg(1, 1, spibar, cs);
-	desc->component.FLPB	= read_descriptor_reg(1, 2, spibar, cs);
+	desc->component.FLCOMP	= read_descriptor_reg(cs, 1, 0, spibar);
+	desc->component.FLILL	= read_descriptor_reg(cs, 1, 1, spibar);
+	desc->component.FLPB	= read_descriptor_reg(cs, 1, 2, spibar);
 
 	/* region section */
 	nr = desc->content.NR + 1;
@@ -900,20 +899,19 @@ int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_d
 		return ICH_RET_ERR;
 	}
 	for (i = 0; i <= nr; i++)
-		desc->region.FLREGs[i] = read_descriptor_reg(2, i,
-						spibar, cs);
+		desc->region.FLREGs[i] = read_descriptor_reg(cs, 2, i, spibar);
 
 	/* master section */
 	if (cs >= CHIPSET_100_SERIES_SUNRISE_POINT) {
-		desc->master.pch100.FLMSTR1 = read_descriptor_reg(3, 0, spibar, cs);
-		desc->master.pch100.FLMSTR2 = read_descriptor_reg(3, 1, spibar, cs);
-		desc->master.pch100.FLMSTR3 = read_descriptor_reg(3, 2, spibar, cs);
-		desc->master.pch100.FLMSTR4 = read_descriptor_reg(3, 3, spibar, cs);
-		desc->master.pch100.FLMSTR5 = read_descriptor_reg(3, 4, spibar, cs);
+		desc->master.pch100.FLMSTR1 = read_descriptor_reg(cs, 3, 0, spibar);
+		desc->master.pch100.FLMSTR2 = read_descriptor_reg(cs, 3, 1, spibar);
+		desc->master.pch100.FLMSTR3 = read_descriptor_reg(cs, 3, 2, spibar);
+		desc->master.pch100.FLMSTR4 = read_descriptor_reg(cs, 3, 3, spibar);
+		desc->master.pch100.FLMSTR5 = read_descriptor_reg(cs, 3, 4, spibar);
 	} else {
-		desc->master.ich.FLMSTR1 = read_descriptor_reg(3, 0, spibar, cs);
-		desc->master.ich.FLMSTR2 = read_descriptor_reg(3, 1, spibar, cs);
-		desc->master.ich.FLMSTR3 = read_descriptor_reg(3, 2, spibar, cs);
+		desc->master.ich.FLMSTR1 = read_descriptor_reg(cs, 3, 0, spibar);
+		desc->master.ich.FLMSTR2 = read_descriptor_reg(cs, 3, 1, spibar);
+		desc->master.ich.FLMSTR3 = read_descriptor_reg(cs, 3, 2, spibar);
 	}
 
 	/* Accessing the strap section via FDOC/D is only possible on ICH8 and
