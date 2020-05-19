@@ -558,14 +558,6 @@ int erase_block_jedec(struct flashctx *flash, unsigned int page,
 	return erase_block_jedec_common(flash, page, size, mask);
 }
 
-int erase_chip_jedec(struct flashctx *flash)
-{
-	unsigned int mask;
-
-	mask = getaddrmask(flash->chip);
-	return erase_chip_jedec_common(flash, mask);
-}
-
 struct unlockblock {
 	unsigned int size;
 	unsigned int count;
