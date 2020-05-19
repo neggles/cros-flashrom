@@ -129,39 +129,6 @@ static char *linux_spi_probe(void)
 	return NULL;
 }
 
-/*
- * This is used when /dev/spidevX.Y is not created yet, for example, when
- * udev is not started.
- */
-static int manual_mknod(const char *dev)
-{
-	char cmd[256];
-
-	msg_pdbg("Creating SPI device node %s...\n", dev);
-	strcpy(cmd, "modprobe spidev");
-	msg_pdbg("CMD: [%s]\n", cmd);
-	if (system(cmd)) {
-		msg_perr("%s: failed to run '%s': %s\n", __func__,
-			 cmd, strerror(errno));
-		return -1;
-	}
-	snprintf(cmd, sizeof(cmd), "mknod %s c %d 0", dev, SPIDEV_MAJOR);
-	msg_pdbg("CMD: [%s]\n", cmd);
-	if (system(cmd)) {
-		msg_perr("%s: failed to run '%s': %s\n", __func__,
-			 cmd, strerror(errno));
-		return -1;
-	}
-
-	if ((fd = open(dev, O_RDWR)) == -1) {
-		msg_perr("%s: failed to open %s: %s\n", __func__,
-			 dev, strerror(errno));
-	}
-
-	return fd;
-}
-
-
 int linux_spi_init(void)
 {
 	char *p, *endp, *dev;
@@ -199,12 +166,10 @@ int linux_spi_init(void)
 
 	msg_pdbg("Using device %s\n", dev);
 	if ((fd = open(dev, O_RDWR)) == -1) {
-		msg_pdbg("%s: failed to open %s: %s\n", __func__,
+		msg_perr("%s: failed to open %s: %s\n", __func__,
 			 dev, strerror(errno));
 
-		if (manual_mknod(dev) == -1) {  // global fd is effected.
-			return 1;
-		}
+		return 1;
 	}
 
 	if (register_shutdown(linux_spi_shutdown, NULL))
