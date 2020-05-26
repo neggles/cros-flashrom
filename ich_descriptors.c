@@ -611,32 +611,30 @@ static void prettyprint_ich_descriptor_straps_cougar(const struct ich_desc_south
 
 void prettyprint_ich_descriptor_straps(enum ich_chipset cs, const struct ich_descriptors *desc)
 {
-	unsigned int i, max;
+	unsigned int i, max_count;
 	msg_pdbg2("=== Softstraps ===\n");
 
-	if (sizeof(desc->north.STRPs) / 4 + 1 < desc->content.MSL) {
-		max = sizeof(desc->north.STRPs) / 4 + 1;
-		msg_pdbg2("MSL (%u) is greater than the current maximum of %u "
-			  "entries.\n", desc->content.MSL, max + 1);
-		msg_pdbg2("Only the first %u entries will be printed.\n", max);
-	} else
-		max = desc->content.MSL;
+	max_count = MIN(ARRAY_SIZE(desc->north.STRPs), desc->content.MSL);
+	if (max_count < desc->content.MSL) {
+		msg_pdbg2("MSL (%u) is greater than the current maximum of %u entries.\n",
+			  desc->content.MSL, max_count);
+		msg_pdbg2("Only the first %u entries will be printed.\n", max_count);
+	}
 
-	msg_pdbg2("--- North/MCH/PROC (%d entries) ---\n", max);
-	for (i = 0; i < max; i++)
+	msg_pdbg2("--- North/MCH/PROC (%d entries) ---\n", max_count);
+	for (i = 0; i < max_count; i++)
 		msg_pdbg2("STRP%-2d = 0x%08x\n", i, desc->north.STRPs[i]);
 	msg_pdbg2("\n");
 
-	if (sizeof(desc->south.STRPs) / 4 < desc->content.ISL) {
-		max = sizeof(desc->south.STRPs) / 4;
-		msg_pdbg2("ISL (%u) is greater than the current maximum of %u "
-			  "entries.\n", desc->content.ISL, max);
-		msg_pdbg2("Only the first %u entries will be printed.\n", max);
-	} else
-		max = desc->content.ISL;
+	max_count = MIN(ARRAY_SIZE(desc->south.STRPs), desc->content.ISL);
+	if (max_count < desc->content.ISL) {
+		msg_pdbg2("ISL (%u) is greater than the current maximum of %u entries.\n",
+			  desc->content.ISL, max_count);
+		msg_pdbg2("Only the first %u entries will be printed.\n", max_count);
+	}
 
-	msg_pdbg2("--- South/ICH/PCH (%d entries) ---\n", max);
-	for (i = 0; i < max; i++)
+	msg_pdbg2("--- South/ICH/PCH (%d entries) ---\n", max_count);
+	for (i = 0; i < max_count; i++)
 		msg_pdbg2("STRP%-2d = 0x%08x\n", i, desc->south.STRPs[i]);
 	msg_pdbg2("\n");
 
