@@ -52,6 +52,8 @@
 #define HSFC_WET_OFF		(21 - 16)	/* 5: Write Enable Type */
 #define HSFC_WET		(0x1 << HSFC_WET_OFF)
 
+#define PCH100_FADDR_FLA	0x07ffffff
+
 #define PCH100_REG_DLOCK    0x0c    /* 32 Bits Discrete Lock Bits */
 #define DLOCK_BMWAG_LOCKDN_OFF  0
 #define DLOCK_BMWAG_LOCKDN  (0x1 << DLOCK_BMWAG_LOCKDN_OFF)
@@ -112,6 +114,7 @@
 #define HSFC_SME		(0x1 << HSFC_SME_OFF)
 
 #define ICH9_REG_FADDR		0x08	/* 32 Bits */
+#define ICH9_FADDR_FLA		0x01ffffff
 #define ICH9_REG_FDATA0		0x10	/* 64 Bytes */
 
 #define ICH9_REG_FRAP		0x50	/* 32 Bytes Flash Region Access Permissions */
@@ -1413,13 +1416,16 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 static struct hwseq_data {
 	uint32_t size_comp0;
 	uint32_t size_comp1;
+	uint32_t addr_mask;
+	bool only_4k;
+	uint32_t hsfc_fcycle;
 } hwseq_data;
 
-/* Sets FLA in FADDR to (addr & 0x01FFFFFF) without touching other bits. */
+/* Sets FLA in FADDR to (addr & hwseq_data.addr_mask) without touching other bits. */
 static void ich_hwseq_set_addr(uint32_t addr)
 {
-	uint32_t addr_old = REGREAD32(ICH9_REG_FADDR) & ~0x01FFFFFF;
-	REGWRITE32(ICH9_REG_FADDR, (addr & 0x01FFFFFF) | addr_old);
+	uint32_t addr_old = REGREAD32(ICH9_REG_FADDR) & ~hwseq_data.addr_mask;
+	REGWRITE32(ICH9_REG_FADDR, (addr & hwseq_data.addr_mask) | addr_old);
 }
 
 /* Sets FADDR.FLA to 'addr' and returns the erase block size in bytes
@@ -1439,9 +1445,12 @@ static uint32_t ich_hwseq_get_erase_block_size(unsigned int addr)
 		64 * 1024
 	};
 
+	if (hwseq_data.only_4k) {
+		return 4 * 1024;
+	}
+
 	ich_hwseq_set_addr(addr);
-	enc_berase = (REGREAD16(ICH9_REG_HSFS) & HSFS_BERASE) >>
-		     HSFS_BERASE_OFF;
+	enc_berase = (REGREAD16(ICH9_REG_HSFS) & HSFS_BERASE) >> HSFS_BERASE_OFF;
 	return dec_berase[enc_berase];
 }
 
@@ -1463,7 +1472,7 @@ static int ich_hwseq_wait_for_cycle_complete(unsigned int timeout,
 	}
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
 	if (!timeout) {
-		addr = REGREAD32(ICH9_REG_FADDR) & 0x01FFFFFF;
+		addr = REGREAD32(ICH9_REG_FADDR) & hwseq_data.addr_mask;
 		msg_perr("Timeout error between offset 0x%08x and "
 			 "0x%08x (= 0x%08x + %d)!\n",
 			 addr, addr + len - 1, addr, len - 1);
@@ -1473,7 +1482,7 @@ static int ich_hwseq_wait_for_cycle_complete(unsigned int timeout,
 	}
 
 	if (hsfs & HSFS_FCERR) {
-		addr = REGREAD32(ICH9_REG_FADDR) & 0x01FFFFFF;
+		addr = REGREAD32(ICH9_REG_FADDR) & hwseq_data.addr_mask;
 		msg_perr("Transaction error between offset 0x%08x and "
 			 "0x%08x (= 0x%08x + %d)!\n",
 			 addr, addr + len - 1, addr, len - 1);
@@ -1501,7 +1510,10 @@ int ich_hwseq_probe(struct flashctx *flash)
 	flash->chip->total_size = total_size / 1024;
 
 	eraser = &(flash->chip->block_erasers[0]);
-	boundary = (REGREAD32(ICH9_REG_FPB) & FPB_FPBA) << 12;
+	if (!hwseq_data.only_4k)
+		boundary = (REGREAD32(ICH9_REG_FPB) & FPB_FPBA) << 12;
+	else
+		boundary = 0;
 	size_high = total_size - boundary;
 	erase_size_high = ich_hwseq_get_erase_block_size(boundary);
 
@@ -1578,7 +1590,7 @@ int ich_hwseq_block_erase(struct flashctx *flash,
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
 
 	hsfc = REGREAD16(ICH9_REG_HSFC);
-	hsfc &= ~HSFC_FCYCLE; /* clear operation */
+	hsfc &= ~hwseq_data.hsfc_fcycle; /* clear operation */
 	hsfc |= (0x3 << HSFC_FCYCLE_OFF); /* set erase operation */
 	hsfc |= HSFC_FGO; /* start */
 	msg_pdbg("HSFC used for block erasing: ");
@@ -1590,7 +1602,7 @@ int ich_hwseq_block_erase(struct flashctx *flash,
 	return 0;
 }
 
-int ich_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
+static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 		   unsigned int len)
 {
 	uint16_t hsfc;
@@ -1615,7 +1627,7 @@ int ich_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 
 		ich_hwseq_set_addr(addr);
 		hsfc = REGREAD16(ICH9_REG_HSFC);
-		hsfc &= ~HSFC_FCYCLE; /* set read operation */
+		hsfc &= ~hwseq_data.hsfc_fcycle; /* set read operation */
 		hsfc &= ~HSFC_FDBC; /* clear byte count */
 		/* set byte count */
 		hsfc |= (((block_len - 1) << HSFC_FDBC_OFF) & HSFC_FDBC);
@@ -1657,7 +1669,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		block_len = min(block_len, 256 - (addr & 0xFF));
 		ich_fill_data(buf, block_len, ICH9_REG_FDATA0);
 		hsfc = REGREAD16(ICH9_REG_HSFC);
-		hsfc &= ~HSFC_FCYCLE; /* clear operation */
+		hsfc &= ~hwseq_data.hsfc_fcycle; /* clear operation */
 		hsfc |= (0x2 << HSFC_FCYCLE_OFF); /* set write operation */
 		hsfc &= ~HSFC_FDBC; /* clear byte count */
 		/* set byte count */
@@ -2295,12 +2307,18 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		swseq_data.reg_preop    = PCH100_REG_PREOP;
 		swseq_data.reg_optype   = PCH100_REG_OPTYPE;
 		swseq_data.reg_opmenu   = PCH100_REG_OPMENU;
+		hwseq_data.addr_mask    = PCH100_FADDR_FLA;
+		hwseq_data.only_4k  = true;
+		hwseq_data.hsfc_fcycle  = PCH100_HSFC_FCYCLE;
 	} else {
 		reg_pr0         = ICH9_REG_PR0;
 		swseq_data.reg_ssfsc    = ICH9_REG_SSFS;
 		swseq_data.reg_preop    = ICH9_REG_PREOP;
 		swseq_data.reg_optype   = ICH9_REG_OPTYPE;
 		swseq_data.reg_opmenu   = ICH9_REG_OPMENU;
+		hwseq_data.addr_mask    = ICH9_FADDR_FLA;
+		hwseq_data.only_4k  = false;
+		hwseq_data.hsfc_fcycle  = HSFC_FCYCLE;
 	}
 
 	switch (ich_generation) {
