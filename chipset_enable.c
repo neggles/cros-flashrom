@@ -6,6 +6,9 @@
  * Copyright (C) 2006 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2007,2008,2009 Carl-Daniel Hailfinger
  * Copyright (C) 2009 Kontron Modular Computers GmbH
+ * Copyright (C) 2011, 2012 Stefan Tauner
+ * Copyright (C) 2017 secunet Security Networks AG
+ * (Written by Nico Huber <nico.huber@secunet.com> for secunet)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -247,7 +250,7 @@ static int enable_flash_piix4(struct pci_dev *dev, const char *name)
 
 	rpci_write_word(dev, xbcs, new);
 
-	if (pci_read_word(dev, xbcs) != new) {
+	if (pci_read_word(dev, xbcs) != new) { /* FIXME: share this with other code? */
 		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
 			  "(WARNING ONLY).\n", xbcs, new, name);
 		return -1;
@@ -1230,7 +1233,7 @@ static int enable_flash_vt823x(struct pci_dev *dev, const char *name)
 		return -1;
 	}
 
-	if (dev->device_id == 0x3227) { /* VT8237R */
+	if (dev->device_id == 0x3227) { /* VT8237/VT8237R */
 		/* All memory cycles, not just ROM ones, go to LPC. */
 		val = pci_read_byte(dev, 0x59);
 		val &= ~0x80;
@@ -1367,7 +1370,7 @@ static int enable_flash_cs5530(struct pci_dev *dev, const char *name)
 
 /*
  * Geode systems write protect the BIOS via RCONFs (cache settings similar
- * to MTRRs). To unlock, change MSR 0x1808 top byte to 0x22. 
+ * to MTRRs). To unlock, change MSR 0x1808 top byte to 0x22.
  *
  * Geode systems also write protect the NOR flash chip itself via MSR_NORF_CTL.
  * To enable write to NOR Boot flash for the benefit of systems that have such
@@ -1404,13 +1407,14 @@ static int enable_flash_cs5536(struct pci_dev *dev, const char *name)
 
 static int enable_flash_sc1100(struct pci_dev *dev, const char *name)
 {
+	#define SC_REG 0x52
 	uint8_t new;
 
-	rpci_write_byte(dev, 0x52, 0xee);
+	rpci_write_byte(dev, SC_REG, 0xee);
 
-	new = pci_read_byte(dev, 0x52);
+	new = pci_read_byte(dev, SC_REG);
 
-	if (new != 0xee) {
+	if (new != 0xee) { /* FIXME: share this with other code? */
 		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
 			  "(WARNING ONLY).\n", 0x52, new, name);
 		return -1;
@@ -1419,34 +1423,45 @@ static int enable_flash_sc1100(struct pci_dev *dev, const char *name)
 	return 0;
 }
 
-/* Works for AMD-8111, VIA VT82C586A/B, VIA VT82C686A/B. */
+/* Works for AMD-768, AMD-8111, VIA VT82C586A/B, VIA VT82C596, VIA VT82C686A/B.
+ *
+ * ROM decode control register matrix
+ *	AMD-768			AMD-8111	VT82C586A/B		VT82C596		VT82C686A/B
+ * 7	FFC0_0000h–FFFF_FFFFh	<-		FFFE0000h-FFFEFFFFh	<-			<-
+ * 6	FFB0_0000h–FFBF_FFFFh	<-		FFF80000h-FFFDFFFFh	<-			<-
+ * 5	00E8...			<-		<-			FFF00000h-FFF7FFFFh	<-
+ */
 static int enable_flash_amd8111(struct pci_dev *dev, const char *name)
 {
+	#define AMD_MAPREG 0x43
+	#define AMD_ENREG 0x40
 	uint8_t old, new;
 
 	/* Enable decoding at 0xffb00000 to 0xffffffff. */
-	old = pci_read_byte(dev, 0x43);
+	old = pci_read_byte(dev, AMD_MAPREG);
 	new = old | 0xC0;
 	if (new != old) {
-		rpci_write_byte(dev, 0x43, new);
-		if (pci_read_byte(dev, 0x43) != new) {
+		rpci_write_byte(dev, AMD_MAPREG, new);
+		if (pci_read_byte(dev, AMD_MAPREG) != new) {
 			msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
 				  "(WARNING ONLY).\n", 0x43, new, name);
-		}
+		} else
+			msg_pdbg("Changed ROM decode range to 0x%02x successfully.\n", new);
 	}
 
 	/* Enable 'ROM write' bit. */
-	old = pci_read_byte(dev, 0x40);
+	old = pci_read_byte(dev, AMD_ENREG);
 	new = old | 0x01;
 	if (new == old)
 		return 0;
-	rpci_write_byte(dev, 0x40, new);
+	rpci_write_byte(dev, AMD_ENREG, new);
 
-	if (pci_read_byte(dev, 0x40) != new) {
+	if (pci_read_byte(dev, AMD_ENREG) != new) {
 		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
 			  "(WARNING ONLY).\n", 0x40, new, name);
-		return -1;
+		return ERROR_NONFATAL;
 	}
+	msg_pdbg2("Set ROM enable bit successfully.\n");
 
 	return 0;
 }
@@ -1524,6 +1539,7 @@ static int enable_flash_sb600(struct pci_dev *dev, const char *name)
 	return ret;
 }
 
+/* sets bit 0 in 0x6d */
 static int enable_flash_nvidia_nforce2(struct pci_dev *dev, const char *name)
 {
 	uint8_t tmp;
@@ -2063,10 +2079,10 @@ int chipset_flash_enable(void)
 		msg_pdbg(" with PCI ID %04x:%04x",
 			 chipset_enables[i].vendor_id,
 			 chipset_enables[i].device_id);
-		msg_pinfo(". ");
+		msg_pinfo(".\n");
 
 		if (chipset_enables[i].status == NT) {
-			msg_pinfo("\nThis chipset is marked as untested. If "
+			msg_pinfo("This chipset is marked as untested. If "
 				  "you are using an up-to-date version\nof "
 				  "flashrom *and* were (not) able to "
 				  "successfully update your firmware with it,\n"
@@ -2075,8 +2091,7 @@ int chipset_flash_enable(void)
 				  "(-V) log.\nThank you!\n");
 		}
 		msg_pinfo("Enabling flash write... ");
-		ret = chipset_enables[i].doit(dev,
-					      chipset_enables[i].device_name);
+		ret = chipset_enables[i].doit(dev, chipset_enables[i].device_name);
 		if (ret == NOT_DONE_YET) {
 			ret = -2;
 			msg_pinfo("OK - searching further chips.\n");
