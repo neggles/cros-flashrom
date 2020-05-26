@@ -13,7 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #if defined(__i386__) || defined(__x86_64__)
@@ -23,6 +22,7 @@
 #ifdef ICH_DESCRIPTORS_FROM_DUMP
 
 #include <stdio.h>
+#include <string.h>
 #define print(t, ...) printf(__VA_ARGS__)
 #define DESCRIPTOR_MODE_SIGNATURE 0x0ff0a55a
 /* The upper map is located in the word before the 256B-long OEM section at the
@@ -300,7 +300,7 @@ void prettyprint_ich_descriptor_master(enum ich_chipset cs,
 
 #ifdef ICH_DESCRIPTORS_FROM_DUMP
 
-void prettyprint_ich_descriptor_straps_ich8(const struct ich_descriptors *desc)
+static void prettyprint_ich_descriptor_straps_ich8(const struct ich_descriptors *desc)
 {
 	static const char * const str_GPIO12[4] = {
 		"GPIO12",
@@ -342,7 +342,7 @@ static void prettyprint_ich_descriptor_straps_56_pciecs(uint8_t conf, uint8_t of
 	msg_pdbg2("PCI Express Port Configuration Strap %d: ", off+1);
 
 	off *= 4;
-	switch(conf){
+	switch (conf){
 	case 0:
 		msg_pdbg2("4x1 Ports %d-%d (x1)", 1+off, 4+off);
 		break;
@@ -362,7 +362,7 @@ static void prettyprint_ich_descriptor_straps_56_pciecs(uint8_t conf, uint8_t of
 	msg_pdbg2("\n");
 }
 
-void prettyprint_ich_descriptor_pchstraps45678_56(const struct ich_desc_south_strap *s)
+static void prettyprint_ich_descriptor_pchstraps45678_56(const struct ich_desc_south_strap *s)
 {
 	/* PCHSTRP4 */
 	msg_pdbg2("Intel PHY is %s.\n",
@@ -386,7 +386,7 @@ void prettyprint_ich_descriptor_pchstraps45678_56(const struct ich_desc_south_st
 	/* PCHSTRP8 */
 }
 
-void prettyprint_ich_descriptor_pchstraps111213_56(const struct ich_desc_south_strap *s)
+static void prettyprint_ich_descriptor_pchstraps111213_56(const struct ich_desc_south_strap *s)
 {
 	/* PCHSTRP11 */
 	msg_pdbg2("SMLink1 GP Address is %sabled.\n",
@@ -402,7 +402,7 @@ void prettyprint_ich_descriptor_pchstraps111213_56(const struct ich_desc_south_s
 	/* PCHSTRP13 */
 }
 
-void prettyprint_ich_descriptor_straps_ibex(const struct ich_desc_south_strap *s)
+static void prettyprint_ich_descriptor_straps_ibex(const struct ich_desc_south_strap *s)
 {
 	static const uint8_t dec_t209min[4] = {
 		100,
@@ -500,7 +500,7 @@ void prettyprint_ich_descriptor_straps_ibex(const struct ich_desc_south_strap *s
 	msg_pdbg2("\n");
 }
 
-void prettyprint_ich_descriptor_straps_cougar(const struct ich_desc_south_strap *s)
+static void prettyprint_ich_descriptor_straps_cougar(const struct ich_desc_south_strap *s)
 {
 	msg_pdbg2("--- PCH ---\n");
 
@@ -579,8 +579,8 @@ void prettyprint_ich_descriptor_straps_cougar(const struct ich_desc_south_strap 
 
 	msg_pdbg2("Integrated Clocking Configuration used: %d\n",
 		  s->cougar.ICC_SEL);
-	msg_pdbg2("PCH Signal CL_RST1# does %sassert when Intel ME performs a "
-		  "reset.\n", s->ibex.MER_CL1 ? "" : "not ");
+	msg_pdbg2("PCH Signal CL_RST1# does %sassert when Intel ME performs a reset.\n",
+		  s->ibex.MER_CL1 ? "" : "not ");
 	msg_pdbg2("ICC Profile is selected by %s.\n",
 		  s->cougar.ICC_PRO_SEL ? "Softstraps" : "BIOS");
 	msg_pdbg2("Deep SX is %ssupported on the platform.\n",
@@ -597,8 +597,7 @@ void prettyprint_ich_descriptor_straps_cougar(const struct ich_desc_south_strap 
 		  s->cougar.IWL_EN ? "en" : "dis");
 	msg_pdbg2("Chipset configuration Softstrap 5: %d\n", s->cougar.cs_ss5);
 	msg_pdbg2("SMLink1 provides temperature from %s.\n",
-		  s->cougar.SMLINK1_THERM_SEL ?
-					 "PCH only" : "the CPU, PCH and DIMMs");
+		  s->cougar.SMLINK1_THERM_SEL ? "PCH only" : "the CPU, PCH and DIMMs");
 	msg_pdbg2("GPIO29 is used as %s.\n", s->cougar.SLP_LAN_GP29_SEL ?
 		  "general purpose output" : "SLP_LAN#");
 
@@ -667,13 +666,12 @@ void prettyprint_ich_descriptor_straps(enum ich_chipset cs, const struct ich_des
 	case CHIPSET_ICH_UNKNOWN:
 		break;
 	default:
-		msg_pdbg2("The meaning of the descriptor straps are unknown "
-			  "yet.\n\n");
+		msg_pdbg2("The meaning of the descriptor straps are unknown yet.\n\n");
 		break;
 	}
 }
 
-void prettyprint_rdid(uint32_t reg_val)
+static void prettyprint_rdid(uint32_t reg_val)
 {
 	uint8_t mid = reg_val & 0xFF;
 	uint16_t did = ((reg_val >> 16) & 0xFF) | (reg_val & 0xFF00);
@@ -693,8 +691,7 @@ void prettyprint_ich_descriptor_upper_map(const struct ich_desc_upper_map *umap)
 	msg_pdbg2("\n");
 
 	msg_pdbg2("VSCC Table: %d entries\n", umap->VTL/2);
-	for (i = 0; i < umap->VTL/2; i++)
-	{
+	for (i = 0; i < umap->VTL/2; i++) {
 		uint32_t jid = umap->vscc_table[i].JID;
 		uint32_t vscc = umap->vscc_table[i].VSCC;
 		msg_pdbg2("  JID%d  = 0x%08x\n", i, jid);
@@ -777,10 +774,8 @@ int read_ich_descriptors_from_dump(const uint32_t *dump, unsigned int len,
 		return ICH_RET_OOB;
 
 	for (i = 0; i < desc->upper.VTL/2; i++) {
-		desc->upper.vscc_table[i].JID  =
-				 dump[(getVTBA(&desc->upper) >> 2) + i * 2 + 0];
-		desc->upper.vscc_table[i].VSCC =
-				 dump[(getVTBA(&desc->upper) >> 2) + i * 2 + 1];
+		desc->upper.vscc_table[i].JID  = dump[(getVTBA(&desc->upper) >> 2) + i * 2 + 0];
+		desc->upper.vscc_table[i].VSCC = dump[(getVTBA(&desc->upper) >> 2) + i * 2 + 1];
 	}
 
 	/* MCH/PROC (aka. North) straps */
@@ -790,8 +785,7 @@ int read_ich_descriptors_from_dump(const uint32_t *dump, unsigned int len,
 	/* limit the range to be written */
 	max = min(sizeof(desc->north.STRPs) / 4, desc->content.MSL);
 	for (i = 0; i < max; i++)
-			desc->north.STRPs[i] =
-				      dump[(getFMSBA(&desc->content) >> 2) + i];
+		desc->north.STRPs[i] = dump[(getFMSBA(&desc->content) >> 2) + i];
 
 	/* ICH/PCH (aka. South) straps */
 	if (len < getFISBA(&desc->content) + desc->content.ISL * 4)
@@ -800,8 +794,7 @@ int read_ich_descriptors_from_dump(const uint32_t *dump, unsigned int len,
 	/* limit the range to be written */
 	max = min(sizeof(desc->south.STRPs) / 4, desc->content.ISL);
 	for (i = 0; i < max; i++)
-			desc->south.STRPs[i] =
-				      dump[(getFISBA(&desc->content) >> 2) + i];
+		desc->south.STRPs[i] = dump[(getFISBA(&desc->content) >> 2) + i];
 
 	return ICH_RET_OK;
 }
@@ -880,8 +873,7 @@ int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_d
 		return ICH_RET_ERR;
 	}
 
-	msg_pdbg2("Reading flash descriptors "
-		 "mapped by the chipset via FDOC/FDOD...");
+	msg_pdbg2("Reading flash descriptors mapped by the chipset via FDOC/FDOD...");
 	/* content section */
 	desc->content.FLVALSIG	= read_descriptor_reg(cs, 0, 0, spibar);
 	desc->content.FLMAP0	= read_descriptor_reg(cs, 0, 1, spibar);
