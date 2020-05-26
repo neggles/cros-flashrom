@@ -42,14 +42,16 @@
 #define min(a, b) (a < b) ? a : b
 #endif
 
-void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity)
+void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity, bool print_vcl)
 {
 	print(verbosity, "BES=0x%x, ",	(reg_val & VSCC_BES)  >> VSCC_BES_OFF);
 	print(verbosity, "WG=%d, ",	(reg_val & VSCC_WG)   >> VSCC_WG_OFF);
 	print(verbosity, "WSR=%d, ",	(reg_val & VSCC_WSR)  >> VSCC_WSR_OFF);
 	print(verbosity, "WEWS=%d, ",	(reg_val & VSCC_WEWS) >> VSCC_WEWS_OFF);
-	print(verbosity, "EO=0x%x, ",	(reg_val & VSCC_EO)   >> VSCC_EO_OFF);
-	print(verbosity, "VCL=%d\n",	(reg_val & VSCC_VCL)  >> VSCC_VCL_OFF);
+	print(verbosity, "EO=0x%x",	(reg_val & VSCC_EO)   >> VSCC_EO_OFF);
+	if (print_vcl)
+		print(verbosity, ", VCL=%d", (reg_val & VSCC_VCL)  >> VSCC_VCL_OFF);
+	print(verbosity, "\n");
 }
 
 #define getFCBA(cont)	(((cont)->FLMAP0 <<  4) & 0x00000ff0)
@@ -700,7 +702,7 @@ void prettyprint_ich_descriptor_upper_map(const struct ich_desc_upper_map *umap)
 		msg_pdbg2("    "); /* indention */
 		prettyprint_rdid(jid);
 		msg_pdbg2("    "); /* indention */
-		prettyprint_ich_reg_vscc(vscc, 0);
+		prettyprint_ich_reg_vscc(vscc, 0, false);
 	}
 	msg_pdbg2("\n");
 }

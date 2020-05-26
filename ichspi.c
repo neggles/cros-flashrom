@@ -504,7 +504,7 @@ static struct {
 
 static uint8_t lookup_spi_type(uint8_t opcode)
 {
-	int a;
+	unsigned int a;
 
 	for (a = 0; a < ARRAY_SIZE(POSSIBLE_OPCODES); a++) {
 		if (POSSIBLE_OPCODES[a].opcode == opcode)
@@ -669,7 +669,7 @@ static int program_opcodes(OPCODES *op, int enable_undo)
 		opmenu[1] |= ((uint32_t) op->opcode[a].opcode) << ((a - 4) * 8);
 	}
 
-	msg_pdbg("\n%s: preop=%04x optype=%04x opmenu=%08x%08x\n", __func__, preop, optype, opmenu[0], opmenu[1]);
+	msg_pdbg2("\n%s: preop=%04x optype=%04x opmenu=%08x%08x\n", __func__, preop, optype, opmenu[0], opmenu[1]);
 	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
 		/* Register undo only for enable_undo=1, i.e. first call. */
@@ -711,7 +711,7 @@ static int program_opcodes(OPCODES *op, int enable_undo)
  *   - at least one program opcode (BYTE_PROGRAM, AAI_WORD_PROGRAM, ...?)
  *   - necessary preops? (EWSR, WREN, ...?)
  */
-static int ich_missing_opcodes()
+static int ich_missing_opcodes(void)
 {
 	uint8_t ops[] = {
 		JEDEC_READ,
@@ -768,11 +768,11 @@ static void ich_set_bbar(uint32_t min_addr)
 
 /* Read len bytes from the fdata/spid register into the data array.
  *
- * Note that using len > spi_master->max_data_read will return garbage or
+ * Note that using len > flash->mst->spi.max_data_read will return garbage or
  * may even crash.
  */
- static void ich_read_data(uint8_t *data, int len, int reg0_off)
- {
+static void ich_read_data(uint8_t *data, int len, int reg0_off)
+{
 	int i;
 	uint32_t temp32 = 0;
 
@@ -786,7 +786,7 @@ static void ich_set_bbar(uint32_t min_addr)
 
 /* Fill len bytes from the data array into the fdata/spid registers.
  *
- * Note that using len > spi_master->max_data_write will trash the registers
+ * Note that using len > flash->mst->spi.max_data_write will trash the registers
  * following the data registers.
  */
 static void ich_fill_data(const uint8_t *data, int len, int reg0_off)
@@ -923,7 +923,7 @@ static int ich7_run_opcode(OPCODE op, uint32_t offset,
 	case 2:
 		/* Select second preop. */
 		temp16 |= SPIC_SPOP;
-		/* And fall through. */
+		/* Fall through. */
 	case 1:
 		/* Atomic command (preop+op) */
 		temp16 |= SPIC_ACS;
@@ -942,6 +942,7 @@ static int ich7_run_opcode(OPCODE op, uint32_t offset,
 	 * We also exit the loop if the error bit is set.
 	 */
 	timeout = 100 * 1000 * 30;
+	/* Wait for Cycle Done Status or Flash Cycle Error. */
 	while (((REGREAD16(ICH7_REG_SPIS) & (SPIS_CDS | SPIS_FCERR)) == 0) &&
 	       --timeout) {
 		programmer_delay(10);
@@ -1051,7 +1052,7 @@ static int ich9_run_opcode(OPCODE op, uint32_t offset,
 	case 2:
 		/* Select second preop. */
 		temp32 |= SSFC_SPOP;
-		/* And fall through. */
+		/* Fall through. */
 	case 1:
 		/* Atomic command (preop+op) */
 		temp32 |= SSFC_ACS;
@@ -1274,8 +1275,10 @@ static int check_fd_permissions(OPCODE *opcode, uint32_t addr, int count)
 	return ret;
 }
 
-static int ich_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		    const unsigned char *writearr, unsigned char *readarr)
+static int ich_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+				unsigned int readcnt,
+				const unsigned char *writearr,
+				unsigned char *readarr)
 {
 	int result;
 	int opcode_index = -1;
@@ -1375,9 +1378,9 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 		if (addr < valid_base ||
 		    addr_end < addr || /* integer overflow check */
 		    addr_end > valid_end) {
-		         msg_perr("%s: Addressed region 0x%06x-0x%06x not in allowed range 0x%06x-0x%06x\n",
-		             __func__, addr, addr_end - 1, valid_base, valid_end - 1);
-		         return SPI_INVALID_ADDRESS;
+			msg_perr("%s: Addressed region 0x%06x-0x%06x not in allowed range 0x%06x-0x%06x\n",
+				 __func__, addr, addr_end - 1, valid_base, valid_end - 1);
+			return SPI_INVALID_ADDRESS;
 		}
 		addr += addr_offset;
 
@@ -1493,7 +1496,7 @@ static int ich_hwseq_wait_for_cycle_complete(unsigned int timeout,
 	return 0;
 }
 
-int ich_hwseq_probe(struct flashctx *flash)
+static int ich_hwseq_probe(struct flashctx *flash)
 {
 	uint32_t total_size, boundary;
 	uint32_t erase_size_low, size_low, erase_size_high, size_high;
@@ -1548,9 +1551,8 @@ int ich_hwseq_probe(struct flashctx *flash)
 	return 1;
 }
 
-int ich_hwseq_block_erase(struct flashctx *flash,
-			  unsigned int addr,
-			  unsigned int len)
+static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
+				 unsigned int len)
 {
 	uint32_t erase_block;
 	uint16_t hsfc;
@@ -1602,8 +1604,8 @@ int ich_hwseq_block_erase(struct flashctx *flash,
 	return 0;
 }
 
-static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
-		   unsigned int len)
+static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
+			  unsigned int addr, unsigned int len)
 {
 	uint16_t hsfc;
 	uint16_t timeout = 100 * 60;
@@ -1644,8 +1646,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int add
 	return 0;
 }
 
-static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
-		    unsigned int len)
+static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr, unsigned int len)
 {
 	uint16_t hsfc;
 	uint16_t timeout = 100 * 60;
@@ -2064,7 +2065,8 @@ int pch100_hwseq_write_status(const struct flashctx *flash, int status)
 	return 0;
 }
 
-static int ich_spi_send_multicommand(const struct flashctx *flash, struct spi_command *cmds)
+static int ich_spi_send_multicommand(const struct flashctx *flash,
+				     struct spi_command *cmds)
 {
 	int ret = 0;
 	int i;
@@ -2281,7 +2283,7 @@ static struct opaque_master opaque_master_ich_hwseq = {
 
 int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generation)
 {
-	int i;
+	unsigned int i;
 	uint16_t tmp2;
 	uint32_t tmp;
 	char *arg;
@@ -2543,7 +2545,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 			tmp = mmio_readl(ich_spibar + ICH8_REG_VSCC);
 			msg_pdbg("0xC1: 0x%08x (VSCC)\n", tmp);
 			msg_pdbg("VSCC: ");
-			prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG);
+			prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG, false);
 		} else {
 			ichspi_bbar = mmio_readl(ich_spibar + ICH9_REG_BBAR);
 			msg_pdbg("0xA0: 0x%08x (BBAR)\n",
@@ -2551,17 +2553,17 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 
 			if (desc_valid) {
 				tmp = mmio_readl(ich_spibar + ICH9_REG_LVSCC);
-				msg_pdbg("0xC4: 0x%08x (LVSCC)\n", tmp);
+				msg_pdbg("0x%x: 0x%08x (LVSCC)\n", ICH9_REG_LVSCC, tmp);
 				msg_pdbg("LVSCC: ");
-				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG);
+				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG, true);
 
 				tmp = mmio_readl(ich_spibar + ICH9_REG_UVSCC);
-				msg_pdbg("0xC8: 0x%08x (UVSCC)\n", tmp);
+				msg_pdbg("0x%x: 0x%08x (UVSCC)\n", ICH9_REG_UVSCC, tmp);
 				msg_pdbg("UVSCC: ");
-				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG);
+				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG, false);
 
 				tmp = mmio_readl(ich_spibar + ICH9_REG_FPB);
-				msg_pdbg("0xD0: 0x%08x (FPB)\n", tmp);
+				msg_pdbg("0x%x: 0x%08x (FPB)\n", ICH9_REG_FPB, tmp);
 			}
 			ich_set_bbar(0);
 		}
@@ -2569,8 +2571,8 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		msg_pdbg("\n");
 		if (desc_valid) {
 			if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK)
-				prettyprint_ich_descriptors(ich_generation,
-							    &desc);
+				prettyprint_ich_descriptors(ich_generation, &desc);
+
 			/* If the descriptor is valid and indicates multiple
 			 * flash devices we need to use hwseq to be able to
 			 * access the second flash device.
@@ -2621,9 +2623,10 @@ int via_init_spi(uint32_t mmio_base)
 {
 	int i;
 
-	ich_spibar = rphysmap("VT8237S MMIO registers", mmio_base, 0x70);
+	ich_spibar = rphysmap("VIA SPI MMIO registers", mmio_base, 0x70);
 	if (ich_spibar == ERROR_PTR)
 		return ERROR_FATAL;
+	/* Do we really need no write enable? Like the LPC one at D17F0 0x40 */
 
 	/* Not sure if it speaks all these bus protocols. */
 	internal_buses_supported &= BUS_LPC | BUS_FWH;

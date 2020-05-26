@@ -63,7 +63,7 @@
 #define ICH_FREG_BASE(flreg)  (((flreg) << 12) & 0x01fff000)
 #define ICH_FREG_LIMIT(flreg) (((flreg) >>  4) & 0x01fff000)
 
-void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity);
+void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity, bool print_vcl);
 
 struct ich_desc_content {
 	uint32_t FLVALSIG;	/* 0x00 */

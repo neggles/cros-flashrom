@@ -130,8 +130,6 @@ int unlock_28f004s5(struct flashctx *flash);
 int unlock_lh28f008bjt(struct flashctx *flash);
 
 /* ichspi.c */
-int ich_hwseq_probe(struct flashctx *flash);
-int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 int ich_hwseq_write_256(struct flashctx *flash, uint8_t *buf, int start, int len);
 
 /* jedec.c */
