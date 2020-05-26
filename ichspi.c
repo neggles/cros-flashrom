@@ -538,18 +538,16 @@ static int reprogram_opcode_on_the_fly(uint8_t opcode, unsigned int writecnt, un
 			spi_type = SPI_OPCODE_TYPE_READ_NO_ADDRESS;
 		else if (writecnt == 4) // and readcnt is > 0
 			spi_type = SPI_OPCODE_TYPE_READ_WITH_ADDRESS;
-		// else we have an invalid case, will be handled below
+		else // we have an invalid case
+			return SPI_INVALID_LENGTH;
 	}
-	if (spi_type <= 3) {
-		int oppos=2;	// use original JEDEC_BE_D8 offset
-		curopcodes->opcode[oppos].opcode = opcode;
-		curopcodes->opcode[oppos].spi_type = spi_type;
-		program_opcodes(curopcodes, 0);
-		oppos = find_opcode(curopcodes, opcode);
-		msg_pdbg ("on-the-fly OPCODE (0x%02X) re-programmed, op-pos=%d\n", opcode, oppos);
-		return oppos;
-	}
-	return -1;
+	int oppos = 2;	// use original JEDEC_BE_D8 offset
+	curopcodes->opcode[oppos].opcode = opcode;
+	curopcodes->opcode[oppos].spi_type = spi_type;
+	program_opcodes(curopcodes, 0);
+	oppos = find_opcode(curopcodes, opcode);
+	msg_pdbg2("on-the-fly OPCODE (0x%02X) re-programmed, op-pos=%d\n", opcode, oppos);
+	return oppos;
 }
 
 static int find_opcode(OPCODES *op, uint8_t opcode)
@@ -1293,10 +1291,12 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 	if (opcode_index == -1) {
 		if (!ichspi_lock)
 			opcode_index = reprogram_opcode_on_the_fly(cmd, writecnt, readcnt);
-		if (opcode_index == -1) {
-			if (!ich_dry_run)
-				msg_pdbg("Invalid OPCODE 0x%02x, will not execute.\n",
-					 cmd);
+		if (opcode_index == SPI_INVALID_LENGTH) {
+			msg_pdbg("OPCODE 0x%02x has unsupported length, will not execute.\n", cmd);
+			return SPI_INVALID_LENGTH;
+		} else if (opcode_index == -1) {
+			msg_pdbg("Invalid OPCODE 0x%02x, will not execute.\n",
+				 cmd);
 			return SPI_INVALID_OPCODE;
 		}
 	}
