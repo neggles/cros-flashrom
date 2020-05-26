@@ -171,20 +171,21 @@ void prettyprint_ich_descriptor_component(const struct ich_descriptors *desc)
 
 static void pprint_freg(const struct ich_desc_region *reg, uint32_t i)
 {
-	static const char *const region_names[5] = {
-		"Descr.", "BIOS", "ME", "GbE", "Platf."
+	static const char *const region_names[] = {
+		"Descr.", "BIOS", "ME", "GbE", "Platf.", "DevExp", "BIOS2", "unknown",
+		"EC/BMC", "unknown", "IE", "10GbE", "unknown", "unknown", "unknown", "unknown"
 	};
-	if (i >= 5) {
+	if (i >= ARRAY_SIZE(region_names)) {
 		msg_pdbg2("%s: region index too high.\n", __func__);
 		return;
 	}
 	uint32_t base = ICH_FREG_BASE(reg->FLREGs[i]);
 	uint32_t limit = ICH_FREG_LIMIT(reg->FLREGs[i]);
-	msg_pdbg2("Region %d (%-6s) ", i, region_names[i]);
+	msg_pdbg2("Region %d (%-7s) ", i, region_names[i]);
 	if (base > limit)
 		msg_pdbg2("is unused.\n");
 	else
-		msg_pdbg2("0x%08x - 0x%08x\n", base, limit | 0x0fff);
+		msg_pdbg2("0x%08x - 0x%08x\n", base, limit);
 }
 
 void prettyprint_ich_descriptor_region(const struct ich_descriptors *desc)
