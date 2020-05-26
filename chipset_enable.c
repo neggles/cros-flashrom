@@ -755,7 +755,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
 	case CHIPSET_9_SERIES_WILDCAT_POINT:
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		boot_straps = boot_straps_lpt_lp;
 		break;
 	default:
@@ -766,7 +766,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	}
 
 	switch (ich_generation) {
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		ret = enable_flash_ich_apl(dev, name, 0xdc);
 		if (ret == ERROR_FATAL)
 			return ret;
@@ -887,7 +887,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		}
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		if (target_bus == BUS_SPI) {
 			msg_pdbg("Setting BBS to SPI -\n");
 			gcs = (gcs & ~0x40) | (0x0 << 6);
@@ -903,7 +903,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	}
 
 	switch (ich_generation) {
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		mmio_writel(gcs, (void *)dev + 0xdc);
 		msg_pdbg("GCS = 0x%x: ", gcs);
 		msg_pdbg("BIOS Interface Lock-Down: %sabled, ",
@@ -931,7 +931,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		bbs = (gcs >> 10) & 0x1;
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		bbs = (gcs & 0x40) >> 6;
 		break;
 	default:
@@ -943,7 +943,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 
 	switch (ich_generation) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		break;
 	default:
 		buc = mmio_readb(rcrb + 0x3414);
@@ -978,7 +978,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		spibar_offset = 0x3020;
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_BAYTRAIL:
 		spibar_offset = 0x0;
 		break;
@@ -1119,7 +1119,7 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 		 mmio_readw(spicfg + 0x0), mmio_readw(spicfg + 0x2),
 		 mmio_readl(spicfg + 0x10));
 
-	return enable_flash_ich_dc_spi(spicfg, name, CHIPSET_APL);
+	return enable_flash_ich_dc_spi(spicfg, name, CHIPSET_APOLLO_LAKE);
 }
 
 /* Baytrail */

@@ -1188,7 +1188,7 @@ int probe_flash(struct registered_master *mst, int startchip,
 	 */
 	switch (g_ich_generation) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		flash_list = flashchips_hwseq;
 		break;
 	default:

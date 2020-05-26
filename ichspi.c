@@ -2096,7 +2096,7 @@ static void prettyprint_ich9_reg_pr(int i, int chipset)
 	uint8_t off;
 	switch (chipset) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		off = PCH100_REG_FPR0 + (i * 4);
 		break;
 	default:
@@ -2232,7 +2232,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 		register_spi_master(&spi_master_ich7);
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APL:
+	case CHIPSET_APOLLO_LAKE:
 		reg_pr0         = PCH100_REG_FPR0;
 		arg = extract_programmer_param("ich_spi_mode");
 		if (arg && !strcmp(arg, "hwseq")) {
@@ -2279,7 +2279,7 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 			 "Range (PR) restrictions still apply.\n");
 
 		if (desc_valid) {
-			if (ich_generation == CHIPSET_APL)
+			if (ich_generation == CHIPSET_APOLLO_LAKE)
 				num_fd_regions = APL_GLK_NUM_FD_REGIONS;
 			else if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT)
 				num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
