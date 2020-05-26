@@ -432,13 +432,25 @@ static void prettyprint_ich9_reg_hsfs(uint16_t reg_val)
 	pprint_reg(HSFS, FDONE, reg_val, ", ");
 	pprint_reg(HSFS, FCERR, reg_val, ", ");
 	pprint_reg(HSFS, AEL, reg_val, ", ");
-	if (g_ich_generation != CHIPSET_100_SERIES_SUNRISE_POINT) {
+	switch (g_ich_generation) {
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+		break;
+	default:
 		pprint_reg(HSFS, BERASE, reg_val, ", ");
+		break;
 	}
 	pprint_reg(HSFS, SCIP, reg_val, ", ");
-	if (g_ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT) {
+	switch (g_ich_generation) {
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
 		pprint_reg(HSFS, PRR34_LOCKDN, reg_val, ", ");
 		pprint_reg(HSFS, WRSDIS, reg_val, ", ");
+		break;
+	default:
+		break;
 	}
 	pprint_reg(HSFS, FDOPSS, reg_val, ", ");
 	pprint_reg(HSFS, FDV, reg_val, ", ");
@@ -449,11 +461,16 @@ static void prettyprint_ich9_reg_hsfc(uint16_t reg_val)
 {
 	msg_pdbg("HSFC: ");
 	pprint_reg(HSFC, FGO, reg_val, ", ");
-	if (g_ich_generation != CHIPSET_100_SERIES_SUNRISE_POINT) {
-		pprint_reg(HSFC, FCYCLE, reg_val, ", ");
-	} else {
+	switch (g_ich_generation) {
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
 		_pprint_reg(HSFC, PCH100_HSFC_FCYCLE, PCH100_HSFC_FCYCLE_OFF, reg_val, ", ");
 		pprint_reg(HSFC, WET, reg_val, ", ");
+		break;
+	default:
+		pprint_reg(HSFC, FCYCLE, reg_val, ", ");
+		break;
 	}
 	pprint_reg(HSFC, FDBC, reg_val, ", ");
 	pprint_reg(HSFC, SME, reg_val, "\n");
@@ -598,6 +615,8 @@ static int generate_opcodes(OPCODES * op)
 
 	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
+	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_CENTERTON:
 		preop = REGREAD16(ICH7_REG_PREOP);
 		optype = REGREAD16(ICH7_REG_OPTYPE);
 		opmenu[0] = REGREAD32(ICH7_REG_OPMENU);
@@ -670,6 +689,8 @@ static int program_opcodes(OPCODES *op, int enable_undo)
 	msg_pdbg2("\n%s: preop=%04x optype=%04x opmenu=%08x%08x\n", __func__, preop, optype, opmenu[0], opmenu[1]);
 	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
+	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_CENTERTON:
 		/* Register undo only for enable_undo=1, i.e. first call. */
 		if (enable_undo) {
 			rmmio_valw(ich_spibar + ICH7_REG_PREOP);
@@ -735,10 +756,13 @@ static void ich_set_bbar(uint32_t min_addr)
 	int bbar_off;
 	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
+	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_CENTERTON:
 		bbar_off = 0x50;
 		break;
 	case CHIPSET_ICH8:
-		msg_perr("BBAR offset is unknown on ICH8!\n");
+	case CHIPSET_BAYTRAIL:
+		msg_pdbg("BBAR offset is unknown!\n");
 		return;
 	case CHIPSET_ICH9:
 	default:		/* Future version might behave the same */
@@ -1100,6 +1124,11 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 	/* max_data_read == max_data_write for all Intel/VIA SPI masters */
 	uint8_t maxlength = spi_master->max_data_read;
 
+	if (g_ich_generation == CHIPSET_ICH_UNKNOWN) {
+		msg_perr("%s: unsupported chipset\n", __func__);
+		return -1;
+	}
+
 	if (datalength > maxlength) {
 		msg_perr("%s: Internal command size error for "
 			"opcode 0x%02x, got datalength=%i, want <=%i\n",
@@ -1109,6 +1138,8 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 
 	switch (g_ich_generation) {
 	case CHIPSET_ICH7:
+	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_CENTERTON:
 		return ich7_run_opcode(op, offset, datalength, data, maxlength);
 	case CHIPSET_ICH8:
 	default:		/* Future version might behave the same */
@@ -2300,31 +2331,40 @@ int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generat
 	msg_pdbg("ich_ generation %d\n", ich_generation);
 
 	ich_spibar = spibar;
+
 	memset(&desc, 0x00, sizeof(struct ich_descriptors));
 
 	/* Moving registers / bits */
-	if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT) {
-		reg_pr0         = PCH100_REG_FPR0;
-		swseq_data.reg_ssfsc    = PCH100_REG_SSFSC;
-		swseq_data.reg_preop    = PCH100_REG_PREOP;
-		swseq_data.reg_optype   = PCH100_REG_OPTYPE;
-		swseq_data.reg_opmenu   = PCH100_REG_OPMENU;
-		hwseq_data.addr_mask    = PCH100_FADDR_FLA;
-		hwseq_data.only_4k  = true;
-		hwseq_data.hsfc_fcycle  = PCH100_HSFC_FCYCLE;
-	} else {
-		reg_pr0         = ICH9_REG_PR0;
-		swseq_data.reg_ssfsc    = ICH9_REG_SSFS;
-		swseq_data.reg_preop    = ICH9_REG_PREOP;
-		swseq_data.reg_optype   = ICH9_REG_OPTYPE;
-		swseq_data.reg_opmenu   = ICH9_REG_OPMENU;
-		hwseq_data.addr_mask    = ICH9_FADDR_FLA;
-		hwseq_data.only_4k  = false;
-		hwseq_data.hsfc_fcycle  = HSFC_FCYCLE;
+	switch (ich_generation) {
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+	case CHIPSET_APOLLO_LAKE:
+		reg_pr0			= PCH100_REG_FPR0;
+		swseq_data.reg_ssfsc	= PCH100_REG_SSFSC;
+		swseq_data.reg_preop	= PCH100_REG_PREOP;
+		swseq_data.reg_optype	= PCH100_REG_OPTYPE;
+		swseq_data.reg_opmenu	= PCH100_REG_OPMENU;
+		hwseq_data.addr_mask	= PCH100_FADDR_FLA;
+		hwseq_data.only_4k	= true;
+		hwseq_data.hsfc_fcycle	= PCH100_HSFC_FCYCLE;
+		break;
+	default:
+		reg_pr0			= ICH9_REG_PR0;
+		swseq_data.reg_ssfsc	= ICH9_REG_SSFS;
+		swseq_data.reg_preop	= ICH9_REG_PREOP;
+		swseq_data.reg_optype	= ICH9_REG_OPTYPE;
+		swseq_data.reg_opmenu	= ICH9_REG_OPMENU;
+		hwseq_data.addr_mask	= ICH9_FADDR_FLA;
+		hwseq_data.only_4k	= false;
+		hwseq_data.hsfc_fcycle	= HSFC_FCYCLE;
+		break;
 	}
 
 	switch (ich_generation) {
 	case CHIPSET_ICH7:
+	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_CENTERTON:
 		msg_pdbg("0x00: 0x%04x     (SPIS)\n",
 			     mmio_readw(ich_spibar + 0));
 		msg_pdbg("0x02: 0x%04x     (SPIC)\n",
