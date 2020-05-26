@@ -60,8 +60,8 @@
 #define VSCC_VCL			(0x1 << VSCC_VCL_OFF)
 					/* 24-31: reserved */
 
-#define ICH_FREG_BASE(flreg)  (((flreg) << 12) & 0x01fff000)
-#define ICH_FREG_LIMIT(flreg) (((flreg) >>  4) & 0x01fff000)
+#define ICH_FREG_BASE(flreg)  (((flreg) << 12) & 0x07fff000)
+#define ICH_FREG_LIMIT(flreg) ((((flreg) >> 4) & 0x07fff000) | 0x00000fff)
 
 void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity, bool print_vcl);
 
