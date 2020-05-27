@@ -179,6 +179,7 @@ struct pci_dev;
 struct penable {
 	uint16_t vendor_id;
 	uint16_t device_id;
+	enum chipbustype buses;
 	int status; /* OK=0 and NT=1 are defines only. Beware! */
 	const char *vendor_name;
 	const char *device_name;
