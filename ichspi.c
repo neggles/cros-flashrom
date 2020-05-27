@@ -2582,17 +2582,29 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 			 swseq_data.reg_opmenu, mmio_readl(ich_spibar + swseq_data.reg_opmenu));
 		msg_pdbg("0x%zx: 0x%08x (OPMENU+4)\n",
 			 swseq_data.reg_opmenu + 4, mmio_readl(ich_spibar + swseq_data.reg_opmenu + 4));
-		if (ich_generation == CHIPSET_ICH8 && desc_valid) {
-			tmp = mmio_readl(ich_spibar + ICH8_REG_VSCC);
-			msg_pdbg("0xC1: 0x%08x (VSCC)\n", tmp);
-			msg_pdbg("VSCC: ");
-			prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG, false);
-		} else {
-			ichspi_bbar = mmio_readl(ich_spibar + ICH9_REG_BBAR);
-			msg_pdbg("0xA0: 0x%08x (BBAR)\n",
-				     ichspi_bbar);
 
-			if (desc_valid) {
+		if (desc_valid) {
+			switch (ich_generation) {
+			case CHIPSET_ICH8:
+			case CHIPSET_100_SERIES_SUNRISE_POINT:
+			case CHIPSET_C620_SERIES_LEWISBURG:
+			case CHIPSET_300_SERIES_CANNON_POINT:
+			case CHIPSET_APOLLO_LAKE:
+			case CHIPSET_BAYTRAIL:
+				break;
+			default:
+				ichspi_bbar = mmio_readl(ich_spibar + ICH9_REG_BBAR);
+				msg_pdbg("0x%x: 0x%08x (BBAR)\n", ICH9_REG_BBAR, ichspi_bbar);
+				ich_set_bbar(0);
+				break;
+			}
+
+			if (ich_generation == CHIPSET_ICH8) {
+				tmp = mmio_readl(ich_spibar + ICH8_REG_VSCC);
+				msg_pdbg("0x%x: 0x%08x (VSCC)\n", ICH8_REG_VSCC, tmp);
+				msg_pdbg("VSCC: ");
+				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG, true);
+			} else {
 				tmp = mmio_readl(ich_spibar + ICH9_REG_LVSCC);
 				msg_pdbg("0x%x: 0x%08x (LVSCC)\n", ICH9_REG_LVSCC, tmp);
 				msg_pdbg("LVSCC: ");
@@ -2602,15 +2614,21 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 				msg_pdbg("0x%x: 0x%08x (UVSCC)\n", ICH9_REG_UVSCC, tmp);
 				msg_pdbg("UVSCC: ");
 				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG, false);
+			}
 
+			switch (ich_generation) {
+			case CHIPSET_ICH8:
+			case CHIPSET_100_SERIES_SUNRISE_POINT:
+			case CHIPSET_C620_SERIES_LEWISBURG:
+			case CHIPSET_300_SERIES_CANNON_POINT:
+			case CHIPSET_APOLLO_LAKE:
+				break;
+			default:
 				tmp = mmio_readl(ich_spibar + ICH9_REG_FPB);
 				msg_pdbg("0x%x: 0x%08x (FPB)\n", ICH9_REG_FPB, tmp);
+				break;
 			}
-			ich_set_bbar(0);
-		}
 
-		msg_pdbg("\n");
-		if (desc_valid) {
 			if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK)
 				prettyprint_ich_descriptors(ich_generation, &desc);
 
