@@ -2313,7 +2313,7 @@ static struct opaque_master opaque_master_ich_hwseq = {
 	.erase = ich_hwseq_block_erase,
 };
 
-int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generation)
+int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 {
 	unsigned int i;
 	uint16_t tmp2;

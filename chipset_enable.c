@@ -994,7 +994,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	void *spibar = rcrb + spibar_offset;
 
 	/* This adds BUS_SPI */
-	int ret_spi = ich_init_spi(dev, spibar, ich_generation);
+	int ret_spi = ich_init_spi(spibar, ich_generation);
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
@@ -1043,7 +1043,7 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 	void *spibar = rcrb + spibar_offset;
 
 	/* This adds BUS_SPI */
-	if (ich_init_spi(dev, spibar, CHIPSET_TUNNEL_CREEK) != 0) {
+	if (ich_init_spi(spibar, CHIPSET_TUNNEL_CREEK) != 0) {
 		if (!ret)
 			ret = ERROR_NONFATAL;
 	}
@@ -1193,7 +1193,7 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 	if (spibar == ERROR_PTR)
 		return ERROR_FATAL;
 
-	ret_spi = ich_init_spi(dev, spibar, CHIPSET_BAYTRAIL);
+	ret_spi = ich_init_spi(spibar, CHIPSET_BAYTRAIL);
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 

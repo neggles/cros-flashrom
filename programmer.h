@@ -581,7 +581,7 @@ extern enum ich_chipset g_ich_generation;
  * supported by the chip is allowed by the Intel controller on the device.
  */
 extern int ich_dry_run;
-int ich_init_spi(struct pci_dev *dev, void *spibar, enum ich_chipset ich_generation);
+int ich_init_spi(void *spibar, enum ich_chipset ich_generation);
 int via_init_spi(uint32_t mmio_base);
 
 /* ene_lpc.c */
