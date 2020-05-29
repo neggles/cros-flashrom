@@ -16,6 +16,8 @@
  *
  */
 
+#include <arpa/inet.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,8 +30,12 @@
 #include "fdtmap.h"
 #include "fmap.h"
 #include "layout.h"
+#include "platform.h"
 #include "programmer.h"
 #include "search.h"
+
+#define ACPI_FMAP_PATH "/sys/devices/platform/chromeos_acpi/FMAP"
+#define FDT_FMAP_PATH "/proc/device-tree/firmware/chromeos/fmap-offset"
 
 static struct romentry entries[MAX_ROMLAYOUT];
 static struct flashrom_layout global_layout = { entries, 0 };
@@ -228,33 +234,81 @@ int read_romlayout(char *name)
 }
 #endif
 
+/* Read value from ACPI in sysfs, if it exists. */
+static int read_fmap_base_acpi(uint32_t *out)
+{
+	int rv = 0;
+	FILE *f;
+
+	if (!(f = fopen(ACPI_FMAP_PATH, "r")))
+		return -1;
+
+	/* FMAP base is an ASCII signed integer. */
+	if (fscanf(f, "%d", (int *)out) != 1)
+		rv = -1;
+
+	fclose(f);
+
+	if (rv)
+		msg_gdbg("%s: failed to read fmap_base from ACPI\n", __func__);
+	else
+		msg_gdbg("%s: read fmap_base from ACPI\n", __func__);
+
+	return rv;
+}
+
+/* Read value from FDT, if it exists. */
+static int read_fmap_base_fdt(uint32_t *out)
+{
+	int rv = 0;
+	uint32_t data;
+	FILE *f;
+
+	if (!(f = fopen(FDT_FMAP_PATH, "r")))
+		return -1;
+
+	/* Value is stored as network-byte order dword. */
+	if (fread(&data, sizeof(data), 1, f) != 1)
+		rv = -1;
+	else
+		*out = ntohl(data);
+
+	fclose(f);
+
+	if (rv)
+		msg_gdbg("%s: failed to read fmap_base from FDT\n", __func__);
+	else
+		msg_gdbg("%s: read fmap_base from FDT\n", __func__);
+
+	return rv;
+}
+
 /*
- * Invoke crossystem and parse the returned string to produce an offset
+ * Find the FMAP base from ACPI or FDT.
  * @search: Search information
  * @offset: Place to put offset
  * @return 0 if offset found, -1 if not
  */
-static int get_crossystem_fmap_base(struct search_info *search, off_t *offset)
+static int get_fmap_base(struct search_info *search, off_t *offset)
 {
-	char cmd[] = "crossystem fmap_base";
-	FILE *fp;
-	int n;
-	char buf[16];
-	unsigned long fmap_base;
-	unsigned long from_top;
+	uint32_t fmap_base;
+	uint32_t from_top;
 
-	if (!(fp = popen(cmd, "r")))
+#if IS_X86
+	if (read_fmap_base_acpi(&fmap_base) < 0)
 		return -1;
-	n = fread(buf, 1, sizeof(buf) - 1, fp);
-	fclose(fp);
-	if (n < 0)
+#elif IS_ARM
+	if (read_fmap_base_fdt(&fmap_base) < 0)
 		return -1;
-	buf[n] = '\0';
-	if (strlen(buf) == 0)
-		return -1;
+#else
+	return -1;
+#endif
 
 	/*
-	 * There are 2 kinds of fmap_base returned from crossystem.
+	 * TODO(b/158017386): see if we can remove this hack.  It may
+	 * only apply to older platforms which are now AUE.
+	 *
+	 * There are 2 kinds of fmap_base.
 	 *
 	 *  1. Shadow ROM/BIOS area (x86), such as 0xFFxxxxxx.
 	 *  2. Offset to start of flash, such as 0x00xxxxxx.
@@ -285,14 +339,13 @@ static int get_crossystem_fmap_base(struct search_info *search, off_t *offset)
 	 * older x86-based Chrome OS platforms.
 	 */
 
-	fmap_base = (unsigned long)strtoll(buf, (char **) NULL, 0);
-	msg_gdbg("%s: fmap_base: %#lx, ROM size: 0x%zx\n",
-		__func__, fmap_base, search->total_size);
+	msg_gdbg("%s: fmap_base: %#x, ROM size: 0x%zx\n",
+		 __func__, fmap_base, search->total_size);
 
 	if (fmap_base & (1 << 31)) {
 		from_top = 0xFFFFFFFF - fmap_base + 1;
-		msg_gdbg("%s: fmap is located in shadow ROM, from_top: %#lx\n",
-				__func__, from_top);
+		msg_gdbg("%s: fmap is located in shadow ROM, from_top: %#x\n",
+			 __func__, from_top);
 		if (from_top > search->total_size)
 			return -1;
 		*offset = search->total_size - from_top;
@@ -386,7 +439,7 @@ static int add_fmap_entries(void *source_handle,
 
 	search_init(&search, source_handle,
 		    image_size, sizeof(hdr), read_chunk);
-	search.handler = get_crossystem_fmap_base;
+	search.handler = get_fmap_base;
 	while (found == FOUND_NONE && !search_find_next(&search, &offset)) {
 		if (search.image)
 			memcpy(&hdr, search.image + offset, sizeof(hdr));
