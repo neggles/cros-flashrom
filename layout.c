@@ -391,14 +391,16 @@ int register_include_arg(char *name)
 	return num_include_args;
 }
 
-int find_romentry(char *name)
+int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name, char *file);
+
+/* returns -1 if an entry is not found, i if found. */
+int find_romentry(struct flashrom_layout *const l, char *name)
 {
-	int i;
+	int ret;
 	char *file = NULL;
 	char *has_colon;
-	struct flashrom_layout *const layout = get_global_layout();
 
-	if (!layout->num_entries)
+	if (l->num_entries == 0)
 		return -1;
 
 	/* -i <image>[:<file>] */
@@ -413,19 +415,14 @@ int find_romentry(char *name)
 	msg_gdbg("Looking for \"%s\" (file=\"%s\")... ",
 	         name, file ? file : "<not specified>");
 
-	for (i = 0; i < layout->num_entries; i++) {
-		if (!strcmp(layout->entries[i].name, name)) {
-			layout->entries[i].included = 1;
-			snprintf(layout->entries[i].file,
-			         sizeof(layout->entries[i].file),
-			         "%s", file ? file : "");
-			msg_gdbg("found.\n");
-			return i;
-		}
+	msg_gspew("Looking for region \"%s\"... ", name);
+	ret = flashrom_layout_include_region(l, name, file);
+	if (ret < 0) {
+		msg_gspew("not found.\n");
+		return -1;
 	}
-	msg_gdbg("not found.\n");	// Not found. Error.
-
-	return -1;
+	msg_gspew("found.\n");
+	return ret;
 }
 
 
@@ -480,7 +477,7 @@ int process_include_args() {
 				return -1;
 			}
 
-			if (find_romentry(include_args[i]) < 0) {
+			if (find_romentry(layout, include_args[i]) < 0) {
 				msg_gerr("Invalid entry specified: %s\n",
 				         include_args[i]);
 				return -1;
@@ -975,3 +972,34 @@ int get_fmap_entries(const char *filename, struct flashctx *flash)
 
 	return add_fmap_entries(flash, image_size, read_from_flash);
 }
+
+/**
+ * @addtogroup flashrom-layout
+ * @{
+ */
+
+/**
+ * @brief Mark given region as included.
+ *
+ * @param layout The layout to alter.
+ * @param name   The name of the region to include.
+ *
+ * @return i on success,
+ *         -1 if the given name can't be found.
+ */
+int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name, char *file)
+{
+	size_t i;
+	for (i = 0; i < layout->num_entries; ++i) {
+		if (!strcmp(layout->entries[i].name, name)) {
+			layout->entries[i].included = true;
+			snprintf(layout->entries[i].file,
+				 sizeof(layout->entries[i].file),
+				 "%s", file ? file : "");
+			return i;
+		}
+	}
+	return -1;
+}
+
+/** @} */ /* end flashrom-layout */

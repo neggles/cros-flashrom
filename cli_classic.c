@@ -907,7 +907,8 @@ int main(int argc, char *argv[])
 		int n;
 		struct romentry entry;
 
-		n = find_romentry(wp_region);
+		struct flashrom_layout *const layout = get_global_layout();
+		n = find_romentry(layout, wp_region);
 		if (n < 0) {
 			msg_gerr("Error: Unable to find region \"%s\"\n",
 					wp_region);
