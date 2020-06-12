@@ -27,7 +27,6 @@
 #include <sys/stat.h>
 
 #include "flash.h"
-#include "fdtmap.h"
 #include "fmap.h"
 #include "layout.h"
 #include "platform.h"
@@ -410,7 +409,6 @@ static int add_fmap_entries_from_buf(const uint8_t *buf)
 enum found_t {
 	FOUND_NONE,
 	FOUND_FMAP,
-	FOUND_FDTMAP,
 };
 
 /* returns the number of entries added, or <0 to indicate error */
@@ -424,10 +422,7 @@ static int add_fmap_entries(void *source_handle,
 	static enum found_t found = FOUND_NONE;
 	int ret = -1;
 	struct search_info search;
-	union {
-		struct fdtmap_hdr fdtmap;
-		struct fmap fmap;
-	} hdr;
+	struct fmap fmap_header;
 	uint8_t *buf = NULL;
 	off_t offset;
 	struct flashrom_layout *const layout = get_global_layout();
@@ -438,42 +433,28 @@ static int add_fmap_entries(void *source_handle,
 	}
 
 	search_init(&search, source_handle,
-		    image_size, sizeof(hdr), read_chunk);
+		    image_size, sizeof(fmap_header), read_chunk);
 	search.handler = get_fmap_base;
 	while (found == FOUND_NONE && !search_find_next(&search, &offset)) {
-		if (search.image)
-			memcpy(&hdr, search.image + offset, sizeof(hdr));
-		else if (read_chunk(source_handle, (uint8_t *)&hdr, offset,
-				    sizeof(hdr))) {
+		if (search.image) {
+			memcpy(&fmap_header, search.image + offset,
+			       sizeof(fmap_header));
+		} else if (read_chunk(source_handle, (uint8_t *)&fmap_header,
+				      offset, sizeof(fmap_header))) {
 			msg_gdbg("[L%d] failed to read flash at offset %#jx\n",
-				__LINE__, (intmax_t)offset);
+				 __LINE__, (intmax_t)offset);
 			return -1;
 		}
 		ret = fmap_find(source_handle, read_chunk,
-				&hdr.fmap, offset, &buf);
+				&fmap_header, offset, &buf);
 		if (ret == 1) {
 			found = FOUND_FMAP;
 		}
-#ifdef CONFIG_FDTMAP
-		if (ret == 0) {
-			ret = fdtmap_find(source_handle, read_chunk,
-					  &hdr.fdtmap, offset, &buf);
-			if (ret == 1)
-				found = FOUND_FDTMAP;
-		}
-#endif
 		if (ret < 0)
 			return ret;
 	}
 
 	switch (found) {
-#ifdef CONFIG_FDTMAP
-	case FOUND_FDTMAP:
-		/* It looks valid, so use it */
-		layout->num_entries = fdtmap_add_entries_from_buf(buf, layout->entries,
-							  MAX_ROMLAYOUT);
-		break;
-#endif
 	case FOUND_FMAP:
 		layout->num_entries = add_fmap_entries_from_buf(buf);
 		break;

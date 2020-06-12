@@ -440,16 +440,6 @@ CHIP_OBJS = jedec.o stm50flw0x0x.o w39.o w29ee011.o \
 
 LIB_OBJS = layout.o file.o fmap.o power.o search.o
 
-ifeq ($(CONFIG_FDTMAP), yes)
-FEATURE_CFLAGS += -D'CONFIG_FDTMAP=1'
-LIB_OBJS += fdtmap.o
-ifeq ($(CONFIG_STATIC), yes)
-LIBS += -static -lfdt -lz
-else
-LIBS += -lfdt -lz
-endif
-endif
-
 LOCK_OBJS = big_lock.o file_lock.o
 LIB_OBJS += $(LOCK_OBJS)
 FEATURE_CFLAGS += -D'USE_BIG_LOCK=1'
@@ -550,9 +540,6 @@ CONFIG_LINUX_SPI ?= yes
 
 # Disable wiki printing by default. It is only useful if you have wiki access.
 CONFIG_PRINT_WIKI ?= no
-
-# Support for reading a flashmap from a device tree in the image
-CONFIG_FDTMAP ?= no
 
 # Disable all features if CONFIG_NOTHING=yes is given unless CONFIG_EVERYTHING was also set
 ifeq ($(CONFIG_NOTHING), yes)
