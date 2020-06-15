@@ -164,7 +164,7 @@ int linux_spi_init(void)
 		return 1;
 	}
 
-	p = extract_programmer_param("speed");
+	p = extract_programmer_param("spispeed");
 	if (p && strlen(p)) {
 		speed_hz = (uint32_t)strtoul(p, &endp, 10) * 1000;
 		if (p == endp || speed_hz == 0) {
