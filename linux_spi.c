@@ -11,7 +11,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #if CONFIG_LINUX_SPI == 1
@@ -27,8 +26,6 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include "file.h"
 #include "flash.h"
 #include "chipdrivers.h"
@@ -42,14 +39,11 @@
 #include <linux/ioctl.h>
 #include <linux/spi/spidev.h>
 
-
-
-/* TODO: this information should come from the SPI master driver. */
-#define SPI_DMA_SIZE 64
-
-#ifndef SPIDEV_MAJOR
-#define SPIDEV_MAJOR 153  /* refer to kernel/files/drivers/spi/spidev.c */
-#endif
+/* Devices known to work with this module (FIXME: export as struct dev_entry):
+ * Beagle Bone Black
+ * Raspberry Pi
+ * HummingBoard
+ */
 
 #define MODALIAS_FILE		"modalias"
 #define LINUX_SPI_SYSFS_ROOT	"/sys/bus/spi/devices"
@@ -59,8 +53,10 @@ static int fd = -1;
 static size_t max_kernel_buf_size;
 
 static int linux_spi_shutdown(void *data);
-static int linux_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-			const unsigned char *txbuf, unsigned char *rxbuf);
+static int linux_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+				  unsigned int readcnt,
+				  const unsigned char *txbuf,
+				  unsigned char *rxbuf);
 static int linux_spi_read(struct flashctx *flash, uint8_t *buf,
 			  unsigned int start, unsigned int len);
 static int linux_spi_write_256(struct flashctx *flash, const uint8_t *buf,
@@ -262,8 +258,10 @@ static int linux_spi_shutdown(void *data)
 	return 0;
 }
 
-static int linux_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-			const unsigned char *txbuf, unsigned char *rxbuf)
+static int linux_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+				  unsigned int readcnt,
+				  const unsigned char *txbuf,
+				  unsigned char *rxbuf)
 {
 	int msg_start = 0, msg_count = 0;
 	struct spi_ioc_transfer msg[2] = {
@@ -311,8 +309,7 @@ static int linux_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int sta
 	return spi_read_chunked(flash, buf, start, len, max_kernel_buf_size - 5);
 }
 
-static int linux_spi_write_256(struct flashctx *flash, const uint8_t *buf,
-			       unsigned int start, unsigned int len)
+static int linux_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
 {
 	/* 5 bytes must be reserved for longest possible command + address. */
 	return spi_write_chunked(flash, buf, start, len, max_kernel_buf_size - 5);
