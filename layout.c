@@ -234,7 +234,7 @@ int read_romlayout(char *name)
 #endif
 
 /* Read value from ACPI in sysfs, if it exists. */
-static int read_fmap_base_acpi(uint32_t *out)
+__attribute__((unused)) static int read_fmap_base_acpi(uint32_t *out)
 {
 	int rv = 0;
 	FILE *f;
@@ -257,7 +257,7 @@ static int read_fmap_base_acpi(uint32_t *out)
 }
 
 /* Read value from FDT, if it exists. */
-static int read_fmap_base_fdt(uint32_t *out)
+__attribute__((unused)) static int read_fmap_base_fdt(uint32_t *out)
 {
 	int rv = 0;
 	uint32_t data;
