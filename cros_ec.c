@@ -31,6 +31,8 @@
  * LIABILITY, ARISING OUT OF THE USE OF OR INABILITY TO USE THIS SOFTWARE,
  * EVEN IF GOOGLE HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
  */
+
+#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -695,11 +697,14 @@ int cros_ec_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
 	uint8_t *packet;
 
 	/*
-	 * For chrome-os-partner:33035, to workaround the undersized
+	 * For b:35542013, to workaround the undersized
 	 * outdata buffer issue in kernel.
+	 * chunk size should exclude the packet header ec_params_flash_write.
 	 */
-	real_write_size = min(opaque_master->max_data_write,
-		cros_ec_priv->ideal_write_size);
+	real_write_size = min(opaque_master->max_data_write - sizeof(p),
+			      cros_ec_priv->ideal_write_size);
+	assert(real_write_size > 0);
+
 	packet = malloc(sizeof(p) + real_write_size);
 	if (!packet)
 		return -1;
