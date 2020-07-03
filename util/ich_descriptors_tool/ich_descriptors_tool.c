@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 			cs = CHIPSET_APOLLO_LAKE;
 	}
 
-	ret = read_ich_descriptors_from_dump(buf, len, &desc, cs);
+	ret = read_ich_descriptors_from_dump(buf, len, &cs, &desc);
 	switch (ret) {
 	case ICH_RET_OK:
 		break;

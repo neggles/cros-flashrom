@@ -2192,14 +2192,15 @@ static void ich9_handle_frap(uint32_t frap, unsigned int i)
 			if ((freg & HSFSC_FDV) && !(freg & HSFSC_FDOPSS))
 				rwperms = FD_REGION_READ_WRITE;
 			else if (read_ich_descriptors_via_fdo(g_ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
-				if (desc.master.pch100.BIOS_EC_r &&
-				    desc.master.pch100.BIOS_EC_w)
+				const struct ich_desc_master *const mstr = &desc.master;
+#define BIT(x) (1<<(x))
+				int bios_ec_r = mstr->mstr[i].read  & BIT(16); /* BIOS_EC_r in PCH100+ */
+				int bios_ec_w = mstr->mstr[i].write & BIT(28); /* BIOS_EC_w in PCH100+ */
+				if (bios_ec_r && bios_ec_w)
 					rwperms = FD_REGION_READ_WRITE;
-				else if (desc.master.pch100.BIOS_EC_r &&
-					 !desc.master.pch100.BIOS_EC_w)
+				else if (bios_ec_r && !bios_ec_w)
 					rwperms = FD_REGION_READ_ONLY;
-				else if (!desc.master.pch100.BIOS_EC_r &&
-					 desc.master.pch100.BIOS_EC_w)
+				else if (!bios_ec_r && bios_ec_w)
 					rwperms = FD_REGION_WRITE_ONLY;
 				else
 					rwperms = FD_REGION_LOCKED;
