@@ -102,17 +102,40 @@ struct ich_desc_content {
 struct ich_desc_component {
 	union {			/* 0x00 */
 		uint32_t FLCOMP; /* Flash Components Register */
+		/* FLCOMP encoding on various generations:
+		 *
+		 * Chipset/Generation	max_speed	dual_output	density
+		 * 			[MHz]		bits		max.	bits
+		 * ICH8:		33		N/A		5	0:2, 3:5
+		 * ICH9:		33		N/A		5	0:2, 3:5
+		 * ICH10:		33		N/A		5	0:2, 3:5
+		 * Ibex Peak/5:		50		N/A		5	0:2, 3:5
+		 * Cougar Point/6:	50		30		5	0:2, 3:5
+		 * Patsburg:		50		30		5	0:2, 3:5
+		 * Panther Point/7	50		30		5	0:2, 3:5
+		 * Lynx Point/8:	50		30		7	0:3, 4:7
+		 * Wildcat Point/9:	50		?? (multi I/O)	?	?:?, ?:?
+		 */
 		struct {
-			uint32_t comp1_density	:3,
-				 comp2_density	:3,
-						:11,
+			uint32_t 		:17,
 				 freq_read	:3,
 				 fastread	:1,
 				 freq_fastread	:3,
 				 freq_write	:3,
 				 freq_read_id	:3,
-						:2;
-		};
+				 dual_output	:1, /* new since Cougar Point/6 */
+						:1;
+		} modes;
+		struct {
+			uint32_t comp1_density	:3,
+				 comp2_density	:3,
+						:26;
+		} dens_old;
+		struct {
+			uint32_t comp1_density	:4, /* new since Lynx Point/8 */
+				 comp2_density	:4,
+						:24;
+		} dens_new;
 	};
 	union {			/* 0x04 */
 		uint32_t FLILL; /* Flash Invalid Instructions Register */
@@ -688,7 +711,7 @@ struct ich_descriptors {
 void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descriptors *desc);
 
 void prettyprint_ich_descriptor_content(const struct ich_desc_content *content);
-void prettyprint_ich_descriptor_component(const struct ich_descriptors *desc);
+void prettyprint_ich_descriptor_component(enum ich_chipset cs, const struct ich_descriptors *desc);
 void prettyprint_ich_descriptor_region(const struct ich_descriptors *desc);
 void prettyprint_ich_descriptor_master(enum ich_chipset cs, const struct ich_desc_master *master);
 

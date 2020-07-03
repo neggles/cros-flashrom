@@ -63,7 +63,7 @@ void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity, bool print_vcl)
 void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descriptors *desc)
 {
 	prettyprint_ich_descriptor_content(&desc->content);
-	prettyprint_ich_descriptor_component(desc);
+	prettyprint_ich_descriptor_component(cs, desc);
 	prettyprint_ich_descriptor_region(desc);
 	prettyprint_ich_descriptor_master(cs, &desc->master);
 #ifdef ICH_DESCRIPTORS_FROM_DUMP
@@ -107,56 +107,157 @@ void prettyprint_ich_descriptor_content(const struct ich_desc_content *cont)
 	msg_pdbg2("\n");
 }
 
-void prettyprint_ich_descriptor_component(const struct ich_descriptors *desc)
+static const char *pprint_density(enum ich_chipset cs, const struct ich_descriptors *desc, uint8_t idx)
 {
-	static const char * const freq_str[8] = {
-		"20 MHz",	/* 000 */
-		"33 MHz",	/* 001 */
-		"reserved",	/* 010 */
-		"reserved",	/* 011 */
-		"50 MHz",	/* 100 */
-		"reserved",	/* 101 */
-		"reserved",	/* 110 */
-		"reserved"	/* 111 */
-	};
-	static const char * const size_str[8] = {
-		"512 kB",	/* 000 */
-		"  1 MB",	/* 001 */
-		"  2 MB",	/* 010 */
-		"  4 MB",	/* 011 */
-		"  8 MB",	/* 100 */
-		" 16 MB",	/* 101 */
-		" 32 MB",	/* 110 */
-		" 64 MB",	/* 111 */
+	if (idx > 1) {
+		msg_perr("Only ICH SPI component index 0 or 1 are supported yet.\n");
+		return NULL;
+	}
+
+	if (desc->content.NC == 0 && idx > 0)
+		return "unused";
+
+	static const char * const size_str[] = {
+		"512 kB",	/* 0000 */
+		"1 MB",		/* 0001 */
+		"2 MB",		/* 0010 */
+		"4 MB",		/* 0011 */
+		"8 MB",		/* 0100 */
+		"16 MB",	/* 0101 */ /* Maximum up to Lynx Point (excl.) */
+		"32 MB",	/* 0110 */
+		"64 MB",	/* 0111 */
 	};
 
+	switch (cs) {
+	case CHIPSET_ICH8:
+	case CHIPSET_ICH9:
+	case CHIPSET_ICH10:
+	case CHIPSET_5_SERIES_IBEX_PEAK:
+	case CHIPSET_6_SERIES_COUGAR_POINT:
+	case CHIPSET_7_SERIES_PANTHER_POINT:
+	case CHIPSET_BAYTRAIL: {
+		uint8_t size_enc;
+		if (idx == 0) {
+			size_enc = desc->component.dens_old.comp1_density;
+		} else {
+			size_enc = desc->component.dens_old.comp2_density;
+		}
+		if (size_enc > 5)
+			return "reserved";
+		return size_str[size_enc];
+	}
+	case CHIPSET_8_SERIES_LYNX_POINT:
+	case CHIPSET_8_SERIES_LYNX_POINT_LP:
+	case CHIPSET_8_SERIES_WELLSBURG:
+	case CHIPSET_9_SERIES_WILDCAT_POINT:
+	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+	case CHIPSET_APOLLO_LAKE: {
+		uint8_t size_enc;
+		if (idx == 0) {
+			size_enc = desc->component.dens_new.comp1_density;
+		} else {
+			size_enc = desc->component.dens_new.comp2_density;
+		}
+		if (size_enc > 7)
+			return "reserved";
+		return size_str[size_enc];
+	}
+	case CHIPSET_ICH_UNKNOWN:
+	default:
+		return "unknown";
+	}
+}
+
+static const char *pprint_freq(enum ich_chipset cs, uint8_t value)
+{
+	static const char *const freq_str[3][8] = { {
+		"20 MHz",
+		"33 MHz",
+		"reserved",
+		"reserved",
+		"50 MHz",	/* New since Ibex Peak */
+		"reserved",
+		"reserved",
+		"reserved"
+	}, {
+		"reserved",
+		"reserved",
+		"48 MHz",
+		"reserved",
+		"30 MHz",
+		"reserved",
+		"17 MHz",
+		"reserved"
+	}, {
+		"reserved",
+		"50 MHz",
+		"40 MHz",
+		"reserved",
+		"25 MHz",
+		"reserved",
+		"14 MHz / 17 MHz",
+		"reserved"
+	} };
+
+	switch (cs) {
+	case CHIPSET_ICH8:
+	case CHIPSET_ICH9:
+	case CHIPSET_ICH10:
+		if (value > 1)
+			return "reserved";
+		/* Fall through. */
+	case CHIPSET_5_SERIES_IBEX_PEAK:
+	case CHIPSET_6_SERIES_COUGAR_POINT:
+	case CHIPSET_7_SERIES_PANTHER_POINT:
+	case CHIPSET_8_SERIES_LYNX_POINT:
+	case CHIPSET_BAYTRAIL:
+	case CHIPSET_8_SERIES_LYNX_POINT_LP:
+	case CHIPSET_8_SERIES_WELLSBURG:
+	case CHIPSET_9_SERIES_WILDCAT_POINT:
+	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
+		return freq_str[0][value];
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+		return freq_str[1][value];
+	case CHIPSET_APOLLO_LAKE:
+		return freq_str[2][value];
+	case CHIPSET_ICH_UNKNOWN:
+	default:
+		return "unknown";
+	}
+}
+
+void prettyprint_ich_descriptor_component(enum ich_chipset cs, const struct ich_descriptors *desc)
+{
 	msg_pdbg2("=== Component Section ===\n");
 	msg_pdbg2("FLCOMP   0x%08x\n", desc->component.FLCOMP);
 	msg_pdbg2("FLILL    0x%08x\n", desc->component.FLILL );
 	msg_pdbg2("\n");
 
 	msg_pdbg2("--- Details ---\n");
-	msg_pdbg2("Component 1 density:           %s\n",
-		  size_str[desc->component.comp1_density]);
+	msg_pdbg2("Component 1 density:            %s\n", pprint_density(cs, desc, 0));
 	if (desc->content.NC)
-		msg_pdbg2("Component 2 density:           %s\n",
-			  size_str[desc->component.comp2_density]);
+		msg_pdbg2("Component 2 density:            %s\n", pprint_density(cs, desc, 1));
 	else
 		msg_pdbg2("Component 2 is not used.\n");
-	msg_pdbg2("Read Clock Frequency:           %s\n",
-		  freq_str[desc->component.freq_read]);
-	msg_pdbg2("Read ID and Status Clock Freq.: %s\n",
-		  freq_str[desc->component.freq_read_id]);
-	msg_pdbg2("Write and Erase Clock Freq.:    %s\n",
-		  freq_str[desc->component.freq_write]);
-	msg_pdbg2("Fast Read is %ssupported.\n",
-		  desc->component.fastread ? "" : "not ");
-	if (desc->component.fastread)
+	msg_pdbg2("Read Clock Frequency:           %s\n", pprint_freq(cs, desc->component.modes.freq_read));
+	msg_pdbg2("Read ID and Status Clock Freq.: %s\n", pprint_freq(cs, desc->component.modes.freq_read_id));
+	msg_pdbg2("Write and Erase Clock Freq.:    %s\n", pprint_freq(cs, desc->component.modes.freq_write));
+	msg_pdbg2("Fast Read is %ssupported.\n", desc->component.modes.fastread ? "" : "not ");
+	if (desc->component.modes.fastread)
 		msg_pdbg2("Fast Read Clock Frequency:      %s\n",
-			  freq_str[desc->component.freq_fastread]);
-	if (desc->component.FLILL == 0)
-		msg_pdbg2("No forbidden opcodes.\n");
-	else {
+			  pprint_freq(cs, desc->component.modes.freq_fastread));
+	if (cs > CHIPSET_6_SERIES_COUGAR_POINT)
+		msg_pdbg2("Dual Output Fast Read Support:  %sabled\n",
+			  desc->component.modes.dual_output ? "dis" : "en");
+
+	int has_forbidden_opcode = 0;
+	if (desc->component.FLILL != 0) {
+		has_forbidden_opcode = 1;
 		msg_pdbg2("Invalid instruction 0:          0x%02x\n",
 			  desc->component.invalid_instr0);
 		msg_pdbg2("Invalid instruction 1:          0x%02x\n",
@@ -166,6 +267,9 @@ void prettyprint_ich_descriptor_component(const struct ich_descriptors *desc)
 		msg_pdbg2("Invalid instruction 3:          0x%02x\n",
 			  desc->component.invalid_instr3);
 	}
+	if (!has_forbidden_opcode)
+		msg_pdbg2("No forbidden opcodes.\n");
+
 	msg_pdbg2("\n");
 }
 
@@ -808,12 +912,12 @@ int getFCBA_component_density(const struct ich_descriptors *desc, uint8_t idx)
 
 	switch(idx) {
 	case 0:
-		size_enc = desc->component.comp1_density;
+		size_enc = desc->component.dens_old.comp1_density;
 		break;
 	case 1:
 		if (desc->content.NC == 0)
 			return 0;
-		size_enc = desc->component.comp2_density;
+		size_enc = desc->component.dens_old.comp2_density;
 		break;
 	default:
 		msg_perr("Only ICH SPI component index 0 or 1 are supported "
