@@ -37,6 +37,32 @@
 #include "programmer.h"
 
 #endif /* ICH_DESCRIPTORS_FROM_DUMP */
+ssize_t ich_number_of_regions(const enum ich_chipset cs, const struct ich_desc_content *const cont)
+{
+	switch (cs) {
+	case CHIPSET_APOLLO_LAKE:
+		return 6;
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+		return 16;
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+		return 10;
+	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
+	case CHIPSET_9_SERIES_WILDCAT_POINT:
+	case CHIPSET_8_SERIES_LYNX_POINT_LP:
+	case CHIPSET_8_SERIES_LYNX_POINT:
+	case CHIPSET_8_SERIES_WELLSBURG:
+		if (cont->NR <= 6)
+			return cont->NR + 1;
+		else
+			return -1;
+	default:
+		if (cont->NR <= 4)
+			return cont->NR + 1;
+		else
+			return -1;
+	}
+}
 
 #ifndef min
 #define min(a, b) (a < b) ? a : b
@@ -62,9 +88,9 @@ void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity, bool print_vcl)
 
 void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descriptors *desc)
 {
-	prettyprint_ich_descriptor_content(&desc->content);
+	prettyprint_ich_descriptor_content(cs, &desc->content);
 	prettyprint_ich_descriptor_component(cs, desc);
-	prettyprint_ich_descriptor_region(desc);
+	prettyprint_ich_descriptor_region(cs, desc);
 	prettyprint_ich_descriptor_master(cs, &desc->master);
 #ifdef ICH_DESCRIPTORS_FROM_DUMP
 	if (cs >= CHIPSET_ICH8) {
@@ -74,7 +100,7 @@ void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descripto
 #endif /* ICH_DESCRIPTORS_FROM_DUMP */
 }
 
-void prettyprint_ich_descriptor_content(const struct ich_desc_content *cont)
+void prettyprint_ich_descriptor_content(enum ich_chipset cs, const struct ich_desc_content *cont)
 {
 	msg_pdbg2("=== Content Section ===\n");
 	msg_pdbg2("FLVALSIG 0x%08x\n", cont->FLVALSIG);
@@ -84,8 +110,7 @@ void prettyprint_ich_descriptor_content(const struct ich_desc_content *cont)
 	msg_pdbg2("\n");
 
 	msg_pdbg2("--- Details ---\n");
-	msg_pdbg2("NR          (Number of Regions):                 %5d\n",
-		  cont->NR + 1);
+	msg_pdbg2("NR          (Number of Regions):                 %5zd\n",   ich_number_of_regions(cs, cont));
 	msg_pdbg2("FRBA        (Flash Region Base Address):         0x%03x\n",
 		  getFRBA(cont));
 	msg_pdbg2("NC          (Number of Components):              %5d\n",
@@ -292,22 +317,22 @@ static void pprint_freg(const struct ich_desc_region *reg, uint32_t i)
 		msg_pdbg2("0x%08x - 0x%08x\n", base, limit);
 }
 
-void prettyprint_ich_descriptor_region(const struct ich_descriptors *desc)
+void prettyprint_ich_descriptor_region(const enum ich_chipset cs, const struct ich_descriptors *const desc)
 {
 	uint8_t i;
-	uint8_t nr = desc->content.NR + 1;
+	const ssize_t nr = ich_number_of_regions(cs, &desc->content);
 	msg_pdbg2("=== Region Section ===\n");
-	if (nr >= 5) {
+	if (nr < 0) {
 		msg_pdbg2("%s: number of regions too high (%d).\n", __func__,
-			 nr);
+			  desc->content.NR + 1);
 		return;
 	}
-	for (i = 0; i <= nr; i++)
+	for (i = 0; i < nr; i++)
 		msg_pdbg2("FLREG%d   0x%08x\n", i, desc->region.FLREGs[i]);
 	msg_pdbg2("\n");
 
 	msg_pdbg2("--- Details ---\n");
-	for (i = 0; i <= nr; i++)
+	for (i = 0; i < nr; i++)
 		pprint_freg(&desc->region, i);
 	msg_pdbg2("\n");
 }
@@ -841,16 +866,14 @@ int read_ich_descriptors_from_dump(const uint32_t *dump, unsigned int len,
 	desc->component.FLPB	= dump[(getFCBA(&desc->content) >> 2) + 2];
 
 	/* region */
-	if (len < getFRBA(&desc->content) + 5 * 4)
+	const ssize_t nr = ich_number_of_regions(cs, &desc->content);
+	if (nr < 0 || len < getFRBA(&desc->content) + (size_t)nr * 4)
 		return ICH_RET_OOB;
-	desc->region.FLREGs[0] = dump[(getFRBA(&desc->content) >> 2) + 0];
-	desc->region.FLREGs[1] = dump[(getFRBA(&desc->content) >> 2) + 1];
-	desc->region.FLREGs[2] = dump[(getFRBA(&desc->content) >> 2) + 2];
-	desc->region.FLREGs[3] = dump[(getFRBA(&desc->content) >> 2) + 3];
-	desc->region.FLREGs[4] = dump[(getFRBA(&desc->content) >> 2) + 4];
+	for (i = 0; i < nr; i++)
+		desc->region.FLREGs[i] = dump[(getFRBA(&desc->content) >> 2) + i];
 
 	/* master */
-	if (len < getFMBA(&desc->content) + 3 * 4)
+        if (len < getFMBA(&desc->content) + 3 * 4)
 		return ICH_RET_OOB;
 	if (cs >= CHIPSET_100_SERIES_SUNRISE_POINT) {
 		desc->master.pch100.FLMSTR1 = dump[(getFMBA(&desc->content) >> 2) + 0];
@@ -953,7 +976,6 @@ static uint32_t read_descriptor_reg(enum ich_chipset cs, uint8_t section, uint16
 int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_descriptors *desc)
 {
 	uint8_t i;
-	uint8_t nr;
 	struct ich_desc_region *r = &desc->region;
 
 	/* Test if bit-fields are working as expected.
@@ -991,13 +1013,13 @@ int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_d
 	desc->component.FLPB	= read_descriptor_reg(cs, 1, 2, spibar);
 
 	/* region section */
-	nr = desc->content.NR + 1;
-	if (nr >= 5) {
+	const ssize_t nr = ich_number_of_regions(cs, &desc->content);
+	if (nr < 0) {
 		msg_pdbg2("%s: number of regions too high (%d) - failed\n",
-			  __func__, nr);
+			  __func__, desc->content.NR + 1);
 		return ICH_RET_ERR;
 	}
-	for (i = 0; i <= nr; i++)
+	for (i = 0; i < nr; i++)
 		desc->region.FLREGs[i] = read_descriptor_reg(cs, 2, i, spibar);
 
 	/* master section */

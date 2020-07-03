@@ -710,9 +710,9 @@ struct ich_descriptors {
 
 void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descriptors *desc);
 
-void prettyprint_ich_descriptor_content(const struct ich_desc_content *content);
+void prettyprint_ich_descriptor_content(enum ich_chipset cs, const struct ich_desc_content *cont);
 void prettyprint_ich_descriptor_component(enum ich_chipset cs, const struct ich_descriptors *desc);
-void prettyprint_ich_descriptor_region(const struct ich_descriptors *desc);
+void prettyprint_ich_descriptor_region(const enum ich_chipset cs, const struct ich_descriptors *const desc);
 void prettyprint_ich_descriptor_master(enum ich_chipset cs, const struct ich_desc_master *master);
 
 #ifdef ICH_DESCRIPTORS_FROM_DUMP
