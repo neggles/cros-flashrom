@@ -13,7 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 /*
@@ -37,15 +36,20 @@
 #include <sys/mman.h>
 #endif
 
-static void dump_file(const char *prefix, const uint32_t *dump, unsigned int len, struct ich_desc_region *reg, unsigned int i)
+static const char *const region_names[] = {
+	"Descriptor", "BIOS", "ME", "GbE", "Platform",
+	"Region5", "BIOS2", "Region7", "EC/BMC", "Region9",
+	"IE", "10GbE", "Region12", "Region13", "Region14",
+	"Region15"
+};
+
+static void dump_file(const char *prefix, const uint32_t *dump, unsigned int len,
+		      const struct ich_desc_region *const reg, unsigned int i)
 {
 	int ret;
 	char *fn;
 	const char *reg_name;
 	uint32_t file_len;
-	const char *const region_names[5] = {
-		"Descriptor", "BIOS", "ME", "GbE", "Platform"
-	};
 	uint32_t base = ICH_FREG_BASE(reg->FLREGs[i]);
 	uint32_t limit = ICH_FREG_LIMIT(reg->FLREGs[i]);
 
@@ -55,7 +59,6 @@ static void dump_file(const char *prefix, const uint32_t *dump, unsigned int len
 		return;
 	}
 
-	limit = limit | 0x0fff;
 	file_len = limit + 1 - base;
 	if (base + file_len > len) {
 		printf("The %s region is spanning 0x%08x-0x%08x, but it is "
@@ -92,16 +95,17 @@ static void dump_file(const char *prefix, const uint32_t *dump, unsigned int len
 	close(fh);
 }
 
-void dump_files(const char *name, const uint32_t *buf, unsigned int len, struct ich_desc_region *reg)
+static void dump_files(const char *name, const uint32_t *buf, unsigned int len,
+		       struct ich_desc_region *reg)
 {
-	unsigned int i;
+	ssize_t i;
 	printf("=== Dumping region files ===\n");
 	for (i = 0; i < 5; i++)
 		dump_file(name, buf, len, reg, i);
 	printf("\n");
 }
 
-static void usage(char *argv[], char *error)
+static void usage(char *argv[], const char *error)
 {
 	if (error != NULL) {
 		fprintf(stderr, "%s\n", error);
@@ -116,11 +120,14 @@ static void usage(char *argv[], char *error)
 "\t- \"ich9\",\n"
 "\t- \"ich10\",\n"
 "\t- \"silvermont\" for chipsets from Intel's Silvermont architecture (e.g. Bay Trail),\n"
+"\t- \"apollo\" for Intel's Apollo Lake SoC.\n"
 "\t- \"5\" or \"ibex\" for Intel's 5 series chipsets,\n"
 "\t- \"6\" or \"cougar\" for Intel's 6 series chipsets,\n"
 "\t- \"7\" or \"panther\" for Intel's 7 series chipsets.\n"
 "\t- \"8\" or \"lynx\" for Intel's 8 series chipsets.\n"
 "\t- \"9\" or \"wildcat\" for Intel's 9 series chipsets.\n"
+"\t- \"100\" or \"sunrise\" for Intel's 100 series chipsets.\n"
+"\t- \"300\" or \"cannon\" for Intel's 300 series chipsets.\n"
 "If '-d' is specified some regions such as the BIOS image as seen by the CPU or\n"
 "the GbE blob that is required to initialize the GbE are also dumped to files.\n",
 	argv[0], argv[0]);
@@ -139,7 +146,7 @@ int main(int argc, char *argv[])
 	const char *fn = NULL;
 	const char *csn = NULL;
 	enum ich_chipset cs = CHIPSET_ICH_UNKNOWN;
-	struct ich_descriptors desc = {{ 0 }};
+	struct ich_descriptors desc = { 0 };
 
 	while ((opt = getopt(argc, argv, "df:c:")) != -1) {
 		switch (opt) {
@@ -206,6 +213,14 @@ int main(int argc, char *argv[])
 		else if ((strcmp(csn, "9") == 0) ||
 			 (strcmp(csn, "wildcat") == 0))
 			cs = CHIPSET_9_SERIES_WILDCAT_POINT;
+		else if ((strcmp(csn, "100") == 0) ||
+			 (strcmp(csn, "sunrise") == 0))
+			cs = CHIPSET_100_SERIES_SUNRISE_POINT;
+		else if ((strcmp(csn, "300") == 0) ||
+			 (strcmp(csn, "cannon") == 0))
+			cs = CHIPSET_300_SERIES_CANNON_POINT;
+		else if (strcmp(csn, "apollo") == 0)
+			cs = CHIPSET_APOLLO_LAKE;
 	}
 
 	ret = read_ich_descriptors_from_dump(buf, len, &desc, cs);
