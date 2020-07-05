@@ -587,6 +587,6 @@ int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
 				   enum ich_chipset *const cs, struct ich_descriptors *const desc);
 
 int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_descriptors *desc);
-int getFCBA_component_density(const struct ich_descriptors *desc, uint8_t idx);
+int getFCBA_component_density(enum ich_chipset cs, const struct ich_descriptors *desc, uint8_t idx);
 
 #endif /* __ICH_DESCRIPTORS_H__ */
