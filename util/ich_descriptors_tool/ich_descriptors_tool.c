@@ -96,12 +96,12 @@ static void dump_file(const char *prefix, const uint32_t *dump, unsigned int len
 }
 
 static void dump_files(const char *name, const uint32_t *buf, unsigned int len,
-		       struct ich_desc_region *reg)
+		       const enum ich_chipset cs, const struct ich_descriptors *const desc)
 {
 	ssize_t i;
 	printf("=== Dumping region files ===\n");
 	for (i = 0; i < 5; i++)
-		dump_file(name, buf, len, reg, i);
+		dump_file(name, buf, len, &desc->region, i);
 	printf("\n");
 }
 
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 		       pMAC[0], pMAC[1], pMAC[2], pMAC[3], pMAC[4], pMAC[5]);
 
 	if (dump == 1)
-		dump_files(fn, buf, len, &desc.region);
+		dump_files(fn, buf, len, cs, &desc);
 
 	return 0;
 }
