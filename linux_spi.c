@@ -45,6 +45,9 @@
  * HummingBoard
  */
 
+#define MODALIAS_FILE		"modalias"
+#define LINUX_SPI_SYSFS_ROOT	"/sys/bus/spi/devices"
+
 static int fd = -1;
 #define BUF_SIZE_FROM_SYSFS	"/sys/module/spidev/parameters/bufsiz"
 static size_t max_kernel_buf_size;
@@ -69,6 +72,46 @@ static const struct spi_master spi_master_linux = {
 	.write_256	= linux_spi_write_256,
 };
 
+static char devfs_path[32]; 	/* at least big enough to fit /dev/spidevX.Y */
+static char *check_sysfs(void)
+{
+	int i;
+	const char *sysfs_path = NULL;
+	char *p;
+	char *modalias[] = {
+		"spi:spidev",	/* raw access over SPI bus (newer kernels) */
+		"spidev",	/* raw access over SPI bus (older kernels) */
+		"m25p80",	/* generic MTD device */
+	};
+
+	for (i = 0; i < ARRAY_SIZE(modalias); i++) {
+		int major, minor;
+
+		/* Path should look like: /sys/blah/spiX.Y/modalias */
+		sysfs_path = scanft(LINUX_SPI_SYSFS_ROOT,
+				MODALIAS_FILE, modalias[i], 1);
+		if (!sysfs_path)
+			continue;
+
+		p = (char *)sysfs_path + strlen(LINUX_SPI_SYSFS_ROOT);
+		if (p[0] == '/')
+			p++;
+
+		if (sscanf(p, "spi%u.%u", &major, &minor) == 2) {
+			msg_pdbg("Found SPI device %s on spi%u.%u\n",
+				modalias[i], major, minor);
+			sprintf(devfs_path, "/dev/spidev%u.%u", major, minor);
+			free((void *)sysfs_path);
+			break;
+		}
+		free((void *)sysfs_path);
+	}
+
+	if (i == ARRAY_SIZE(modalias))
+		return NULL;
+	return devfs_path;
+}
+
 static char *check_fdt(void)
 {
 	unsigned int bus, cs;
@@ -76,9 +119,23 @@ static char *check_fdt(void)
 	if (fdt_find_spi_nor_flash(&bus, &cs) < 0)
 		return NULL;
 
-	char *devfs_path = malloc(32);
 	sprintf(devfs_path, "/dev/spidev%u.%u", bus, cs);
 	return devfs_path;
+}
+
+static char *linux_spi_probe(void)
+{
+	char *ret;
+
+	ret = check_fdt();
+	if (ret)
+		return ret;
+
+	ret = check_sysfs();
+	if (ret)
+		return ret;
+
+	return NULL;
 }
 
 int linux_spi_init(void)
@@ -98,12 +155,20 @@ int linux_spi_init(void)
 	if (alias && alias->type != ALIAS_HOST)
 		return 1;
 
+	dev = extract_programmer_param("dev");
+	if (!dev)
+		dev = linux_spi_probe();
+	if (!dev || !strlen(dev)) {
+		msg_perr("No SPI device found. Use flashrom -p "
+			 "linux_spi:dev=/dev/spidevX.Y\n");
+		return 1;
+	}
+
 	p = extract_programmer_param("spispeed");
 	if (p && strlen(p)) {
 		speed_hz = (uint32_t)strtoul(p, &endp, 10) * 1000;
 		if (p == endp || speed_hz == 0) {
 			msg_perr("%s: invalid clock: %s kHz\n", __func__, p);
-			free(p);
 			return 1;
 		}
 	} else {
@@ -111,26 +176,14 @@ int linux_spi_init(void)
 			  "kHz clock. Use 'spispeed' parameter to override.\n",
 			  speed_hz / 1000);
 	}
-	free(p);
-
-	dev = extract_programmer_param("dev");
-	if (!dev)
-		dev = check_fdt();
-	if (!dev || !strlen(dev)) {
-		msg_perr("No SPI device found. Use flashrom -p "
-			 "linux_spi:dev=/dev/spidevX.Y\n");
-		free(dev);
-		return 1;
-	}
 
 	msg_pdbg("Using device %s\n", dev);
 	if ((fd = open(dev, O_RDWR)) == -1) {
 		msg_perr("%s: failed to open %s: %s\n", __func__,
 			 dev, strerror(errno));
-		free(dev);
+
 		return 1;
 	}
-	free(dev);
 
 	if (register_shutdown(linux_spi_shutdown, NULL))
 		return 1;
