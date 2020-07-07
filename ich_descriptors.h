@@ -13,13 +13,13 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #if defined(__i386__) || defined(__x86_64__)
 #ifndef __ICH_DESCRIPTORS_H__
 #define __ICH_DESCRIPTORS_H__ 1
 
+#include <sys/types.h>
 #include <stdint.h>
 #include "programmer.h" /* for enum ich_chipset */
 
@@ -31,7 +31,7 @@
 #define ICH_RET_OOB	-4
 
 #define ICH9_REG_FDOC		0xB0	/* 32 Bits Flash Descriptor Observability Control */
-#define PCH100_REG_FDOC		0xB4	/* 32 bits FDOC in PCH */
+#define PCH100_REG_FDOC		0xB4	/* New offset from Sunrise Point on */
 					/* 0-1: reserved */
 #define FDOC_FDSI_OFF		2	/* 2-11: Flash Descriptor Section Index */
 #define FDOC_FDSI		(0x3f << FDOC_FDSI_OFF)
@@ -40,7 +40,7 @@
 					/* 15-31: reserved */
 
 #define ICH9_REG_FDOD		0xB4	/* 32 Bits Flash Descriptor Observability Data */
-#define PCH100_REG_FDOD		0xB8	/* 32 bits FDOD in PCH */
+#define PCH100_REG_FDOD		0xB8	/* New offset from Sunrise Point on */
 
 /* Field locations and semantics for LVSCC, UVSCC and related words in the flash
  * descriptor are equal therefore they all share the same macros below. */
@@ -74,7 +74,7 @@ struct ich_desc_content {
 				 NC	:2, /* Number Of Components */
 					:6,
 				 FRBA	:8, /* Flash Region Base Address */
-				 NR	:3, /* Number Of Regions */
+				 NR	:3, /* Number Of Regions (reserved from Skylake on) */
 					:5;
 		};
 	};
@@ -91,9 +91,10 @@ struct ich_desc_content {
 	union {			/* 0x0c */
 		uint32_t FLMAP2;
 		struct {
-			uint32_t FMSBA	:8, /* Flash (G)MCH Strap Base Addr. */
-				 MSL	:8, /* MCH Strap Length */
-					:16;
+			uint32_t FMSBA		:8, /* Flash (G)MCH Strap Base Addr. */
+				 MSL		:8, /* MCH Strap Length */
+				 ICCRIBA	:8, /* ICC Reg. Init Base Addr.	(new since Sandy Bridge) */
+				 RIL		:8; /* Register Init Length	(new since Hawell) */
 		};
 	};
 };
@@ -123,7 +124,7 @@ struct ich_desc_component {
 		};
 	};
 	union {			/* 0x08 */
-		uint32_t FLPB; /* Flash Partition Boundary Register */
+		uint32_t FLPB; /* Flash Partition Boundary Register, until Panther Point/7 */
 		struct {
 			uint32_t FPBA	:13, /* Flash Partition Boundary Addr */
 					:19;
@@ -374,7 +375,7 @@ struct ich_desc_north_strap {
 
 struct ich_desc_south_strap {
 	union {
-		uint32_t STRPs[16]; /* current maximum: ibex peak */
+		uint32_t STRPs[18]; /* current maximum: cougar point */
 		struct { /* ich8 */
 			struct { /* STRP1 */
 				uint32_t ME_DISABLE		:1,
