@@ -1402,7 +1402,7 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 		/* Highest address we can program is (2^24 - 1). */
 		const uint32_t valid_end = (1 << 24) - addr_offset;
 
-		addr = (writearr[1] << 16) | (writearr[2] << 8) | writearr[3];
+		addr = writearr[1] << 16 | writearr[2] << 8 | writearr[3];
 		const uint32_t addr_end = addr + count;
 
 		if (addr < valid_base ||
@@ -1642,7 +1642,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 	uint16_t timeout = 100 * 60;
 	uint8_t block_len;
 
-	if ((addr + len) > (flash->chip->total_size * 1024)) {
+	if (addr + len > flash->chip->total_size * 1024) {
 		msg_perr("Request to read from an inaccessible memory address "
 			 "(addr=0x%x, len=%d).\n", addr, len);
 		return -1;
@@ -1683,7 +1683,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 	uint16_t timeout = 100 * 60;
 	uint8_t block_len;
 
-	if ((addr + len) > (flash->chip->total_size * 1024)) {
+	if (addr + len > flash->chip->total_size * 1024) {
 		msg_perr("Request to write to an inaccessible memory address "
 			 "(addr=0x%x, len=%d).\n", addr, len);
 		return -1;
