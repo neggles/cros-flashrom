@@ -28,7 +28,6 @@
 #include "hwaccess.h"
 #include "spi.h"
 #include "ich_descriptors.h"
-#include "chipdrivers.h"
 
 /* Sunrise Point */
 
