@@ -33,6 +33,8 @@
 
 #else /* ICH_DESCRIPTORS_FROM_DUMP */
 
+#include <sys/types.h>
+#include <string.h>
 #include "flash.h" /* for msg_* */
 #include "programmer.h"
 
@@ -97,6 +99,22 @@ void prettyprint_ich_reg_vscc(uint32_t reg_val, int verbosity, bool print_vcl)
 #define getFMBA(cont)	(((cont)->FLMAP1 <<  4) & 0x00000ff0)
 #define getFISBA(cont)	(((cont)->FLMAP1 >> 12) & 0x00000ff0)
 #define getFMSBA(cont)	(((cont)->FLMAP2 <<  4) & 0x00000ff0)
+
+void prettyprint_ich_chipset(enum ich_chipset cs)
+{
+	static const char *const chipset_names[] = {
+		"Unknown ICH", "ICH8", "ICH9", "ICH10",
+		"5 series Ibex Peak", "6 series Cougar Point", "7 series Panther Point",
+		"8 series Lynx Point", "Baytrail", "8 series Lynx Point LP", "8 series Wellsburg",
+		"9 series Wildcat Point", "9 series Wildcat Point LP", "100 series Sunrise Point",
+		"C620 series Lewisburg", "300 series Cannon Point", "Apollo Lake",
+	};
+	if (cs < CHIPSET_ICH8 || cs - CHIPSET_ICH8 + 1 >= ARRAY_SIZE(chipset_names))
+		cs = 0;
+	else
+		cs = cs - CHIPSET_ICH8 + 1;
+	msg_pdbg2("Assuming chipset '%s'.\n", chipset_names[cs]);
+}
 
 void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descriptors *desc)
 {
@@ -889,12 +907,93 @@ void prettyprint_ich_descriptor_upper_map(const struct ich_desc_upper_map *umap)
 	msg_pdbg2("\n");
 }
 
+/*
+ * Guesses a minimum chipset version based on the maximum number of
+ * soft straps per generation.
+ */
+static enum ich_chipset guess_ich_chipset_from_content(const struct ich_desc_content *const content)
+{
+	if (content->ICCRIBA == 0x00) {
+		if (content->MSL == 0 && content->ISL <= 2)
+			return CHIPSET_ICH8;
+		else if (content->ISL <= 2)
+			return CHIPSET_ICH9;
+		else if (content->ISL <= 10)
+			return CHIPSET_ICH10;
+		else if (content->ISL <= 16)
+			return CHIPSET_5_SERIES_IBEX_PEAK;
+		else if (content->FLMAP2 == 0) {
+			if (content->ISL != 19)
+				msg_pwarn("Peculiar firmware descriptor, assuming Apollo Lake compatibility.\n");
+			return CHIPSET_APOLLO_LAKE;
+		}
+		msg_pwarn("Peculiar firmware descriptor, assuming Ibex Peak compatibility.\n");
+		return CHIPSET_5_SERIES_IBEX_PEAK;
+	} else if (content->ICCRIBA < 0x31 && content->FMSBA < 0x30) {
+		if (content->MSL == 0 && content->ISL <= 17)
+			return CHIPSET_BAYTRAIL;
+		else if (content->MSL <= 1 && content->ISL <= 18)
+			return CHIPSET_6_SERIES_COUGAR_POINT;
+		else if (content->MSL <= 1 && content->ISL <= 21)
+			return CHIPSET_8_SERIES_LYNX_POINT;
+		msg_pwarn("Peculiar firmware descriptor, assuming Wildcat Point compatibility.\n");
+		return CHIPSET_9_SERIES_WILDCAT_POINT;
+	} else if (content->ICCRIBA < 0x34) {
+		if (content->NM == 6)
+			return CHIPSET_C620_SERIES_LEWISBURG;
+		else
+			return CHIPSET_100_SERIES_SUNRISE_POINT;
+	} else {
+		if (content->ICCRIBA > 0x34)
+			msg_pwarn("Unknown firmware descriptor, assuming 300 series compatibility.\n");
+		return CHIPSET_300_SERIES_CANNON_POINT;
+	}
+}
+
+/*
+ * As an additional measure, we check the read frequency like `ifdtool`.
+ * The frequency value 6 (17MHz) was reserved before Skylake and is the
+ * only valid value since. Skylake is currently the most important dis-
+ * tinction because of the dropped number of regions field (NR).
+ */
+static enum ich_chipset guess_ich_chipset(const struct ich_desc_content *const content,
+					  const struct ich_desc_component *const component)
+{
+	const enum ich_chipset guess = guess_ich_chipset_from_content(content);
+
+	switch (guess) {
+	case CHIPSET_300_SERIES_CANNON_POINT:
+		/* `freq_read` was repurposed, so can't check on it any more. */
+		return guess;
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_APOLLO_LAKE:
+		if (component->modes.freq_read != 6) {
+			msg_pwarn("\nThe firmware descriptor looks like a Skylake/Sunrise Point descriptor.\n"
+				  "However, the read frequency isn't set to 17MHz (the only valid value).\n"
+				  "Please report this message, the output of `ich_descriptors_tool` for\n"
+				  "your descriptor and the output of `lspci -nn` to flashrom@flashrom.org\n\n");
+			return CHIPSET_9_SERIES_WILDCAT_POINT;
+		}
+		return guess;
+	default:
+		if (component->modes.freq_read == 6) {
+			msg_pwarn("\nThe firmware descriptor has the read frequency set to 17MHz. However,\n"
+				  "it doesn't look like a Skylake/Sunrise Point compatible descriptor.\n"
+				  "Please report this message, the output of `ich_descriptors_tool` for\n"
+				  "your descriptor and the output of `lspci -nn` to flashrom@flashrom.org\n\n");
+			return CHIPSET_100_SERIES_SUNRISE_POINT;
+		}
+		return guess;
+	}
+}
+
 /* len is the length of dump in bytes */
 int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
 				   enum ich_chipset *const cs, struct ich_descriptors *const desc)
 {
-	unsigned int i, max;
-	uint8_t pch_bug_offset = 0;
+	ssize_t i, max_count;
+	size_t pch_bug_offset = 0;
 
 	if (dump == NULL || desc == NULL)
 		return ICH_RET_PARAM;
@@ -920,6 +1019,11 @@ int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
 	desc->component.FLCOMP	= dump[(getFCBA(&desc->content) >> 2) + 0];
 	desc->component.FLILL	= dump[(getFCBA(&desc->content) >> 2) + 1];
 	desc->component.FLPB	= dump[(getFCBA(&desc->content) >> 2) + 2];
+
+	if (*cs == CHIPSET_ICH_UNKNOWN) {
+		*cs = guess_ich_chipset(&desc->content, &desc->component);
+		prettyprint_ich_chipset(*cs);
+	}
 
 	/* region */
 	const ssize_t nr = ich_number_of_regions(*cs, &desc->content);
@@ -957,8 +1061,8 @@ int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
 		return ICH_RET_OOB;
 
 	/* limit the range to be written */
-	max = MIN(sizeof(desc->north.STRPs) / 4, desc->content.MSL);
-	for (i = 0; i < max; i++)
+	max_count = MIN(sizeof(desc->north.STRPs) / 4, desc->content.MSL);
+	for (i = 0; i < max_count; i++)
 		desc->north.STRPs[i] = dump[(getFMSBA(&desc->content) >> 2) + i];
 
 	/* ICH/PCH (aka. South) straps */
@@ -966,8 +1070,8 @@ int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
 		return ICH_RET_OOB;
 
 	/* limit the range to be written */
-	max = MIN(sizeof(desc->south.STRPs) / 4, desc->content.ISL);
-	for (i = 0; i < max; i++)
+	max_count = MIN(sizeof(desc->south.STRPs) / 4, desc->content.ISL);
+	for (i = 0; i < max_count; i++)
 		desc->south.STRPs[i] = dump[(getFISBA(&desc->content) >> 2) + i];
 
 	return ICH_RET_OK;
