@@ -155,41 +155,28 @@ struct ich_desc_component {
 	};
 };
 
+#define MAX_NUM_FLREGS 16
 struct ich_desc_region {
+	/*
+	 * Number of entries and width differ on various generations:
+	 *
+	 * Chipset/Generation				#FLREGs		width (bits)
+	 * ICH8			.. Panther Point/7	 5		13
+	 * Lynx Point/8		.. Wildcat Point/9	 7		15
+	 * Sunrise Point/100	.. 200 Series		10		15
+	 * Lewisburg/100	..			16		15
+	 * Cannon Point/300	..			16		15
+	 */
 	union {
-		uint32_t FLREGs[5];
+		uint32_t FLREGs[MAX_NUM_FLREGS]; /* Flash Descriptor Regions */
+
+		/* only used for bit-field check */
 		struct {
-			struct { /* FLREG0 Flash Descriptor */
-				uint32_t reg0_base	:13,
-							:3,
-					 reg0_limit	:13,
-							:3;
-			};
-			struct { /* FLREG1 BIOS */
-				uint32_t reg1_base	:13,
-							:3,
-					 reg1_limit	:13,
-							:3;
-			};
-			struct { /* FLREG2 ME */
-				uint32_t reg2_base	:13,
-							:3,
-					 reg2_limit	:13,
-							:3;
-			};
-			struct { /* FLREG3 GbE */
-				uint32_t reg3_base	:13,
-							:3,
-					 reg3_limit	:13,
-							:3;
-			};
-			struct { /* FLREG4 Platform */
-				uint32_t reg4_base	:13,
-							:3,
-					 reg4_limit	:13,
-							:3;
-			};
-		};
+			uint32_t base	:13,
+					:3,
+				 limit	:13,
+					:3;
+		} old_reg[MAX_NUM_FLREGS];
 	};
 };
 

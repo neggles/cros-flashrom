@@ -1002,7 +1002,7 @@ static uint32_t read_descriptor_reg(enum ich_chipset cs, uint8_t section, uint16
 
 int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_descriptors *desc)
 {
-	uint8_t i;
+	ssize_t i;
 	struct ich_desc_region *r = &desc->region;
 
 	/* Test if bit-fields are working as expected.
@@ -1010,20 +1010,20 @@ int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_d
 	 */
 	for (i = 0; i < 4; i++)
 		desc->region.FLREGs[i] = 0x5A << (i * 8);
-	if (r->reg0_base != 0x005A || r->reg0_limit != 0x0000 ||
-	    r->reg1_base != 0x1A00 || r->reg1_limit != 0x0000 ||
-	    r->reg2_base != 0x0000 || r->reg2_limit != 0x005A ||
-	    r->reg3_base != 0x0000 || r->reg3_limit != 0x1A00) {
+	if (r->old_reg[0].base != 0x005A || r->old_reg[0].limit != 0x0000 ||
+	    r->old_reg[1].base != 0x1A00 || r->old_reg[1].limit != 0x0000 ||
+	    r->old_reg[2].base != 0x0000 || r->old_reg[2].limit != 0x005A ||
+	    r->old_reg[3].base != 0x0000 || r->old_reg[3].limit != 0x1A00) {
 		msg_pdbg("The combination of compiler and CPU architecture used"
 			 "does not lay out bit-fields as expected, sorry.\n");
-		msg_pspew("r->reg0_base  = 0x%04X (0x005A)\n", r->reg0_base);
-		msg_pspew("r->reg0_limit = 0x%04X (0x0000)\n", r->reg0_limit);
-		msg_pspew("r->reg1_base  = 0x%04X (0x1A00)\n", r->reg1_base);
-		msg_pspew("r->reg1_limit = 0x%04X (0x0000)\n", r->reg1_limit);
-		msg_pspew("r->reg2_base  = 0x%04X (0x0000)\n", r->reg2_base);
-		msg_pspew("r->reg2_limit = 0x%04X (0x005A)\n", r->reg2_limit);
-		msg_pspew("r->reg3_base  = 0x%04X (0x0000)\n", r->reg3_base);
-		msg_pspew("r->reg3_limit = 0x%04X (0x1A00)\n", r->reg3_limit);
+		msg_pspew("r->old_reg[0].base  = 0x%04X (0x005A)\n", r->old_reg[0].base);
+		msg_pspew("r->old_reg[0].limit = 0x%04X (0x0000)\n", r->old_reg[0].limit);
+		msg_pspew("r->old_reg[1].base  = 0x%04X (0x1A00)\n", r->old_reg[1].base);
+		msg_pspew("r->old_reg[1].limit = 0x%04X (0x0000)\n", r->old_reg[1].limit);
+		msg_pspew("r->old_reg[2].base  = 0x%04X (0x0000)\n", r->old_reg[2].base);
+		msg_pspew("r->old_reg[2].limit = 0x%04X (0x005A)\n", r->old_reg[2].limit);
+		msg_pspew("r->old_reg[3].base  = 0x%04X (0x0000)\n", r->old_reg[3].base);
+		msg_pspew("r->old_reg[3].limit = 0x%04X (0x1A00)\n", r->old_reg[3].limit);
 		return ICH_RET_ERR;
 	}
 
