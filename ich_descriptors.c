@@ -123,23 +123,15 @@ void prettyprint_ich_descriptor_content(enum ich_chipset cs, const struct ich_de
 
 	msg_pdbg2("--- Details ---\n");
 	msg_pdbg2("NR          (Number of Regions):                 %5zd\n",   ich_number_of_regions(cs, cont));
-	msg_pdbg2("FRBA        (Flash Region Base Address):         0x%03x\n",
-		  getFRBA(cont));
-	msg_pdbg2("NC          (Number of Components):              %5d\n",
-		  cont->NC + 1);
-	msg_pdbg2("FCBA        (Flash Component Base Address):      0x%03x\n",
-		  getFCBA(cont));
-	msg_pdbg2("ISL         (ICH/PCH Strap Length):              %5d\n",
-		  cont->ISL);
-	msg_pdbg2("FISBA/FPSBA (Flash ICH/PCH Strap Base Address):  0x%03x\n",
-		  getFISBA(cont));
+	msg_pdbg2("FRBA        (Flash Region Base Address):         0x%03x\n", getFRBA(cont));
+	msg_pdbg2("NC          (Number of Components):              %5d\n",    cont->NC + 1);
+	msg_pdbg2("FCBA        (Flash Component Base Address):      0x%03x\n", getFCBA(cont));
+	msg_pdbg2("ISL         (ICH/PCH/SoC Strap Length):          %5d\n",    cont->ISL);
+	msg_pdbg2("FISBA/FPSBA (Flash ICH/PCH/SoC Strap Base Addr): 0x%03x\n", getFISBA(cont));
 	msg_pdbg2("NM          (Number of Masters):                 %5zd\n",   ich_number_of_masters(cs, cont));
-	msg_pdbg2("FMBA        (Flash Master Base Address):         0x%03x\n",
-		  getFMBA(cont));
-	msg_pdbg2("MSL/PSL     (MCH/PROC Strap Length):             %5d\n",
-		  cont->MSL);
-	msg_pdbg2("FMSBA       (Flash MCH/PROC Strap Base Address): 0x%03x\n",
-		  getFMSBA(cont));
+	msg_pdbg2("FMBA        (Flash Master Base Address):         0x%03x\n", getFMBA(cont));
+	msg_pdbg2("MSL/PSL     (MCH/PROC Strap Length):             %5d\n",    cont->MSL);
+	msg_pdbg2("FMSBA       (Flash MCH/PROC Strap Base Address): 0x%03x\n", getFMSBA(cont));
 	msg_pdbg2("\n");
 }
 
