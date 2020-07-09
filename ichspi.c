@@ -2465,12 +2465,6 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		tmp = mmio_readl(ich_spibar + PCH100_REG_FADDR);
 		msg_pdbg("0x08: 0x%08x (FADDR)\n", tmp);
 
-		if (ich_gen == CHIPSET_100_SERIES_SUNRISE_POINT) {
-			const uint32_t dlock = mmio_readl(ich_spibar + PCH100_REG_DLOCK);
-			msg_pdbg("0x0c: 0x%08x (DLOCK)\n", dlock);
-			prettyprint_pch100_reg_dlock(dlock);
-		}
-
 		if (desc_valid) {
 			tmp = mmio_readl(ich_spibar + ICH9_REG_FRAP);
 			msg_cdbg("0x50: 0x%08x (FRAP)\n", tmp);
@@ -2551,6 +2545,19 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 
 		tmp = mmio_readl(ich_spibar + ICH9_REG_FADDR);
 		msg_pdbg2("0x08: 0x%08x (FADDR)\n", tmp);
+
+		switch (ich_gen) {
+		case CHIPSET_100_SERIES_SUNRISE_POINT:
+		case CHIPSET_C620_SERIES_LEWISBURG:
+		case CHIPSET_300_SERIES_CANNON_POINT:
+		case CHIPSET_APOLLO_LAKE:
+			tmp = mmio_readl(ich_spibar + PCH100_REG_DLOCK);
+			msg_pdbg("0x0c: 0x%08x (DLOCK)\n", tmp);
+			prettyprint_pch100_reg_dlock(tmp);
+			break;
+		default:
+			break;
+		}
 
 		if (desc_valid) {
 			tmp = mmio_readl(ich_spibar + ICH9_REG_FRAP);
