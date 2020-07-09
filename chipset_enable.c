@@ -251,8 +251,7 @@ static int enable_flash_piix4(struct pci_dev *dev, const char *name)
 	rpci_write_word(dev, xbcs, new);
 
 	if (pci_read_word(dev, xbcs) != new) { /* FIXME: share this with other code? */
-		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
-			  "(WARNING ONLY).\n", xbcs, new, name);
+		msg_pinfo("Setting register 0x%04x to 0x%04x on %s failed (WARNING ONLY).\n", xbcs, new, name);
 		return -1;
 	}
 
@@ -307,7 +306,7 @@ static int __enable_flash_ich(void *dev, const char *name, int bios_cntl,
 		msg_pinfo("Warning: Setting Bios Control at 0x%x from 0x%02x to 0x%02x on %s failed.\n"
 			  "New value is 0x%02x.\n", bios_cntl, old, wanted, name, new);
 
-	/* Return an error if we could not set the write enable */
+	/* Return an error if we could not set the write enable only. */
 	if (!(new & (1 << 0)))
 		return -1;
 
@@ -1415,8 +1414,7 @@ static int enable_flash_sc1100(struct pci_dev *dev, const char *name)
 	new = pci_read_byte(dev, SC_REG);
 
 	if (new != 0xee) { /* FIXME: share this with other code? */
-		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
-			  "(WARNING ONLY).\n", 0x52, new, name);
+		msg_pinfo("Setting register 0x%x to 0x%02x on %s failed (WARNING ONLY).\n", SC_REG, new, name);
 		return -1;
 	}
 
@@ -1442,8 +1440,8 @@ static int enable_flash_amd_via(struct pci_dev *dev, const char *name, uint8_t d
 	if (new != old) {
 		rpci_write_byte(dev, AMD_MAPREG, new);
 		if (pci_read_byte(dev, AMD_MAPREG) != new) {
-			msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
-				  "(WARNING ONLY).\n", 0x43, new, name);
+			msg_pwarn("Setting register 0x%x to 0x%02x on %s failed (WARNING ONLY).\n",
+				  AMD_MAPREG, new, name);
 		} else
 			msg_pdbg("Changed ROM decode range to 0x%02x successfully.\n", new);
 	}
@@ -1456,8 +1454,8 @@ static int enable_flash_amd_via(struct pci_dev *dev, const char *name, uint8_t d
 	rpci_write_byte(dev, AMD_ENREG, new);
 
 	if (pci_read_byte(dev, AMD_ENREG) != new) {
-		msg_pinfo("Setting register 0x%x to 0x%x on %s failed "
-			  "(WARNING ONLY).\n", 0x40, new, name);
+		msg_pwarn("Setting register 0x%x to 0x%02x on %s failed (WARNING ONLY).\n",
+			  AMD_ENREG, new, name);
 		return ERROR_NONFATAL;
 	}
 	msg_pdbg2("Set ROM enable bit successfully.\n");
@@ -1770,7 +1768,7 @@ static int enable_flash_mcp6x_7x(struct pci_dev *dev, const char *name)
 		/* Should not happen. */
 		internal_buses_supported &= BUS_NONE;
 		msg_pwarn("Flash bus type is unknown (none)\n");
-		msg_pinfo("Please send the log files created by \"flashrom -p internal -o logfile\" to \n"
+		msg_pinfo("Please send the log files created by \"flashrom -p internal -o logfile\" to\n"
 			  "flashrom@flashrom.org with \"your board name: flashrom -V\" as the subject to\n"
 			  "help us finish support for your chipset. Thanks.\n");
 		return ERROR_NONFATAL;
