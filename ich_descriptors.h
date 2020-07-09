@@ -105,7 +105,7 @@ struct ich_desc_component {
 		/* FLCOMP encoding on various generations:
 		 *
 		 * Chipset/Generation	max_speed	dual_output	density
-		 * 			[MHz]		bits		max.	bits
+		 *			[MHz]		bits		max.	bits
 		 * ICH8:		33		N/A		5	0:2, 3:5
 		 * ICH9:		33		N/A		5	0:2, 3:5
 		 * ICH10:		33		N/A		5	0:2, 3:5
@@ -114,10 +114,11 @@ struct ich_desc_component {
 		 * Patsburg:		50		30		5	0:2, 3:5
 		 * Panther Point/7	50		30		5	0:2, 3:5
 		 * Lynx Point/8:	50		30		7	0:3, 4:7
-		 * Wildcat Point/9:	50		?? (multi I/O)	?	?:?, ?:?
+		 * Wildcat Point/9:	50		30 (multi I/O)	7	0:3, 4:7
+		 * Sunrise Point/100:	48		30		7	0:3, 4:7
 		 */
 		struct {
-			uint32_t 		:17,
+			uint32_t		:17,
 				 freq_read	:3,
 				 fastread	:1,
 				 freq_fastread	:3,
@@ -151,6 +152,13 @@ struct ich_desc_component {
 		struct {
 			uint32_t FPBA	:13, /* Flash Partition Boundary Addr */
 					:19;
+		};
+		uint32_t FLILL1; /* Flash Invalid Instructions Register, new since Sunrise Point/100 */
+		struct {
+			uint32_t invalid_instr4	:8,
+				 invalid_instr5	:8,
+				 invalid_instr6	:8,
+				 invalid_instr7	:8;
 		};
 	};
 };

@@ -261,9 +261,25 @@ static const char *pprint_freq(enum ich_chipset cs, uint8_t value)
 
 void prettyprint_ich_descriptor_component(enum ich_chipset cs, const struct ich_descriptors *desc)
 {
+	bool has_flill1;
+
+	switch (cs) {
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+	case CHIPSET_APOLLO_LAKE:
+		has_flill1 = true;
+		break;
+	default:
+		has_flill1 = false;
+		break;
+	}
+
 	msg_pdbg2("=== Component Section ===\n");
 	msg_pdbg2("FLCOMP   0x%08x\n", desc->component.FLCOMP);
 	msg_pdbg2("FLILL    0x%08x\n", desc->component.FLILL );
+	if (has_flill1)
+		msg_pdbg2("FLILL1   0x%08x\n", desc->component.FLILL1);
 	msg_pdbg2("\n");
 
 	msg_pdbg2("--- Details ---\n");
@@ -294,6 +310,19 @@ void prettyprint_ich_descriptor_component(enum ich_chipset cs, const struct ich_
 			  desc->component.invalid_instr2);
 		msg_pdbg2("Invalid instruction 3:          0x%02x\n",
 			  desc->component.invalid_instr3);
+	}
+	if (has_flill1) {
+		if (desc->component.FLILL1 != 0) {
+			has_forbidden_opcode = 1;
+			msg_pdbg2("Invalid instruction 4:          0x%02x\n",
+				  desc->component.invalid_instr4);
+			msg_pdbg2("Invalid instruction 5:          0x%02x\n",
+				  desc->component.invalid_instr5);
+			msg_pdbg2("Invalid instruction 6:          0x%02x\n",
+				  desc->component.invalid_instr6);
+			msg_pdbg2("Invalid instruction 7:          0x%02x\n",
+				  desc->component.invalid_instr7);
+		}
 	}
 	if (!has_forbidden_opcode)
 		msg_pdbg2("No forbidden opcodes.\n");
