@@ -343,7 +343,7 @@ static int enable_flash_ich_fwh_decode(struct pci_dev *dev, enum ich_chipset ich
 {
 	uint8_t fwh_sel1 = 0, fwh_sel2 = 0, fwh_dec_en_lo = 0, fwh_dec_en_hi = 0; /* silence compilers */
 	bool implemented = 0;
-
+	void *ilb = NULL; /* Only for Baytrail */
 	switch (ich_generation) {
 	case CHIPSET_ICH:
 		/* FIXME: Unlike later chipsets, ICH and ICH-0 do only support mapping of the top-most 4MB
@@ -361,6 +361,22 @@ static int enable_flash_ich_fwh_decode(struct pci_dev *dev, enum ich_chipset ich
 		/* FIXME: Similar to ICH and ICH-0, Tunnel Creek and Poulsbo do only feature one register each,
 		 * FWH_DEC_EN (D7h) and FWH_SEL (D0h). */
 		break;
+	case CHIPSET_CENTERTON:
+		/* FIXME: Similar to above FWH_DEC_EN (D4h) and FWH_SEL (D0h). */
+		break;
+	case CHIPSET_BAYTRAIL: {
+		uint32_t ilb_base = pci_read_long(dev, 0x50) & 0xfffffe00; /* bits 31:9 */
+		if (ilb_base == 0) {
+			msg_perr("Error: Invalid ILB_BASE_ADDRESS\n");
+			return ERROR_FATAL;
+		}
+		ilb = rphysmap("BYT IBASE", ilb_base, 512);
+		fwh_sel1 = 0x18;
+		fwh_dec_en_lo = 0xd8;
+		fwh_dec_en_hi = 0xd9;
+		implemented = 1;
+		break;
+	}
 	case CHIPSET_ICH6:
 	case CHIPSET_ICH7:
 	default: /* Future version might behave the same */
@@ -385,17 +401,27 @@ static int enable_flash_ich_fwh_decode(struct pci_dev *dev, enum ich_chipset ich
 			msg_perr("Error: fwh_idsel= specified, but value could not be converted.\n");
 			goto idsel_garbage_out;
 		}
-		if (fwh_idsel & 0xffff000000000000ULL) {
+		uint64_t fwh_mask = 0xffffffff;
+		if (fwh_sel2 > 0)
+			fwh_mask |= (0xffffULL << 32);
+		if (fwh_idsel & ~fwh_mask) {
 			msg_perr("Error: fwh_idsel= specified, but value had unused bits set.\n");
 			goto idsel_garbage_out;
 		}
-		uint64_t fwh_idsel_old = pci_read_long(dev, fwh_sel1);
-		fwh_idsel_old <<= 16;
-		fwh_idsel_old |= pci_read_word(dev, fwh_sel2);
+		uint64_t fwh_idsel_old;
+		if (ich_generation == CHIPSET_BAYTRAIL) {
+			fwh_idsel_old = mmio_readl(ilb + fwh_sel1);
+			rmmio_writel(fwh_idsel, ilb + fwh_sel1);
+		} else {
+			fwh_idsel_old = (uint64_t)pci_read_long(dev, fwh_sel1) << 16;
+			rpci_write_long(dev, fwh_sel1, (fwh_idsel >> 16) & 0xffffffff);
+			if (fwh_sel2 > 0) {
+				fwh_idsel_old |= pci_read_word(dev, fwh_sel2);
+				rpci_write_word(dev, fwh_sel2, fwh_idsel & 0xffff);
+			}
+		}
 		msg_pdbg("Setting IDSEL from 0x%012" PRIx64 " to 0x%012" PRIx64 " for top 16 MB.\n",
 			 fwh_idsel_old, fwh_idsel);
-		rpci_write_long(dev, fwh_sel1, (fwh_idsel >> 16) & 0xffffffff);
-		rpci_write_word(dev, fwh_sel2, fwh_idsel & 0xffff);
 		/* FIXME: Decode settings are not changed. */
 	} else if (idsel) {
 		msg_perr("Error: fwh_idsel= specified, but no value given.\n");
@@ -417,7 +443,12 @@ idsel_garbage_out:
 	 */
 	int max_decode_fwh_idsel = 0, max_decode_fwh_decode = 0;
 	bool contiguous = 1;
-	uint32_t fwh_conf = pci_read_long(dev, fwh_sel1);
+	uint32_t fwh_conf;
+	if (ich_generation == CHIPSET_BAYTRAIL)
+		fwh_conf = mmio_readl(ilb + fwh_sel1);
+	else
+		fwh_conf = pci_read_long(dev, fwh_sel1);
+
 	int i;
 	/* FWH_SEL1 */
 	for (i = 7; i >= 0; i--) {
@@ -432,18 +463,20 @@ idsel_garbage_out:
 			contiguous = 0;
 		}
 	}
-	/* FWH_SEL2 */
-	fwh_conf = pci_read_word(dev, fwh_sel2);
-	for (i = 3; i >= 0; i--) {
-		int tmp = (fwh_conf >> (i * 4)) & 0xf;
-		msg_pdbg("0x%08x/0x%08x FWH IDSEL: 0x%x\n",
-			 (0xff4 + i) * 0x100000,
-			 (0xff0 + i) * 0x100000,
-			 tmp);
-		if ((tmp == 0) && contiguous) {
-			max_decode_fwh_idsel = (8 - i) * 0x100000;
-		} else {
-			contiguous = 0;
+	if (fwh_sel2 > 0) {
+		/* FWH_SEL2 */
+		fwh_conf = pci_read_word(dev, fwh_sel2);
+		for (i = 3; i >= 0; i--) {
+			int tmp = (fwh_conf >> (i * 4)) & 0xf;
+			msg_pdbg("0x%08x/0x%08x FWH IDSEL: 0x%x\n",
+				 (0xff4 + i) * 0x100000,
+				 (0xff0 + i) * 0x100000,
+				 tmp);
+			if ((tmp == 0) && contiguous) {
+				max_decode_fwh_idsel = (8 - i) * 0x100000;
+			} else {
+				contiguous = 0;
+			}
 		}
 	}
 	contiguous = 1;
