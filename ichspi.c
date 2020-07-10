@@ -2094,6 +2094,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_400_SERIES_COMET_POINT:
 	case CHIPSET_APOLLO_LAKE:
+	case CHIPSET_GEMINI_LAKE:
 		num_pr			= 6;	/* Includes GPR0 */
 		reg_pr0			= PCH100_REG_FPR0;
 		swseq_data.reg_ssfsc	= PCH100_REG_SSFSC;
@@ -2126,6 +2127,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_400_SERIES_COMET_POINT:
 	case CHIPSET_APOLLO_LAKE:
+	case CHIPSET_GEMINI_LAKE:
 		num_freg = 16;
 		break;
 	default:
@@ -2223,6 +2225,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		case CHIPSET_300_SERIES_CANNON_POINT:
 		case CHIPSET_400_SERIES_COMET_POINT:
 		case CHIPSET_APOLLO_LAKE:
+		case CHIPSET_GEMINI_LAKE:
 			tmp = mmio_readl(spibar + PCH100_REG_DLOCK);
 			msg_pdbg("0x0c: 0x%08x (DLOCK)\n", tmp);
 			prettyprint_pch100_reg_dlock(tmp);
@@ -2298,6 +2301,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			case CHIPSET_300_SERIES_CANNON_POINT:
 			case CHIPSET_400_SERIES_COMET_POINT:
 			case CHIPSET_APOLLO_LAKE:
+			case CHIPSET_GEMINI_LAKE:
 			case CHIPSET_BAYTRAIL:
 				break;
 			default:
@@ -2331,6 +2335,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			case CHIPSET_300_SERIES_CANNON_POINT:
 			case CHIPSET_400_SERIES_COMET_POINT:
 			case CHIPSET_APOLLO_LAKE:
+			case CHIPSET_GEMINI_LAKE:
 				break;
 			default:
 				tmp = mmio_readl(spibar + ICH9_REG_FPB);
@@ -2365,6 +2370,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			case CHIPSET_300_SERIES_CANNON_POINT:
 			case CHIPSET_400_SERIES_COMET_POINT:
 			case CHIPSET_APOLLO_LAKE:
+			case CHIPSET_GEMINI_LAKE:
 				msg_pdbg("Enabling hardware sequencing by default "
 					 "for 100+ series PCH.\n");
 				ich_spi_mode = ich_hwseq;
@@ -2376,6 +2382,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 
 		switch(ich_gen) {
 		case CHIPSET_APOLLO_LAKE:
+		case CHIPSET_GEMINI_LAKE:
 			num_fd_regions = APL_GLK_NUM_FD_REGIONS;
 			break;
 		case CHIPSET_100_SERIES_SUNRISE_POINT:
