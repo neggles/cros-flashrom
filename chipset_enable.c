@@ -686,26 +686,25 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		const char *name;
 		enum chipbustype bus;
 	};
-
 	static const struct boot_straps boot_straps_EP80579[] =
 		{ { "SPI", BUS_SPI },
-		  { "reserved" },
-		  { "reserved" },
-		  { "LPC", BUS_LPC | BUS_FWH },
-		};
+		  { "reserved", BUS_NONE },
+		  { "reserved", BUS_NONE },
+		  { "LPC", BUS_LPC | BUS_FWH } };
 	static const struct boot_straps boot_straps_ich7_nm10[] =
-		{ { "reserved" },
+		{ { "reserved", BUS_NONE },
 		  { "SPI", BUS_SPI },
-		  { "PCI" },
-		  { "LPC", BUS_LPC | BUS_FWH },
-		};
+		  { "PCI", BUS_NONE },
+		  { "LPC", BUS_LPC | BUS_FWH } };
+	static const struct boot_straps boot_straps_tunnel_creek[] =
+		{ { "SPI", BUS_SPI },
+		  { "LPC", BUS_LPC | BUS_FWH } };
 	static const struct boot_straps boot_straps_ich8910[] =
 		{ { "SPI", BUS_SPI },
 		  { "SPI", BUS_SPI },
-		  { "PCI" },
-		  { "LPC", BUS_LPC | BUS_FWH },
-		};
-	static const struct boot_straps boot_straps_pch56[] =
+		  { "PCI", BUS_NONE },
+		  { "LPC", BUS_LPC | BUS_FWH } };
+	static const struct boot_straps boot_straps_pch567[] =
 		{ { "LPC", BUS_LPC | BUS_FWH },
 		  { "reserved" },
 		  { "PCI" },
@@ -719,16 +718,12 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		};
 	static const struct boot_straps boot_straps_lpt_lp[] =
 		{ { "SPI", BUS_SPI },
-		  { "LPC", BUS_LPC | BUS_FWH },
-		  { "unknown" },
-		  { "unknown" },
-		};
+		  { "reserved", BUS_NONE } };
 	static const struct boot_straps boot_straps_unknown[] =
-		{ { "unknown" },
-		  { "unknown" },
-		  { "unknown" },
-		  { "unknown" },
-		};
+		{ { "unknown", BUS_NONE },
+		  { "unknown", BUS_NONE },
+		  { "unknown", BUS_NONE },
+		  { "unknown", BUS_NONE } };
 
 	const struct boot_straps *boot_straps;
 	switch (ich_generation) {
@@ -746,10 +741,13 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	case CHIPSET_ICH10:
 		boot_straps = boot_straps_ich8910;
 		break;
+	case CHIPSET_TUNNEL_CREEK:
+		boot_straps = boot_straps_tunnel_creek;
+		break;
 	case CHIPSET_5_SERIES_IBEX_PEAK:
 	case CHIPSET_6_SERIES_COUGAR_POINT:
 	case CHIPSET_7_SERIES_PANTHER_POINT:
-		boot_straps = boot_straps_pch56;
+		boot_straps = boot_straps_pch567;
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT:
 		boot_straps = boot_straps_lpt;
