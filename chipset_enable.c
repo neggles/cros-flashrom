@@ -706,17 +706,18 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		  { "LPC", BUS_LPC | BUS_FWH } };
 	static const struct boot_straps boot_straps_pch567[] =
 		{ { "LPC", BUS_LPC | BUS_FWH },
-		  { "reserved" },
-		  { "PCI" },
-		  { "SPI", BUS_SPI },
-		};
-	static const struct boot_straps boot_straps_lpt[] =
+		  { "reserved", BUS_NONE },
+		  { "PCI", BUS_NONE },
+		  { "SPI", BUS_SPI } };
+	static const struct boot_straps boot_straps_pch89_baytrail[] =
 		{ { "LPC", BUS_LPC | BUS_FWH },
-		  { "reserved" },
-		  { "reserved" },
-		  { "SPI", BUS_SPI },
-		};
-	static const struct boot_straps boot_straps_lpt_lp[] =
+		  { "reserved", BUS_NONE },
+		  { "reserved", BUS_NONE },
+		  { "SPI", BUS_SPI } };
+	static const struct boot_straps boot_straps_pch8_lp[] =
+		{ { "SPI", BUS_SPI },
+		  { "LPC", BUS_LPC | BUS_FWH } };
+	static const struct boot_straps boot_straps_apl[] =
 		{ { "SPI", BUS_SPI },
 		  { "reserved", BUS_NONE } };
 	static const struct boot_straps boot_straps_unknown[] =
@@ -750,17 +751,26 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		boot_straps = boot_straps_pch567;
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT:
-		boot_straps = boot_straps_lpt;
+	case CHIPSET_9_SERIES_WILDCAT_POINT:
+	case CHIPSET_BAYTRAIL:
+		boot_straps = boot_straps_pch89_baytrail;
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
-	case CHIPSET_9_SERIES_WILDCAT_POINT:
+	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+		boot_straps = boot_straps_pch8_lp;
+		break;
 	case CHIPSET_APOLLO_LAKE:
-		boot_straps = boot_straps_lpt_lp;
+		boot_straps = boot_straps_apl;
+		break;
+	case CHIPSET_8_SERIES_WELLSBURG: // FIXME: check datasheet
+	case CHIPSET_CENTERTON: // FIXME: Datasheet does not mention GCS at all
+		boot_straps = boot_straps_unknown;
 		break;
 	default:
-		msg_gerr("%s: unknown ICH generation. Please report!\n",
-			 __func__);
+		msg_gerr("%s: unknown ICH generation. Please report!\n", __func__);
 		boot_straps = boot_straps_unknown;
 		break;
 	}
