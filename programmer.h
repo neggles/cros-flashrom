@@ -245,6 +245,7 @@ extern const struct board_info laptops_known[];
 /* udelay.c */
 void myusec_delay(unsigned int usecs);
 void myusec_calibrate_delay(void);
+void internal_sleep(unsigned int usecs);
 void internal_delay(unsigned int usecs);
 void internal_sleep(unsigned int usecs);
 
