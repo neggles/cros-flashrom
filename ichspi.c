@@ -723,10 +723,10 @@ static int ich_missing_opcodes(void)
  * Try to set BBAR (BIOS Base Address Register), but read back the value in case
  * it didn't stick.
  */
-static void ich_set_bbar(uint32_t min_addr)
+static void ich_set_bbar(uint32_t min_addr, enum ich_chipset ich_gen)
 {
 	int bbar_off;
-	switch (g_ich_generation) {
+	switch (ich_gen) {
 	case CHIPSET_ICH7:
 	case CHIPSET_TUNNEL_CREEK:
 	case CHIPSET_CENTERTON:
@@ -2150,7 +2150,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			ichspi_lock = 1;
 		}
 		ich_init_opcodes(ich_gen);
-		ich_set_bbar(0);
+		ich_set_bbar(0, ich_gen);
 		register_spi_master(&spi_master_ich7);
 		break;
 	case CHIPSET_ICH8:
@@ -2286,7 +2286,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			default:
 				ichspi_bbar = mmio_readl(ich_spibar + ICH9_REG_BBAR);
 				msg_pdbg("0x%x: 0x%08x (BBAR)\n", ICH9_REG_BBAR, ichspi_bbar);
-				ich_set_bbar(0);
+				ich_set_bbar(0, ich_gen);
 				break;
 			}
 
@@ -2453,7 +2453,7 @@ int via_init_spi(uint32_t mmio_base)
 		ichspi_lock = 1;
 	}
 
-	ich_set_bbar(0);
+	ich_set_bbar(0, g_ich_generation);
 	ich_init_opcodes(g_ich_generation);
 
 	return 0;
