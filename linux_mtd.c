@@ -36,9 +36,6 @@
 #define LINUX_DEV_ROOT			"/dev"
 #define LINUX_MTD_SYSFS_ROOT		"/sys/class/mtd"
 
-/* enough space for LINUX_MTD_SYSFS_ROOT + directory name + filename */
-static char sysfs_path[PATH_MAX];
-
 static int dev_fd = -1;
 
 static int mtd_device_is_writeable;
@@ -52,27 +49,8 @@ static unsigned long int mtd_erasesize;	/* only valid if numeraseregions is 0 */
 
 static struct wp wp_mtd;	/* forward declaration */
 
-static int stat_mtd_files(char *dev_path)
-{
-	struct stat s;
-
-	errno = 0;
-	if (stat(dev_path, &s) < 0) {
-		msg_pdbg("Cannot stat \"%s\": %s\n", dev_path, strerror(errno));
-		return 1;
-	}
-
-	if (lstat(sysfs_path, &s) < 0) {
-		msg_pdbg("Cannot stat \"%s\" : %s\n",
-				sysfs_path, strerror(errno));
-		return 1;
-	}
-
-	return 0;
-}
-
 /* read a string from a sysfs file and sanitize it */
-static int read_sysfs_string(const char *filename, char *buf, int len)
+static int read_sysfs_string(const char *sysfs_path, const char *filename, char *buf, int len)
 {
 	int fd, bytes_read, i;
 	char path[strlen(LINUX_MTD_SYSFS_ROOT) + 32];
@@ -109,12 +87,12 @@ static int read_sysfs_string(const char *filename, char *buf, int len)
 	return 0;
 }
 
-static int read_sysfs_int(const char *filename, unsigned long int *val)
+static int read_sysfs_int(const char *sysfs_path, const char *filename, unsigned long int *val)
 {
 	char buf[32];
 	char *endptr;
 
-	if (read_sysfs_string(filename, buf, sizeof(buf)))
+	if (read_sysfs_string(sysfs_path, filename, buf, sizeof(buf)))
 		return 1;
 
 	errno = 0;
@@ -145,13 +123,13 @@ static int popcnt(unsigned int u)
 }
 
 /* returns 0 to indicate success, non-zero to indicate error */
-static int get_mtd_info(void)
+static int get_mtd_info(const char *sysfs_path)
 {
 	unsigned long int tmp;
 	char mtd_device_name[32];
 
 	/* Flags */
-	if (read_sysfs_int("flags", &tmp))
+	if (read_sysfs_int(sysfs_path, "flags", &tmp))
 		return 1;
 	if (tmp & MTD_WRITEABLE) {
 		/* cache for later use by write function */
@@ -162,11 +140,11 @@ static int get_mtd_info(void)
 	}
 
 	/* Device name */
-	if (read_sysfs_string("name", mtd_device_name, sizeof(mtd_device_name)))
+	if (read_sysfs_string(sysfs_path, "name", mtd_device_name, sizeof(mtd_device_name)))
 		return 1;
 
 	/* Total size */
-	if (read_sysfs_int("size", &mtd_total_size))
+	if (read_sysfs_int(sysfs_path, "size", &mtd_total_size))
 		return 1;
 	if (popcnt(mtd_total_size) != 1) {
 		msg_perr("MTD size is not a power of 2\n");
@@ -174,7 +152,7 @@ static int get_mtd_info(void)
 	}
 
 	/* Erase size */
-	if (read_sysfs_int("erasesize", &mtd_erasesize))
+	if (read_sysfs_int(sysfs_path, "erasesize", &mtd_erasesize))
 		return 1;
 	if (popcnt(mtd_erasesize) != 1) {
 		msg_perr("MTD erase size is not a power of 2\n");
@@ -182,7 +160,7 @@ static int get_mtd_info(void)
 	}
 
 	/* Erase regions */
-	if (read_sysfs_int("numeraseregions", &mtd_numeraseregions))
+	if (read_sysfs_int(sysfs_path, "numeraseregions", &mtd_numeraseregions))
 		return 1;
 	if (mtd_numeraseregions != 0) {
 		msg_perr("Non-uniform eraseblock size is unsupported.\n");
@@ -322,6 +300,7 @@ static struct opaque_master programmer_linux_mtd = {
 /* Returns 0 if setup is successful, non-zero to indicate error */
 static int linux_mtd_setup(int dev_num)
 {
+	char sysfs_path[32];
 	char dev_path[16];	/* "/dev/mtdN" */
 	int ret = 1;
 
@@ -354,10 +333,21 @@ static int linux_mtd_setup(int dev_num)
 	msg_pdbg("%s: sysfs_path: \"%s\", dev_path: \"%s\"\n",
 			__func__, sysfs_path, dev_path);
 
-	if (stat_mtd_files(dev_path))
-		goto linux_mtd_setup_exit;
+	struct stat s;
 
-	if (get_mtd_info())
+	errno = 0;
+	if (stat(dev_path, &s) < 0) {
+		msg_pdbg("Cannot stat \"%s\": %s\n", dev_path, strerror(errno));
+		goto linux_mtd_setup_exit;
+	}
+
+	if (lstat(sysfs_path, &s) < 0) {
+		msg_pdbg("Cannot stat \"%s\" : %s\n",
+				sysfs_path, strerror(errno));
+		goto linux_mtd_setup_exit;
+	}
+
+	if (get_mtd_info(sysfs_path))
 		goto linux_mtd_setup_exit;
 
 	if ((dev_fd = open(dev_path, O_RDWR)) == -1) {
