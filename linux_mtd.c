@@ -2,6 +2,7 @@
  * This file is part of the flashrom project.
  *
  * Copyright 2015 Google Inc.
+ * Copyright 2018-present Facebook, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -11,7 +12,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <ctype.h>
@@ -119,7 +119,7 @@ static int read_sysfs_int(const char *filename, unsigned long int *val)
 
 	errno = 0;
 	*val = strtoul(buf, &endptr, 0);
-	if (endptr != &buf[strlen(buf)]) {
+	if (*endptr != '\0') {
 		msg_perr("Error reading %s\n", filename);
 		return 1;
 	}
@@ -130,6 +130,18 @@ static int read_sysfs_int(const char *filename, unsigned long int *val)
 	}
 
 	return 0;
+}
+
+static int popcnt(unsigned int u)
+{
+	int count = 0;
+
+	while (u) {
+		u &= u - 1;
+		count++;
+	}
+
+	return count;
 }
 
 /* returns 0 to indicate success, non-zero to indicate error */
@@ -156,7 +168,7 @@ static int get_mtd_info(void)
 	/* Total size */
 	if (read_sysfs_int("size", &mtd_total_size))
 		return 1;
-	if (__builtin_popcount(mtd_total_size) != 1) {
+	if (popcnt(mtd_total_size) != 1) {
 		msg_perr("MTD size is not a power of 2\n");
 		return 1;
 	}
@@ -164,7 +176,7 @@ static int get_mtd_info(void)
 	/* Erase size */
 	if (read_sysfs_int("erasesize", &mtd_erasesize))
 		return 1;
-	if (__builtin_popcount(mtd_erasesize) != 1) {
+	if (popcnt(mtd_erasesize) != 1) {
 		msg_perr("MTD erase size is not a power of 2\n");
 		return 1;
 	}
@@ -177,7 +189,7 @@ static int get_mtd_info(void)
 		return 1;
 	}
 
-	msg_pspew("%s: device_name: \"%s\", is_writeable: %d, "
+	msg_pdbg("%s: device_name: \"%s\", is_writeable: %d, "
 		"numeraseregions: %lu, total_size: %lu, erasesize: %lu\n",
 		__func__, mtd_device_name, mtd_device_is_writeable,
 		mtd_numeraseregions, mtd_total_size, mtd_erasesize);
@@ -193,8 +205,7 @@ static int linux_mtd_probe(struct flashctx *flash)
 	flash->chip->tested = TEST_OK_PREW;
 	flash->chip->total_size = mtd_total_size / 1024;	/* bytes -> kB */
 	flash->chip->block_erasers[0].eraseblocks[0].size = mtd_erasesize;
-	flash->chip->block_erasers[0].eraseblocks[0].count =
-				mtd_total_size / mtd_erasesize;
+	flash->chip->block_erasers[0].eraseblocks[0].count = mtd_total_size / mtd_erasesize;
 	return 1;
 }
 
@@ -213,8 +224,7 @@ static int linux_mtd_read(struct flashctx *flash, uint8_t *buf,
 		/*
 		 * Try to align reads to eraseblock size.
 		 * FIXME: Shouldn't actually be necessary, but not all MTD
-		 * drivers handle arbitrary large reads well. See, for example,
-		 * https://b/35573113
+		 * drivers handle arbitrary large reads well.
 		 */
 		unsigned int step = eb_size - ((start + i) % eb_size);
 		step = min(step, len - i);
@@ -250,8 +260,7 @@ static int linux_mtd_write(struct flashctx *flash, const uint8_t *buf,
 	 * Try to align writes to eraseblock size. We want these large enough
 	 * to give MTD room for optimizing performance.
 	 * FIXME: Shouldn't need to divide this up at all, but not all MTD
-	 * drivers handle arbitrary large writes well. See, for example,
-	 * https://b/35573113
+	 * drivers handle arbitrary large writes well.
 	 */
 	for (i = 0; i < len; ) {
 		unsigned int step = chunksize - ((start + i) % chunksize);
@@ -386,10 +395,10 @@ int linux_mtd_init(void)
 		char *endptr;
 
 		dev_num = strtol(param, &endptr, 0);
-		if ((param == endptr) || (dev_num < 0)) {
+		if ((*endptr != '\0') || (dev_num < 0)) {
 			msg_perr("Invalid device number %s. Use flashrom -p "
-				"linux_mtd:dev=N where N is a valid MTD "
-				"device number\n", param);
+				"linux_mtd:dev=N where N is a valid MTD\n"
+				"device number.\n", param);
 			goto linux_mtd_init_exit;
 		}
 	}
@@ -404,7 +413,6 @@ int linux_mtd_init(void)
 
 	ret = 0;
 linux_mtd_init_exit:
-	msg_pdbg("%s: %s\n", __func__, ret == 0 ? "success." : "failed.");
 	return ret;
 }
 
