@@ -200,10 +200,10 @@ static bool retry_recovery(int error_code)
 }
 
 static int write_command(const struct flashctx *flash,
-                         unsigned int write_count,
-                         unsigned int read_count,
-                         const unsigned char *write_buffer,
-                         unsigned char *read_buffer)
+		unsigned int write_count,
+		unsigned int read_count,
+		const unsigned char *write_buffer,
+		unsigned char *read_buffer)
 {
 
 	int transferred;
@@ -226,11 +226,11 @@ static int write_command(const struct flashctx *flash,
 	memcpy(command_packet.data, write_buffer, write_count);
 
 	ret = LIBUSB(libusb_bulk_transfer(device->handle,
-	                                  out_endpoint,
-	                                  (void*)&command_packet,
-	                                  write_count + PACKET_HEADER_SIZE,
-	                                  &transferred,
-	                                  TRANSFER_TIMEOUT_MS));
+				out_endpoint,
+				(void*)&command_packet,
+				write_count + PACKET_HEADER_SIZE,
+				&transferred,
+				TRANSFER_TIMEOUT_MS));
 	if (ret != 0) {
 		msg_perr("Raiden: OUT transfer failed\n"
 		         "    write_count = %d\n"
@@ -239,7 +239,7 @@ static int write_command(const struct flashctx *flash,
 		return ret;
 	}
 
-	if (transferred != write_count + PACKET_HEADER_SIZE) {
+	if ((unsigned) transferred != write_count + PACKET_HEADER_SIZE) {
 		msg_perr("Raiden: Write failure (wrote %d, expected %d)\n",
 			 transferred, write_count + PACKET_HEADER_SIZE);
 		return 0x10001;
@@ -249,22 +249,21 @@ static int write_command(const struct flashctx *flash,
 }
 
 static int read_response(const struct flashctx *flash,
-                         unsigned int write_count,
-                         unsigned int read_count,
-                         const unsigned char *write_buffer,
-                         unsigned char *read_buffer)
+		unsigned int write_count,
+		unsigned int read_count,
+		const unsigned char *write_buffer,
+		unsigned char *read_buffer)
 {
-
 	int transferred;
 	int ret;
 	usb_spi_response_t response_packet;
 
 	ret = LIBUSB(libusb_bulk_transfer(device->handle,
-	                                  in_endpoint,
-	                                  (void*)&response_packet,
-	                                  read_count + PACKET_HEADER_SIZE,
-	                                  &transferred,
-	                                  TRANSFER_TIMEOUT_MS));
+				in_endpoint,
+				(void*)&response_packet,
+				read_count + PACKET_HEADER_SIZE,
+				&transferred,
+				TRANSFER_TIMEOUT_MS));
 	if (ret != 0) {
 		msg_perr("Raiden: IN transfer failed\n"
 		         "    write_count = %d\n"
@@ -273,9 +272,9 @@ static int read_response(const struct flashctx *flash,
 		return ret;
 	}
 
-	if (transferred != read_count + PACKET_HEADER_SIZE) {
+	if ((unsigned) transferred != read_count + PACKET_HEADER_SIZE) {
 		msg_perr("Raiden: Read failure (read %d, expected %d)\n",
-		         transferred, read_count + PACKET_HEADER_SIZE);
+				transferred, read_count + PACKET_HEADER_SIZE);
 		return 0x10002;
 	}
 
@@ -285,12 +284,11 @@ static int read_response(const struct flashctx *flash,
 }
 
 static int send_command(const struct flashctx *flash,
-                        unsigned int write_count,
-                        unsigned int read_count,
-                        const unsigned char *write_buffer,
-                        unsigned char *read_buffer)
+		unsigned int write_count,
+		unsigned int read_count,
+		const unsigned char *write_buffer,
+		unsigned char *read_buffer)
 {
-
 	int status = -1;
 
 	for (int write_attempt = 0; write_attempt < WRITE_RETY_ATTEMPTS;
@@ -302,9 +300,9 @@ static int send_command(const struct flashctx *flash,
 		if (status) {
 			/* Write operation failed. */
 			msg_perr("Raiden: Write command failed\n"
-			         "Write attempt = %d\n"
-			         "status = %d\n",
-			         write_attempt + 1, status);
+				"Write attempt = %d\n"
+				"status = %d\n",
+				write_attempt + 1, status);
 			if (!retry_recovery(status)) {
 				/* Reattempting will not result in a recovery. */
 				return status;
@@ -312,19 +310,18 @@ static int send_command(const struct flashctx *flash,
 			programmer_delay(RETY_INTERVAL_US);
 			continue;
 		}
-		for (int read_attempt = 0; read_attempt < READ_RETY_ATTEMPTS;
-		         read_attempt++) {
+		for (int read_attempt = 0; read_attempt < READ_RETY_ATTEMPTS; read_attempt++) {
 
 			status = read_response(flash, write_count, read_count,
-			                       write_buffer, read_buffer);
+					write_buffer, read_buffer);
 
 			if (status != 0) {
 				/* Read operation failed. */
 				msg_perr("Raiden: Read response failed\n"
-				         "Write attempt = %d\n"
-				         "Read attempt = %d\n"
-				         "status = %d\n",
-				         write_attempt + 1, read_attempt + 1, status);
+					"Write attempt = %d\n"
+					"Read attempt = %d\n"
+					"status = %d\n",
+					write_attempt + 1, read_attempt + 1, status);
 				if (!retry_recovery(status)) {
 					/* Reattempting will not result in a recovery. */
 					return status;
@@ -353,13 +350,13 @@ static int send_command(const struct flashctx *flash,
 #define MAX_DATA_SIZE   (PAYLOAD_SIZE - JEDEC_BYTE_PROGRAM_OUTSIZE)
 
 static const struct spi_master spi_master_raiden_debug = {
-	.features       = SPI_MASTER_4BA,
-	.max_data_read  = MAX_DATA_SIZE,
-	.max_data_write = MAX_DATA_SIZE,
-	.command        = send_command,
-	.multicommand   = default_spi_send_multicommand,
-	.read           = default_spi_read,
-	.write_256      = default_spi_write_256,
+	.features	= SPI_MASTER_4BA,
+	.max_data_read	= MAX_DATA_SIZE,
+	.max_data_write	= MAX_DATA_SIZE,
+	.command	= send_command,
+	.multicommand	= default_spi_send_multicommand,
+	.read		= default_spi_read,
+	.write_256	= default_spi_write_256,
 };
 
 static int match_endpoint(struct libusb_endpoint_descriptor const *descriptor,
@@ -371,8 +368,7 @@ static int match_endpoint(struct libusb_endpoint_descriptor const *descriptor,
 		 LIBUSB_TRANSFER_TYPE_BULK));
 }
 
-static int find_endpoints(struct usb_device *dev, uint8_t *in_ep,
-                          uint8_t *out_ep)
+static int find_endpoints(struct usb_device *dev, uint8_t *in_ep, uint8_t *out_ep)
 {
 	int i;
 	int in_count  = 0;
@@ -408,16 +404,16 @@ static int find_endpoints(struct usb_device *dev, uint8_t *in_ep,
 static int shutdown(void * data)
 {
 	int ret = LIBUSB(libusb_control_transfer(
-			     device->handle,
-			     LIBUSB_ENDPOINT_OUT |
-			     LIBUSB_REQUEST_TYPE_VENDOR |
-			     LIBUSB_RECIPIENT_INTERFACE,
-			     RAIDEN_DEBUG_SPI_REQ_DISABLE,
-			     0,
-			     device->interface_descriptor->bInterfaceNumber,
-			     NULL,
-			     0,
-			     TRANSFER_TIMEOUT_MS));
+				device->handle,
+				LIBUSB_ENDPOINT_OUT |
+				LIBUSB_REQUEST_TYPE_VENDOR |
+				LIBUSB_RECIPIENT_INTERFACE,
+				RAIDEN_DEBUG_SPI_REQ_DISABLE,
+				0,
+				device->interface_descriptor->bInterfaceNumber,
+				NULL,
+				0,
+				TRANSFER_TIMEOUT_MS));
 	if (ret != 0) {
 		msg_perr("Raiden: Failed to disable SPI bridge\n");
 		return ret;
@@ -449,6 +445,15 @@ static int get_target(void)
 	free(target_str);
 
 	return request_enable;
+}
+
+static void free_dev_list(struct usb_device **dev_lst)
+{
+	struct usb_device *dev = *dev_lst;
+	/* free devices we don't care about */
+	dev = dev->next;
+	while (dev)
+		dev = usb_device_free(dev);
 }
 
 int raiden_debug_spi_init(void)
@@ -486,15 +491,15 @@ int raiden_debug_spi_init(void)
 		device = current;
 
 		if (find_endpoints(device, &in_endpoint, &out_endpoint)) {
-		      msg_pdbg("Raiden: Failed to find valid endpoints on device");
-		      usb_device_show(" ", current);
-		      goto loop_end;
+			msg_pdbg("Raiden: Failed to find valid endpoints on device");
+			usb_device_show(" ", current);
+			goto loop_end;
 		}
 
 		if (usb_device_claim(device)) {
-		      msg_pdbg("Raiden: Failed to claim USB device");
-		      usb_device_show(" ", current);
-		      goto loop_end;
+			msg_pdbg("Raiden: Failed to claim USB device");
+			usb_device_show(" ", current);
+			goto loop_end;
 		}
 
 		if (!serial) {
@@ -513,19 +518,17 @@ int raiden_debug_spi_init(void)
 			}
 
 			rc = libusb_get_string_descriptor_ascii(device->handle,
-							       descriptor.iSerialNumber,
-							       dev_serial,
-							       sizeof(dev_serial));
+					descriptor.iSerialNumber,
+					dev_serial,
+					sizeof(dev_serial));
 			if (rc < 0) {
 				LIBUSB(rc);
 			} else {
 				if (strcmp(serial, (char *)dev_serial)) {
-					msg_pdbg("Raiden: Serial number %s did not match device",
-					         serial);
+					msg_pdbg("Raiden: Serial number %s did not match device", serial);
 					usb_device_show(" ", current);
 				} else {
-					msg_pinfo("Raiden: Serial number %s matched device",
-					          serial);
+					msg_pinfo("Raiden: Serial number %s matched device", serial);
 					usb_device_show(" ", current);
 					found = 1;
 				}
@@ -544,22 +547,19 @@ loop_end:
 		return 1;
 	}
 
-	/* free devices we don't care about */
-	current = current->next;
-	while (current)
-		current = usb_device_free(current);
+	free_dev_list(&current);
 
 	ret = LIBUSB(libusb_control_transfer(
-			     device->handle,
-			     LIBUSB_ENDPOINT_OUT |
-			     LIBUSB_REQUEST_TYPE_VENDOR |
-			     LIBUSB_RECIPIENT_INTERFACE,
-			     request_enable,
-			     0,
-			     device->interface_descriptor->bInterfaceNumber,
-			     NULL,
-			     0,
-			     TRANSFER_TIMEOUT_MS));
+				device->handle,
+				LIBUSB_ENDPOINT_OUT |
+				LIBUSB_REQUEST_TYPE_VENDOR |
+				LIBUSB_RECIPIENT_INTERFACE,
+				request_enable,
+				0,
+				device->interface_descriptor->bInterfaceNumber,
+				NULL,
+				0,
+				TRANSFER_TIMEOUT_MS));
 	if (ret != 0) {
 		msg_perr("Raiden: Failed to enable SPI bridge\n");
 		return ret;
