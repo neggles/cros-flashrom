@@ -1223,17 +1223,16 @@ static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int cou
 	for (i = 0; i < num_fd_regions; i++) {
 		const char *name = fd_regions[i].name;
 		enum fd_access_level level;
+		uint32_t base = fd_regions[i].base;
+		uint32_t limit = fd_regions[i].limit;
 
-		if ((addr + count - 1 < fd_regions[i].base) ||
-		    (addr > fd_regions[i].limit))
+		if ((addr + count - 1 < base) || (addr > limit))
 			continue;
 
 		if (!fd_regions[i].permission) {
-			msg_perr("No permissions set for flash region %s\n",
-			          fd_regions[i].name);
+			msg_perr("No permissions set for flash region %s\n", name);
 			break;
 		}
-
 		level = fd_regions[i].permission->level;
 
 		if (op_type == op_type_r) {
