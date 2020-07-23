@@ -1211,58 +1211,12 @@ struct fd_region {
 	{ .name = "Embedded Controller" },
 };
 
-static int check_fd_permissions_hwseq(int op_type, uint32_t addr, int count)
+static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int count)
 {
 	int i;
-	int ret = 0;
-
-	/* check flash descriptor permissions (if present) */
-	for (i = 0; i < num_fd_regions; i++) {
-		const char *name = fd_regions[i].name;
-		enum fd_access_level level;
-
-		if ((addr + count - 1 < fd_regions[i].base) ||
-		    (addr > fd_regions[i].limit))
-			continue;
-
-		if (!fd_regions[i].permission) {
-			msg_perr("No permissions set for flash region %s\n",
-				  fd_regions[i].name);
-			break;
-		}
-		level = fd_regions[i].permission->level;
-
-		if (op_type == HWSEQ_READ) {
-			if (level != FD_REGION_READ_ONLY &&
-			    level != FD_REGION_READ_WRITE) {
-				msg_pspew("%s: Cannot read address 0x%08x in "
-					"region %s\n", __func__, addr, name);
-				ret = SPI_ACCESS_DENIED;
-			}
-		} else if (op_type == HWSEQ_WRITE) {
-			if (level != FD_REGION_WRITE_ONLY &&
-			    level != FD_REGION_READ_WRITE) {
-				msg_pspew("%s: Cannot write to address 0x%08x "
-					"in region %s\n", __func__, addr, name);
-				ret = SPI_ACCESS_DENIED;
-			}
-		}
-		break;
-	}
-
-	if (i == num_fd_regions) {
-		msg_pspew("%s: Address not covered by any descriptor 0x%06x\n",
-			  __func__, addr);
-		ret = SPI_ACCESS_DENIED;
-	}
-
-	return ret;
-}
-
-static int check_fd_permissions(OPCODE *opcode, uint32_t addr, int count)
-{
-	int i;
-	uint8_t type = opcode->spi_type;
+	uint8_t op_type = opcode ? opcode->spi_type : type;
+	int op_type_r = opcode ? SPI_OPCODE_TYPE_READ_WITH_ADDRESS : HWSEQ_READ;
+	int op_type_w = opcode ? SPI_OPCODE_TYPE_WRITE_WITH_ADDRESS : HWSEQ_WRITE;
 	int ret = 0;
 
 	/* check flash descriptor permissions (if present) */
@@ -1282,14 +1236,14 @@ static int check_fd_permissions(OPCODE *opcode, uint32_t addr, int count)
 
 		level = fd_regions[i].permission->level;
 
-		if (type == SPI_OPCODE_TYPE_READ_WITH_ADDRESS) {
+		if (op_type == op_type_r) {
 			if (level != FD_REGION_READ_ONLY &&
 			    level != FD_REGION_READ_WRITE) {
 				msg_pspew("%s: Cannot read address 0x%08x in "
 				          "region %s\n", __func__,addr,name);
 				ret = SPI_ACCESS_DENIED;
 			}
-		} else if (type == SPI_OPCODE_TYPE_WRITE_WITH_ADDRESS) {
+		} else if (op_type == op_type_w) {
 			if (level != FD_REGION_WRITE_ONLY &&
 			    level != FD_REGION_READ_WRITE) {
 				msg_pspew("%s: Cannot write to address 0x%08x in"
@@ -1300,7 +1254,18 @@ static int check_fd_permissions(OPCODE *opcode, uint32_t addr, int count)
 		break;
 	}
 
+	if (i == num_fd_regions) {
+		msg_pspew("%s: Address not covered by any descriptor 0x%06x\n",
+			  __func__, addr);
+		ret = SPI_ACCESS_DENIED;
+	}
+
 	return ret;
+}
+
+static int check_fd_permissions_hwseq(int op_type, uint32_t addr, int count)
+{
+	return check_fd_permissions(NULL, op_type, addr, count);
 }
 
 static int ich_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
@@ -1415,7 +1380,7 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 		addr += addr_offset;
 
 		if (num_fd_regions > 0) {
-			result = check_fd_permissions(opcode, addr, count);
+			result = check_fd_permissions(opcode, 0, addr, count);
 			if (result)
 				return result;
 		}
