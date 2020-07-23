@@ -1263,11 +1263,6 @@ static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int cou
 	return ret;
 }
 
-static int check_fd_permissions_hwseq(int op_type, uint32_t addr, int count)
-{
-	return check_fd_permissions(NULL, op_type, addr, count);
-}
-
 static int ich_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
 				unsigned int readcnt,
 				const unsigned char *writearr,
@@ -1866,7 +1861,7 @@ int pch100_hwseq_block_erase(struct flashctx *flash,
 	}
 
 	/* Check flash region permissions before erasing */
-	result = check_fd_permissions_hwseq(HWSEQ_WRITE, addr, len);
+	result = check_fd_permissions(NULL, HWSEQ_WRITE, addr, len);
 	if (result)
 		return result;
 
@@ -1890,7 +1885,7 @@ int pch100_hwseq_block_erase(struct flashctx *flash,
 int pch100_hwseq_check_access(const struct flashctx *flash, unsigned int start,
 			      unsigned int len, int read)
 {
-	return check_fd_permissions_hwseq(read ? HWSEQ_READ : HWSEQ_WRITE, start, len);
+	return check_fd_permissions(NULL, read ? HWSEQ_READ : HWSEQ_WRITE, start, len);
 }
 
 int pch100_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
@@ -1915,8 +1910,7 @@ int pch100_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 	while (len > 0) {
 		block_len = min(len, opaque_master->max_data_read);
 		/* Check flash region permissions before reading */
-		chunk_status = check_fd_permissions_hwseq(HWSEQ_READ,
-							addr, block_len);
+		chunk_status = check_fd_permissions(NULL, HWSEQ_READ, addr, block_len);
 		if (chunk_status) {
 			if (ignore_error(chunk_status)) {
 				/* fill this chunk with 0xff bytes and
@@ -2000,7 +1994,7 @@ int pch100_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int 
 		pch100_hwseq_set_addr(addr);
 		block_len = min(len, opaque_master->max_data_write);
 		/* Check flash region permissions before writing */
-		result = check_fd_permissions_hwseq(HWSEQ_WRITE, addr, block_len);
+		result = check_fd_permissions(NULL, HWSEQ_WRITE, addr, block_len);
 		if (result)
 			return result;
 		ich_fill_data(buf, block_len, PCH100_REG_FDATA0);
