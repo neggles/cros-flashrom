@@ -468,6 +468,7 @@ int buspirate_spi_init(void);
 /* raiden_debug_spi.c */
 #if CONFIG_RAIDEN_DEBUG_SPI == 1
 int raiden_debug_spi_init(void);
+extern const struct dev_entry devs_raiden[];
 #endif
 
 /* linux_mtd.c */
