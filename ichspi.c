@@ -1872,7 +1872,6 @@ int pch100_hwseq_block_erase(struct flashctx *flash,
 	uint32_t hsfc;
 	uint32_t timeout = 5000 * 1000; /* 5 s for max 64 kB */
 	int result;
-	int op_type;
 
 	if (ich_dry_run)
 		return 0;
@@ -1902,8 +1901,7 @@ int pch100_hwseq_block_erase(struct flashctx *flash,
 	}
 
 	/* Check flash region permissions before erasing */
-	op_type = HWSEQ_WRITE;
-	result = check_fd_permissions_hwseq(op_type, addr, len);
+	result = check_fd_permissions_hwseq(HWSEQ_WRITE, addr, len);
 	if (result)
 		return result;
 
@@ -1937,7 +1935,6 @@ int pch100_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 	uint16_t timeout = 100 * 60;
 	uint8_t block_len;
 	int result = 0, chunk_status = 0;
-	int op_type;
 
 	if ((addr + len) > (flash->chip->total_size * 1024)) {
 		msg_perr("Request to read from an inaccessible memory address "
@@ -1953,8 +1950,7 @@ int pch100_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 	while (len > 0) {
 		block_len = min(len, opaque_master->max_data_read);
 		/* Check flash region permissions before reading */
-		op_type = HWSEQ_READ;
-		chunk_status = check_fd_permissions_hwseq(op_type,
+		chunk_status = check_fd_permissions_hwseq(HWSEQ_READ,
 							addr, block_len);
 		if (chunk_status) {
 			if (ignore_error(chunk_status)) {
@@ -2024,7 +2020,6 @@ int pch100_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int 
 	uint16_t timeout = 100 * 60;
 	uint8_t block_len;
 	int result;
-	int op_type;
 
 	if ((addr + len) > (flash->chip->total_size * 1024)) {
 		msg_perr("Request to write to an inaccessible memory address "
@@ -2040,8 +2035,7 @@ int pch100_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int 
 		pch100_hwseq_set_addr(addr);
 		block_len = min(len, opaque_master->max_data_write);
 		/* Check flash region permissions before writing */
-		op_type = HWSEQ_WRITE;
-		result = check_fd_permissions_hwseq(op_type, addr, block_len);
+		result = check_fd_permissions_hwseq(HWSEQ_WRITE, addr, block_len);
 		if (result)
 			return result;
 		ich_fill_data(buf, block_len, PCH100_REG_FDATA0);
