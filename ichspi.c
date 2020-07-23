@@ -28,6 +28,7 @@
 #include "hwaccess.h"
 #include "spi.h"
 #include "ich_descriptors.h"
+#include "action_descriptor.h"
 
 /* Sunrise Point */
 
@@ -1290,7 +1291,7 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 		}
 	}
 
-	if (ich_dry_run)
+	if (is_dry_run())
 		return 0;
 
 	opcode = &(curopcodes->opcode[opcode_index]);
@@ -1548,7 +1549,7 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 	uint16_t hsfc;
 	uint32_t timeout = 5000 * 1000; /* 5 s for max 64 kB */
 
-	if (ich_dry_run)
+	if (is_dry_run())
 		return 0;
 
 	erase_block = ich_hwseq_get_erase_block_size(addr);
@@ -1832,7 +1833,7 @@ int pch100_hwseq_block_erase(struct flashctx *flash,
 	uint32_t timeout = 5000 * 1000; /* 5 s for max 64 kB */
 	int result;
 
-	if (ich_dry_run)
+	if (is_dry_run())
 		return 0;
 
 	erase_block = pch100_hwseq_get_erase_block_size(addr);

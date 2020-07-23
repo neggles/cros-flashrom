@@ -23,7 +23,6 @@
  * defined here.
  */
 enum ich_chipset g_ich_generation = CHIPSET_ICH_UNKNOWN;
-int ich_dry_run;
 
 static const struct par_master par_master_none = {
 		.chip_readb		= noop_chip_readb,

@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /*
  * Structure containing information about the processing flashrom is supposed
@@ -40,6 +41,17 @@ struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 						    void *oldcontents,
 						    void *newcontents,
 						    int do_diff);
+
+/*
+ * Returns if the op should be consider a dry-run and return early or not.
+ *
+ * This function is set to indicate that the invoked flash programming
+ * command should not be executed, but just verified for validity.
+ *
+ * This is useful when one needs to determine if a certain flash erase command
+ * supported by the chip is allowed by the Intel controller on the device.
+ */
+bool is_dry_run();
 
 /*
  * A function to test action descriptor implementation, returns number of

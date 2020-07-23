@@ -576,14 +576,6 @@ enum ich_chipset {
 */
 extern enum ich_chipset g_ich_generation;
 
-/*
- * This global variable is set to indicate that the invoked flash programming
- * command should not be executed, but just verified for validity.
- *
- * This is useful when one needs to determine if a certain flash erase command
- * supported by the chip is allowed by the Intel controller on the device.
- */
-extern int ich_dry_run;
 int ich_init_spi(void *spibar, enum ich_chipset ich_generation);
 int via_init_spi(uint32_t mmio_base);
 

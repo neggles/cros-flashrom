@@ -6,12 +6,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "action_descriptor.h"
 #include "chipdrivers.h"
 #include "flash.h"
 #include "layout.h"
 #include "programmer.h"
+
+
+/*
+ * Unfortunate global state.
+ */
+static bool dry_run = false;
 
 /*
  * This module analyses the contents of 'before' and 'after' flash images and
@@ -125,7 +132,7 @@ static void fix_erasers_if_needed(struct flashchip *chip,
 	 * different erase commands. Let's check the commands and allow only
 	 * those which the controller accepts.
 	 */
-	ich_dry_run = 1;
+	dry_run = true;
 	for (i = 0; i < NUM_ERASEFUNCTIONS; i++) {
 
 		/* Assume it is not allowed. */
@@ -140,7 +147,7 @@ static void fix_erasers_if_needed(struct flashchip *chip,
 
 		chip->block_erasers[i].block_erase = NULL;
 	}
-	ich_dry_run = 0;
+	dry_run = false;
 }
 
 /*
@@ -614,6 +621,11 @@ static void fill_action_descriptor(struct action_descriptor *descriptor,
 	}
 
 	descriptor->processing_units[pu_index].num_blocks = 0;
+}
+
+bool is_dry_run()
+{
+	return dry_run;
 }
 
 struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
