@@ -303,6 +303,7 @@ int main(int argc, char *argv[])
 	char *wp_region = NULL;
 
 	print_version();
+	print_banner();
 
 	if (selfcheck())
 		exit(1);
