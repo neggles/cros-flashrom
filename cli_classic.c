@@ -545,20 +545,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* FIXME: Print the actions flashrom will take. */
-
-	if (list_supported) {
-		print_supported();
-		exit(0);
-	}
-
-#if CONFIG_PRINT_WIKI == 1
-	if (list_supported_wiki) {
-		print_supported_wiki();
-		exit(0);
-	}
-#endif
-
 #if 0
 	if (optind < argc)
 		cli_classic_abort_usage("Error: Extra parameter found.\n");
@@ -582,6 +568,18 @@ int main(int argc, char *argv[])
 	if (read_it || write_it || verify_it) {
 		if (argv[optind])
 			filename = argv[optind];
+	}
+#if CONFIG_PRINT_WIKI == 1
+	if (list_supported_wiki) {
+		print_supported_wiki();
+		exit(0);
+	}
+#endif
+
+	if (list_supported) {
+		if (print_supported())
+			ret = 1;
+		exit(0);
 	}
 
 #ifndef STANDALONE
