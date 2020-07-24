@@ -614,10 +614,8 @@ int main(int argc, char *argv[])
 			}
 		}
 		if (!found_chip) {
-			msg_gerr("Error: Unknown chip '%s' specified.\n",
-				chip_to_probe);
-			msg_gerr("Run flashrom -L to view the hardware supported "
-				"in this flashrom version.\n");
+			msg_cerr("Error: Unknown chip '%s' specified.\n", chip_to_probe);
+			msg_gerr("Run flashrom -L to view the hardware supported in this flashrom version.\n");
 			exit(1);
 		}
 		/* Keep chip around for later usage in case a forced read is requested. */
@@ -683,8 +681,7 @@ int main(int argc, char *argv[])
 
 	for (j = 0; j < registered_master_count; j++) {
 		while (chipcount < (int)ARRAY_SIZE(flashes)) {
-			startchip = probe_flash(&registered_masters[j],
-						startchip, &flashes[chipcount], 0);
+			startchip = probe_flash(&registered_masters[j], startchip, &flashes[chipcount], 0);
 			if (startchip == -1)
 				break;
 			chipcount++;
@@ -693,14 +690,15 @@ int main(int argc, char *argv[])
 	}
 
 	if (chipcount > 1) {
-		msg_gerr("Multiple flash chips were detected:");
-		for (i = 0; i < chipcount; i++)
-			msg_gerr(" %s", flashes[i].chip->name);
+		msg_cinfo("Multiple flash chip definitions match the detected chip(s): \"%s\"",
+			  flashes[0].chip->name);
+		for (i = 1; i < chipcount; i++)
+			msg_cinfo(", \"%s\"", flashes[i].chip->name);
 		msg_cinfo("\nPlease specify which chip definition to use with the -c <chipname> option.\n");
 		ret = 1;
 		goto out_shutdown;
 	} else if (!chipcount) {
-		msg_gerr("No EEPROM/flash device found.\n");
+		msg_cinfo("No EEPROM/flash device found.\n");
 		if (!force || !chip_to_probe) {
 			msg_cinfo("Note: flashrom can never write if the flash chip isn't found "
 				  "automatically.\n");
@@ -834,14 +832,13 @@ int main(int argc, char *argv[])
 
 	if (flash_name) {
 		if (fill_flash->chip->vendor && fill_flash->chip->name) {
-			msg_ginfo("vendor=\"%s\" name=\"%s\"\n",
-			       fill_flash->chip->vendor,
-			       fill_flash->chip->name);
-			goto out_shutdown;
+			printf("vendor=\"%s\" name=\"%s\"\n",
+				fill_flash->chip->vendor,
+				fill_flash->chip->name);
 		} else {
 			ret = -1;
-			goto out_shutdown;
 		}
+		goto out_shutdown;
 	}
 
 	/* If the user doesn't specify any -i argument, then we can skip the
