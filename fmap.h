@@ -1,5 +1,6 @@
 /*
- * Copyright 2010, Google Inc.
+ * Copyright 2015, Google Inc.
+ * Copyright 2018-present, Facebook Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,14 +32,13 @@
  * Alternatively, this software may be distributed under the terms of the
  * GNU General Public License ("GPL") version 2 as published by the Free
  * Software Foundation.
- *
- * This is ported from the flashmap utility: http://flashmap.googlecode.com
  */
 
 #ifndef __FMAP_H__
 #define __FMAP_H__ 1
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 struct flashctx;
 
