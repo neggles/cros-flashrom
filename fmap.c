@@ -1,4 +1,6 @@
-/* Copyright 2010, Google Inc.
+/*
+ * Copyright 2015, Google Inc.
+ * Copyright 2018-present, Facebook Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,15 +32,12 @@
  * Alternatively, this software may be distributed under the terms of the
  * GNU General Public License ("GPL") version 2 as published by the Free
  * Software Foundation.
- *
- * This is ported from the flashmap utility: http://flashmap.googlecode.com
  */
 
 #include <ctype.h>
-#include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "flash.h"
 #include "fmap.h"
@@ -84,6 +83,39 @@ static int is_valid_fmap(const struct fmap *fmap)
 
 }
 
+/**
+ * @brief Do a brute-force linear search for fmap in provided buffer
+ *
+ * @param[in] buffer The buffer to search
+ * @param[in] len Length (in bytes) to search
+ *
+ * @return offset in buffer where fmap is found if successful
+ *         -1 to indicate that fmap was not found
+ *         -2 to indicate fmap is truncated or exceeds buffer + len
+ */
+static off_t fmap_lsearch(const uint8_t *buf, size_t len)
+{
+	off_t offset;
+	bool fmap_found = 0;
+
+	for (offset = 0; offset <= (off_t)(len - sizeof(struct fmap)); offset++) {
+		if (is_valid_fmap((struct fmap *)&buf[offset])) {
+			fmap_found = 1;
+			break;
+		}
+	}
+
+	if (!fmap_found)
+		return -1;
+
+	if (offset + fmap_size((struct fmap *)&buf[offset]) > len) {
+		msg_gerr("fmap size exceeds buffer boundary.\n");
+		return -2;
+	}
+
+	return offset;
+}
+
 int fmap_find(void *source_handle,
 	      int (*read_chunk)(void *handle,
 				void *dest,
@@ -113,20 +145,9 @@ int fmap_find(void *source_handle,
 /* Like fmap_find, but give a memory location to search FMAP. */
 struct fmap *fmap_find_in_memory(uint8_t *image, int size)
 {
-	struct fmap *ret;
-	long int offset = 0;
-	uint64_t sig;
+	off_t offset = fmap_lsearch(image, size);
+	if (offset < 0)
+		return NULL;
 
-	memcpy(&sig, FMAP_SIGNATURE, strlen(FMAP_SIGNATURE));
-
-	for (offset = 0; offset < size; offset++) {
-		if (!memcmp(&image[offset], &sig, sizeof(sig))) {
-			ret = (struct fmap *)&image[offset];
-			if (is_valid_fmap(ret))
-				return ret;
-			msg_gdbg("%s: FMAP signature with invalid data "
-				 "found in +%#lx\n", __func__, offset);
-		}
-	}
-	return NULL;
+	return (struct fmap *)&image[offset];
 }
