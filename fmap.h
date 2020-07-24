@@ -69,6 +69,8 @@ struct fmap {
 
 struct search_info;
 
+int fmap_read_from_buffer(struct fmap **fmap_out, const uint8_t *buf, size_t len);
+
 /*
  * fmap_find - find FMAP signature at offset in an image and copy it to buffer
  *
@@ -95,9 +97,5 @@ int fmap_find(void *source_handle,
 	      struct fmap *fmap,
 	      loff_t offset,
 	      uint8_t **buf);
-
-/* Like fmap_find, but give a memory location to search FMAP. */
-struct fmap *fmap_find_in_memory(uint8_t *image, int size);
-
 
 #endif	/* __FMAP_H__*/

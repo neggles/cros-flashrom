@@ -435,8 +435,7 @@ int cros_ec_prepare(uint8_t *image, int size) {
 	}
 
 	// Parse the fmap in the image file and cache the firmware ranges.
-	fmap = fmap_find_in_memory(image, size);
-	if (fmap) {
+	if (!fmap_read_from_buffer(&fmap, image, size)) {
 		// Lookup RO/A/B sections in FMAP.
 		for (i = 0; i < fmap->nareas; i++) {
 			struct fmap_area *fa = &fmap->areas[i];
@@ -451,6 +450,7 @@ int cros_ec_prepare(uint8_t *image, int size) {
 			}
 		}
 	}
+	free(fmap);
 
 	if (ec_check_features(EC_FEATURE_EXEC_IN_RAM) > 0) {
 		msg_pwarn("Skip jumping to RO\n");

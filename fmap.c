@@ -116,6 +116,38 @@ static off_t fmap_lsearch(const uint8_t *buf, size_t len)
 	return offset;
 }
 
+/**
+ * @brief Read fmap from provided buffer and copy it to fmap_out
+ *
+ * @param[out] fmap_out Double-pointer to location to store fmap contents.
+ *                      Caller must free allocated fmap contents.
+ * @param[in] buf Buffer to search
+ * @param[in] len Length (in bytes) to search
+ *
+ * @return 0 if successful
+ *         1 to indicate error
+ *         2 to indicate fmap is not found
+ */
+int fmap_read_from_buffer(struct fmap **fmap_out, const uint8_t *const buf, size_t len)
+{
+	off_t offset = fmap_lsearch(buf, len);
+	if (offset < 0) {
+		msg_gdbg("Unable to find fmap in provided buffer.\n");
+		return 2;
+	}
+	msg_gdbg("Found fmap at offset 0x%06zx\n", (size_t)offset);
+
+	const struct fmap *fmap = (const struct fmap *)(buf + offset);
+	*fmap_out = malloc(fmap_size(fmap));
+	if (*fmap_out == NULL) {
+		msg_gerr("Out of memory.\n");
+		return 1;
+	}
+
+	memcpy(*fmap_out, fmap, fmap_size(fmap));
+	return 0;
+}
+
 int fmap_find(void *source_handle,
 	      int (*read_chunk)(void *handle,
 				void *dest,
@@ -140,14 +172,4 @@ int fmap_find(void *source_handle,
 	}
 
 	return 1;
-}
-
-/* Like fmap_find, but give a memory location to search FMAP. */
-struct fmap *fmap_find_in_memory(uint8_t *image, int size)
-{
-	off_t offset = fmap_lsearch(image, size);
-	if (offset < 0)
-		return NULL;
-
-	return (struct fmap *)&image[offset];
 }
