@@ -17,6 +17,7 @@
  */
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,12 +61,13 @@ struct flashrom_layout *get_global_layout(void)
 }
 
 #ifndef __LIBPAYLOAD__
-int read_romlayout(char *name)
+int read_romlayout(const char *name)
 {
 	struct flashrom_layout *const layout = get_global_layout();
 	FILE *romlayout;
-	char tempstr[256];
-	int i;
+	char tempstr[256], tempname[256];
+	unsigned int i;
+	int ret = 1;
 
 	romlayout = fopen(name, "r");
 
@@ -80,12 +82,10 @@ int read_romlayout(char *name)
 
 		if (layout->num_entries >= MAX_ROMLAYOUT) {
 			msg_gerr("Maximum number of ROM images (%i) in layout "
-				 "file reached before end of layout file.\n",
-				 MAX_ROMLAYOUT);
-			msg_gerr("Ignoring the rest of the layout file.\n");
-			break;
+				 "file reached.\n", MAX_ROMLAYOUT);
+			goto _close_ret;
 		}
-		if (2 != fscanf(romlayout, "%255s %255s\n", tempstr, layout->entries[layout->num_entries].name))
+		if (2 != fscanf(romlayout, "%255s %255s\n", tempstr, tempname))
 			continue;
 #if 0
 		// fscanf does not like arbitrary comments like that :( later
@@ -96,14 +96,17 @@ int read_romlayout(char *name)
 		tstr1 = strtok(tempstr, ":");
 		tstr2 = strtok(NULL, ":");
 		if (!tstr1 || !tstr2) {
-			msg_gerr("Error parsing layout file.\n");
-			fclose(romlayout);
-			return 1;
+			msg_gerr("Error parsing layout file. Offending string: \"%s\"\n", tempstr);
+			goto _close_ret;
 		}
 		layout->entries[layout->num_entries].start = strtol(tstr1, (char **)NULL, 16);
 		layout->entries[layout->num_entries].end = strtol(tstr2, (char **)NULL, 16);
 		layout->entries[layout->num_entries].included = 0;
-		strcpy(layout->entries[layout->num_entries].file, "");
+		layout->entries[layout->num_entries].name = strdup(tempname);
+		if (!layout->entries[layout->num_entries].name) {
+			msg_gerr("Error adding layout entry: %s\n", strerror(errno));
+			goto _close_ret;
+		}
 		layout->num_entries++;
 	}
 
@@ -113,9 +116,11 @@ int read_romlayout(char *name)
 			     layout->entries[i].end, layout->entries[i].name);
 	}
 
-	fclose(romlayout);
+	ret = 0;
 
-	return 0;
+_close_ret:
+	(void)fclose(romlayout);
+	return ret;
 }
 #endif
 
@@ -270,11 +275,9 @@ static int add_fmap_entries_from_buf(const uint8_t *buf)
 		if (fmap->areas[i].size)
 			layout->entries[layout->num_entries].end--;
 
-		memset(layout->entries[layout->num_entries].name, 0,
-		       sizeof(layout->entries[layout->num_entries].name));
-		memcpy(layout->entries[layout->num_entries].name, fmap->areas[i].name,
-		       min(sizeof(layout->entries[layout->num_entries].name),
-		           sizeof(fmap->areas[i].name)));
+		size_t name_len = sizeof(fmap->areas[i].name);
+		layout->entries[layout->num_entries].name = calloc(1, name_len);
+		memcpy(layout->entries[layout->num_entries].name, fmap->areas[i].name, name_len);
 
 		layout->entries[layout->num_entries].included = 0;
 		strcpy(layout->entries[layout->num_entries].file, "");
@@ -501,6 +504,7 @@ void layout_cleanup(void)
 
 	struct flashrom_layout *const layout = get_global_layout();
 	for (i = 0; i < layout->num_entries; i++) {
+		free(layout->entries[i].name);
 		layout->entries[i].included = 0;
 	}
 	layout->num_entries = 0;

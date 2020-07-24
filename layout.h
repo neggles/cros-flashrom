@@ -35,7 +35,7 @@ struct romentry {
 	chipoff_t start;
 	chipoff_t end;
 	unsigned int included;
-	char name[256];
+	char *name;
 	char file[256];  /* file[0]=='\0' means not specified. */
 };
 
@@ -59,7 +59,7 @@ struct single_layout {
  */
 int extract_regions(struct flashctx *flash);
 
-int read_romlayout(char *name);
+int read_romlayout(const char *name);
 int find_romentry(char *name);
 int fill_romentry(struct romentry *entry, int n);
 int get_fmap_entries(const char *filename, struct flashctx *flash);
