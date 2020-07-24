@@ -37,76 +37,6 @@
 
 int set_ignore_lock = 0;
 
-#if CONFIG_INTERNAL == 1
-static enum programmer default_programmer = PROGRAMMER_INTERNAL;
-#elif CONFIG_DUMMY == 1
-static enum programmer default_programmer = PROGRAMMER_DUMMY;
-#else
-/* If neither internal nor dummy are selected, we must pick a sensible default.
- * Since there is no reason to prefer a particular external programmer, we fail
- * if more than one of them is selected. If only one is selected, it is clear
- * that the user wants that one to become the default.
- */
-#if CONFIG_NIC3COM+CONFIG_NICREALTEK+CONFIG_NICNATSEMI+CONFIG_GFXNVIDIA+CONFIG_DRKAISER+CONFIG_SATASII+CONFIG_ATAHPT+CONFIG_FT2232_SPI+CONFIG_SERPROG+CONFIG_BUSPIRATE_SPI+CONFIG_DEDIPROG+CONFIG_RAYER_SPI+CONFIG_NICINTEL+CONFIG_NICINTEL_SPI+CONFIG_OGP_SPI+CONFIG_SATAMV > 1
-#error Please enable either CONFIG_DUMMY or CONFIG_INTERNAL or disable support for all programmers except one.
-#endif
-static enum programmer default_programmer =
-#if CONFIG_NIC3COM == 1
-	PROGRAMMER_NIC3COM
-#endif
-#if CONFIG_NICREALTEK == 1
-	PROGRAMMER_NICREALTEK
-#endif
-#if CONFIG_NICNATSEMI == 1
-	PROGRAMMER_NICNATSEMI
-#endif
-#if CONFIG_GFXNVIDIA == 1
-	PROGRAMMER_GFXNVIDIA
-#endif
-#if CONFIG_DRKAISER == 1
-	PROGRAMMER_DRKAISER
-#endif
-#if CONFIG_SATASII == 1
-	PROGRAMMER_SATASII
-#endif
-#if CONFIG_ATAHPT == 1
-	PROGRAMMER_ATAHPT
-#endif
-#if CONFIG_FT2232_SPI == 1
-	PROGRAMMER_FT2232_SPI
-#endif
-#if CONFIG_SERPROG == 1
-	PROGRAMMER_SERPROG
-#endif
-#if CONFIG_BUSPIRATE_SPI == 1
-	PROGRAMMER_BUSPIRATE_SPI
-#endif
-#if CONFIG_DEDIPROG == 1
-	PROGRAMMER_DEDIPROG
-#endif
-#if CONFIG_RAYER_SPI == 1
-	PROGRAMMER_RAYER_SPI
-#endif
-#if CONFIG_NICINTEL == 1
-	PROGRAMMER_NICINTEL
-#endif
-#if CONFIG_NICINTEL_SPI == 1
-	PROGRAMMER_NICINTEL_SPI
-#endif
-#if CONFIG_OGP_SPI == 1
-	PROGRAMMER_OGP_SPI
-#endif
-#if CONFIG_SATAMV == 1
-	PROGRAMMER_SATAMV
-#endif
-#if CONFIG_LINUX_MTD == 1
-	PROGRAMMER_LINUX_MTD
-#endif
-#if CONFIG_LINUX_SPI == 1
-	PROGRAMMER_LINUX_SPI
-#endif
-;
-#endif
 
 static void cli_classic_usage(const char *name)
 {
@@ -442,8 +372,10 @@ int main(int argc, char *argv[])
 			}
 
 			if ((prog == PROGRAMMER_INVALID) && !alias) {
-				msg_gerr("Error: Unknown programmer "
-					"%s.\n", optarg);
+				fprintf(stderr, "Error: Unknown programmer \"%s\". Valid choices are:\n",
+					optarg);
+				list_programmers_linebreak(0, 80, 0);
+				msg_ginfo(".\n");
 				cli_classic_abort_usage(NULL);
 			}
 
@@ -599,9 +531,25 @@ int main(int argc, char *argv[])
 		/* Keep chip around for later usage in case a forced read is requested. */
 	}
 
-	if (prog == PROGRAMMER_INVALID)
-		prog = default_programmer;
-
+	if (prog == PROGRAMMER_INVALID) {
+		if (CONFIG_DEFAULT_PROGRAMMER != PROGRAMMER_INVALID) {
+			prog = CONFIG_DEFAULT_PROGRAMMER;
+			/* We need to strdup here because we free(pparam) unconditionally later. */
+			pparam = strdup(CONFIG_DEFAULT_PROGRAMMER_ARGS);
+			msg_pinfo("Using default programmer \"%s\" with arguments \"%s\".\n",
+				  programmer_table[CONFIG_DEFAULT_PROGRAMMER].name, pparam);
+		} else {
+			msg_perr("Please select a programmer with the --programmer parameter.\n"
+#if CONFIG_INTERNAL == 1
+				 "To choose the mainboard of this computer use 'internal'. "
+#endif
+				 "Valid choices are:\n");
+			list_programmers_linebreak(0, 80, 0);
+			msg_ginfo(".\n");
+			ret = 1;
+			exit(0);
+		}
+	}
 
 #if USE_BIG_LOCK == 1
 	/* get lock before doing any work that touches hardware */

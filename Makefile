@@ -40,6 +40,24 @@ RANLIB  ?= ranlib
 PKG_CONFIG ?= pkg-config
 BUILD_DETAILS_FILE ?= build_details.txt
 
+# The following parameter changes the default programmer that will be used if there is no -p/--programmer
+# argument given when running flashrom. The predefined setting does not enable any default so that every
+# user has to declare the programmer he wants to use on every run. The rationale for this to be not set
+# (to e.g. the internal programmer) is that forgetting to specify this when working with another programmer
+# easily puts the system attached to the default programmer at risk (e.g. you want to flash coreboot to another
+# system attached to an external programmer while the default programmer is set to the internal programmer, and
+# you forget to use the -p parameter. This would (try to) overwrite the existing firmware of the computer
+# running flashrom). Please do not enable this without thinking about the possible consequences. Possible
+# values are those specified in enum programmer in programmer.h (which depend on other CONFIG_* options
+# evaluated below, namely those that enable/disable the various programmers).
+# Compilation will fail for unspecified values.
+CONFIG_DEFAULT_PROGRAMMER ?= PROGRAMMER_INVALID
+# The following adds a default parameter for the default programmer set above (only).
+CONFIG_DEFAULT_PROGRAMMER_ARGS ?= ''
+# Example: compiling with
+#   make CONFIG_DEFAULT_PROGRAMMER=PROGRAMMER_SERPROG CONFIG_DEFAULT_PROGRAMMER_ARGS="dev=/dev/ttyUSB0:1500000"
+# would make executing './flashrom' (almost) equivialent to './flashrom -p serprog:dev=/dev/ttyUSB0:1500000'.
+
 # If your compiler spits out excessive warnings, run make WARNERROR=no
 # You shouldn't have to change this flag.
 WARNERROR ?= yes
@@ -595,6 +613,12 @@ override CONFIG_INTERNAL_DMI = yes
 endif
 endif
 endif
+
+# Programmer drivers and programmer support infrastructure.
+# Depending on the CONFIG_* variables set and verified above we set compiler flags and parameters below.
+
+FEATURE_CFLAGS += -D'CONFIG_DEFAULT_PROGRAMMER=$(CONFIG_DEFAULT_PROGRAMMER)'
+FEATURE_CFLAGS += -D'CONFIG_DEFAULT_PROGRAMMER_ARGS="$(CONFIG_DEFAULT_PROGRAMMER_ARGS)"'
 
 ifeq ($(CONFIG_INTERNAL), yes)
 FEATURE_CFLAGS += -D'CONFIG_INTERNAL=1'
