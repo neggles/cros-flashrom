@@ -158,7 +158,7 @@ struct programmer_entry {
 
 extern const struct programmer_entry programmer_table[];
 
-int programmer_init(enum programmer prog, char *param);
+int programmer_init(enum programmer prog, const char *param);
 int programmer_shutdown(void);
 
 struct bitbang_spi_master {

@@ -26,13 +26,14 @@
 #include <sys/stat.h>
 #endif
 #include <string.h>
+#include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <ctype.h>
 #include <getopt.h>
 #if HAVE_UTSNAME == 1
 #include <sys/utsname.h>
 #endif
-#include <unistd.h>
 
 #include "action_descriptor.h"
 #include "flash.h"
@@ -440,7 +441,7 @@ int register_chip_restore(CHIP_RESTORE_CALLBACK,
 	return 0;
 }
 
-int programmer_init(enum programmer prog, char *param)
+int programmer_init(enum programmer prog, const char *param)
 {
 	int ret;
 
@@ -466,8 +467,7 @@ int programmer_init(enum programmer prog, char *param)
 	programmer_may_write = 1;
 
 	programmer_param = param;
-	msg_pdbg("Initializing %s programmer\n",
-		 programmer_table[programmer].name);
+	msg_pdbg("Initializing %s programmer\n", programmer_table[programmer].name);
 	ret = programmer_table[programmer].init();
 	return ret;
 }
@@ -485,6 +485,11 @@ int chip_restore()
 	return rc;
 }
 
+/** Calls registered shutdown functions and resets internal programmer-related variables.
+ * Calling it is safe even without previous initialization, but further interactions with programmer support
+ * require a call to programmer_init() (afterwards).
+ *
+ * @return The OR-ed result values of all shutdown functions (i.e. 0 on success). */
 int programmer_shutdown(void)
 {
 	int ret = 0;
@@ -644,7 +649,7 @@ static unsigned int count_usable_erasers(const struct flashctx *flash)
 }
 
 /* start is an offset to the base address of the flash chip */
-int check_erased_range(struct flashctx *flash, unsigned int start, unsigned int len)
+static int check_erased_range(struct flashctx *flash, unsigned int start, unsigned int len)
 {
 	int ret;
 	uint8_t *cmpbuf = malloc(len);
@@ -889,7 +894,7 @@ static int need_erase(struct flashctx *flash, uint8_t *have, uint8_t *want,
  * in relation to the max write length of the programmer and the max write
  * length of the chip.
  */
-static unsigned int get_next_write(uint8_t *have, uint8_t *want, unsigned int len,
+static unsigned int get_next_write(const uint8_t *have, const uint8_t *want, unsigned int len,
 			  unsigned int *first_start,
 			  enum write_granularity gran)
 {
@@ -1174,8 +1179,7 @@ char *flashbuses_to_text(enum chipbustype bustype)
 	return ret;
 }
 
-int probe_flash(struct registered_master *mst, int startchip,
-		struct flashctx *flash, int force)
+int probe_flash(struct registered_master *mst, int startchip, struct flashctx *flash, int force)
 {
 	const struct flashchip *chip, *flash_list;
 	unsigned long base = 0;
@@ -1207,11 +1211,9 @@ int probe_flash(struct registered_master *mst, int startchip,
 		/* Only probe for SPI25 chips by default. */
 		if (chip->bustype == BUS_SPI && !chip_to_probe && chip->spi_cmd_set != SPI25)
 			continue;
-		msg_gdbg("Probing for %s %s, %d kB: ",
-			     chip->vendor, chip->name, chip->total_size);
+		msg_gdbg("Probing for %s %s, %d kB: ", chip->vendor, chip->name, chip->total_size);
 		if (!chip->probe && !force) {
-			msg_gdbg("failed! flashrom has no probe function for "
-				 "this flash chip.\n");
+			msg_gdbg("failed! flashrom has no probe function for this flash chip.\n");
 			continue;
 		}
 
@@ -1238,11 +1240,10 @@ int probe_flash(struct registered_master *mst, int startchip,
 
 		/* If this is the first chip found, accept it.
 		 * If this is not the first chip found, accept it only if it is
-		 * a non-generic match.
-		 * We could either make chipcount global or provide it as
-		 * parameter, or we assume that startchip==0 means this call to
-		 * probe_flash() is the first one and thus no chip has been
-		 * found before.
+		 * a non-generic match. SFDP and CFI are generic matches.
+		 * startchip==0 means this call to probe_flash() is the first
+		 * one for this programmer interface (master) and thus no other chip has
+		 * been found on this interface.
 		 */
 		if (startchip == 0 || flash->chip->model_id != GENERIC_DEVICE_ID)
 			break;
@@ -1364,8 +1365,7 @@ int read_buf_from_file(unsigned char *buf, unsigned long size,
 	return 0;
 }
 
-int write_buf_to_file(unsigned char *buf, unsigned long size,
-		      const char *filename)
+int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *filename)
 {
 	unsigned long numbytes;
 	FILE *image;
@@ -1386,8 +1386,7 @@ int write_buf_to_file(unsigned char *buf, unsigned long size,
 	numbytes = fwrite(buf, 1, size, image);
 	fclose(image);
 	if (numbytes != size) {
-		msg_gerr("File %s could not be written completely.\n",
-			 filename);
+		msg_gerr("Error: file %s could not be written completely.\n", filename);
 		return 1;
 	}
 	return 0;
@@ -1836,12 +1835,11 @@ void list_programmers_linebreak(int startcol, int cols, int paren)
 		} else {
 			if (paren)
 				msg_ginfo(")");
-			msg_ginfo("\n");
 		}
 	}
 }
 
-void print_sysinfo(void)
+static void print_sysinfo(void)
 {
 	/* send to stderr for chromium os */
 #if HAVE_UTSNAME == 1
@@ -1892,16 +1890,15 @@ void print_buildinfo(void)
 
 void print_version(void)
 {
-	/* send to stderr for chromium os */
-	msg_gerr("flashrom v%s", flashrom_version);
+	msg_ginfo("flashrom %s", flashrom_version);
 	print_sysinfo();
-	msg_gerr("\n");
+	msg_ginfo("\n");
 }
 
 void print_banner(void)
 {
 	msg_ginfo("flashrom is free software, get the source code at "
-		  "http://www.flashrom.org\n");
+		  "https://flashrom.org\n");
 	msg_ginfo("\n");
 }
 
@@ -1922,9 +1919,8 @@ int selfcheck(void)
 	 * They are all defined as externs in this compilation unit so we don't know their sizes which vary
 	 * depending on compiler flags, e.g. the target architecture, and can sometimes be 0.
 	 * For 'flashchips' we export the size explicitly to work around this and to be able to implement the
-	 * checks below.
-	 */
-	if (flashchips_size <= 1 || flashchips[flashchips_size-1].name != NULL) {
+	 * checks below. */
+	if (flashchips_size <= 1 || flashchips[flashchips_size - 1].name != NULL) {
 		msg_gerr("Flashchips table miscompilation!\n");
 		ret = 1;
 	} else {
@@ -1936,11 +1932,13 @@ int selfcheck(void)
 					 "Please report a bug at flashrom@flashrom.org\n", i,
 					 chip->name == NULL ? "unnamed" : chip->name);
 			}
-			if (selfcheck_eraseblocks(chip))
+			if (selfcheck_eraseblocks(chip)) {
 				ret = 1;
+			}
 		}
 	}
 
+	/* TODO: implement similar sanity checks for other arrays where deemed necessary. */
 	return ret;
 }
 
