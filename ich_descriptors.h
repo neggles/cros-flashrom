@@ -572,6 +572,8 @@ struct ich_descriptors {
 	struct ich_desc_upper_map upper;
 };
 
+ssize_t ich_number_of_regions(enum ich_chipset cs, const struct ich_desc_content *content);
+
 void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descriptors *desc);
 
 void prettyprint_ich_descriptor_content(enum ich_chipset cs, const struct ich_desc_content *cont);

@@ -95,12 +95,18 @@ static void dump_file(const char *prefix, const uint32_t *dump, unsigned int len
 	close(fh);
 }
 
+int min(int a, int b)
+{
+	return (a < b) ? a : b;
+}
+
 static void dump_files(const char *name, const uint32_t *buf, unsigned int len,
 		       const enum ich_chipset cs, const struct ich_descriptors *const desc)
 {
 	ssize_t i;
+	const ssize_t nr = min(ich_number_of_regions(cs, &desc->content), ARRAY_SIZE(region_names));
 	printf("=== Dumping region files ===\n");
-	for (i = 0; i < 5; i++)
+	for (i = 0; i < nr; i++)
 		dump_file(name, buf, len, &desc->region, i);
 	printf("\n");
 }
