@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  */
 
-#if defined(__i386__) || defined(__x86_64__)
-
 #include "ich_descriptors.h"
 
-#ifdef ICH_DESCRIPTORS_FROM_DUMP
-
+#ifdef ICH_DESCRIPTORS_FROM_DUMP_ONLY
 #include <stdio.h>
 #include <string.h>
 #define print(t, ...) printf(__VA_ARGS__)
+#endif
+
 #define DESCRIPTOR_MODE_SIGNATURE 0x0ff0a55a
 /* The upper map is located in the word before the 256B-long OEM section at the
  * end of the 4kB-long flash descriptor.
@@ -31,14 +30,11 @@
 #define UPPER_MAP_OFFSET (4096 - 256 - 4)
 #define getVTBA(flumap)	(((flumap)->FLUMAP1 << 4) & 0x00000ff0)
 
-#else /* ICH_DESCRIPTORS_FROM_DUMP */
-
 #include <sys/types.h>
 #include <string.h>
 #include "flash.h" /* for msg_* */
 #include "programmer.h"
 
-#endif /* ICH_DESCRIPTORS_FROM_DUMP */
 ssize_t ich_number_of_regions(const enum ich_chipset cs, const struct ich_desc_content *const cont)
 {
 	switch (cs) {
@@ -122,12 +118,12 @@ void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descripto
 	prettyprint_ich_descriptor_component(cs, desc);
 	prettyprint_ich_descriptor_region(cs, desc);
 	prettyprint_ich_descriptor_master(cs, desc);
-#ifdef ICH_DESCRIPTORS_FROM_DUMP
+#ifdef ICH_DESCRIPTORS_FROM_DUMP_ONLY
 	if (cs >= CHIPSET_ICH8) {
 		prettyprint_ich_descriptor_upper_map(&desc->upper);
 		prettyprint_ich_descriptor_straps(cs, desc);
 	}
-#endif /* ICH_DESCRIPTORS_FROM_DUMP */
+#endif /* ICH_DESCRIPTORS_FROM_DUMP_ONLY */
 }
 
 void prettyprint_ich_descriptor_content(enum ich_chipset cs, const struct ich_desc_content *cont)
@@ -502,8 +498,6 @@ void prettyprint_ich_descriptor_master(const enum ich_chipset cs, const struct i
 	}
 	msg_pdbg2("\n");
 }
-
-#ifdef ICH_DESCRIPTORS_FROM_DUMP
 
 static void prettyprint_ich_descriptor_straps_ich8(const struct ich_descriptors *desc)
 {
@@ -1077,7 +1071,7 @@ int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
 	return ICH_RET_OK;
 }
 
-#else /* ICH_DESCRIPTORS_FROM_DUMP */
+#ifndef ICH_DESCRIPTORS_FROM_DUMP_ONLY
 
 /** Returns the integer representation of the component density with index
 idx in bytes or 0 if a correct size can not be determined. */
@@ -1107,6 +1101,8 @@ int getFCBA_component_density(const struct ich_descriptors *desc, uint8_t idx)
 	return (1 << (19 + size_enc));
 }
 
+/* Only used by ichspi.c */
+#if CONFIG_INTERNAL == 1 && (defined(__i386__) || defined(__x86_64__))
 static uint32_t read_descriptor_reg(enum ich_chipset cs, uint8_t section, uint16_t offset, void *spibar)
 {
 	uint32_t control = 0;
@@ -1191,5 +1187,6 @@ int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_d
 	msg_pdbg2(" done.\n");
 	return ICH_RET_OK;
 }
-#endif /* ICH_DESCRIPTORS_FROM_DUMP */
-#endif /* defined(__i386__) || defined(__x86_64__) */
+#endif
+
+#endif /* ICH_DESCRIPTORS_FROM_DUMP_ONLY */
