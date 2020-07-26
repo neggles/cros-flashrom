@@ -21,11 +21,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* Types and macros regarding the maximum flash space size supported by generic code. */
+typedef uint32_t chipoff_t; /* Able to store any addressable offset within a supported flash memory. */
+typedef uint32_t chipsize_t; /* Able to store the number of bytes of any supported flash memory. */
+#define FL_MAX_CHIPOFF_BITS (24)
+#define FL_MAX_CHIPOFF ((chipoff_t)(1ULL<<FL_MAX_CHIPOFF_BITS)-1)
+#define PRIxCHIPOFF "06"PRIx32
+#define PRIuCHIPSIZE PRIu32
+
 #define MAX_ROMLAYOUT	64
 
 struct romentry {
-	unsigned int start;
-	unsigned int end;
+	chipoff_t start;
+	chipoff_t end;
 	unsigned int included;
 	char name[256];
 	char file[256];  /* file[0]=='\0' means not specified. */
@@ -83,6 +91,7 @@ int handle_partial_verify(
  */
 size_t top_section_offset(void);
 
+int normalize_romentries(const struct flashctx *flash);
 /*
  * In case user specified sections to program (using the -i command line
  * option), prepare new contents such that only the required sections are
@@ -100,7 +109,7 @@ size_t top_section_offset(void);
  * If flashrom was invoked for erasing - leave the sections in question
  * untouched, they have been set to flash erase value already.
  */
-int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
+int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode);
 void layout_cleanup(void);
 

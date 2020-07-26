@@ -2090,6 +2090,12 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 		goto out_nofree;
 	}
 
+	if (normalize_romentries(flash)) {
+		msg_cerr("Requested regions can not be handled. Aborting.\n");
+		ret = 1;
+		goto out_nofree;
+	}
+
 	/* Given the existence of read locks, we want to unlock for read,
 	 * erase and write.
 	 */
@@ -2208,14 +2214,13 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 		memset(oldcontents, flash_erase_value(flash), size);
 	}
 
-
 	/*
 	 * Note: This must be done after reading the file specified for the
 	 * -w/-v argument, if any, so that files specified using -i end up
 	 * in the "newcontents" buffer before being written.
 	 * See http://crbug.com/263495.
 	 */
-	if (handle_romentries(flash, oldcontents, newcontents, erase_it)) {
+	if (build_new_image(flash, oldcontents, newcontents, erase_it)) {
 		ret = 1;
 		msg_cerr("Error handling ROM entries.\n");
 		goto out;

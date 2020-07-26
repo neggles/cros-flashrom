@@ -52,7 +52,7 @@ static unsigned int required_erase_size;
  * "included" in the master layout.
  */
 static char *include_args[MAX_ROMLAYOUT];
-static int num_include_args = 0;  /* the number of valid entries. */
+static int num_include_args = 0;  /* the number of successfully parsed entries. */
 
 struct flashrom_layout *get_global_layout(void)
 {
@@ -620,34 +620,6 @@ void layout_cleanup(void)
 	layout->num_entries = 0;
 }
 
-static struct romentry *get_next_included_romentry(unsigned int start)
-{
-	int i;
-	unsigned int best_start = UINT_MAX;
-	struct romentry *best_entry = NULL;
-	struct romentry *cur;
-	struct flashrom_layout *const layout = get_global_layout();
-
-	/* First come, first serve for overlapping regions. */
-	for (i = 0; i < layout->num_entries; i++) {
-		cur = &layout->entries[i];
-		if (!cur->included)
-			continue;
-		/* Already past the current entry? */
-		if (start > cur->end)
-			continue;
-		/* Inside the current entry? */
-		if (start >= cur->start)
-			return cur;
-		/* Entry begins after start. */
-		if (best_start > cur->start) {
-			best_start = cur->start;
-			best_entry = cur;
-		}
-	}
-	return best_entry;
-}
-
 /* returns boolean 1 if regions overlap, 0 otherwise */
 int included_regions_overlap()
 {
@@ -729,7 +701,61 @@ static int read_content_from_file(struct romentry *entry, uint8_t *newcontents) 
 	return 0;
 }
 
-int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
+static struct romentry *get_next_included_romentry(unsigned int start)
+{
+	int i;
+	unsigned int best_start = UINT_MAX;
+	struct romentry *best_entry = NULL;
+	struct romentry *cur;
+	struct flashrom_layout *const layout = get_global_layout();
+
+	/* First come, first serve for overlapping regions. */
+	for (i = 0; i < layout->num_entries; i++) {
+		cur = &layout->entries[i];
+		if (!cur->included)
+			continue;
+		/* Already past the current entry? */
+		if (start > cur->end)
+			continue;
+		/* Inside the current entry? */
+		if (start >= cur->start)
+			return cur;
+		/* Entry begins after start. */
+		if (best_start > cur->start) {
+			best_start = cur->start;
+			best_entry = cur;
+		}
+	}
+	return best_entry;
+}
+
+/* Validate and - if needed - normalize layout entries. */
+int normalize_romentries(const struct flashctx *flash)
+{
+	chipsize_t total_size = flash->chip->total_size * 1024;
+	int ret = 0;
+	struct flashrom_layout *const layout = get_global_layout();
+
+	int i;
+	for (i = 0; i < layout->num_entries; i++) {
+		struct romentry *entry = &layout->entries[i];
+		if (entry->start >= total_size || entry->end >= total_size) {
+			msg_gerr("Warning: Address range of region \"%s\" exceeds the current chip's "
+				 "address space.\n", entry->name);
+			if (!entry->included)
+				ret = 1;
+		}
+		if (entry->start > entry->end) {
+			msg_gerr("Layout entry \"%s\" has an invalid range.\n",
+						entry->name);
+			ret = 1;
+		}
+	}
+
+	return ret;
+}
+
+int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode)
 {
 	unsigned int start = 0;
@@ -746,31 +772,12 @@ int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 	 * The union of all included romentries is used from the new image.
 	 */
 	while (start < size) {
-
 		entry = get_next_included_romentry(start);
 		/* No more romentries for remaining region? */
 		if (!entry) {
 			memcpy(newcontents + start, oldcontents + start,
 			       size - start);
 			break;
-		}
-
-		if (entry->start > size) {
-			msg_gerr("Layout entry \"%s\" begins beyond ROM size.\n",
-						entry->name);
-			return 1;
-		}
-
-		if (entry->end > (size - 1)) {
-			msg_gerr("Layout entry \"%s\" ends beyond ROM size.\n",
-						entry->name);
-			return 1;
-		}
-
-		if (entry->start > entry->end) {
-			msg_gerr("Layout entry \"%s\" has an invalid range.\n",
-						entry->name);
-			return 1;
 		}
 
 		/* For non-included region, copy from old content. */
@@ -790,7 +797,6 @@ int handle_romentries(const struct flashctx *flash, uint8_t *oldcontents,
 		if (!start)
 			break;
 	}
-
 	return 0;
 }
 static int write_content_to_file(struct romentry *entry, uint8_t *buf) {
