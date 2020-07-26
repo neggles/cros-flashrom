@@ -365,7 +365,7 @@ static void pprint_freg(const struct ich_desc_region *reg, uint32_t i)
 
 void prettyprint_ich_descriptor_region(const enum ich_chipset cs, const struct ich_descriptors *const desc)
 {
-	uint8_t i;
+	ssize_t i;
 	const ssize_t nr = ich_number_of_regions(cs, &desc->content);
 	msg_pdbg2("=== Region Section ===\n");
 	if (nr < 0) {
@@ -374,12 +374,12 @@ void prettyprint_ich_descriptor_region(const enum ich_chipset cs, const struct i
 		return;
 	}
 	for (i = 0; i < nr; i++)
-		msg_pdbg2("FLREG%d   0x%08x\n", i, desc->region.FLREGs[i]);
+		msg_pdbg2("FLREG%zd   0x%08x\n", i, desc->region.FLREGs[i]);
 	msg_pdbg2("\n");
 
 	msg_pdbg2("--- Details ---\n");
 	for (i = 0; i < nr; i++)
-		pprint_freg(&desc->region, i);
+		pprint_freg(&desc->region, (uint32_t)i);
 	msg_pdbg2("\n");
 }
 
