@@ -573,18 +573,19 @@ struct ich_descriptors {
 };
 
 ssize_t ich_number_of_regions(enum ich_chipset cs, const struct ich_desc_content *content);
+ssize_t ich_number_of_masters(enum ich_chipset cs, const struct ich_desc_content *content);
 
+void prettyprint_ich_chipset(enum ich_chipset cs);
 void prettyprint_ich_descriptors(enum ich_chipset cs, const struct ich_descriptors *desc);
 
-void prettyprint_ich_descriptor_content(enum ich_chipset cs, const struct ich_desc_content *cont);
+void prettyprint_ich_descriptor_content(enum ich_chipset cs, const struct ich_desc_content *content);
 void prettyprint_ich_descriptor_component(enum ich_chipset cs, const struct ich_descriptors *desc);
-void prettyprint_ich_descriptor_region(const enum ich_chipset cs, const struct ich_descriptors *const desc);
+void prettyprint_ich_descriptor_region(enum ich_chipset cs, const struct ich_descriptors *desc);
 void prettyprint_ich_descriptor_master(enum ich_chipset cs, const struct ich_descriptors *desc);
 
 void prettyprint_ich_descriptor_upper_map(const struct ich_desc_upper_map *umap);
 void prettyprint_ich_descriptor_straps(enum ich_chipset cs, const struct ich_descriptors *desc);
-int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
-				   enum ich_chipset *const cs, struct ich_descriptors *const desc);
+int read_ich_descriptors_from_dump(const uint32_t *dump, size_t len, enum ich_chipset *cs, struct ich_descriptors *desc);
 
 int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_descriptors *desc);
 int getFCBA_component_density(enum ich_chipset cs, const struct ich_descriptors *desc, uint8_t idx);
