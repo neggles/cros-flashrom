@@ -305,6 +305,7 @@ const struct programmer_entry programmer_table[] = {
 	{
 		.name			= "dediprog",
 		.type			= USB,
+		.devs.dev		= devs_dediprog,
 		.init			= dediprog_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
@@ -2227,6 +2228,50 @@ int selfcheck(void)
 		msg_gerr("Programmer table miscompilation!\n");
 		ret = 1;
 	}
+	for (i = 0; i < PROGRAMMER_INVALID; i++) {
+		const struct programmer_entry p = programmer_table[i];
+		if (p.name == NULL) {
+			msg_gerr("All programmers need a valid name, but the one with index %d does not!\n", i);
+			ret = 1;
+			/* This might hide other problems with this programmer, but allows for better error
+			 * messages below without jumping through hoops. */
+			continue;
+		}
+		switch (p.type) {
+		case USB:
+		case PCI:
+		case OTHER:
+			if (p.devs.note == NULL) {
+				if (strcmp("internal", p.name) == 0)
+					break; /* This one has its device list stored separately. */
+				msg_gerr("Programmer %s has neither a device list nor a textual description!\n",
+					 p.name);
+				ret = 1;
+			}
+			break;
+		default:
+			msg_gerr("Programmer %s does not have a valid type set!\n", p.name);
+			ret = 1;
+			break;
+		}
+		if (p.init == NULL) {
+			msg_gerr("Programmer %s does not have a valid init function!\n", p.name);
+			ret = 1;
+		}
+		if (p.delay == NULL) {
+			msg_gerr("Programmer %s does not have a valid delay function!\n", p.name);
+			ret = 1;
+		}
+		if (p.map_flash_region == NULL) {
+			msg_gerr("Programmer %s does not have a valid map_flash_region function!\n", p.name);
+			ret = 1;
+		}
+		if (p.unmap_flash_region == NULL) {
+			msg_gerr("Programmer %s does not have a valid unmap_flash_region function!\n", p.name);
+			ret = 1;
+		}
+	}
+
 	/* It would be favorable if we could check for the correct layout (especially termination) of various
 	 * constant arrays: flashchips, chipset_enables, board_matches, boards_known, laptops_known.
 	 * They are all defined as externs in this compilation unit so we don't know their sizes which vary
