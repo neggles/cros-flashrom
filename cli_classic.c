@@ -257,28 +257,28 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	int found_chip = 0;
 
-	const char *optstring = "rRwvnVEfc:l:i:p:o:Lzhbx";
-	static struct option long_options[] = {
-		{"read",		0, 0, 'r'},
-		{"write",		0, 0, 'w'},
-		{"erase",		0, 0, 'E'},
-		{"verify",		0, 0, 'v'},
-		{"noverify",		0, 0, 'n'},
-		{"chip",		1, 0, 'c'},
-		{"verbose",		0, 0, 'V'},
-		{"force",		0, 0, 'f'},
-		{"layout",		1, 0, 'l'},
-		{"image",		1, 0, 'i'},
-		{"list-supported",	0, 0, 'L'},
-		{"list-supported-wiki", 0, 0, 'z'},
+	static const char optstring[] = "rRwvnVEfc:l:i:p:o:Lzhbx";
+	static const struct option long_options[] = {
+		{"read",		0, NULL, 'r'},
+		{"write",		0, NULL, 'w'},
+		{"erase",		0, NULL, 'E'},
+		{"verify",		0, NULL, 'v'},
+		{"noverify",		0, NULL, 'n'},
+		{"chip",		1, NULL, 'c'},
+		{"verbose",		0, NULL, 'V'},
+		{"force",		0, NULL, 'f'},
+		{"layout",		1, NULL, 'l'},
+		{"image",		1, NULL, 'i'},
+		{"flash-name", 		0, NULL, LONGOPT_FLASH_NAME},
+		{"flash-size", 		0, NULL, LONGOPT_FLASH_SIZE},
+		{"get-size", 		0, NULL, LONGOPT_FLASH_SIZE},
+		{"list-supported",	0, NULL, 'L'},
+		{"list-supported-wiki",	0, NULL, 'z'},
 		{"extract", 		0, 0, 'x'},
-		{"programmer", 		1, 0, 'p'},
-		{"help", 		0, 0, 'h'},
-		{"version", 		0, 0, 'R'},
-		{"output", 		1, 0, 'o'},
-		{"get-size", 		0, 0, LONGOPT_FLASH_SIZE},
-		{"flash-size", 		0, 0, LONGOPT_FLASH_SIZE},
-		{"flash-name", 		0, 0, LONGOPT_FLASH_NAME},
+		{"programmer",		1, NULL, 'p'},
+		{"help",		0, NULL, 'h'},
+		{"version",		0, NULL, 'R'},
+		{"output",		1, NULL, 'o'},
 		{"diff", 		1, 0, LONGOPT_DIFF},
 		{"do-not-diff",		0, 0, LONGOPT_DO_NOT_DIFF},
 		{"wp-status", 		0, 0, LONGOPT_WP_STATUS},
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
 		{"ignore-fmap", 	0, 0, LONGOPT_IGNORE_FMAP},
 		{"fast-verify",		0, 0, LONGOPT_FAST_VERIFY},
 		{"ignore-lock",		0, 0, LONGOPT_IGNORE_LOCK},
-		{0, 0, 0, 0}
+		{NULL,			0, NULL, 0},
 	};
 
 	char *filename = NULL;
