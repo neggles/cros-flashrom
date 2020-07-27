@@ -113,7 +113,7 @@ static void cli_classic_usage(const char *name)
 
 	msg_ginfo("Usage: flashrom [-n] [-V] [-f] [-h|-R|-L|"
 #if CONFIG_PRINT_WIKI == 1
-	         "-z|"
+	       "-z|"
 #endif
 	         "-E|-r <file>|-w <file>|-v <file>]\n"
 	       "       [-i <image>[:<file>]] [-c <chipname>]\n"
@@ -128,36 +128,31 @@ static void cli_classic_usage(const char *name)
 	       "that your flashrom version won't interpret options in a "
 	         "different way.\n\n");
 
-	msg_ginfo("   -h | --help                       print this help text\n"
-	       "   -R | --version                    print version (release)\n"
+	printf(" -h | --help                        print this help text\n"
+	       " -R | --version                     print version (release)\n"
 	       "   -r | --read <file|->              read flash and save to "
 	         "<file> or write on the standard output\n"
 	       "   -w | --write <file|->             write <file> or "
 	         "the content provided on the standard input to flash\n"
 	       "   -v | --verify <file|->            verify flash against "
 	         "<file> or the content provided on the standard input\n"
-	       "   -E | --erase                      erase flash device\n"
-	       "   -V | --verbose                    more verbose output\n"
-	       "   -c | --chip <chipname>            probe only for specified "
-	         "flash chip\n"
-	       "   -f | --force                      force specific operations "
-	         "(see man page)\n"
-	       "   -n | --noverify                   don't auto-verify\n"
-	       "   -l | --layout <file>              read ROM layout from "
-	         "<file>\n"
+	       " -E | --erase                       erase flash memory\n"
+	       " -V | --verbose                     more verbose output\n"
+	       " -c | --chip <chipname>             probe only for specified flash chip\n"
+	       " -f | --force                       force specific operations (see man page)\n"
+	       " -n | --noverify                    don't auto-verify\n"
+	       " -l | --layout <layoutfile>         read ROM layout from <layoutfile>\n"
 	       "   -i | --image <name>[:<file>]      only access image <name> "
 	         "from flash layout\n"
-	       "   -o | --output <name>	             log to file <name>\n"
-	       "   -L | --list-supported             print supported devices\n"
+	       " -o | --output <logfile>            log output to <logfile>\n"
+	       " -L | --list-supported              print supported devices\n"
 	       "   -x | --extract                    extract regions to files\n"
 #if CONFIG_PRINT_WIKI == 1
-	       "   -z | --list-supported-wiki        print supported devices in wiki syntax\n"
+	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
 #endif
-	       "   -p | --programmer <name>[:<param>] specify the programmer "
-	         "device\n"
-	);
+	       " -p | --programmer <name>[:<param>] specify the programmer device. One of\n");
 
-	list_programmers_linebreak(37, 80, 1);
+	list_programmers_linebreak(4, 80, 0);
 
 	msg_ginfo("Long-options:\n"
 	       "   --diff <file>                     diff from file instead of ROM\n"
@@ -176,7 +171,7 @@ static void cli_classic_usage(const char *name)
 	       "   --wp-status                       show write protect status\n"
 	       );
 
-	msg_ginfo("\nYou can specify one of -h, -R, -L, "
+	printf(".\n\nYou can specify one of -h, -R, -L, "
 #if CONFIG_PRINT_WIKI == 1
 	         "-z, "
 #endif
