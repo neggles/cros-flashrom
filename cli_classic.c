@@ -211,23 +211,6 @@ static int check_filename(char *filename, char *type)
 	return 0;
 }
 
-enum LONGOPT_RETURN_VALUES {
-	/* start after ASCII chars */
-	LONGOPT_FLASH_SIZE = 256,
-	LONGOPT_DIFF,
-	LONGOPT_FLASH_NAME,
-	LONGOPT_WP_STATUS,
-	LONGOPT_WP_SET_RANGE,
-	LONGOPT_WP_SET_REGION,
-	LONGOPT_WP_ENABLE,
-	LONGOPT_WP_DISABLE,
-	LONGOPT_WP_LIST,
-	LONGOPT_IGNORE_FMAP,
-	LONGOPT_FAST_VERIFY,
-	LONGOPT_IGNORE_LOCK,
-	LONGOPT_DO_NOT_DIFF,
-};
-
 int main(int argc, char *argv[])
 {
 	unsigned long size;
@@ -254,6 +237,22 @@ int main(int argc, char *argv[])
 	int operation_specified = 0;
 	int i, j;
 	enum programmer prog = PROGRAMMER_INVALID;
+	enum {
+		/* start after ASCII chars */
+		OPTION_DIFF = 0x0100,
+		OPTION_FLASH_NAME,
+		OPTION_FLASH_SIZE,
+		OPTION_WP_STATUS,
+		OPTION_WP_SET_RANGE,
+		OPTION_WP_SET_REGION,
+		OPTION_WP_ENABLE,
+		OPTION_WP_DISABLE,
+		OPTION_WP_LIST,
+		OPTION_IGNORE_FMAP,
+		OPTION_FAST_VERIFY,
+		OPTION_IGNORE_LOCK,
+		OPTION_DO_NOT_DIFF,
+	};
 	int ret = 0;
 	int found_chip = 0;
 
@@ -269,9 +268,9 @@ int main(int argc, char *argv[])
 		{"force",		0, NULL, 'f'},
 		{"layout",		1, NULL, 'l'},
 		{"image",		1, NULL, 'i'},
-		{"flash-name", 		0, NULL, LONGOPT_FLASH_NAME},
-		{"flash-size", 		0, NULL, LONGOPT_FLASH_SIZE},
-		{"get-size", 		0, NULL, LONGOPT_FLASH_SIZE},
+		{"flash-name",		0, NULL, OPTION_FLASH_NAME},
+		{"flash-size",		0, NULL, OPTION_FLASH_SIZE},
+		{"get-size",		0, NULL, OPTION_FLASH_SIZE}, // (deprecated): back compatibility.
 		{"list-supported",	0, NULL, 'L'},
 		{"list-supported-wiki",	0, NULL, 'z'},
 		{"extract", 		0, 0, 'x'},
@@ -279,17 +278,17 @@ int main(int argc, char *argv[])
 		{"help",		0, NULL, 'h'},
 		{"version",		0, NULL, 'R'},
 		{"output",		1, NULL, 'o'},
-		{"diff", 		1, 0, LONGOPT_DIFF},
-		{"do-not-diff",		0, 0, LONGOPT_DO_NOT_DIFF},
-		{"wp-status", 		0, 0, LONGOPT_WP_STATUS},
-		{"wp-range", 		0, 0, LONGOPT_WP_SET_RANGE},
-		{"wp-region",		1, 0, LONGOPT_WP_SET_REGION},
-		{"wp-enable", 		optional_argument, 0, LONGOPT_WP_ENABLE},
-		{"wp-disable", 		0, 0, LONGOPT_WP_DISABLE},
-		{"wp-list", 		0, 0, LONGOPT_WP_LIST},
-		{"ignore-fmap", 	0, 0, LONGOPT_IGNORE_FMAP},
-		{"fast-verify",		0, 0, LONGOPT_FAST_VERIFY},
-		{"ignore-lock",		0, 0, LONGOPT_IGNORE_LOCK},
+		{"diff", 		1, 0, OPTION_DIFF},
+		{"do-not-diff",		0, 0, OPTION_DO_NOT_DIFF},
+		{"wp-status", 		0, 0, OPTION_WP_STATUS},
+		{"wp-range", 		0, 0, OPTION_WP_SET_RANGE},
+		{"wp-region",		1, 0, OPTION_WP_SET_REGION},
+		{"wp-enable", 		optional_argument, 0, OPTION_WP_ENABLE},
+		{"wp-disable", 		0, 0, OPTION_WP_DISABLE},
+		{"wp-list", 		0, 0, OPTION_WP_LIST},
+		{"ignore-fmap", 	0, 0, OPTION_IGNORE_FMAP},
+		{"fast-verify",		0, 0, OPTION_FAST_VERIFY},
+		{"ignore-lock",		0, 0, OPTION_IGNORE_LOCK},
 		{NULL,			0, NULL, 0},
 	};
 
@@ -497,46 +496,46 @@ int main(int argc, char *argv[])
 			}
 #endif /* STANDALONE */
 			break;
-		case LONGOPT_FLASH_SIZE:
+		case OPTION_FLASH_SIZE:
 			flash_size = 1;
 			break;
-		case LONGOPT_DO_NOT_DIFF:
+		case OPTION_DO_NOT_DIFF:
 			do_diff = 0;
 			break;
-		case LONGOPT_WP_STATUS:
+		case OPTION_WP_STATUS:
 			wp_status = 1;
 			break;
-		case LONGOPT_WP_LIST:
+		case OPTION_WP_LIST:
 			wp_list = 1;
 			break;
-		case LONGOPT_WP_SET_RANGE:
+		case OPTION_WP_SET_RANGE:
 			set_wp_range = 1;
 			break;
-		case LONGOPT_WP_SET_REGION:
+		case OPTION_WP_SET_REGION:
 			set_wp_region = 1;
 			wp_region = strdup(optarg);
 			break;
-		case LONGOPT_WP_ENABLE:
+		case OPTION_WP_ENABLE:
 			set_wp_enable = 1;
 			if (optarg)
 				wp_mode_opt = strdup(optarg);
 			break;
-		case LONGOPT_WP_DISABLE:
+		case OPTION_WP_DISABLE:
 			set_wp_disable = 1;
 			break;
-		case LONGOPT_FLASH_NAME:
+		case OPTION_FLASH_NAME:
 			flash_name = 1;
 			break;
-		case LONGOPT_DIFF:
+		case OPTION_DIFF:
 			diff_file = strdup(optarg);
 			break;
-		case LONGOPT_IGNORE_FMAP:
+		case OPTION_IGNORE_FMAP:
 			set_ignore_fmap = 1;
 			break;
-		case LONGOPT_FAST_VERIFY:
+		case OPTION_FAST_VERIFY:
 			verify_it = VERIFY_PARTIAL;
 			break;
-		case LONGOPT_IGNORE_LOCK:
+		case OPTION_IGNORE_LOCK:
 			set_ignore_lock = 1;
 			break;
 		default:
