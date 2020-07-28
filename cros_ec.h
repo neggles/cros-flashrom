@@ -54,7 +54,6 @@ struct cros_ec_priv {
 
 extern struct cros_ec_priv *cros_ec_priv;
 
-int cros_ec_test(struct cros_ec_priv *priv);
 int cros_ec_probe_size(struct flashctx *flash);
 int cros_ec_block_erase(struct flashctx *flash,
                     unsigned int blockaddr, unsigned int len);
