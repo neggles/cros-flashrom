@@ -2306,7 +2306,7 @@ static struct opaque_master opaque_master_ich_hwseq = {
 	.erase = ich_hwseq_block_erase,
 };
 
-int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
+int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 {
 	unsigned int i;
 	uint16_t tmp2;
@@ -2320,15 +2320,16 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		ich_hwseq,
 		ich_swseq
 	} ich_spi_mode = ich_auto;
+	g_ich_generation = ich_generation;
+	msg_pdbg("ich_ generation %d\n", ich_generation);
 	size_t num_freg, num_pr, reg_pr0;
 
-	g_ich_generation = ich_gen;
 	ich_spibar = spibar;
 
 	memset(&desc, 0x00, sizeof(struct ich_descriptors));
 
 	/* Moving registers / bits */
-	switch (ich_gen) {
+	switch (ich_generation) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
@@ -2355,7 +2356,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		hwseq_data.hsfc_fcycle	= HSFC_FCYCLE;
 		break;
 	}
-	switch (ich_gen) {
+	switch (ich_generation) {
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 		num_freg = 10;
 		break;
@@ -2371,7 +2372,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		break;
 	}
 
-	switch (ich_gen) {
+	switch (ich_generation) {
 	case CHIPSET_ICH7:
 	case CHIPSET_TUNNEL_CREEK:
 	case CHIPSET_CENTERTON:
@@ -2454,9 +2455,9 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			 "Range (PR) restrictions still apply.\n");
 
 		if (desc_valid) {
-			if (ich_gen == CHIPSET_APOLLO_LAKE)
+			if (ich_generation == CHIPSET_APOLLO_LAKE)
 				num_fd_regions = APL_GLK_NUM_FD_REGIONS;
-			else if (ich_gen == CHIPSET_100_SERIES_SUNRISE_POINT)
+			else if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT)
 				num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
 			else
 				num_fd_regions = DEFAULT_NUM_FD_REGIONS;
@@ -2464,7 +2465,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		tmp = mmio_readl(ich_spibar + PCH100_REG_FADDR);
 		msg_pdbg("0x08: 0x%08x (FADDR)\n", tmp);
 
-		if (ich_gen == CHIPSET_100_SERIES_SUNRISE_POINT) {
+		if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT) {
 			const uint32_t dlock = mmio_readl(ich_spibar + PCH100_REG_DLOCK);
 			msg_pdbg("0x0c: 0x%08x (DLOCK)\n", dlock);
 			prettyprint_pch100_reg_dlock(dlock);
@@ -2489,8 +2490,8 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		for (i = 0; i < num_fd_regions; i++)
 			ich9_handle_pr(reg_pr0, i);
 		if (desc_valid) {
-			if (read_ich_descriptors_via_fdo(ich_gen, ich_spibar, &desc) == ICH_RET_OK)
-				prettyprint_ich_descriptors(ich_gen,
+			if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK)
+				prettyprint_ich_descriptors(ich_generation,
 							    &desc);
 		} else {
 			msg_perr("Hardware sequencing was requested "
@@ -2498,8 +2499,8 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 				 "valid. Aborting.\n");
 			return ERROR_FATAL;
 		}
-		hwseq_data.size_comp0 = getFCBA_component_density(ich_gen, &desc, 0);
-		hwseq_data.size_comp1 = getFCBA_component_density(ich_gen, &desc, 1);
+		hwseq_data.size_comp0 = getFCBA_component_density(ich_generation, &desc, 0);
+		hwseq_data.size_comp1 = getFCBA_component_density(ich_generation, &desc, 1);
 		register_opaque_master(&opaque_master_pch100_hwseq);
 		break;
 	case CHIPSET_ICH8:
@@ -2612,7 +2613,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			 swseq_data.reg_opmenu + 4, mmio_readl(ich_spibar + swseq_data.reg_opmenu + 4));
 
 		if (desc_valid) {
-			switch (ich_gen) {
+			switch (ich_generation) {
 			case CHIPSET_ICH8:
 			case CHIPSET_100_SERIES_SUNRISE_POINT:
 			case CHIPSET_C620_SERIES_LEWISBURG:
@@ -2627,7 +2628,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 				break;
 			}
 
-			if (ich_gen == CHIPSET_ICH8) {
+			if (ich_generation == CHIPSET_ICH8) {
 				tmp = mmio_readl(ich_spibar + ICH8_REG_VSCC);
 				msg_pdbg("0x%x: 0x%08x (VSCC)\n", ICH8_REG_VSCC, tmp);
 				msg_pdbg("VSCC: ");
@@ -2644,7 +2645,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 				prettyprint_ich_reg_vscc(tmp, FLASHROM_MSG_DEBUG, false);
 			}
 
-			switch (ich_gen) {
+			switch (ich_generation) {
 			case CHIPSET_ICH8:
 			case CHIPSET_100_SERIES_SUNRISE_POINT:
 			case CHIPSET_C620_SERIES_LEWISBURG:
@@ -2657,8 +2658,8 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 				break;
 			}
 
-			if (read_ich_descriptors_via_fdo(ich_gen, ich_spibar, &desc) == ICH_RET_OK)
-				prettyprint_ich_descriptors(ich_gen, &desc);
+			if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK)
+				prettyprint_ich_descriptors(ich_generation, &desc);
 
 			/* If the descriptor is valid and indicates multiple
 			 * flash devices we need to use hwseq to be able to
@@ -2686,14 +2687,14 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 				return ERROR_FATAL;
 			}
 
-			int tmpi = getFCBA_component_density(ich_gen, &desc, 0);
+			int tmpi = getFCBA_component_density(ich_generation, &desc, 0);
 			if (tmpi < 0) {
 				msg_perr("Could not determine density of flash component %d.\n", 0);
 				return ERROR_FATAL;
 			}
 			hwseq_data.size_comp0 = tmpi;
 
-			tmpi = getFCBA_component_density(ich_gen, &desc, 1);
+			tmpi = getFCBA_component_density(ich_generation, &desc, 1);
 			if (tmpi < 0) {
 				msg_perr("Could not determine density of flash component %d.\n", 1);
 				return ERROR_FATAL;
