@@ -2499,8 +2499,8 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 				 "valid. Aborting.\n");
 			return ERROR_FATAL;
 		}
-		hwseq_data.size_comp0 = getFCBA_component_density(ich_generation, &desc, 0);
-		hwseq_data.size_comp1 = getFCBA_component_density(ich_generation, &desc, 1);
+		hwseq_data.size_comp0 = getFCBA_component_density(&desc, 0);
+		hwseq_data.size_comp1 = getFCBA_component_density(&desc, 1);
 		register_opaque_master(&opaque_master_pch100_hwseq);
 		break;
 	case CHIPSET_ICH8:
@@ -2686,21 +2686,8 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 					 "valid. Aborting.\n");
 				return ERROR_FATAL;
 			}
-
-			int tmpi = getFCBA_component_density(ich_generation, &desc, 0);
-			if (tmpi < 0) {
-				msg_perr("Could not determine density of flash component %d.\n", 0);
-				return ERROR_FATAL;
-			}
-			hwseq_data.size_comp0 = tmpi;
-
-			tmpi = getFCBA_component_density(ich_generation, &desc, 1);
-			if (tmpi < 0) {
-				msg_perr("Could not determine density of flash component %d.\n", 1);
-				return ERROR_FATAL;
-			}
-			hwseq_data.size_comp1 = tmpi;
-
+			hwseq_data.size_comp0 = getFCBA_component_density(&desc, 0);
+			hwseq_data.size_comp1 = getFCBA_component_density(&desc, 1);
 			register_opaque_master(&opaque_master_ich_hwseq);
 		} else {
 			register_spi_master(&spi_master_ich9);

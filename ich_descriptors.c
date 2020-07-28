@@ -955,64 +955,30 @@ int read_ich_descriptors_from_dump(const uint32_t *const dump, const size_t len,
 #else /* ICH_DESCRIPTORS_FROM_DUMP */
 
 /** Returns the integer representation of the component density with index
-\em idx in bytes or -1 if the correct size can not be determined. */
-int getFCBA_component_density(enum ich_chipset cs, const struct ich_descriptors *desc, uint8_t idx)
+idx in bytes or 0 if a correct size can not be determined. */
+int getFCBA_component_density(const struct ich_descriptors *desc, uint8_t idx)
 {
-	if (idx > 1) {
-		msg_perr("Only ICH SPI component index 0 or 1 are supported yet.\n");
-		return -1;
-	}
-
-	if (desc->content.NC == 0 && idx > 0)
-		return 0;
-
 	uint8_t size_enc;
-	uint8_t size_max;
 
-	switch (cs) {
-	case CHIPSET_ICH8:
-	case CHIPSET_ICH9:
-	case CHIPSET_ICH10:
-	case CHIPSET_5_SERIES_IBEX_PEAK:
-	case CHIPSET_6_SERIES_COUGAR_POINT:
-	case CHIPSET_7_SERIES_PANTHER_POINT:
-	case CHIPSET_BAYTRAIL:
-		if (idx == 0) {
-			size_enc = desc->component.dens_old.comp1_density;
-		} else {
-			size_enc = desc->component.dens_old.comp2_density;
-		}
-		size_max = 5;
+	switch(idx) {
+	case 0:
+		size_enc = desc->component.dens_old.comp1_density;
 		break;
-	case CHIPSET_8_SERIES_LYNX_POINT:
-	case CHIPSET_8_SERIES_LYNX_POINT_LP:
-	case CHIPSET_8_SERIES_WELLSBURG:
-	case CHIPSET_9_SERIES_WILDCAT_POINT:
-	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_C620_SERIES_LEWISBURG:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-	case CHIPSET_APOLLO_LAKE:
-		if (idx == 0) {
-			size_enc = desc->component.dens_new.comp1_density;
-		} else {
-			size_enc = desc->component.dens_new.comp2_density;
-		}
-		size_max = 7;
+	case 1:
+		if (desc->content.NC == 0)
+			return 0;
+		size_enc = desc->component.dens_old.comp2_density;
 		break;
-	case CHIPSET_ICH_UNKNOWN:
 	default:
-		msg_pwarn("Density encoding is unknown on this chipset.\n");
-		return -1;
+		msg_perr("Only ICH SPI component index 0 or 1 are supported "
+			 "yet.\n");
+		return 0;
 	}
-
-	if (size_enc > size_max) {
-		msg_perr("Density of ICH SPI component with index %d is invalid.\n"
-			 "Encoded density is 0x%x while maximum allowed is 0x%x.\n",
-			 idx, size_enc, size_max);
-		return -1;
+	if (size_enc > 7) {
+		msg_perr("Density of ICH SPI component with index %d is "
+			 "invalid. Encoded density is 0x%x.\n", idx, size_enc);
+		return 0;
 	}
-
 	return (1 << (19 + size_enc));
 }
 
