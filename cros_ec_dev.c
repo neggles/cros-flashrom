@@ -59,6 +59,15 @@
 
 int cros_ec_fd;		/* File descriptor for kernel device */
 
+/* The names of the different device that can be found in a machine. */
+static const char *ec_type[] = {
+	"ec",
+	"pd",
+	"sh",
+	"fp",
+	"tp",
+};
+
 /*
  * @version: Command version number (often 0)
  * @command: Command to send (EC_CMD_...)
@@ -370,6 +379,61 @@ static int cros_ec_command_dev(int command, int version,
 
 	return ret;
 }
+
+/*
+ * Returns 0 to indicate success, non-zero otherwise
+ *
+ * This function parses programmer parameters from the command line. Since
+ * CrOS EC hangs off the "internal programmer" (AP, PCH, etc) this gets
+ * run during internal programmer initialization.
+ */
+static int cros_ec_parse_param(struct cros_ec_priv *priv)
+{
+	char *p;
+
+	p = extract_programmer_param("type");
+	if (p) {
+		unsigned int index;
+		for (index = 0; index < ARRAY_SIZE(ec_type); index++)
+			if (!strcmp(p, ec_type[index]))
+				break;
+		if (index == ARRAY_SIZE(ec_type)) {
+			msg_perr("Invalid argument: \"%s\"\n", p);
+			free(p);
+			return 1;
+		}
+		priv->dev = ec_type[index];
+		msg_pdbg("Target %s used\n", priv->dev);
+	}
+	free(p);
+
+	p = extract_programmer_param("block");
+	if (p) {
+		unsigned int block;
+		char *endptr = NULL;
+
+		errno = 0;
+		block = strtoul(p, &endptr, 0);
+		if (errno || (strlen(p) > 10) || (endptr != (p + strlen(p)))) {
+			msg_perr("Invalid argument: \"%s\"\n", p);
+			free(p);
+			return 1;
+		}
+
+		if (block <= 0) {
+			msg_perr("%s: Invalid block size\n", __func__);
+			free(p);
+			return 1;
+		}
+
+		msg_pdbg("Override block size to 0x%x\n", block);
+		priv->erase_block_size = block;
+	}
+	free(p);
+
+	return 0;
+}
+
 
 static struct cros_ec_priv cros_ec_dev_priv = {
 	.detected	= 0,
