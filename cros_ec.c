@@ -1038,37 +1038,6 @@ int cros_ec_test(struct cros_ec_priv *priv)
 	return 0;
 }
 
-void cros_ec_set_max_size(struct cros_ec_priv *priv,
-			  struct opaque_master *op) {
-	struct ec_response_get_protocol_info info;
-	int rc = 0;
-
-	msg_pdbg("%s: sending protoinfo command\n", __func__);
-	rc = priv->ec_command(EC_CMD_GET_PROTOCOL_INFO, 0, NULL, 0,
-			      &info, sizeof(info));
-	msg_pdbg("%s: rc:%d\n", __func__, rc);
-
-	/*
-	 * Use V3 large size only if v2 protocol is not supported.
-	 * When v2 is supported, we may be using a kernel without v3 support,
-	 * leading to sending larger commands the kernel can support.
-	 */
-	if (rc == sizeof(info) && ((info.protocol_versions & (1<<2)) == 0)) {
-		op->max_data_write = info.max_request_packet_size -
-			sizeof(struct ec_host_request);
-		op->max_data_read = info.max_response_packet_size -
-			sizeof(struct ec_host_response);
-		/*
-		 * Due to a bug in NPCX SPI code (chromium:725580),
-		 * The EC may responds 163 when it meant 160; it should not
-		 * have included header and footer.
-		 */
-		op->max_data_read &= ~3;
-		msg_pdbg("%s: max_write:%d max_read:%d\n", __func__,
-			 op->max_data_write, op->max_data_read);
-	}
-}
-
 int cros_ec_probe_size(struct flashctx *flash) {
 	int rc = 0, cmd_version;
 	struct ec_response_flash_spi_info spi_info;
