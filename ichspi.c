@@ -29,9 +29,6 @@
 #include "spi.h"
 #include "ich_descriptors.h"
 
-/* Apollo Lake */
-#define APL_REG_FREG12		0xe0	/* 32 Bytes Flash Region 12 */
-
 /* Sunrise Point */
 
 /* Added HSFS Status bits */
@@ -270,13 +267,6 @@
 #define ERASE_BLOCK_SIZE 1
 #define HWSEQ_READ		 0
 #define HWSEQ_WRITE		 1
-
-enum ich_access_protection {
-	NO_PROT		= 0,
-	READ_PROT	= 1,
-	WRITE_PROT	= 2,
-	LOCKED		= 3,
-};
 
 /* ICH SPI configuration lock-down. May be set during chipset enabling. */
 static int ichspi_lock = 0;
@@ -1156,7 +1146,7 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 	}
 }
 
-#define DEFAULT_NUM_FD_REGIONS 5
+#define DEFAULT_NUM_FD_REGIONS	5
 
 /*
  * APL/GLK have the Device Expansion region as well. Hence, the number of
@@ -1174,6 +1164,12 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 
 static int num_fd_regions;
 
+const char *const region_names[] = {
+	"Flash Descriptor", "BIOS", "Management Engine",
+	"Gigabit Ethernet", "Platform Data", "Device Expansion",
+	"Reserved 1", "Reserved 2", "Embedded Controller",
+};
+
 enum fd_access_level {
 	FD_REGION_LOCKED,
 	FD_REGION_READ_ONLY,
@@ -1190,6 +1186,11 @@ struct fd_region_permission {
 	{ FD_REGION_READ_ONLY, "read-only" },
 	{ FD_REGION_WRITE_ONLY, "write-only" },
 	{ FD_REGION_READ_WRITE, "read-write" },
+};
+
+/* FIXME: Replace usage of access_names with the region_access struct */
+const char *const access_names[4] = {
+	"locked", "read-only", "write-only", "read-write"
 };
 
 struct fd_region {
@@ -2112,41 +2113,18 @@ static int ich_spi_send_multicommand(const struct flashctx *flash,
 #define ICH_BRWA(x)  ((x >>  8) & 0xff)
 #define ICH_BRRA(x)  ((x >>  0) & 0xff)
 
-static const enum ich_access_protection access_perms_to_protection[] = {
-	LOCKED, WRITE_PROT, READ_PROT, NO_PROT
-};
-static const char *const access_names[] = {
-	"locked", "read-only", "write-only", "read-write"
-};
-
-static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i)
+static void ich9_handle_frap(uint32_t frap, unsigned int i)
 {
-	const int rwperms_unknown = ARRAY_SIZE(access_names);
-	static const char *const region_names[] = {
-		"Flash Descriptor", "BIOS", "Management Engine",
-		"Gigabit Ethernet", "Platform Data", "Device Expansion",
-		"BIOS2", "unknown", "EC/BMC",
-	};
-	const char *const region_name = i < ARRAY_SIZE(region_names) ? region_names[i] : "unknown";
-
-	uint32_t base, limit;
-	int rwperms;
-	const int offset = i < 12
-		? ICH9_REG_FREG0 + i * 4
-		: APL_REG_FREG12 + (i - 12) * 4;
+	int rwperms = (((ICH_BRWA(frap) >> i) & 1) << 1) |
+		      (((ICH_BRRA(frap) >> i) & 1) << 0);
+	int offset = ICH9_REG_FREG0 + i * 4;
 	uint32_t freg = mmio_readl(ich_spibar + offset);
 
-	if (i < 8) {
-		rwperms = (((ICH_BRWA(frap) >> i) & 1) << 1) |
-			  (((ICH_BRRA(frap) >> i) & 1) << 0);
-	} else {
-		/* Datasheets don't define any access bits for regions > 7. We
-		   can't rely on the actual descriptor settings either as there
-		   are several overrides for them (those by other masters are
-		   not even readable by us, *shrug*). */
-		rwperms = rwperms_unknown;
-	}
+	msg_pdbg("0x%02X: 0x%08x (FREG%i: %s)\n",
+		     offset, freg, i, fd_regions[i].name);
 
+	fd_regions[i].base  = ICH_FREG_BASE(freg);
+	fd_regions[i].limit = ICH_FREG_LIMIT(freg) | 0x0fff;
 	/*
 	 * Get Region 0 - 7 Permission bits, region 8 and above don't have
 	 * bits to indicate permissions in Flash Region Access Permissions
@@ -2182,35 +2160,15 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 		}
 	}
 
-	base  = ICH_FREG_BASE(freg);
-	limit = ICH_FREG_LIMIT(freg);
-
-	/* HACK to support check_fd_permissions() */
-	fd_regions[i].base  = base;
-	fd_regions[i].limit = limit | 0x0fff;
 	fd_regions[i].permission = &fd_region_permissions[rwperms];
-
-	if (base > limit || (freg == 0 && i > 0)) {
+	if (fd_regions[i].base > fd_regions[i].limit) {
 		/* this FREG is disabled */
-		msg_pdbg2("0x%02X: 0x%08x FREG%u: %s region is unused.\n",
-			  offset, freg, i, region_name);
-		return NO_PROT;
-	}
-	msg_pdbg("0x%02X: 0x%08x ", offset, freg);
-	if (rwperms == 0x3) {
-		msg_pdbg("FREG%u: %s region (0x%08x-0x%08x) is %s.\n", i,
-			 region_name, base, limit, access_names[rwperms]);
-		return NO_PROT;
-	}
-	if (rwperms == rwperms_unknown) {
-		msg_pdbg("FREG%u: %s region (0x%08x-0x%08x) has unknown permissions.\n",
-			 i, region_name, base, limit);
-		return NO_PROT;
+		msg_pdbg("%s region is unused.\n", region_names[i]);
+		return;
 	}
 
-	msg_pinfo("FREG%u: %s region (0x%08x-0x%08x) is %s.\n", i,
-		  region_name, base, limit, access_names[rwperms]);
-	return access_perms_to_protection[rwperms];
+	msg_pdbg("0x%08x-0x%08x is %s\n", fd_regions[i].base,
+	         fd_regions[i].limit, fd_regions[i].permission->name);
 }
 
 	/* In contrast to FRAP and the master section of the descriptor the bits
@@ -2222,26 +2180,27 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 #define ICH_PR_PERMS(pr)	(((~((pr) >> PR_RP_OFF) & 1) << 0) | \
 				 ((~((pr) >> PR_WP_OFF) & 1) << 1))
 
-static enum ich_access_protection ich9_handle_pr(const size_t reg_pr0, unsigned int i)
+static void prettyprint_ich9_reg_pr(int i, int chipset)
 {
-	uint8_t off = reg_pr0 + (i * 4);
-	uint32_t pr = mmio_readl(ich_spibar + off);
-	unsigned int rwperms = ICH_PR_PERMS(pr);
-
-	/* From 5 on we have GPR registers and start from 0 again. */
-	const char *const prefix = i >= 5 ? "G" : "";
-	if (i >= 5)
-		i -= 5;
-
-	if (rwperms == 0x3) {
-		msg_pdbg2("0x%02X: 0x%08x (%sPR%u is unused)\n", off, pr, prefix, i);
-		return NO_PROT;
+	uint8_t off;
+	switch (chipset) {
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_APOLLO_LAKE:
+		off = PCH100_REG_FPR0 + (i * 4);
+		break;
+	default:
+		off = ICH9_REG_PR0 + (i * 4);
+		break;
 	}
+	uint32_t pr = mmio_readl(ich_spibar + off);
+	int rwperms = ICH_PR_PERMS(pr);
 
-	msg_pdbg("0x%02X: 0x%08x ", off, pr);
-	msg_pwarn("%sPR%u: Warning: 0x%08x-0x%08x is %s.\n", prefix, i, ICH_FREG_BASE(pr),
-		  ICH_FREG_LIMIT(pr), access_names[rwperms]);
-	return access_perms_to_protection[rwperms];
+	msg_pdbg2("0x%02X: 0x%08x (PR%u", off, pr, i);
+	if (rwperms != 0x3)
+		msg_pdbg2(")\n0x%08x-0x%08x is %s\n", ICH_FREG_BASE(pr),
+			 ICH_FREG_LIMIT(pr) | 0x0fff, access_names[rwperms]);
+	else
+		msg_pdbg2(", unused)\n");
 }
 
 /* Set/Clear the read and write protection enable bits of PR register @i
@@ -2312,7 +2271,6 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 	uint16_t tmp2;
 	uint32_t tmp;
 	char *arg;
-	int ich_spi_rw_restricted = 0;
 	int desc_valid = 0;
 	struct ich_descriptors desc;
 	enum ich_spi_mode {
@@ -2320,9 +2278,10 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 		ich_hwseq,
 		ich_swseq
 	} ich_spi_mode = ich_auto;
+	size_t reg_pr0;
+
 	g_ich_generation = ich_generation;
 	msg_pdbg("ich_ generation %d\n", ich_generation);
-	size_t num_freg, num_pr, reg_pr0;
 
 	ich_spibar = spibar;
 
@@ -2334,7 +2293,6 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_APOLLO_LAKE:
-		num_pr			= 6;	/* Includes GPR0 */
 		reg_pr0			= PCH100_REG_FPR0;
 		swseq_data.reg_ssfsc	= PCH100_REG_SSFSC;
 		swseq_data.reg_preop	= PCH100_REG_PREOP;
@@ -2345,7 +2303,6 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 		hwseq_data.hsfc_fcycle	= PCH100_HSFC_FCYCLE;
 		break;
 	default:
-		num_pr			= 5;
 		reg_pr0			= ICH9_REG_PR0;
 		swseq_data.reg_ssfsc	= ICH9_REG_SSFS;
 		swseq_data.reg_preop	= ICH9_REG_PREOP;
@@ -2354,21 +2311,6 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 		hwseq_data.addr_mask	= ICH9_FADDR_FLA;
 		hwseq_data.only_4k	= false;
 		hwseq_data.hsfc_fcycle	= HSFC_FCYCLE;
-		break;
-	}
-	switch (ich_generation) {
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-		num_freg = 10;
-		break;
-	case CHIPSET_C620_SERIES_LEWISBURG:
-		num_freg = 12;	/* 12 MMIO regs, but 16 regions in FD spec */
-		break;
-	case CHIPSET_300_SERIES_CANNON_POINT:
-	case CHIPSET_APOLLO_LAKE:
-		num_freg = 16;
-		break;
-	default:
-		num_freg = 5;
 		break;
 	}
 
@@ -2488,7 +2430,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 			for (i = 0; i < num_fd_regions; i++)
 				ich9_set_pr(reg_pr0, i, 0, 0);
 		for (i = 0; i < num_fd_regions; i++)
-			ich9_handle_pr(reg_pr0, i);
+			prettyprint_ich9_reg_pr(i, ich_generation);
 		if (desc_valid) {
 			if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK)
 				prettyprint_ich_descriptors(ich_generation,
@@ -2545,6 +2487,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 		ich_init_opcodes();
 
 		if (desc_valid) {
+			num_fd_regions = DEFAULT_NUM_FD_REGIONS;
 			tmp2 = mmio_readw(ich_spibar + ICH9_REG_HSFC);
 			msg_pdbg("0x06: 0x%04x (HSFC)\n", tmp2);
 			prettyprint_ich9_reg_hsfc(tmp2);
@@ -2561,37 +2504,17 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation)
 			msg_pdbg("BRWA 0x%02x, ", ICH_BRWA(tmp));
 			msg_pdbg("BRRA 0x%02x\n", ICH_BRRA(tmp));
 
-			/* Handle FREGx and FRAP registers */
-			for (i = 0; i < num_freg; i++)
-				ich_spi_rw_restricted |= ich9_handle_frap(tmp, i);
-			if (ich_spi_rw_restricted)
-				msg_pinfo("Not all flash regions are freely accessible by flashrom. This is "
-					  "most likely\ndue to an active ME. Please see "
-					  "https://flashrom.org/ME for details.\n");
+			/* Decode and print FREGx and FRAP registers */
+			for (i = 0; i < num_fd_regions; i++)
+				ich9_handle_frap(tmp, i);
 		}
 
-		/* Handle PR registers */
-		for (i = 0; i < num_pr; i++) {
-			/* if not locked down try to disable PR locks first */
-			if (!ichspi_lock)
+		/* try to disable PR locks before printing them */
+		if (!ichspi_lock)
+			for (i = 0; i < num_fd_regions; i++)
 				ich9_set_pr(reg_pr0, i, 0, 0);
-			ich_spi_rw_restricted |= ich9_handle_pr(reg_pr0, i);
-		}
-
-		switch (ich_spi_rw_restricted) {
-		case WRITE_PROT:
-			msg_pwarn("At least some flash regions are write protected. For write operations,\n"
-				  "you should use a flash layout and include only writable regions. See\n"
-				  "manpage for more details.\n");
-			break;
-		case READ_PROT:
-		case LOCKED:
-			msg_pwarn("At least some flash regions are read protected. You have to use a flash\n"
-				  "layout and include only accessible regions. For write operations, you'll\n"
-				  "additionally need the --noverify-all switch. See manpage for more details.\n"
-				  );
-			break;
-		}
+		for (i = 0; i < num_fd_regions; i++)
+			prettyprint_ich9_reg_pr(i, ich_generation);
 
 		tmp = mmio_readl(ich_spibar + swseq_data.reg_ssfsc);
 		msg_pdbg("0x%zx: 0x%02x (SSFS)\n", swseq_data.reg_ssfsc, tmp & 0xff);
