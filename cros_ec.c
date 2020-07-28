@@ -57,12 +57,6 @@ static int ignore_wp_range_command = 0;
 
 static int set_wp(int enable);	/* FIXME: move set_wp() */
 
-struct wp_data {
-	int enable;
-	unsigned int start;
-	unsigned int len;
-};
-
 /* If software sync is enabled, then we don't try the latest firmware copy
  * after updating.
  */
@@ -242,7 +236,8 @@ static int ec_get_cmd_versions(int cmd, uint32_t *pmask)
  * @param flags		flags to pass to EC_CMD_REBOOT_EC.
  * @return 0 for success, < 0 for command failure.
  */
-static int cros_ec_cold_reboot(int flags) {
+static int cros_ec_cold_reboot(int flags)
+{
 	struct ec_params_reboot_ec p;
 
 	memset(&p, 0, sizeof(p));
@@ -258,7 +253,8 @@ static int cros_ec_cold_reboot(int flags) {
  *
  * Returns 0 for success.
  */
-static int cros_ec_jump_copy(enum ec_current_image target) {
+static int cros_ec_jump_copy(enum ec_current_image target)
+{
 	struct ec_params_reboot_ec p;
 	int rc;
 	enum ec_current_image current_image;
@@ -383,7 +379,8 @@ static int cros_ec_wp_is_enabled(void)
  * - Parse flashmap.
  * - Jump to RO firmware.
  */
-int cros_ec_prepare(uint8_t *image, int size) {
+int cros_ec_prepare(uint8_t *image, int size)
+{
 	struct fmap *fmap;
 	unsigned i, j;
 	int wp_status;
@@ -496,7 +493,8 @@ int cros_ec_need_2nd_pass(void)
  */
 int cros_ec_finish(void)
 {
-	if (!(cros_ec_priv && cros_ec_priv->detected)) return 0;
+	if (!(cros_ec_priv && cros_ec_priv->detected))
+          return 0;
 
 	/* For EC with RWSIG enabled. We need a cold reboot to enable
 	 * EC_FLASH_PROTECT_ALL_NOW and make sure RWSIG check is performed.
@@ -511,8 +509,8 @@ int cros_ec_finish(void)
 	}
 
 	if (try_latest_firmware) {
-		if (fwcopy[EC_IMAGE_RW].flags &&
-		    cros_ec_jump_copy(EC_IMAGE_RW) == 0) return 0;
+		if (fwcopy[EC_IMAGE_RW].flags && cros_ec_jump_copy(EC_IMAGE_RW) == 0)
+                  return 0;
 		return cros_ec_jump_copy(EC_IMAGE_RO);
 	}
 
@@ -577,9 +575,9 @@ static int in_current_image(unsigned int addr, unsigned int len)
 }
 
 
-int cros_ec_block_erase(struct flashctx *flash,
-                           unsigned int blockaddr,
-                           unsigned int len) {
+int cros_ec_block_erase(struct flashctx *flash, unsigned int blockaddr,
+                        unsigned int len)
+{
 	struct ec_params_flash_erase_v1 erase;
 	uint32_t mask;
 	int rc, cmd_version, timeout=0;
@@ -680,7 +678,8 @@ end_flash_erase:
 
 
 int cros_ec_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
-                    unsigned int nbytes) {
+                  unsigned int nbytes)
+{
 	unsigned i;
 	int rc = 0;
 	unsigned int written = 0, real_write_size;
@@ -736,7 +735,8 @@ int cros_ec_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
 }
 
 
-static int cros_ec_list_ranges(const struct flashctx *flash) {
+static int cros_ec_list_ranges(const struct flashctx *flash)
+{
 	struct ec_response_flash_region_info info;
 	int rc;
 
@@ -775,7 +775,8 @@ static int cros_ec_list_ranges(const struct flashctx *flash) {
  *  try to set EC_FLASH_PROTECT_RO_NOW at the same time. However, not
  *  every EC supports RO_NOW, thus we then try to protect the entire chip.
  */
-static int set_wp(int enable) {
+static int set_wp(int enable)
+{
 	struct ec_params_flash_protect p;
 	struct ec_response_flash_protect r;
 	const int ro_at_boot_flag = EC_FLASH_PROTECT_RO_AT_BOOT;
@@ -898,8 +899,8 @@ exit:
 	return 0;
 }
 
-static int cros_ec_set_range(const struct flashctx *flash,
-                         unsigned int start, unsigned int len) {
+static int cros_ec_set_range(const struct flashctx *flash, unsigned int start, unsigned int len)
+{
 	struct ec_response_flash_region_info info;
 	int rc;
 
@@ -928,8 +929,8 @@ static int cros_ec_set_range(const struct flashctx *flash,
 }
 
 
-static int cros_ec_enable_writeprotect(const struct flashctx *flash,
-		enum wp_mode wp_mode) {
+static int cros_ec_enable_writeprotect(const struct flashctx *flash, enum wp_mode wp_mode)
+{
 	int ret;
 
 	switch (wp_mode) {
@@ -947,7 +948,8 @@ static int cros_ec_enable_writeprotect(const struct flashctx *flash,
 }
 
 
-static int cros_ec_disable_writeprotect(const struct flashctx *flash) {
+static int cros_ec_disable_writeprotect(const struct flashctx *flash)
+{
 	/* --wp-range implicitly enables write protection on CrOS EC, so force
 	   it not to if --wp-disable is what the user really wants. */
 	ignore_wp_range_command = 1;
@@ -955,7 +957,8 @@ static int cros_ec_disable_writeprotect(const struct flashctx *flash) {
 }
 
 
-static int cros_ec_wp_status(const struct flashctx *flash) {;
+static int cros_ec_wp_status(const struct flashctx *flash)
+{
 	struct ec_params_flash_protect p;
 	struct ec_response_flash_protect r;
 	int start, len;  /* wp range */
@@ -1013,7 +1016,8 @@ static int cros_ec_wp_status(const struct flashctx *flash) {;
 	return 0;
 }
 
-int cros_ec_probe_size(struct flashctx *flash) {
+int cros_ec_probe_size(struct flashctx *flash)
+{
 	int rc = 0, cmd_version;
 	struct ec_response_flash_spi_info spi_info;
 	struct ec_response_get_chip_info chip_info;
