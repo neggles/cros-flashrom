@@ -2572,7 +2572,6 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		register_spi_master(&spi_master_ich7);
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APOLLO_LAKE:
 		reg_pr0         = PCH100_REG_FPR0;
 		arg = extract_programmer_param("ich_spi_mode");
 		if (arg && !strcmp(arg, "hwseq")) {
