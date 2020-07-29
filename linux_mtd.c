@@ -36,7 +36,7 @@
 #define LINUX_DEV_ROOT			"/dev"
 #define LINUX_MTD_SYSFS_ROOT		"/sys/class/mtd"
 
-static int dev_fd = -1;
+static FILE *dev_fp = NULL;
 
 static int mtd_device_is_writeable;
 
@@ -52,19 +52,23 @@ static struct wp wp_mtd;	/* forward declaration */
 /* read a string from a sysfs file and sanitize it */
 static int read_sysfs_string(const char *sysfs_path, const char *filename, char *buf, int len)
 {
-	int fd, bytes_read, i;
+	int i;
+	size_t bytes_read;
+	FILE *fp;
 	char path[strlen(LINUX_MTD_SYSFS_ROOT) + 32];
 
 	snprintf(path, sizeof(path), "%s/%s", sysfs_path, filename);
 
-	if ((fd = open(path, O_RDONLY)) < 0) {
+	if ((fp = fopen(path, "r")) == NULL) {
 		msg_perr("Cannot open %s\n", path);
 		return 1;
 	}
 
-	if ((bytes_read = read(fd, buf, len - 1)) < 0) {
-		msg_perr("Cannot read %s\n", path);
-		close(fd);
+	clearerr(fp);
+	bytes_read = fread(buf, 1, (size_t)len, fp);
+	if (!feof(fp) && ferror(fp)) {
+		msg_perr("Error occurred when reading %s\n", path);
+		fclose(fp);
 		return 1;
 	}
 
@@ -83,7 +87,7 @@ static int read_sysfs_string(const char *sysfs_path, const char *filename, char 
 		}
 	}
 
-	close(fd);
+	fclose(fp);
 	return 0;
 }
 
@@ -193,7 +197,7 @@ static int linux_mtd_read(struct flashctx *flash, uint8_t *buf,
 	unsigned int eb_size = flash->chip->block_erasers[0].eraseblocks[0].size;
 	unsigned int i;
 
-	if (lseek(dev_fd, start, SEEK_SET) != start) {
+	if (fseek(dev_fp, start, SEEK_SET) != 0) {
 		msg_perr("Cannot seek to 0x%06x: %s\n", start, strerror(errno));
 		return 1;
 	}
@@ -207,7 +211,7 @@ static int linux_mtd_read(struct flashctx *flash, uint8_t *buf,
 		unsigned int step = eb_size - ((start + i) % eb_size);
 		step = min(step, len - i);
 
-		if (read(dev_fd, buf + i, step) != step) {
+		if (fread(buf + i, step, 1, dev_fp) != 1) {
 			msg_perr("Cannot read 0x%06x bytes at 0x%06x: %s\n",
 					step, start + i, strerror(errno));
 			return 1;
@@ -229,7 +233,7 @@ static int linux_mtd_write(struct flashctx *flash, const uint8_t *buf,
 	if (!mtd_device_is_writeable)
 		return 1;
 
-	if (lseek(dev_fd, start, SEEK_SET) != start) {
+	if (fseek(dev_fp, start, SEEK_SET) != 0) {
 		msg_perr("Cannot seek to 0x%06x: %s\n", start, strerror(errno));
 		return 1;
 	}
@@ -244,9 +248,13 @@ static int linux_mtd_write(struct flashctx *flash, const uint8_t *buf,
 		unsigned int step = chunksize - ((start + i) % chunksize);
 		step = min(step, len - i);
 
-		if (write(dev_fd, buf + i, step) != step) {
-			msg_perr("Cannot write 0x%06x bytes at 0x%06x: %s\n",
-					step, start + i, strerror(errno));
+		if (fwrite(buf + i, step, 1, dev_fp) != 1) {
+			msg_perr("Cannot write 0x%06x bytes at 0x%06x\n", step, start + i);
+			return 1;
+		}
+
+		if (fflush(dev_fp) == EOF) {
+			msg_perr("Failed to flush buffer: %s\n", strerror(errno));
 			return 1;
 		}
 
@@ -278,7 +286,7 @@ static int linux_mtd_erase(struct flashctx *flash,
 			.length = mtd_erasesize,
 		};
 
-		if (ioctl(dev_fd, MEMERASE, &erase_info) == -1) {
+		if (ioctl(fileno(dev_fp), MEMERASE, &erase_info) == -1) {
 			msg_perr("%s: ioctl: %s\n", __func__, strerror(errno));
 			return 1;
 		}
@@ -350,9 +358,9 @@ static int linux_mtd_setup(int dev_num)
 	if (get_mtd_info(sysfs_path))
 		goto linux_mtd_setup_exit;
 
-	if ((dev_fd = open(dev_path, O_RDWR)) == -1) {
-		msg_pdbg("%s: failed to open %s: %s\n", __func__,
-			 dev_path, strerror(errno));
+	/* open file stream and go! */
+	if ((dev_fp = fopen(dev_path, "r+")) == NULL) {
+		msg_perr("Cannot open file stream for %s\n", dev_path);
 		goto linux_mtd_setup_exit;
 	}
 
@@ -363,9 +371,9 @@ linux_mtd_setup_exit:
 
 static int linux_mtd_shutdown(void *data)
 {
-	if (dev_fd != -1) {
-		close(dev_fd);
-		dev_fd = -1;
+	if (dev_fp != NULL) {
+		fclose(dev_fp);
+		dev_fp = NULL;
 	}
 
 	return 0;
@@ -403,6 +411,7 @@ int linux_mtd_init(void)
 
 	ret = 0;
 linux_mtd_init_exit:
+	free(param);
 	return ret;
 }
 
@@ -463,14 +472,14 @@ static int mtd_wp_enable_writeprotect(const struct flashctx *flash, enum wp_mode
 	 * we need to disable the current write protection and then enable
 	 * it for the desired range.
 	 */
-	if (ioctl(dev_fd, MEMUNLOCK, &entire_chip) == -1) {
+	if (ioctl(fileno(dev_fp), MEMUNLOCK, &entire_chip) == -1) {
 		msg_perr("%s: Failed to disable write-protection, ioctl: %s\n",
 				__func__, strerror(errno));
 		msg_perr("Did you disable WP#?\n");
 		return 1;
 	}
 
-	if (ioctl(dev_fd, MEMLOCK, &desired_range) == -1) {
+	if (ioctl(fileno(dev_fp), MEMLOCK, &desired_range) == -1) {
 		msg_perr("%s: Failed to enable write-protection, ioctl: %s\n",
 				__func__, strerror(errno));
 		return 1;
@@ -491,7 +500,7 @@ static int mtd_wp_disable_writeprotect(const struct flashctx *flash)
 		erase_info.length = mtd_total_size;
 	}
 
-	if (ioctl(dev_fd, MEMUNLOCK, &erase_info) == -1) {
+	if (ioctl(fileno(dev_fp), MEMUNLOCK, &erase_info) == -1) {
 		msg_perr("%s: ioctl: %s\n", __func__, strerror(errno));
 		msg_perr("Did you disable WP#?\n");
 		return 1;
@@ -515,7 +524,7 @@ static int mtd_wp_status(const struct flashctx *flash)
 			.length = mtd_erasesize,
 		};
 
-		rc = ioctl(dev_fd, MEMISLOCKED, &erase_info);
+		rc = ioctl(fileno(dev_fp), MEMISLOCKED, &erase_info);
 		if (rc < 0) {
 			msg_perr("%s: ioctl: %s\n", __func__, strerror(errno));
 			return 1;
