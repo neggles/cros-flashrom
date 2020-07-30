@@ -622,22 +622,21 @@ static struct romentry *get_next_included_romentry(unsigned int start)
 /* Validate and - if needed - normalize layout entries. */
 int normalize_romentries(const struct flashctx *flash)
 {
+	struct flashrom_layout *const layout = get_global_layout();
 	chipsize_t total_size = flash->chip->total_size * 1024;
 	int ret = 0;
-	struct flashrom_layout *const layout = get_global_layout();
 
-	int i;
+	unsigned int i;
 	for (i = 0; i < layout->num_entries; i++) {
-		struct romentry *entry = &layout->entries[i];
-		if (entry->start >= total_size || entry->end >= total_size) {
-			msg_gerr("Warning: Address range of region \"%s\" exceeds the current chip's "
-				 "address space.\n", entry->name);
-			if (!entry->included)
+		if (layout->entries[i].start >= total_size || layout->entries[i].end >= total_size) {
+			msg_gwarn("Warning: Address range of region \"%s\" exceeds the current chip's "
+				  "address space.\n", layout->entries[i].name);
+			if (layout->entries[i].included)
 				ret = 1;
 		}
-		if (entry->start > entry->end) {
-			msg_gerr("Layout entry \"%s\" has an invalid range.\n",
-						entry->name);
+		if (layout->entries[i].start > layout->entries[i].end) {
+			msg_gerr("Error: Size of the address range of region \"%s\" is not positive.\n",
+				  layout->entries[i].name);
 			ret = 1;
 		}
 	}
