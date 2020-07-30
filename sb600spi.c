@@ -16,7 +16,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #if defined(__i386__) || defined(__x86_64__)
@@ -24,7 +23,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "flash.h"
-#include <stdbool.h>
 #include "programmer.h"
 #include "hwaccess.h"
 #include "spi.h"
@@ -96,19 +94,19 @@ static uint8_t pm_ioread (uint8_t addr)
 	return INB(PM_DATA);
 }
 
-static int find_smbus (struct pci_dev **smbus_dev, uint16_t vendor, uint16_t device)
+static int find_smbus_dev_rev(uint16_t vendor, uint16_t device)
 {
-       *smbus_dev = pci_dev_find(vendor, device);
-       if (*smbus_dev == NULL) {
-               msg_pdbg("No SMBus device with ID %04X:%04X found.\n", vendor, device);
-               msg_perr("ERROR: SMBus device not found. Not enabling SPI.\n");
-               return 1;
-       }
-       return 0;
+	struct pci_dev *smbus_dev = pci_dev_find(vendor, device);
+	if (!smbus_dev) {
+		msg_pdbg("No SMBus device with ID %04X:%04X found.\n", vendor, device);
+		msg_perr("ERROR: SMBus device not found. Not enabling SPI.\n");
+		return -1;
+	}
+	return pci_read_byte(smbus_dev, PCI_REVISION_ID);
 }
 
 /* Determine the chipset's version and identify the respective SMBUS device. */
-static int determine_generation(struct pci_dev *dev, struct pci_dev **smbus_dev)
+static int determine_generation(struct pci_dev *dev)
 {
 	amd_gen = CHIPSET_AMD_UNKNOWN;
 	msg_pdbg2("Trying to determine the generation of the SPI interface... ");
@@ -116,9 +114,9 @@ static int determine_generation(struct pci_dev *dev, struct pci_dev **smbus_dev)
 		amd_gen = CHIPSET_SB6XX;
 		msg_pdbg("SB6xx detected.\n");
 	} else if (dev->device_id == 0x439d) {
-		if (find_smbus(smbus_dev, 0x1002, 0x4385) != 0)
-			return 1;
-		uint8_t rev = pci_read_byte(*smbus_dev, PCI_REVISION_ID);
+		int rev = find_smbus_dev_rev(0x1002, 0x4385);
+		if (rev < 0)
+			return -1;
 		if (rev >= 0x39 && rev <= 0x3D) {
 			amd_gen = CHIPSET_SB7XX;
 			msg_pdbg("SB7xx/SP5100 detected.\n");
@@ -134,10 +132,9 @@ static int determine_generation(struct pci_dev *dev, struct pci_dev **smbus_dev)
 	} else if (dev->device_id == 0x780e) {
 		/* The PCI ID of the LPC bridge doesn't change between Hudson-2/3/4 and Yangtze (Kabini/Temash)
 		 * although they use different SPI interfaces. */
-		if (find_smbus(smbus_dev, 0x1022, 0x780b) != 0)
-			return 1;
-		uint8_t rev = pci_read_byte(*smbus_dev, PCI_REVISION_ID);
-
+		int rev = find_smbus_dev_rev(0x1022, 0x780B);
+		if (rev < 0)
+			return -1;
 		if (rev >= 0x11 && rev <= 0x15) {
 			amd_gen = CHIPSET_HUDSON234;
 			msg_pdbg("Hudson-2/3/4 detected.\n");
@@ -153,19 +150,30 @@ static int determine_generation(struct pci_dev *dev, struct pci_dev **smbus_dev)
 				  "the output of lspci -nnvx, thanks!.\n", rev);
 		}
 	} else if (dev->device_id == 0x790e) {
-		if (find_smbus(smbus_dev, 0x1022, 0x790b) != 0)
-			return 1;
-		amd_gen = CHIPSET_PROMONTORY;
-		msg_pdbg("Promontory detected.\n");
+		int rev = find_smbus_dev_rev(0x1022, 0x790B);
+		if (rev < 0)
+			return -1;
+		if (rev == 0x4a) {
+			amd_gen = CHIPSET_YANGTZE;
+			msg_pdbg("Yangtze detected.\n");
+		} else if (rev == 0x4b || rev == 0x61) {
+			amd_gen = CHIPSET_PROMONTORY;
+			msg_pdbg("Promontory detected.\n");
+		} else {
+			msg_pwarn("FCH device found but SMBus revision 0x%02x does not match known values.\n"
+				  "Please report this to flashrom@flashrom.org and include this log and\n"
+				  "the output of lspci -nnvx, thanks!.\n", rev);
+		}
+
+
 	} else
-		msg_pwarn("%s: Unknown LPC device %x :%x.\n"
+		msg_pwarn("%s: Unknown LPC device %" PRIx16 ":%" PRIx16 ".\n"
 			  "Please report this to flashrom@flashrom.org and include this log and\n"
 			  "the output of lspci -nnvx, thanks!\n",
 			  __func__, dev->vendor_id, dev->device_id);
-
 	if (amd_gen == CHIPSET_AMD_UNKNOWN) {
 		msg_perr("Could not determine chipset generation.");
-		return 1;
+		return -1;
 	}
 	return 0;
 }
@@ -249,7 +257,7 @@ static int sb600_spi_send_command(const struct flashctx *flash, unsigned int wri
 
 	reset_internal_fifo_pointer();
 	msg_pspew("Filling FIFO: ");
-	int count;
+	unsigned int count;
 	for (count = 0; count < writecnt; count++) {
 		msg_pspew("[%02x]", writearr[count]);
 		mmio_writeb(writearr[count], sb600_spibar + 0xC);
@@ -328,7 +336,7 @@ static int spi100_spi_send_command(const struct flashctx *flash, unsigned int wr
 	mmio_writeb(readcnt, sb600_spibar + 0x4b);
 
 	msg_pspew("Filling buffer: ");
-	int count;
+	unsigned int count;
 	for (count = 0; count < writecnt; count++) {
 		msg_pspew("[%02x]", writearr[count]);
 		mmio_writeb(writearr[count], sb600_spibar + 0x80 + count);
@@ -619,9 +627,8 @@ int sb600_probe_spi(struct pci_dev *dev)
 	 */
 	sb600_spibar += tmp & 0xfff;
 
-	if (determine_generation(dev, &smbus_dev) != 0) {
+	if (determine_generation(dev) < 0)
 		return ERROR_NONFATAL;
-	}
 
 	/* How to read the following table and similar ones in this file:
 	 * "?" means we have no datasheet for this chipset generation or it doesn't have any relevant info.
@@ -679,7 +686,7 @@ int sb600_probe_spi(struct pci_dev *dev)
 	 *  <1> see handle_speed
 	 */
 	tmp = mmio_readl(sb600_spibar + 0x00);
-	msg_pdbg("(0x%08x) SpiArbEnable=%i", tmp, (tmp >> 19) & 0x1);
+	msg_pdbg("(0x%08" PRIx32 ") SpiArbEnable=%i", tmp, (tmp >> 19) & 0x1);
 	if (amd_gen >= CHIPSET_YANGTZE)
 		msg_pdbg(", IllegalAccess=%i", (tmp >> 21) & 0x1);
 
@@ -692,6 +699,7 @@ int sb600_probe_spi(struct pci_dev *dev)
 	switch (amd_gen) {
 	case CHIPSET_SB7XX:
 		msg_pdbg(", DropOneClkOnRd/SpiClkGate=%i", (tmp >> 28) & 0x1);
+		/* Fall through. */
 	case CHIPSET_SB89XX:
 	case CHIPSET_HUDSON234:
 	case CHIPSET_YANGTZE:
@@ -710,6 +718,17 @@ int sb600_probe_spi(struct pci_dev *dev)
 		tmp = mmio_readb(sb600_spibar + 0x1D);
 		msg_pdbg("Using SPI_CS%d\n", tmp & 0x3);
 		/* FIXME: Handle SpiProtect* configuration on Yangtze. */
+	}
+
+	/* Look for the SMBus device. */
+	smbus_dev = pci_dev_find(0x1002, 0x4385);
+	if (!smbus_dev)
+		smbus_dev = pci_dev_find(0x1022, 0x780b); /* AMD FCH */
+	if (!smbus_dev)
+		smbus_dev = pci_dev_find(0x1022, 0x790b); /* AMD FP4 */
+	if (!smbus_dev) {
+		msg_perr("ERROR: SMBus device not found. Not enabling SPI.\n");
+		return ERROR_NONFATAL;
 	}
 
 	/* Note about the bit tests below: If a bit is zero, the GPIO is SPI. */
