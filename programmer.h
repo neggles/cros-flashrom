@@ -500,9 +500,6 @@ extern unsigned long flashbase;
 int check_max_decode(enum chipbustype buses, uint32_t size);
 char *extract_programmer_param(const char *param_name);
 
-/* layout.c */
-int show_id(uint8_t *bios, int size, int force);
-
 /* spi.c */
 extern const int spi_master_count;
 
