@@ -381,7 +381,7 @@ static int cros_ec_wp_is_enabled(void)
  */
 int cros_ec_prepare(uint8_t *image, int size)
 {
-	struct fmap *fmap;
+	struct fmap *fmap = NULL;
 	unsigned i, j;
 	int wp_status;
 
@@ -437,8 +437,8 @@ int cros_ec_prepare(uint8_t *image, int size)
 				}
 			}
 		}
+		free(fmap);
 	}
-	free(fmap);
 
 	if (ec_check_features(EC_FEATURE_EXEC_IN_RAM) > 0) {
 		msg_pwarn("Skip jumping to RO\n");
