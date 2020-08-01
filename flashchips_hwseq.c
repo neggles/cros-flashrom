@@ -26,34 +26,6 @@
 #include "chipdrivers.h"
 #include "writeprotect.h"
 
-/* Generic flashchip struct for platforms that use Intel hardware sequencing. */
-const struct flashchip flashchips_hwseq[] = {
-	{
-		.vendor		= "Generic",
-		.name		= "HWSEQ chip",
-		.bustype	= BUS_PROG,
-		/* probe is assumed to work, rest will be filled in by probe */
-		.tested		= TEST_OK_PREW,
-		.probe		= probe_opaque,
-		/* eraseblock sizes will be set by the probing function */
-		.block_erasers	=
-		{
-			{
-				.block_erase = erase_opaque,
-			}
-		},
-		.write		= write_opaque,
-		.read		= read_opaque,
-		.read_status	= read_status_opaque,
-		.write_status	= write_status_opaque,
-		.check_access	= check_access_opaque,
-		.wp		= &wp_w25,
-		.unlock	= &spi_disable_blockprotect,
-	},
-
-	{NULL}
-};
-
 const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model_id)
 {
 	const struct flashchip *chip;

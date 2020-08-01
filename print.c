@@ -35,7 +35,7 @@ static const char *test_state_to_text(enum test_state test_state)
 	}
 }
 
-static int print_supported_chips(int host_controller)
+static int print_supported_chips(void)
 {
 	const char *delim = "/";
 	const int mintoklen = 5;
@@ -44,22 +44,14 @@ static int print_supported_chips(int host_controller)
 	int maxvendorlen = strlen("Vendor") + 1;
 	int maxchiplen = strlen("Device") + 1;
 	int maxtypelen = strlen("Type") + 1;
-	const struct flashchip *chip, *flash;
+	const struct flashchip *chip;
 	char *s;
 	char *ven, *dev;
 	char *tmpven, *tmpdev, *tmpven_save, *tmpdev_save;
 	int tmpvenlen, tmpdevlen, curvenlen, curdevlen;
 
-	if (!host_controller) {
-		flash = flashchips;
-		msg_ginfo("\nList of chips that use "
-			"SPI host controller interface:\n");
-	} else {
-		flash = flashchips_hwseq;
-		msg_ginfo("\nList of chips that use Opaque interface:\n");
-	}
 	/* calculate maximum column widths and by iterating over all chips */
-	for (chip = flash; chip->name != NULL; chip++) {
+	for (chip = flashchips; chip->name != NULL; chip++) {
 		/* Ignore generic entries. */
 		if (!strncmp(chip->vendor, "Unknown", 7) ||
 		    !strncmp(chip->vendor, "Programmer", 10) ||
@@ -148,7 +140,7 @@ static int print_supported_chips(int host_controller)
 	msg_ginfo("\n\n");
 	msg_ginfo("(P = PROBE, R = READ, E = ERASE, W = WRITE, - = N/A)\n\n");
 
-	for (chip = flash; chip->name != NULL; chip++) {
+	for (chip = flashchips; chip->name != NULL; chip++) {
 		/* Don't print generic entries. */
 		if (!strncmp(chip->vendor, "Unknown", 7) ||
 		    !strncmp(chip->vendor, "Programmer", 10) ||
@@ -475,11 +467,7 @@ static void print_supported_devs(const struct programmer_entry prog, const char 
 int print_supported(void)
 {
 	unsigned int i;
-	/* Print the list of chips that use swseq */
-	if (print_supported_chips(0))
-		return 1;
-	/* Print the list of chips that use hwseq */
-	if (print_supported_chips(1))
+	if (print_supported_chips())
 		return 1;
 
 	msg_ginfo("\nSupported programmers:\n");

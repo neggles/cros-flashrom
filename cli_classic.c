@@ -481,13 +481,6 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
-		for (chip = flashchips_hwseq; chip && chip->name &&
-				!found_chip; chip++) {
-			if (!strcmp(chip->name, chip_to_probe)) {
-				found_chip = 1;
-				break;
-			}
-		}
 		if (!found_chip) {
 			msg_cerr("Error: Unknown chip '%s' specified.\n", chip_to_probe);
 			msg_gerr("Run flashrom -L to view the hardware supported in this flashrom version.\n");

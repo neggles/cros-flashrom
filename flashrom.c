@@ -1477,25 +1477,11 @@ char *flashbuses_to_text(enum chipbustype bustype)
 
 int probe_flash(struct registered_master *mst, int startchip, struct flashctx *flash, int force)
 {
-	const struct flashchip *chip, *flash_list;
+	const struct flashchip *chip;
 	enum chipbustype buses_common;
 	char *tmp;
 
-	/* Based on the host controller interface that a platform
-	 * needs to use (hwseq or swseq),
-	 * set the flashchips list here.
-	 */
-	switch (g_ich_generation) {
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APOLLO_LAKE:
-		flash_list = flashchips_hwseq;
-		break;
-	default:
-		flash_list = flashchips;
-		break;
-	}
-
-	for (chip = flash_list + startchip; chip && chip->name; chip++) {
+	for (chip = flashchips + startchip; chip && chip->name; chip++) {
 		if (chip_to_probe && strcmp(chip->name, chip_to_probe) != 0)
 			continue;
 		buses_common = mst->buses_supported & chip->bustype;
@@ -1600,7 +1586,7 @@ notfound:
 	unmap_flash(flash);
 
 	/* Return position of matching chip. */
-	return chip - flash_list;
+	return chip - flashchips;
 }
 
 static int verify_flash(struct flashctx *flash,
