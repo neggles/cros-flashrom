@@ -79,6 +79,14 @@
 #define DLOCK_SSEQ_LOCKDN_OFF	16
 #define DLOCK_SSEQ_LOCKDN	(0x1 << DLOCK_SSEQ_LOCKDN_OFF)
 
+/* Control bits */
+#define HSFSC_FGO_OFF		16	/* 0: Flash Cycle Go */
+#define HSFSC_FGO		(0x1 << HSFSC_FGO_OFF)
+#define HSFSC_FCYCLE_OFF	17	/* 17-20: FLASH Cycle */
+#define HSFSC_FCYCLE		(0xf << HSFSC_FCYCLE_OFF)
+#define HSFSC_FDBC_OFF		24	/* 24-29 : Flash Data Byte Count */
+#define HSFSC_FDBC		(0x3f << HSFSC_FDBC_OFF)
+
 #define PCH100_REG_SSFSC	0xA0	/* 32 Bits Status (8) + Control (24) */
 #define PCH100_REG_PREOP	0xA4	/* 16 Bits */
 #define PCH100_REG_OPTYPE	0xA6	/* 16 Bits */
@@ -247,13 +255,6 @@
 #define HSFSC_FDV		(0x1 << HSFSC_FDV_OFF)
 #define HSFSC_FLOCKDN_OFF	15	/* 11: Flash Configuration Lock-Down */
 #define HSFSC_FLOCKDN		(0x1 << HSFSC_FLOCKDN_OFF)
-/* Control bits */
-#define HSFSC_FGO_OFF		16	/* 0: Flash Cycle Go */
-#define HSFSC_FGO		(0x1 << HSFSC_FGO_OFF)
-#define HSFSC_FCYCLE_OFF	17	/* 17-20: FLASH Cycle */
-#define HSFSC_FCYCLE		(0xf << HSFSC_FCYCLE_OFF)
-#define HSFSC_FDBC_OFF		24	/* 24-29 : Flash Data Byte Count */
-#define HSFSC_FDBC		(0x3f << HSFSC_FDBC_OFF)
 
 #define PCH100_REG_FADDR	0x08	/* 32 Bits */
 #define PCH100_REG_FDATA0	0x10	/* 64 Bytes */
@@ -1483,11 +1484,70 @@ static int ich_hwseq_wait_for_cycle_complete(unsigned int timeout,
 	return 0;
 }
 
+static int ich_hwseq_get_flash_id(struct flashctx *flash)
+{
+	uint32_t hsfsc, data, mfg_id, model_id;
+	const struct flashchip *entry;
+	const int len = sizeof(data);
+
+	/* make sure FDONE, FCERR, & AEL are cleared */
+	REGWRITE32(ICH9_REG_HSFS, REGREAD32(ICH9_REG_HSFS));
+
+	/* Set RDID as flash cycle and FGO */
+	hsfsc = REGREAD32(ICH9_REG_HSFS);
+	hsfsc &= ~HSFSC_FCYCLE;
+	hsfsc &= ~HSFSC_FDBC;
+	hsfsc |= ((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC;
+	hsfsc |= (0x6 << HSFSC_FCYCLE_OFF) | HSFSC_FGO;
+	REGWRITE32(ICH9_REG_HSFS, hsfsc);
+	/* poll for 100ms */
+	if (ich_hwseq_wait_for_cycle_complete(100 * 1000, len)) {
+		msg_perr("Timed out waiting for RDID to complete.\n");
+		return 0;
+	}
+
+	/*
+	 * Data will appear in reverse order:
+	 * Byte 0: Manufacturer ID
+	 * Byte 1: Model ID (MSB)
+	 * Byte 2: Model ID (LSB)
+	 */
+	ich_read_data((uint8_t *)&data, len, ICH9_REG_FDATA0);
+	mfg_id = data & 0xff;
+	model_id = (data & 0xff00) | ((data >> 16) & 0xff);
+
+	entry = flash_id_to_entry(mfg_id, model_id);
+	if (entry == NULL) {
+		msg_perr("Unable to identify chip, mfg_id: 0x%02x, "
+				"model_id: 0x%02x\n", mfg_id, model_id);
+		return 0;
+	} else {
+		msg_pdbg("Chip identified: %s\n", entry->name);
+		/* Update informational flash chip entries only */
+		flash->chip->vendor = entry->vendor;
+		flash->chip->name = entry->name;
+		flash->chip->manufacture_id = entry->manufacture_id;
+		flash->chip->model_id = entry->model_id;
+		/* total_size read from flash descriptor */
+		flash->chip->page_size = entry->page_size;
+		flash->chip->feature_bits = entry->feature_bits;
+		flash->chip->tested = entry->tested;
+		flash->chip->wp = entry->wp;
+	}
+
+	return 1;
+}
+
 static int ich_hwseq_probe(struct flashctx *flash)
 {
 	uint32_t total_size, boundary;
 	uint32_t erase_size_low, size_low, erase_size_high, size_high;
 	struct block_eraser *eraser;
+
+	if (ich_hwseq_get_flash_id(flash) != 1) {
+		msg_perr("Unable to read flash chip ID\n");
+		return 0;
+	}
 
 	total_size = hwseq_data.size_comp0 + hwseq_data.size_comp1;
 	msg_cdbg("Hardware sequencing reports %d attached SPI flash chip",
