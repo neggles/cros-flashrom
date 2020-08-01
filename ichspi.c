@@ -2447,7 +2447,7 @@ static const struct spi_master spi_master_ich9 = {
 	.write_256 = default_spi_write_256,
 };
 
-static struct opaque_master opaque_master_pch100_hwseq = {
+static struct opaque_master opaque_master_pch100_hwseq __attribute__ ((unused)) = {
 	.max_data_read = 64,
 	.max_data_write = 64,
 	.probe = pch100_hwseq_probe,
@@ -2571,6 +2571,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		ich_set_bbar(0);
 		register_spi_master(&spi_master_ich7);
 		break;
+#if 0
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 		reg_pr0         = PCH100_REG_FPR0;
 		arg = extract_programmer_param("ich_spi_mode");
@@ -2660,6 +2661,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 		hwseq_data.size_comp1 = getFCBA_component_density(ich_gen, &desc, 1);
 		register_opaque_master(&opaque_master_pch100_hwseq);
 		break;
+#endif
 	case CHIPSET_ICH8:
 	default:		/* Future version might behave the same */
 		arg = extract_programmer_param("ich_spi_mode");
