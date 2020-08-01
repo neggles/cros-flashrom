@@ -2162,7 +2162,7 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 			struct ich_descriptors desc = {{ 0 }};
 			/* Region is RW if flash descriptor override is set */
 			freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
-			if ((freg & HSFSC_FDV) && !(freg & HSFSC_FDOPSS))
+			if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS))
 				rwperms = FD_REGION_READ_WRITE;
 			else if (read_ich_descriptors_via_fdo(g_ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
 				const struct ich_desc_master *const mstr = &desc.master;
