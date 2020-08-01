@@ -269,8 +269,6 @@
 *	64 * 1024
 */
 #define ERASE_BLOCK_SIZE 1
-#define HWSEQ_READ		 0
-#define HWSEQ_WRITE		 1
 
 enum ich_access_protection {
 	NO_PROT		= 0,
@@ -1215,8 +1213,8 @@ static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int cou
 {
 	int i;
 	uint8_t op_type = opcode ? opcode->spi_type : type;
-	int op_type_r = opcode ? SPI_OPCODE_TYPE_READ_WITH_ADDRESS : HWSEQ_READ;
-	int op_type_w = opcode ? SPI_OPCODE_TYPE_WRITE_WITH_ADDRESS : HWSEQ_WRITE;
+	int op_type_r = opcode ? SPI_OPCODE_TYPE_READ_WITH_ADDRESS : SPI_OPCODE_TYPE_READ_NO_ADDRESS;
+	int op_type_w = opcode ? SPI_OPCODE_TYPE_WRITE_WITH_ADDRESS : SPI_OPCODE_TYPE_WRITE_NO_ADDRESS;
 	int ret = 0;
 
 	/* check flash descriptor permissions (if present) */
@@ -1860,7 +1858,7 @@ int pch100_hwseq_block_erase(struct flashctx *flash,
 	}
 
 	/* Check flash region permissions before erasing */
-	result = check_fd_permissions(NULL, HWSEQ_WRITE, addr, len);
+	result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, len);
 	if (result)
 		return result;
 
@@ -1884,7 +1882,7 @@ int pch100_hwseq_block_erase(struct flashctx *flash,
 int pch100_hwseq_check_access(const struct flashctx *flash, unsigned int start,
 			      unsigned int len, int read)
 {
-	return check_fd_permissions(NULL, read ? HWSEQ_READ : HWSEQ_WRITE, start, len);
+	return check_fd_permissions(NULL, read ? SPI_OPCODE_TYPE_READ_NO_ADDRESS: SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, start, len);
 }
 
 int pch100_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
@@ -1909,7 +1907,7 @@ int pch100_hwseq_read(struct flashctx *flash, uint8_t *buf, unsigned int addr,
 	while (len > 0) {
 		block_len = min(len, opaque_master->max_data_read);
 		/* Check flash region permissions before reading */
-		chunk_status = check_fd_permissions(NULL, HWSEQ_READ, addr, block_len);
+		chunk_status = check_fd_permissions(NULL, SPI_OPCODE_TYPE_READ_NO_ADDRESS, addr, block_len);
 		if (chunk_status) {
 			if (ignore_error(chunk_status)) {
 				/* fill this chunk with 0xff bytes and
@@ -1993,7 +1991,7 @@ int pch100_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int 
 		pch100_hwseq_set_addr(addr);
 		block_len = min(len, opaque_master->max_data_write);
 		/* Check flash region permissions before writing */
-		result = check_fd_permissions(NULL, HWSEQ_WRITE, addr, block_len);
+		result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, block_len);
 		if (result)
 			return result;
 		ich_fill_data(buf, block_len, PCH100_REG_FDATA0);
