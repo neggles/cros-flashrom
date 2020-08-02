@@ -57,19 +57,11 @@ static int ignore_wp_range_command = 0;
 
 static int set_wp(int enable);	/* FIXME: move set_wp() */
 
-/* If software sync is enabled, then we don't try the latest firmware copy
- * after updating.
- */
-#define SOFTWARE_SYNC_ENABLED
-
 /* For region larger use async version for FLASH_ERASE */
 #define FLASH_SMALL_REGION_THRESHOLD (16 * 1024)
 
 /* 1 if we want the flashrom to call erase_and_write_flash() again. */
 static int need_2nd_pass = 0;
-
-/* 1 if we want the flashrom to try jumping to new firmware after update. */
-static int try_latest_firmware = 0;
 
 /* 1 if EC firmware has RWSIG enabled. */
 static int rwsig_enabled = 0;
@@ -508,12 +500,6 @@ int cros_ec_finish(void)
 		return rc;
 	}
 
-	if (try_latest_firmware) {
-		if (fwcopy[EC_IMAGE_RW].flags && cros_ec_jump_copy(EC_IMAGE_RW) == 0)
-                  return 0;
-		return cros_ec_jump_copy(EC_IMAGE_RO);
-	}
-
 	return 0;
 }
 
@@ -663,9 +649,6 @@ int cros_ec_block_erase(struct flashctx *flash, unsigned int blockaddr,
 	}
 
 end_flash_erase:
-#ifndef SOFTWARE_SYNC_ENABLED
-	try_latest_firmware = 1;
-#endif
 	if (rc > 0) {
 		/*
 		 * Can happen if the command with retried with
@@ -727,9 +710,6 @@ int cros_ec_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
 		rc = EC_RES_SUCCESS;
 	}
 
-#ifndef SOFTWARE_SYNC_ENABLED
-	try_latest_firmware = 1;
-#endif
 	free(packet);
 	return rc;
 }
