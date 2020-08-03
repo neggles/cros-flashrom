@@ -2683,6 +2683,20 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			ich_spi_mode = ich_hwseq;
 		}
 
+		if (ich_spi_mode == ich_auto) {
+			switch(ich_gen) {
+			case CHIPSET_100_SERIES_SUNRISE_POINT:
+			case CHIPSET_300_SERIES_CANNON_POINT:
+			case CHIPSET_APOLLO_LAKE:
+				msg_pdbg("Enabling hardware sequencing by default "
+					 "for 100+ series PCH.\n");
+				ich_spi_mode = ich_hwseq;
+				break;
+			default:
+				break;
+			}
+		}
+
 		if (ich_spi_mode == ich_hwseq) {
 			if (!desc_valid) {
 				msg_perr("Hardware sequencing was requested "
