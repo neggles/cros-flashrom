@@ -2697,6 +2697,18 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			}
 		}
 
+		switch(ich_gen) {
+		case CHIPSET_APOLLO_LAKE:
+			num_fd_regions = APL_GLK_NUM_FD_REGIONS;
+			break;
+		case CHIPSET_100_SERIES_SUNRISE_POINT:
+			num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
+			break;
+		default:
+			num_fd_regions = DEFAULT_NUM_FD_REGIONS;
+			break;
+		}
+
 		if (ich_spi_mode == ich_hwseq) {
 			if (!desc_valid) {
 				msg_perr("Hardware sequencing was requested "
