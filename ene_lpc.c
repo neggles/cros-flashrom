@@ -79,10 +79,10 @@ typedef struct {
 	uint8_t          ec_is_running;
 	uint8_t          ec_is_pausing;
 	uint32_t         port_io_base;
-} ene_chip;
+} ene_chip_t;
 
 /* table of supported chips + parameters */
-static ene_chip ene_chips[] = {
+static ene_chip_t ene_chips[] = {
 	{ ENE_KB932,       /* chip_id */
 	  0xa2, 0x02,      /* hwver + ediid */
 	  0x66,            /* port_bios */
@@ -109,7 +109,7 @@ static ene_chip ene_chips[] = {
 };
 
 /* pointer to table entry of identified chip */
-static ene_chip *found_chip;
+static ene_chip_t *found_chip;
 /* current ec state */
 static enum ene_ec_state ec_state = EC_STATE_NORMAL;
 
@@ -148,13 +148,13 @@ const int port_ene_data   = 3;
 
 static struct timeval pause_begin, pause_now;
 
-static void ec_command(uint8_t cmd, uint8_t data)
+static void ec_command(const ene_chip_t *chip, uint8_t cmd, uint8_t data)
 {
 	struct timeval begin, now;
 
 	/* Spin wait for EC input buffer empty */
 	gettimeofday(&begin, NULL);
-	while (INB(found_chip->port_ec_command) & MASK_INPUT_BUFFER_FULL) {
+	while (INB(chip->port_ec_command) & MASK_INPUT_BUFFER_FULL) {
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec - begin.tv_sec) >= EC_COMMAND_TIMEOUT) {
 			msg_pdbg("%s: buf not empty\n", __func__);
@@ -163,12 +163,12 @@ static void ec_command(uint8_t cmd, uint8_t data)
 	}
 
 	/* Write command */
-	OUTB(cmd, found_chip->port_ec_command);
+	OUTB(cmd, chip->port_ec_command);
 
-	if (found_chip->chip_id == ENE_KB932) {
+	if (chip->chip_id == ENE_KB932) {
 		/* Spin wait for EC input buffer empty */
 		gettimeofday(&begin, NULL);
-		while (INB(found_chip->port_ec_command) &
+		while (INB(chip->port_ec_command) &
 		       MASK_INPUT_BUFFER_FULL) {
 			gettimeofday(&now, NULL);
 			if ((now.tv_sec - begin.tv_sec) >=
@@ -178,11 +178,11 @@ static void ec_command(uint8_t cmd, uint8_t data)
 			}
 		}
 		/* Write data */
-		OUTB(data, found_chip->port_ec_data);
+		OUTB(data, chip->port_ec_data);
 	}
 }
 
-static uint8_t ene_read(uint16_t addr)
+static uint8_t ene_read(const ene_chip_t *chip, uint16_t addr)
 {
 	uint8_t  bank;
 	uint8_t  offset;
@@ -191,7 +191,7 @@ static uint8_t ene_read(uint16_t addr)
 
 	bank   = addr >> 8;
 	offset = addr & 0xff;
-	port_io_base = found_chip->port_io_base;
+	port_io_base = chip->port_io_base;
 
 	OUTB(bank,   port_io_base + port_ene_bank);
 	OUTB(offset, port_io_base + port_ene_offset);
@@ -200,7 +200,7 @@ static uint8_t ene_read(uint16_t addr)
 	return data;
 }
 
-static void ene_write(uint16_t addr, uint8_t data)
+static void ene_write(const ene_chip_t *chip, uint16_t addr, uint8_t data)
 {
 	uint8_t  bank;
 	uint8_t  offset;
@@ -208,7 +208,7 @@ static void ene_write(uint16_t addr, uint8_t data)
 
 	bank   = addr >> 8;
 	offset = addr & 0xff;
-	port_io_base = found_chip->port_io_base;
+	port_io_base = chip->port_io_base;
 
 	OUTB(bank,   port_io_base + port_ene_bank);
 	OUTB(offset, port_io_base + port_ene_offset);
@@ -222,10 +222,10 @@ static void ene_write(uint16_t addr, uint8_t data)
  * @param       n: number of LPC cycles to wait
  * @return      void
  */
-void wait_cycles(int n)
+static void wait_cycles(const ene_chip_t *chip,int n)
 {
 	while (n--)
-		INB(found_chip->port_io_base + port_ene_bank);
+		INB(chip->port_io_base + port_ene_bank);
 }
 
 static int is_spicmd_write(uint8_t cmd)
@@ -256,36 +256,36 @@ static int is_spicmd_write(uint8_t cmd)
 	return 0;
 }
 
-static void ene_spi_start(void)
+static void ene_spi_start(const ene_chip_t *chip)
 {
 	int cfg;
 
-	cfg = ene_read(REG_SPI_CONFIG);
+	cfg = ene_read(chip, REG_SPI_CONFIG);
 	cfg |= CFG_CSn_FORCE_LOW;
 	cfg |= CFG_COMMAND_WRITE_ENABLE;
-	ene_write(REG_SPI_CONFIG, cfg);
+	ene_write(chip, REG_SPI_CONFIG, cfg);
 
-	wait_cycles(ENE_SPI_DELAY_CYCLE);
+	wait_cycles(chip, ENE_SPI_DELAY_CYCLE);
 }
 
-static void ene_spi_end(void)
+static void ene_spi_end(const ene_chip_t *chip)
 {
 	int cfg;
 
-	cfg = ene_read(REG_SPI_CONFIG);
+	cfg = ene_read(chip, REG_SPI_CONFIG);
 	cfg &= ~CFG_CSn_FORCE_LOW;
 	cfg |= CFG_COMMAND_WRITE_ENABLE;
-	ene_write(REG_SPI_CONFIG, cfg);
+	ene_write(chip, REG_SPI_CONFIG, cfg);
 
-	wait_cycles(ENE_SPI_DELAY_CYCLE);
+	wait_cycles(chip, ENE_SPI_DELAY_CYCLE);
 }
 
-static int ene_spi_wait(void)
+static int ene_spi_wait(const ene_chip_t *chip)
 {
 	struct timeval begin, now;
 
 	gettimeofday(&begin, NULL);
-	while(ene_read(REG_SPI_CONFIG) & CFG_STATUS) {
+	while(ene_read(chip, REG_SPI_CONFIG) & CFG_STATUS) {
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec - begin.tv_sec) >= EC_COMMAND_TIMEOUT) {
 			msg_pdbg("%s: spi busy\n", __func__);
@@ -303,11 +303,11 @@ static int ene_pause_ec(void)
 		return -1;
 
 	/* EC prepare pause */
-	ec_command(found_chip->ec_pause_cmd, found_chip->ec_pause_data);
+	ec_command(found_chip, found_chip->ec_pause_cmd, found_chip->ec_pause_data);
 
 	gettimeofday(&begin, NULL);
 	/* Spin wait for EC ready */
-	while (ene_read(found_chip->ec_status_buf) !=
+	while (ene_read(found_chip, found_chip->ec_status_buf) !=
 	       found_chip->ec_is_pausing) {
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec - begin.tv_sec) >=
@@ -332,10 +332,10 @@ static int ene_resume_ec(void)
 		OUTB(0xff, ENE_KB94X_PAUSE_WAKEUP_PORT);
 	else
 		/* Trigger 8051 interrupt to resume */
-		ene_write(REG_EC_EXTCMD, 0xff);
+		ene_write(found_chip, REG_EC_EXTCMD, 0xff);
 
 	gettimeofday(&begin, NULL);
-	while (ene_read(found_chip->ec_status_buf) !=
+	while (ene_read(found_chip, found_chip->ec_status_buf) !=
 	       found_chip->ec_is_running) {
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec - begin.tv_sec) >=
@@ -369,10 +369,10 @@ static int ene_reset_ec(void)
 	gettimeofday(&begin, NULL);
 
 	/* EC prepare reset */
-	ec_command(found_chip->ec_reset_cmd, found_chip->ec_reset_data);
+	ec_command(found_chip, found_chip->ec_reset_cmd, found_chip->ec_reset_data);
 
 	/* Spin wait for EC ready */
-	while (ene_read(found_chip->ec_status_buf) !=
+	while (ene_read(found_chip, found_chip->ec_status_buf) !=
 	       found_chip->ec_is_stopping) {
 		gettimeofday(&now, NULL);
 		if ((now.tv_sec - begin.tv_sec) >=
@@ -386,9 +386,9 @@ static int ene_reset_ec(void)
 	sleep(1);
 
 	/* Reset 8051 */
-	reg = ene_read(REG_8051_CTRL);
+	reg = ene_read(found_chip, REG_8051_CTRL);
 	reg |= CPU_RESET;
-	ene_write(REG_8051_CTRL, reg);
+	ene_write(found_chip, REG_8051_CTRL, reg);
 
 	ec_state = EC_STATE_RESET;
 	return 0;
@@ -430,11 +430,11 @@ static int ene_spi_send_command(const struct flashctx *flash,
 	else if(found_chip->chip_id == ENE_KB94X && ec_state == EC_STATE_IDLE)
 		ene_pause_timeout_check();
 
-	ene_spi_start();
+	ene_spi_start(found_chip);
 
 	for (i = 0; i < writecnt; i++) {
-		ene_write(REG_SPI_COMMAND, writearr[i]);
-		if (ene_spi_wait()) {
+		ene_write(found_chip, REG_SPI_COMMAND, writearr[i]);
+		if (ene_spi_wait(found_chip)) {
 			msg_pdbg("%s: write count %d\n", __func__, i);
 			return 1;
 		}
@@ -442,19 +442,19 @@ static int ene_spi_send_command(const struct flashctx *flash,
 
 	for (i = 0; i < readcnt; i++) {
 		/* Push data by clock the serial bus */
-		ene_write(REG_SPI_COMMAND, 0);
-		if (ene_spi_wait()) {
+		ene_write(found_chip, REG_SPI_COMMAND, 0);
+		if (ene_spi_wait(found_chip)) {
 			msg_pdbg("%s: read count %d\n", __func__, i);
 			return 1;
 		}
-		readarr[i] = ene_read(REG_SPI_DATA);
-		if (ene_spi_wait()) {
+		readarr[i] = ene_read(found_chip, REG_SPI_DATA);
+		if (ene_spi_wait(found_chip)) {
 			msg_pdbg("%s: read count %d\n", __func__, i);
 			return 1;
 		}
 	}
 
-	ene_spi_end();
+	ene_spi_end(found_chip);
 	return 0;
 }
 
@@ -465,13 +465,13 @@ static int ene_leave_flash_mode(void *data)
 	struct timeval begin, now;
 
 	if (ec_state == EC_STATE_RESET) {
-		reg = ene_read(REG_8051_CTRL);
+		reg = ene_read(found_chip, REG_8051_CTRL);
 		reg &= ~CPU_RESET;
-		ene_write(REG_8051_CTRL, reg);
+		ene_write(found_chip, REG_8051_CTRL, reg);
 
 		gettimeofday(&begin, NULL);
 		/* EC restart */
-		while (ene_read(found_chip->ec_status_buf) !=
+		while (ene_read(found_chip, found_chip->ec_status_buf) !=
 		       found_chip->ec_is_running) {
 			gettimeofday(&now, NULL);
 			if ((now.tv_sec - begin.tv_sec) >=
@@ -482,7 +482,7 @@ static int ene_leave_flash_mode(void *data)
 			}
 		}
 		msg_pdbg("%s: send ec restart\n", __func__);
-		ec_command(found_chip->ec_restart_cmd,
+		ec_command(found_chip, found_chip->ec_restart_cmd,
 		           found_chip->ec_restart_data);
 
 		ec_state = EC_STATE_NORMAL;
@@ -531,8 +531,8 @@ int ene_probe_spi_flash(const char *name)
 	for (i = 0; i < ENE_LAST; ++i) {
 		found_chip = &ene_chips[i];
 
-		hwver = ene_read(REG_EC_HWVER);
-		ediid = ene_read(REG_EC_EDIID);
+		hwver = ene_read(found_chip, REG_EC_HWVER);
+		ediid = ene_read(found_chip, REG_EC_EDIID);
 
 		if(hwver == ene_chips[i].hwver &&
 		   ediid == ene_chips[i].ediid) {
