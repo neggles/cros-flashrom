@@ -55,14 +55,11 @@
 #define MEC1310_DEVICE_ID_VAL	0x04	/* Device ID Value for MEC1310 */
 #define MEC1308_DEVICE_REV	0x21	/* Device Revision ID Register */
 
-static unsigned int in_sio_cfgmode;
-
 #define MEC1308_MBX_CMD		0x82	/* mailbox command register offset */
 #define MEC1308_MBX_EXT_CMD	0x83	/* mailbox ext. command reg offset */
 #define MEC1308_MBX_DATA_START	0x84	/* first mailbox data register offset */
 #define MEC1308_MBX_DATA_END	0x91	/* last mailbox data register offset */
 
-static unsigned int mbx_idx;	/* Mailbox register interface index address */
 static unsigned int mbx_data;	/* Mailbox register interface data address*/
 
 /*
@@ -100,22 +97,29 @@ static unsigned int mbx_data;	/* Mailbox register interface data address*/
 #define MEC1308_CMD_PASSTHRU_SEND	0xf2	/* send byte from data0 */
 #define MEC1308_CMD_PASSTHRU_READ	0xf3	/* read byte, place in data0 */
 
-static void mec1308_sio_enter(uint16_t port)
+typedef struct
 {
-	if (in_sio_cfgmode)
+	unsigned int in_sio_cfgmode;
+	unsigned int mbx_idx;	/* Mailbox register interface index address */
+	unsigned int mbx_data;	/* Mailbox register interface data address*/
+} mec1308_data_t;
+
+static void mec1308_sio_enter(mec1308_data_t *ctx_data, uint16_t port)
+{
+	if (ctx_data->in_sio_cfgmode)
 		return;
 
 	OUTB(MEC1308_SIO_ENTRY_KEY, port);
-	in_sio_cfgmode = 1;
+	ctx_data->in_sio_cfgmode = 1;
 }
 
-static void mec1308_sio_exit(uint16_t port)
+static void mec1308_sio_exit(mec1308_data_t *ctx_data, uint16_t port)
 {
-	if (!in_sio_cfgmode)
+	if (!ctx_data->in_sio_cfgmode)
 		return;
 
 	OUTB(MEC1308_SIO_EXIT_KEY, port);
-	in_sio_cfgmode = 0;
+	ctx_data->in_sio_cfgmode = 0;
 }
 
 /** probe for super i/o index
@@ -123,7 +127,7 @@ static void mec1308_sio_exit(uint16_t port)
  *
  * returns 0 to indicate success, <0 to indicate error
  */
-static int mec1308_get_sio_index(uint16_t *port)
+static int mec1308_get_sio_index(mec1308_data_t *ctx_data, uint16_t *port)
 {
 	uint16_t ports[] = { MEC1308_SIO_PORT1,
 	                     MEC1308_SIO_PORT2,
@@ -152,12 +156,12 @@ static int mec1308_get_sio_index(uint16_t *port)
 		 * as the index and reading from the data port before reading
 		 * the index port.
 		 */
-		mec1308_sio_enter(ports[i]);
+		mec1308_sio_enter(ctx_data, ports[i]);
 		OUTB(MEC1308_DEVICE_ID_REG, ports[i]);
 		tmp8 = INB(ports[i] + 1);
 		tmp8 = INB(ports[i]);
 		if ((tmp8 != MEC1308_DEVICE_ID_REG)) {
-			in_sio_cfgmode = 0;
+			ctx_data->in_sio_cfgmode = 0;
 			continue;
 		}
 
@@ -176,19 +180,19 @@ static int mec1308_get_sio_index(uint16_t *port)
 	return 0;
 }
 
-static uint8_t mbx_read(uint8_t idx)
+static uint8_t mbx_read(mec1308_data_t *ctx_data, uint8_t idx)
 {
-	OUTB(idx, mbx_idx);
+	OUTB(idx, ctx_data->mbx_idx);
 	return INB(mbx_data);
 }
 
-static int mbx_wait(void)
+static int mbx_wait(mec1308_data_t *ctx_data)
 {
 	int i;
 	int max_attempts = 10000;
 	int rc = 0;
 
-	for (i = 0; mbx_read(MEC1308_MBX_CMD); i++) {
+	for (i = 0; mbx_read(ctx_data, MEC1308_MBX_CMD); i++) {
 		if (i == max_attempts) {
 			rc = 1;
 			break;
@@ -201,50 +205,50 @@ static int mbx_wait(void)
 	return rc;
 }
 
-static int mbx_write(uint8_t idx, uint8_t data)
+static int mbx_write(mec1308_data_t *ctx_data, uint8_t idx, uint8_t data)
 {
 	int rc = 0;
 
-	if (idx == MEC1308_MBX_CMD && mbx_wait()) {
+	if (idx == MEC1308_MBX_CMD && mbx_wait(ctx_data)) {
 		msg_perr("%s: command register not clear\n", __func__);
 		return 1;
 	}
 
-	OUTB(idx, mbx_idx);
+	OUTB(idx, ctx_data->mbx_idx);
 	OUTB(data, mbx_data);
 
 	if (idx == MEC1308_MBX_CMD)
-		rc = mbx_wait();
+		rc = mbx_wait(ctx_data);
 
 	return rc;
 }
 
-static void mbx_clear()
+static void mbx_clear(mec1308_data_t *ctx_data)
 {
 	int reg;
 
 	for (reg = MEC1308_MBX_DATA_START; reg < MEC1308_MBX_DATA_END; reg++)
-		mbx_write(reg, 0x00);
-	mbx_write(MEC1308_MBX_CMD, 0x00);
+		mbx_write(ctx_data, reg, 0x00);
+	mbx_write(ctx_data, MEC1308_MBX_CMD, 0x00);
 }
 
-static int mec1308_exit_passthru_mode(void)
+static int mec1308_exit_passthru_mode(mec1308_data_t *ctx_data)
 {
 	uint8_t tmp8;
 	int i;
 
 	/* exit passthru mode */
 	for (i = 0; i < strlen(MEC1308_CMD_PASSTHRU_EXIT); i++) {
-		mbx_write(MEC1308_MBX_DATA_START + i,
+		mbx_write(ctx_data, MEC1308_MBX_DATA_START + i,
 		MEC1308_CMD_PASSTHRU_EXIT[i]);
 	}
 
-	if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU)) {
+	if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU)) {
 		msg_pdbg("%s(): exit passthru command timed out\n", __func__);
 		return 1;
 	}
 
-	tmp8 = mbx_read(MEC1308_MBX_DATA_START);
+	tmp8 = mbx_read(ctx_data, MEC1308_MBX_DATA_START);
 	msg_pdbg("%s: result: 0x%02x ", __func__, tmp8);
 	if (tmp8 == MEC1308_CMD_PASSTHRU_SUCCESS) {
 		msg_pdbg("(exited passthru mode)\n");
@@ -255,7 +259,7 @@ static int mec1308_exit_passthru_mode(void)
 	return 0;
 }
 
-static int enter_passthru_mode(void)
+static int enter_passthru_mode(mec1308_data_t *ctx_data)
 {
 	uint8_t tmp8;
 	int i;
@@ -274,22 +278,22 @@ static int enter_passthru_mode(void)
 		msg_pdbg("%s(): entering passthru mode, attempt %d out of 3\n",
 		         __func__, i + 1);
 		for (j = 0; j < strlen(MEC1308_CMD_PASSTHRU_ENTER); j++) {
-			mbx_write(MEC1308_MBX_DATA_START + j,
+			mbx_write(ctx_data, MEC1308_MBX_DATA_START + j,
 			          MEC1308_CMD_PASSTHRU_ENTER[j]);
 		}
 
-		if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU))
+		if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU))
 			msg_pdbg("%s(): enter passthru command timed out\n",
 			         __func__);
 
-		tmp8 = mbx_read(MEC1308_MBX_DATA_START);
+		tmp8 = mbx_read(ctx_data, MEC1308_MBX_DATA_START);
 		if (tmp8 == MEC1308_CMD_PASSTHRU_SUCCESS)
 			break;
 
 		msg_pdbg("%s(): command failed, clearing data registers and "
 		         "issuing full exit passthru command...\n", __func__);
-		mbx_clear();
-		mec1308_exit_passthru_mode();
+		mbx_clear(ctx_data);
+		mec1308_exit_passthru_mode(ctx_data);
 	}
 
 	if (tmp8 != MEC1308_CMD_PASSTHRU_SUCCESS) {
@@ -303,13 +307,13 @@ static int enter_passthru_mode(void)
 
 	/* start passthru mode */
 	for (i = 0; i < strlen(MEC1308_CMD_PASSTHRU_START); i++)
-		mbx_write(MEC1308_MBX_DATA_START + i,
+		mbx_write(ctx_data, MEC1308_MBX_DATA_START + i,
 		          MEC1308_CMD_PASSTHRU_START[i]);
-	if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU)) {
+	if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU)) {
 		msg_pdbg("%s(): start passthru command timed out\n", __func__);
 		return 1;
 	}
-	tmp8 = mbx_read(MEC1308_MBX_DATA_START);
+	tmp8 = mbx_read(ctx_data, MEC1308_MBX_DATA_START);
 	if (tmp8 != MEC1308_CMD_PASSTHRU_SUCCESS) {
 		msg_perr("%s(): failed to enter passthru mode, result=%02x\n",
 		         __func__, tmp8);
@@ -323,17 +327,20 @@ static int enter_passthru_mode(void)
 
 static int mec1308_shutdown(void *data)
 {
+	mec1308_data_t *ctx_data = (mec1308_data_t *)data;
+
 	/* Exit passthru mode before performing commands which do not affect
 	   the SPI ROM */
-	mec1308_exit_passthru_mode();
+	mec1308_exit_passthru_mode(ctx_data);
 
 	/* Re-enable SMI and ACPI.
 	   FIXME: is there an ordering dependency? */
-	if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_SMI_ENABLE))
+	if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_SMI_ENABLE))
 		msg_pdbg("%s: unable to re-enable SMI\n", __func__);
-	if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_ACPI_ENABLE))
+	if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_ACPI_ENABLE))
 		msg_pdbg("%s: unable to re-enable ACPI\n", __func__);
 
+	free(data);
 	return 0;
 }
 
@@ -350,14 +357,14 @@ int mec1308_spi_write_256(struct flashctx *flash,
 				 flash->chip->page_size);
 }
 
-static int mec1308_chip_select(void)
+static int mec1308_chip_select(mec1308_data_t *ctx_data)
 {
-	return mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_CS_EN);
+	return mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_CS_EN);
 }
 
-static int mec1308_chip_deselect(void)
+static int mec1308_chip_deselect(mec1308_data_t *ctx_data)
 {
-	return mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_CS_DIS);
+	return mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_CS_DIS);
 }
 
 /*
@@ -371,13 +378,14 @@ int mec1308_spi_send_command(const struct flashctx *flash, unsigned int writecnt
                              unsigned char *readarr)
 {
 	int i, rc = 0;
+	mec1308_data_t *ctx_data = (mec1308_data_t *)flash->mst->spi.data;
 
-	if (mec1308_chip_select())
+	if (mec1308_chip_select(ctx_data))
 		return 1;
 
 	for (i = 0; i < writecnt; i++) {
-		if (mbx_write(MEC1308_MBX_DATA_START, writearr[i]) ||
-		    mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_SEND)) {
+		if (mbx_write(ctx_data, MEC1308_MBX_DATA_START, writearr[i]) ||
+		    mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_SEND)) {
 			msg_pdbg("%s: failed to issue send command\n",__func__);
 			rc = 1;
 			goto mec1308_spi_send_command_exit;
@@ -385,20 +393,20 @@ int mec1308_spi_send_command(const struct flashctx *flash, unsigned int writecnt
 	}
 
 	for (i = 0; i < readcnt; i++) {
-		if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_READ)) {
+		if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_READ)) {
 			msg_pdbg("%s: failed to issue read command\n",__func__);
 			rc = 1;
 			goto mec1308_spi_send_command_exit;
 		}
-		readarr[i] = mbx_read(MEC1308_MBX_DATA_START);
+		readarr[i] = mbx_read(ctx_data, MEC1308_MBX_DATA_START);
 	}
 
 mec1308_spi_send_command_exit:
-	rc |= mec1308_chip_deselect();
+	rc |= mec1308_chip_deselect(ctx_data);
 	return rc;
 }
 
-static const struct spi_master spi_master_mec1308 = {
+static struct spi_master spi_master_mec1308 = {
 	.max_data_read = 256,	/* FIXME: should be MAX_DATA_READ_UNLIMITED? */
 	.max_data_write = 256,	/* FIXME: should be MAX_DATA_WRITE_UNLIMITED? */
 	.command = mec1308_spi_send_command,
@@ -415,11 +423,18 @@ int mec1308_probe_spi_flash(const char *name)
 	uint8_t tmp8;
 	int ret = 0;
 	char *p = NULL;
+	mec1308_data_t *ctx_data = NULL;
 
 	msg_pdbg("%s(): entered\n", __func__);
 
 	if (alias && alias->type != ALIAS_EC)
 		return 1;
+
+	ctx_data = calloc(1, sizeof(mec1308_data_t));
+	if (!ctx_data) {
+		msg_perr("Unable to allocate space for extra context data.\n");
+		return 1;
+	}
 
 	p = extract_programmer_param("type");
 	if (p && strcmp(p, "ec")) {
@@ -428,7 +443,7 @@ int mec1308_probe_spi_flash(const char *name)
 		goto mec1308_probe_spi_flash_exit;
 	}
 
-	if (mec1308_get_sio_index(&sio_port) < 0) {
+	if (mec1308_get_sio_index(ctx_data, &sio_port) < 0) {
 		msg_pdbg("MEC1308 not found (probe failed).\n");
 		ret = 1;
 		goto mec1308_probe_spi_flash_exit;
@@ -459,18 +474,18 @@ int mec1308_probe_spi_flash(const char *name)
 	tmp8 |= 1;
 	sio_write(sio_port, 0x30, tmp8);	/* activate logical device */
 
-	mbx_idx = (unsigned int)sio_read(sio_port, 0x60) << 8 |
-	                        sio_read(sio_port, 0x61);
-	mbx_data = mbx_idx + 1;
+	ctx_data->mbx_idx = (unsigned int)sio_read(sio_port, 0x60) << 8 |
+	                                  sio_read(sio_port, 0x61);
+	mbx_data = ctx_data->mbx_idx + 1;
 	msg_pdbg("%s: mbx_idx: 0x%04x, mbx_data: 0x%04x\n",
-	         __func__, mbx_idx, mbx_data);
+	         __func__, ctx_data->mbx_idx, mbx_data);
 
 	/* Exit Super I/O config mode */
-	mec1308_sio_exit(sio_port);
+	mec1308_sio_exit(ctx_data, sio_port);
 
 	/* Now that we can read the mailbox, we will wait for any remaining
 	 * command to finish.*/
-	if (mbx_wait() != 0) {
+	if (mbx_wait(ctx_data) != 0) {
 		msg_perr("%s: mailbox is not available\n", __func__);
 		ret = 1;
 		goto mec1308_probe_spi_flash_exit;
@@ -478,19 +493,19 @@ int mec1308_probe_spi_flash(const char *name)
 
 	/* Further setup -- disable SMI and ACPI.
 	   FIXME: is there an ordering dependency? */
-	if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_ACPI_DISABLE)) {
+	if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_ACPI_DISABLE)) {
 		msg_pdbg("%s: unable to disable ACPI\n", __func__);
 		ret = 1;
 		goto mec1308_probe_spi_flash_exit;
 	}
 
-	if (mbx_write(MEC1308_MBX_CMD, MEC1308_CMD_SMI_DISABLE)) {
+	if (mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_SMI_DISABLE)) {
 		msg_pdbg("%s: unable to disable SMI\n", __func__);
 		ret = 1;
 		goto mec1308_probe_spi_flash_exit;
 	}
 
-	if (register_shutdown(mec1308_shutdown, NULL)) {
+	if (register_shutdown(mec1308_shutdown, ctx_data)) {
 		ret = 1;
 		goto mec1308_probe_spi_flash_exit;
 	}
@@ -500,18 +515,22 @@ int mec1308_probe_spi_flash(const char *name)
 	 * to SPI ROM are complete. We'll start by doing the exit_passthru_mode
 	 * sequence, which is benign if the EC is already in passthru mode.
 	 */
-	mec1308_exit_passthru_mode();
+	mec1308_exit_passthru_mode(ctx_data);
 
-	if (enter_passthru_mode()) {
+	if (enter_passthru_mode(ctx_data)) {
 		ret = 1;
 		goto mec1308_probe_spi_flash_exit;
 	}
 
 	buses_supported |= BUS_LPC;	/* for LPC <--> SPI bridging */
+	spi_master_mec1308.data = ctx_data;
 	register_spi_master(&spi_master_mec1308);
 	msg_pdbg("%s(): successfully initialized mec1308\n", __func__);
+
 mec1308_probe_spi_flash_exit:
 	free(p);
+	if (ret)
+		free(ctx_data);
 	return ret;
 }
 #endif
