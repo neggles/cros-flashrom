@@ -45,6 +45,41 @@
 #include "hwaccess.h"
 #include "spi.h"
 
+/* MCU registers */
+#define REG_EC_HWVER    0xff00
+#define REG_EC_FWVER    0xff01
+#define REG_EC_EDIID    0xff24
+#define REG_8051_CTRL   0xff14
+#define REG_EC_EXTCMD   0xff10
+
+#define CPU_RESET 1
+
+/* MCU SPI peripheral registers */
+#define REG_SPI_DATA    0xfeab
+#define REG_SPI_COMMAND 0xfeac
+#define REG_SPI_CONFIG  0xfead
+
+#define CFG_CSn_FORCE_LOW            (1 << 4)
+#define CFG_COMMAND_WRITE_ENABLE     (1 << 3)
+#define CFG_STATUS                   (1 << 1)
+#define CFG_ENABLE_BUSY_STATUS_CHECK (1 << 0)
+
+/* Timeout */
+#define EC_COMMAND_TIMEOUT   4
+#define EC_RESTART_TIMEOUT  10
+#define ENE_SPI_DELAY_CYCLE  4
+#define EC_PAUSE_TIMEOUT    12
+#define EC_RESET_TRIES       3
+
+#define ENE_KB94X_PAUSE_WAKEUP_PORT  0x64
+
+#define MASK_INPUT_BUFFER_FULL  2
+#define MASK_OUTPUT_BUFFER_FULL 1
+
+const int port_ene_bank   = 1;
+const int port_ene_offset = 2;
+const int port_ene_data   = 3;
+
 /* Supported ENE ECs, ENE_LAST should always be LAST member */
 enum ene_chip_id {
 	ENE_KB932 = 0,
@@ -83,7 +118,8 @@ typedef struct {
 
 /* table of supported chips + parameters */
 static ene_chip_t ene_chips[] = {
-	{ ENE_KB932,       /* chip_id */
+	{
+	  ENE_KB932,       /* chip_id */
 	  0xa2, 0x02,      /* hwver + ediid */
 	  0x66,            /* port_bios */
 	  0x6c, 0x68,      /* port_ec_{command,data} */
@@ -93,9 +129,10 @@ static ene_chip_t ene_chips[] = {
 	  0xf554,          /* ec_status_buf */
 	  0xa5, 0x00,      /* ec_is_{stopping,running} masks */
 	  0x33,            /* ec_is_pausing mask */
-	  0xfd60 },        /* port_io_base */
-
-	{ ENE_KB94X,       /* chip_id */
+	  0xfd60           /* port_io_base */
+	},
+	{
+	  ENE_KB94X,       /* chip_id */
 	  0xa3, 0x05,      /* hwver + ediid */
 	  0x66,            /* port_bios */
 	  0x66, 0x68,      /* port_ec_{command,data} */
@@ -104,49 +141,16 @@ static ene_chip_t ene_chips[] = {
 	  0x7e, 0x10,      /* ec_pause_{cmd,data} */
 	  0xf710,          /* ec_status_buf */
 	  0x02, 0x00,      /* ec_is_{stopping,running} masks */
-	  0x01,		   /* ec_is_pausing mask */
-	  0x0380 },        /* port_io_base */
+	  0x01,            /* ec_is_pausing mask */
+	  0x0380           /* port_io_base */
+	}
 };
 
+static struct timeval pause_begin, pause_now;
 /* pointer to table entry of identified chip */
 static ene_chip_t *found_chip;
 /* current ec state */
 static enum ene_ec_state ec_state = EC_STATE_NORMAL;
-
-#define REG_EC_HWVER    0xff00
-#define REG_EC_FWVER    0xff01
-#define REG_EC_EDIID    0xff24
-#define REG_8051_CTRL   0xff14
-#define REG_EC_EXTCMD   0xff10
-
-#define CPU_RESET 1
-
-/* Hwardware registers */
-#define REG_SPI_DATA    0xfeab
-#define REG_SPI_COMMAND 0xfeac
-#define REG_SPI_CONFIG  0xfead
-#define CFG_CSn_FORCE_LOW        (1 << 4)
-#define CFG_COMMAND_WRITE_ENABLE (1 << 3)
-#define CFG_STATUS               (1 << 1)
-#define CFG_ENABLE_BUSY_STATUS_CHECK (1 << 0)
-
-/* Timeout */
-#define EC_COMMAND_TIMEOUT 4
-#define EC_RESTART_TIMEOUT 10
-#define ENE_SPI_DELAY_CYCLE 4
-#define EC_PAUSE_TIMEOUT 12
-#define EC_RESET_TRIES 3
-
-#define ENE_KB94X_PAUSE_WAKEUP_PORT  0x64
-
-#define MASK_INPUT_BUFFER_FULL	2
-#define MASK_OUTPUT_BUFFER_FULL	1
-
-const int port_ene_bank   = 1;
-const int port_ene_offset = 2;
-const int port_ene_data   = 3;
-
-static struct timeval pause_begin, pause_now;
 
 static void ec_command(const ene_chip_t *chip, uint8_t cmd, uint8_t data)
 {
@@ -562,10 +566,10 @@ int ene_probe_spi_flash(const char *name)
 	buses_supported |= BUS_LPC;
 	register_spi_master(&spi_master_ene);
 	msg_pdbg("%s: successfully initialized ene\n", __func__);
+
 ene_probe_spi_flash_exit:
 	free(p);
 	return ret;
 }
 
 #endif /* __i386__ || __x86_64__ */
-
