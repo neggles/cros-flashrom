@@ -432,11 +432,12 @@ static int initflash_cfg_setup(const struct flashctx *flash)
  *  @param id0, id1, id2, id3 Pointers to store detected IDs. NULL will be ignored.
  *  @return 1 for error; 0 for success.
  */
-static int ReadId(unsigned char* id0, unsigned char* id1,
+static int ReadId(const struct flashctx *flash,
+	          unsigned char* id0, unsigned char* id1,
 	          unsigned char* id2, unsigned char* id3)
 {
 	if (!initflash_cfg) {
-		initflash_cfg_setup(NULL);
+		initflash_cfg_setup(flash);
 		InitFlash();
 	}
 
@@ -806,9 +807,9 @@ static int wpce775x_spi_send_command(const struct flashctx *flash,
 	case JEDEC_RDID:{
 		unsigned char dummy = 0;
 		if (readcnt == 3)
-			ReadId(&readarr[0], &readarr[1], &readarr[2], &dummy);
+			ReadId(flash, &readarr[0], &readarr[1], &readarr[2], &dummy);
 		else if (readcnt == 4)
-			ReadId(&readarr[0], &readarr[1], &readarr[2], &readarr[3]);
+			ReadId(flash, &readarr[0], &readarr[1], &readarr[2], &readarr[3]);
 		break;
 	}
 	case JEDEC_RDSR:
