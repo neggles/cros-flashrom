@@ -1551,6 +1551,69 @@ static int ich_hwseq_get_flash_id(struct flashctx *flash)
 	return 1;
 }
 
+uint8_t ich_hwseq_read_status(const struct flashctx *flash)
+{
+	uint32_t hsfc;
+	uint32_t timeout = 5000 * 1000;
+	int len = 1;
+	uint8_t buf;
+
+	msg_pdbg("Reading Status register\n");
+
+	/* clear FDONE, FCERR, AEL by writing 1 to them (if they are set) */
+	REGWRITE32(ICH9_REG_HSFS, REGREAD32(ICH9_REG_HSFS));
+
+	hsfc = REGREAD32(ICH9_REG_HSFS);
+	hsfc &= ~HSFSC_FCYCLE; /* set read operation */
+
+	/* read status register */
+	hsfc |= (0x8 << HSFSC_FCYCLE_OFF);
+
+	hsfc &= ~HSFSC_FDBC; /* clear byte count */
+	/* set byte count */
+	hsfc |= (((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC);
+	hsfc |= HSFSC_FGO; /* start */
+	REGWRITE32(ICH9_REG_HSFS, hsfc);
+	if (ich_hwseq_wait_for_cycle_complete(timeout, len)) {
+		msg_perr("Reading Status register failed\n!!");
+		return -1;
+	}
+	ich_read_data(&buf, len, ICH9_REG_FDATA0);
+	return buf;
+}
+
+int ich_hwseq_write_status(const struct flashctx *flash, int status)
+{
+	uint32_t hsfc;
+	uint32_t timeout = 5000 * 1000;
+	int len = 1;
+	uint8_t buf = status;
+
+	msg_pdbg("Writing status register\n");
+
+	/* clear FDONE, FCERR, AEL by writing 1 to them (if they are set) */
+	REGWRITE32(ICH9_REG_HSFS, REGREAD32(ICH9_REG_HSFS));
+
+	ich_fill_data(&buf, len, ICH9_REG_FDATA0);
+	hsfc = REGREAD32(ICH9_REG_HSFS);
+	hsfc &= ~HSFSC_FCYCLE; /* clear operation */
+
+	/* write status register */
+	hsfc |= (0x7 << HSFSC_FCYCLE_OFF);
+	hsfc &= ~HSFSC_FDBC; /* clear byte count */
+
+	/* set byte count */
+	hsfc |= (((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC);
+	hsfc |= HSFSC_FGO; /* start */
+	REGWRITE32(ICH9_REG_HSFS, hsfc);
+
+	if (ich_hwseq_wait_for_cycle_complete(timeout, len)) {
+		msg_perr("Writing Status register failed\n!!");
+		return -1;
+	}
+	return 0;
+}
+
 static int ich_hwseq_probe(struct flashctx *flash)
 {
 	uint32_t total_size, boundary;
@@ -2404,6 +2467,8 @@ static struct opaque_master opaque_master_ich_hwseq = {
 	.write = ich_hwseq_write,
 	.erase = ich_hwseq_block_erase,
 	.check_access = ich_hwseq_check_access,
+	.read_status = ich_hwseq_read_status,
+	.write_status = ich_hwseq_write_status,
 };
 
 int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
