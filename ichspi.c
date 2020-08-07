@@ -1208,6 +1208,13 @@ struct fd_region {
 	{ .name = "Reserved 1" },
 	{ .name = "Reserved 2" },
 	{ .name = "Embedded Controller" },
+	{ .name = "unknown" },
+	{ .name = "IE"      },
+	{ .name = "10GbE"   },
+	{ .name = "unknown" },
+	{ .name = "unknown" },
+	{ .name = "unknown" },
+	{ .name = "unknown" },
 };
 
 static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int count)
