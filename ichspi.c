@@ -1426,6 +1426,12 @@ static void ich_hwseq_set_addr(uint32_t addr)
 	REGWRITE32(ICH9_REG_FADDR, (addr & hwseq_data.addr_mask) | addr_old);
 }
 
+int ich_hwseq_check_access(const struct flashctx *flash, unsigned int start,
+			      unsigned int len, int read)
+{
+	return check_fd_permissions(NULL, read ? SPI_OPCODE_TYPE_READ_NO_ADDRESS: SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, start, len);
+}
+
 /* Sets FADDR.FLA to 'addr' and returns the erase block size in bytes
  * of the block containing this address. May return nonsense if the address is
  * not valid. The erase block size for a specific address depends on the flash
@@ -2370,6 +2376,7 @@ static struct opaque_master opaque_master_ich_hwseq = {
 	.read = ich_hwseq_read,
 	.write = ich_hwseq_write,
 	.erase = ich_hwseq_block_erase,
+	.check_access = ich_hwseq_check_access,
 };
 
 int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
