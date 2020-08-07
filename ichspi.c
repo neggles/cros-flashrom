@@ -1618,6 +1618,7 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 	uint32_t erase_block;
 	uint16_t hsfc;
 	uint32_t timeout = 5000 * 1000; /* 5 s for max 64 kB */
+	int result = 0;
 
 	if (is_dry_run())
 		return 0;
@@ -1646,6 +1647,11 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 		return -1;
 	}
 
+	/* Check flash region permissions before erasing */
+	result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, len);
+	if (result)
+		return result;
+
 	msg_pdbg("Erasing %d bytes starting at 0x%06x.\n", len, addr);
 	ich_hwseq_set_addr(addr);
 
@@ -1662,7 +1668,8 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 
 	if (ich_hwseq_wait_for_cycle_complete(timeout, len))
 		return -1;
-	return 0;
+
+	return result;
 }
 
 static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
@@ -1671,6 +1678,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 	uint16_t hsfc;
 	uint16_t timeout = 100 * 60;
 	uint8_t block_len;
+	int result = 0, chunk_status = 0;
 
 	if (addr + len > flash->chip->total_size * 1024) {
 		msg_perr("Request to read from an inaccessible memory address "
@@ -1688,23 +1696,36 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 		/* as well as flash chip page borders as demanded in the Intel datasheets. */
 		block_len = min(block_len, 256 - (addr & 0xFF));
 
-		ich_hwseq_set_addr(addr);
-		hsfc = REGREAD16(ICH9_REG_HSFC);
-		hsfc &= ~hwseq_data.hsfc_fcycle; /* set read operation */
-		hsfc &= ~HSFC_FDBC; /* clear byte count */
-		/* set byte count */
-		hsfc |= (((block_len - 1) << HSFC_FDBC_OFF) & HSFC_FDBC);
-		hsfc |= HSFC_FGO; /* start */
-		REGWRITE16(ICH9_REG_HSFC, hsfc);
+		/* Check flash region permissions before reading */
+		chunk_status = check_fd_permissions(NULL, SPI_OPCODE_TYPE_READ_NO_ADDRESS, addr, block_len);
+		if (chunk_status) {
+			if (ignore_error(chunk_status)) {
+				/* fill this chunk with 0xff bytes and
+				 * inform the caller about the error */
+				memset(buf, 0xff, block_len);
+				result = chunk_status;
+			} else {
+				return chunk_status;
+			}
+		} else {
+			ich_hwseq_set_addr(addr);
+			hsfc = REGREAD16(ICH9_REG_HSFC);
+			hsfc &= ~hwseq_data.hsfc_fcycle; /* set read operation */
+			hsfc &= ~HSFC_FDBC; /* clear byte count */
+			/* set byte count */
+			hsfc |= (((block_len - 1) << HSFC_FDBC_OFF) & HSFC_FDBC);
+			hsfc |= HSFC_FGO; /* start */
+			REGWRITE16(ICH9_REG_HSFC, hsfc);
 
-		if (ich_hwseq_wait_for_cycle_complete(timeout, block_len))
-			return 1;
-		ich_read_data(buf, block_len, ICH9_REG_FDATA0);
+			if (ich_hwseq_wait_for_cycle_complete(timeout, block_len))
+				return 1;
+			ich_read_data(buf, block_len, ICH9_REG_FDATA0);
+		}
 		addr += block_len;
 		buf += block_len;
 		len -= block_len;
 	}
-	return 0;
+	return result;
 }
 
 static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr, unsigned int len)
@@ -1712,6 +1733,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 	uint16_t hsfc;
 	uint16_t timeout = 100 * 60;
 	uint8_t block_len;
+	int result = 0;
 
 	if (addr + len > flash->chip->total_size * 1024) {
 		msg_perr("Request to write to an inaccessible memory address "
@@ -1729,6 +1751,10 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		block_len = min(len, opaque_master->max_data_write);
 		/* as well as flash chip page borders as demanded in the Intel datasheets. */
 		block_len = min(block_len, 256 - (addr & 0xFF));
+		/* Check flash region permissions before writing */
+		result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, block_len);
+		if (result)
+			return result;
 		ich_fill_data(buf, block_len, ICH9_REG_FDATA0);
 		hsfc = REGREAD16(ICH9_REG_HSFC);
 		hsfc &= ~hwseq_data.hsfc_fcycle; /* clear operation */
@@ -1745,7 +1771,8 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		buf += block_len;
 		len -= block_len;
 	}
-	return 0;
+
+	return result;
 }
 
 /* Routines for PCH */
