@@ -156,6 +156,9 @@ enum write_granularity {
 #define FEATURE_ERASED_ZERO	(1 << 17)
 #define FEATURE_NO_ERASE	(1 << 18)
 
+#define ERASED_VALUE(flash)	(((flash)->chip->feature_bits & FEATURE_ERASED_ZERO) ? 0x00 : 0xff)
+#define UNERASED_VALUE(flash)	(((flash)->chip->feature_bits & FEATURE_ERASED_ZERO) ? 0xff : 0x00)
+
 struct voltage_range {
 	uint16_t min, max;
 };
@@ -279,12 +282,6 @@ struct flashctx {
 	bool in_4ba_mode;
 };
 
-
-/* This is the byte value we expect to see in erased regions of the flash */
-int flash_erase_value(struct flashctx *flash);
-
-/* This is a byte value that indicates that the region is not erased */
-int flash_unerased_value(struct flashctx *flash);
 
 /* Given RDID info, return pointer to entry in flashchips[] */
 const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model_id);

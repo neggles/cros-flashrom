@@ -658,7 +658,7 @@ static int check_erased_range(struct flashctx *flash, unsigned int start, unsign
 		msg_gerr("Could not allocate memory!\n");
 		exit(1);
 	}
-	memset(cmpbuf, flash_erase_value(flash), len);
+	memset(cmpbuf, ERASED_VALUE(flash), len);
 	ret = verify_range(flash, cmpbuf, start, len, "ERASE");
 	free(cmpbuf);
 	return ret;
@@ -1463,7 +1463,7 @@ int read_flash_to_file(struct flashctx *flash, const char *filename)
 
 	/* To support partial read, fill buffer to all 0xFF at beginning to make
 	 * debug easier. */
-	memset(buf, flash_erase_value(flash), size);
+	memset(buf, ERASED_VALUE(flash), size);
 
 	if (!flash->chip->read) {
 		msg_cerr("No read function available for this flash chip.\n");
@@ -1619,7 +1619,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		}
 
 		/* Erase was successful. Adjust curcontents. */
-		memset(curcontents, flash_erase_value(flash), len);
+		memset(curcontents, ERASED_VALUE(flash), len);
 		skip = 0;
 		block_was_erased = 1;
 	}
@@ -2145,14 +2145,14 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 		exit(1);
 	}
 	/* Assume worst case: All blocks are not erased. */
-	memset(oldcontents, flash_unerased_value(flash), size);
+	memset(oldcontents, UNERASED_VALUE(flash), size);
 	newcontents = malloc(size);
 	if (!newcontents) {
 		msg_gerr("Out of memory!\n");
 		exit(1);
 	}
 	/* Assume best case: All blocks are erased. */
-	memset(newcontents, flash_erase_value(flash), size);
+	memset(newcontents, ERASED_VALUE(flash), size);
 	/* Side effect of the assumptions above: Default write action is erase
 	 * because newcontents looks like a completely erased chip, and
 	 * oldcontents being completely unerased means we have to erase
@@ -2208,7 +2208,7 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 		msg_cdbg("done.\n");
 	} else if (!erase_it) {
 		msg_pinfo("No diff performed, considering the chip erased.\n");
-		memset(oldcontents, flash_erase_value(flash), size);
+		memset(oldcontents, ERASED_VALUE(flash), size);
 	}
 
 	/*

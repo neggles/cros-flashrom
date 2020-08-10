@@ -696,7 +696,7 @@ struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 
 	fill_action_descriptor(descriptor, sorted_erasers,
 			       flash->chip->block_erasers, chip_size,
-			       num_erasers, flash_erase_value(flash));
+			       num_erasers, ERASED_VALUE(flash));
 
 	dump_descriptor(descriptor);
 
