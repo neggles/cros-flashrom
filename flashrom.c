@@ -2014,6 +2014,39 @@ static int chip_safety_check(const struct flashctx *flash, int force,
 	return 0;
 }
 
+int prepare_flash_access(struct flashctx *const flash, int force /*flash->flags.force*/,
+			 const bool read_it, const bool write_it,
+			 const bool erase_it, const bool verify_it)
+{
+	if (chip_safety_check(flash, force, read_it, write_it, erase_it, verify_it)) {
+		msg_cerr("Aborting.\n");
+		return 1;
+	}
+
+	if (normalize_romentries(flash)) {
+		msg_cerr("Requested regions can not be handled. Aborting.\n");
+		return 1;
+	}
+
+	/* Given the existence of read locks, we want to unlock for read,
+	   erase and write. */
+	if (flash->chip->unlock)
+		flash->chip->unlock(flash);
+
+	flash->address_high_byte = -1;
+	flash->in_4ba_mode = false;
+
+	/* Enable/disable 4-byte addressing mode if flash chip supports it */
+	if ((flash->chip->feature_bits & FEATURE_4BA_ENTER_WREN) && flash->chip->set_4ba) {
+		if (flash->chip->set_4ba(flash)) {
+			msg_cerr("Enabling/disabling 4-byte addressing mode failed!\n");
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 /*
  * Function to erase entire flash chip.
  *
@@ -2085,34 +2118,9 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	unsigned long size = flash->chip->total_size * 1024;
 	struct action_descriptor *descriptor = NULL;
 
-	if (chip_safety_check(flash, force, read_it, write_it, erase_it, verify_it)) {
-		msg_cerr("Aborting.\n");
-		ret = 1;
+	ret = prepare_flash_access(flash, force, read_it, write_it, erase_it, verify_it);
+	if (ret)
 		goto out_nofree;
-	}
-
-	if (normalize_romentries(flash)) {
-		msg_cerr("Requested regions can not be handled. Aborting.\n");
-		ret = 1;
-		goto out_nofree;
-	}
-
-	/* Given the existence of read locks, we want to unlock for read,
-	 * erase and write.
-	 */
-	if (flash->chip->unlock)
-		flash->chip->unlock(flash);
-
-	flash->address_high_byte = -1;
-	flash->in_4ba_mode = false;
-
-	/* Enable/disable 4-byte addressing mode if flash chip supports it */
-	if ((flash->chip->feature_bits & FEATURE_4BA_ENTER_WREN) && flash->chip->set_4ba) {
-		if (flash->chip->set_4ba(flash)) {
-			msg_cerr("Enabling/disabling 4-byte addressing mode failed!\n");
-			return 1;
-		}
-	}
 
 	if (extract_it) {
 		ret = extract_regions(flash);
