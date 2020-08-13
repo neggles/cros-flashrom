@@ -132,7 +132,7 @@ static int mec1308_get_sio_index(mec1308_data_t *ctx_data, uint16_t *port)
 	uint16_t ports[] = { MEC1308_SIO_PORT1,
 	                     MEC1308_SIO_PORT2,
 	};
-	int i;
+	size_t i;
 	static uint16_t port_internal, port_found = 0;
 
 	if (port_found) {
@@ -235,7 +235,7 @@ static void mbx_clear(mec1308_data_t *ctx_data)
 static int mec1308_exit_passthru_mode(mec1308_data_t *ctx_data)
 {
 	uint8_t tmp8;
-	int i;
+	size_t i;
 
 	/* exit passthru mode */
 	for (i = 0; i < strlen(MEC1308_CMD_PASSTHRU_EXIT); i++) {
@@ -262,7 +262,7 @@ static int mec1308_exit_passthru_mode(mec1308_data_t *ctx_data)
 static int enter_passthru_mode(mec1308_data_t *ctx_data)
 {
 	uint8_t tmp8;
-	int i;
+	size_t i;
 
 	/*
 	 * Enter passthru mode. If the EC does not successfully enter passthru
@@ -273,10 +273,10 @@ static int enter_passthru_mode(mec1308_data_t *ctx_data)
 	 * Note: This workaround was developed experimentally.
 	 */
 	for (i = 0; i < 3; i++) {
-		int j;
+		size_t j;
 
 		msg_pdbg("%s(): entering passthru mode, attempt %d out of 3\n",
-		         __func__, i + 1);
+		         __func__, (int)(i + 1));
 		for (j = 0; j < strlen(MEC1308_CMD_PASSTHRU_ENTER); j++) {
 			mbx_write(ctx_data, MEC1308_MBX_DATA_START + j,
 			          MEC1308_CMD_PASSTHRU_ENTER[j]);
@@ -364,7 +364,8 @@ static int mec1308_spi_send_command(const struct flashctx *flash, unsigned int w
                                     const unsigned char *writearr,
                                     unsigned char *readarr)
 {
-	int i, rc = 0;
+	int rc = 0;
+	size_t i;
 	mec1308_data_t *ctx_data = (mec1308_data_t *)flash->mst->spi.data;
 
 	if (mec1308_chip_select(ctx_data))
