@@ -313,10 +313,10 @@ static int __enable_flash_ich(void *dev, const char *name, int bios_cntl,
 	return 0;
 }
 
-static int enable_flash_ich(struct pci_dev *dev, const char *name,
-			    int bios_cntl)
+static int enable_flash_ich_bios_cntl_config_space(struct pci_dev *dev, enum ich_chipset ich_generation,
+						   uint8_t bios_cntl)
 {
-	return __enable_flash_ich(dev, name, bios_cntl, pci_read_byte,
+	return __enable_flash_ich(dev, NULL, bios_cntl, pci_read_byte,
 				  rpci_write_byte);
 }
 
@@ -333,9 +333,9 @@ static int apl_write_bios_cntl(struct pci_dev *dev, int offset, uint8_t val)
 	return 0;
 }
 
-static int enable_flash_ich_apl(void *dev, const char *name, int bios_cntl)
+static int enable_flash_ich_bios_cntl_memmapped(enum ich_chipset ich_generation, void *addr)
 {
-	return __enable_flash_ich(dev, name, bios_cntl, apl_read_bios_cntl,
+	return __enable_flash_ich(addr, NULL, 0, apl_read_bios_cntl,
 				  apl_write_bios_cntl) ? ERROR_FATAL : 0;
 }
 
@@ -651,7 +651,7 @@ static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_c
 		return err;
 
 	internal_buses_supported &= BUS_FWH;
-	return enable_flash_ich(dev, name, 0x4e);
+	return enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0x4e);
 }
 
 static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
@@ -666,7 +666,7 @@ static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_c
 	 * internal_buses_supported anyway.
 	 */
 	internal_buses_supported &= BUS_FWH;
-	return enable_flash_ich(dev, name, 0xdc);
+	return enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
 }
 
 static int enable_flash_ich0(struct pci_dev *dev, const char *name)
@@ -675,7 +675,7 @@ static int enable_flash_ich0(struct pci_dev *dev, const char *name)
 	/* FIXME: Make this use enable_flash_ich_4e() too and add IDSEL support. Unlike later chipsets,
 	 * ICH and ICH-0 do only support mapping of the top-most 4MB and therefore do only feature
 	 * FWH_DEC_EN (E3h, different default too) and FWH_SEL (E8h). */
-	return enable_flash_ich(dev, name, 0x4e);
+	return enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_ICH, 0x4e);
 }
 
 static int enable_flash_ich2345(struct pci_dev *dev, const char *name)
@@ -693,7 +693,7 @@ static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 	uint16_t old, new;
 	int err;
 
-	if ((err = enable_flash_ich(dev, name, 0xd8)) != 0)
+	if ((err = enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_POULSBO, 0xd8)) != 0)
 		return err;
 
 	old = pci_read_byte(dev, 0xd9);
@@ -810,7 +810,8 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 
 	switch (ich_generation) {
 	case CHIPSET_APOLLO_LAKE:
-		ret = enable_flash_ich_apl(dev, name, 0xdc);
+
+		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + 0xdc);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -828,7 +829,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-		ret = enable_flash_ich(dev, name, 0xdc);
+		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -1059,7 +1060,7 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 	int ret;
 
 	/* Enable Flash Writes */
-	ret = enable_flash_ich(dev, name, 0xd8);
+	ret = enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_TUNNEL_CREEK, 0xd8);
 	if (ret == ERROR_FATAL)
 		return ret;
 
