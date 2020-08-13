@@ -550,110 +550,6 @@ idsel_garbage_out:
 	return 0;
 }
 
-static int enable_flash_byt(struct pci_dev *dev, const char *name)
-{
-	uint32_t fwh_conf;
-	int i, tmp;
-	char *idsel = NULL;
-	int max_decode_fwh_idsel = 0, max_decode_fwh_decode = 0;
-	int contiguous = 1;
-	uint32_t ilb_base;
-	void *ilb;
-
-	/* Determine iLB base address */
-	ilb_base = pci_read_long(dev, 0x50);
-	ilb_base &= 0xfffffe00; /* bits 31:9 */
-	if (ilb_base == 0) {
-		msg_perr("Error: Invalid ILB_BASE_ADDRESS\n");
-		return ERROR_FATAL;
-	}
-	ilb = physmap("BYT IBASE", ilb_base, 512);
-	if (ilb == ERROR_PTR)
-		return ERROR_FATAL;
-
-	idsel = extract_programmer_param("fwh_idsel");
-	if (idsel && strlen(idsel)) {
-		uint64_t fwh_idsel_old, fwh_idsel;
-		errno = 0;
-		/* Base 16, nothing else makes sense. */
-		fwh_idsel = (uint64_t)strtoull(idsel, NULL, 16);
-		if (errno) {
-			msg_perr("Error: fwh_idsel= specified, but value could "
-				 "not be converted.\n");
-			free(idsel);
-			return ERROR_FATAL;
-		}
-		if (fwh_idsel & 0xffff000000000000ULL) {
-			msg_perr("Error: fwh_idsel= specified, but value had "
-				 "unused bits set.\n");
-			free(idsel);
-			return ERROR_FATAL;
-		}
-		fwh_idsel_old = mmio_readl(ilb + 0x18);
-		msg_pdbg("\nSetting IDSEL from 0x%08" PRIx64 " to "
-			 "0x%08" PRIx64 " for top 16 MB.", fwh_idsel_old,
-			 fwh_idsel);
-		rmmio_writel(fwh_idsel, ilb + 0x18);
-		/* FIXME: Decode settings are not changed. */
-	} else if (idsel) {
-		msg_perr("Error: fwh_idsel= specified, but no value given.\n");
-		free(idsel);
-		return ERROR_FATAL;
-	}
-	free(idsel);
-
-	/* Ignore all legacy ranges below 1 MB.
-	 * We currently only support flashing the chip which responds to
-	 * IDSEL=0. To support IDSEL!=0, flashbase and decode size calculations
-	 * have to be adjusted.
-	 */
-	/* FS - FWH ID Select */
-	fwh_conf = mmio_readl(ilb + 0x18);
-	for (i = 7; i >= 0; i--) {
-		tmp = (fwh_conf >> (i * 4)) & 0xf;
-		msg_pdbg("\n0x%08x/0x%08x FWH IDSEL: 0x%x",
-			 (0x1ff8 + i) * 0x80000,
-			 (0x1ff0 + i) * 0x80000,
-			 tmp);
-		if ((tmp == 0) && contiguous) {
-			max_decode_fwh_idsel = (8 - i) * 0x80000;
-		} else {
-			contiguous = 0;
-		}
-	}
-	contiguous = 1;
-	/* PCIE_REG_BIOS_DECODE_EN */
-	fwh_conf = pci_read_word(dev, 0xd8);
-	for (i = 7; i >= 0; i--) {
-		tmp = (fwh_conf >> (i + 0x8)) & 0x1;
-		msg_pdbg("\n0x%08x/0x%08x FWH decode %sabled",
-			 (0x1ff8 + i) * 0x80000,
-			 (0x1ff0 + i) * 0x80000,
-			 tmp ? "en" : "dis");
-		if ((tmp == 1) && contiguous) {
-			max_decode_fwh_decode = (8 - i) * 0x80000;
-		} else {
-			contiguous = 0;
-		}
-	}
-	for (i = 3; i >= 0; i--) {
-		tmp = (fwh_conf >> i) & 0x1;
-		msg_pdbg("\n0x%08x/0x%08x FWH decode %sabled",
-			 (0xff4 + i) * 0x100000,
-			 (0xff0 + i) * 0x100000,
-			 tmp ? "en" : "dis");
-		if ((tmp == 1) && contiguous) {
-			max_decode_fwh_decode = (8 - i) * 0x100000;
-		} else {
-			contiguous = 0;
-		}
-	}
-	max_rom_decode.fwh = min(max_decode_fwh_idsel, max_decode_fwh_decode);
-	msg_pdbg("\nMaximum FWH chip size: 0x%x bytes", max_rom_decode.fwh);
-
-	return 0;
-}
-
 static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
 {
 	int err;
@@ -1182,7 +1078,7 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 		};
 
 	/* Enable Flash Writes */
-	ret = enable_flash_byt(dev, name);
+	ret = enable_flash_ich_fwh_decode(dev, CHIPSET_BAYTRAIL);
 	if (ret == ERROR_FATAL)
 		return ret;
 
