@@ -659,29 +659,29 @@ static int check_erased_range(struct flashctx *flash, unsigned int start, unsign
 		exit(1);
 	}
 	memset(cmpbuf, ERASED_VALUE(flash), len);
-	ret = verify_range(flash, cmpbuf, start, len, "ERASE");
+	ret = verify_range(flash, cmpbuf, start, len);
 	free(cmpbuf);
 	return ret;
 }
 
-static int compare_chunk(uint8_t *readbuf, const uint8_t *cmpbuf, unsigned int start,
-					unsigned int len, const char *message)
+static int compare_range(const uint8_t *wantbuf, const uint8_t *havebuf, unsigned int start, unsigned int len)
 {
-	int failcount = 0, i;
-
+	int ret = 0, failcount = 0;
+	unsigned int i;
 	for (i = 0; i < len; i++) {
-		if (cmpbuf[i] != readbuf[i]) {
-			if (!failcount) {
-				msg_cerr("%s FAILED at 0x%08x! "
-					"Expected=0x%02x, Read=0x%02x,",
-					message, start + i,
-					cmpbuf[i], readbuf[i]);
-			}
-			failcount++;
+		if (wantbuf[i] != havebuf[i]) {
+			/* Only print the first failure. */
+			if (!failcount++)
+				msg_cerr("FAILED at 0x%08x! Expected=0x%02x, Found=0x%02x,",
+					 start + i, wantbuf[i], havebuf[i]);
 		}
 	}
-
-	return failcount;
+	if (failcount) {
+		msg_cerr(" failed byte count from 0x%08x-0x%08x: 0x%x\n",
+			 start, start + len - 1, failcount);
+		ret = -1;
+	}
+	return ret;
 }
 
 /*
@@ -689,11 +689,9 @@ static int compare_chunk(uint8_t *readbuf, const uint8_t *cmpbuf, unsigned int s
  *		flash content at location start
  * @start	offset to the base address of the flash chip
  * @len		length of the verified area
- * @message	string to print in the "FAILED" message
  * @return	0 for success, -1 for failure
  */
-int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len,
-		 const char *message)
+int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len)
 {
 	uint8_t *readbuf = malloc(len);
 	int ret = 0, failcount = 0;
@@ -717,8 +715,6 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 		ret = -1;
 		goto out_free;
 	}
-	if (!message)
-		message = "VERIFY";
 	msg_gdbg("%#06x..%#06x ", start, start + len -1);
 	if (programmer_table[programmer].paranoid) {
 		unsigned int i, chunksize;
@@ -747,8 +743,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 					continue;
 			}
 
-			failcount = compare_chunk(readbuf + i, cmpbuf + i, start + i,
-					chunksize, message);
+			failcount = compare_range(cmpbuf + i, readbuf + i, start + i, chunksize);
 			if (failcount)
 				break;
 		}
@@ -762,7 +757,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 			goto out_free;
 		}
 
-		failcount = compare_chunk(readbuf, cmpbuf, start, len, message);
+		failcount = compare_range(cmpbuf, readbuf, start, len);
 	}
 
 	if (failcount) {
@@ -1299,14 +1294,13 @@ static int verify_flash(struct flashctx *flash,
 		/* Verify only areas which were written. */
 		while (pu->num_blocks) {
 			ret = verify_range(flash, buf + pu->offset, pu->offset,
-					   pu->block_size * pu->num_blocks,
-					   NULL);
+					   pu->block_size * pu->num_blocks);
 			if (ret)
 				break;
 			pu++;
 		}
 	} else {
-		ret = verify_range(flash, buf, 0, total_size, NULL);
+		ret = verify_range(flash, buf, 0, total_size);
 	}
 
 	if (ret == ACCESS_DENIED) {
@@ -1648,7 +1642,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		 */
 		if (programmer_table[programmer].paranoid && !block_was_erased) {
 			if (verify_range(flash, newcontents + starthere,
-					start + starthere, lenhere, "WRITE"))
+					start + starthere, lenhere))
 				return -1;
 		}
 
