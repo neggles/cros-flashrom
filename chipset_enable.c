@@ -606,9 +606,11 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 				   enum ich_chipset ich_generation)
 {
 	int ret;
-	uint8_t bbs, buc;
+	uint8_t bbs;
 	uint32_t tmp, gcs;
 	void *rcrb;
+	const char *reg_name;
+	bool bild, top_swap;
 	struct boot_straps {
 		const char *name;
 		enum chipbustype bus;
@@ -703,6 +705,21 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	}
 
 	switch (ich_generation) {
+	case CHIPSET_BAYTRAIL:
+		/* Get physical address of Root Complex Register Block */
+		tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
+		msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
+
+		/* Map RCBA to virtual memory */
+		rcrb = physmap("BYT RCRB", tmp, 0x4000);
+		if (rcrb == ERROR_PTR)
+			return ERROR_FATAL;
+
+		/* Set BBS (Boot BIOS Straps) field of GCS register. */
+		gcs = mmio_readl(rcrb + 0);
+
+		ret = 0;
+		break;
 	case CHIPSET_APOLLO_LAKE:
 
 		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + 0xdc);
@@ -824,6 +841,21 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 			gcs = (gcs & ~0xc00) | (0x1 << 10);
 		}
 		break;
+	case CHIPSET_BAYTRAIL:
+		/* Bay Trail BBS (Boot BIOS Straps) field of GCS register.
+		 *   00b: LPC
+		 *   01b: reserved
+		 *   10b: reserved
+		 *   11b: SPI
+		 */
+		if (target_bus == BUS_LPC) {
+			msg_pdbg("Setting BBS to LPC\n");
+			gcs = (gcs & ~0xc00) | (0x0 << 10);
+		} else if (target_bus == BUS_SPI) {
+			msg_pdbg("Setting BBS to SPI\n");
+			gcs = (gcs & ~0xc00) | (0x3 << 10);
+		}
+		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_APOLLO_LAKE:
 		if (target_bus == BUS_SPI) {
@@ -841,26 +873,36 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	}
 
 	switch (ich_generation) {
+	case CHIPSET_BAYTRAIL:
+		rmmio_writel(gcs, rcrb + 0);
+
+		reg_name = "GCS";
+		bild = gcs & 1;
+		top_swap = (gcs & 2) >> 1;
+		break;
 	case CHIPSET_APOLLO_LAKE:
 		mmio_writel(gcs, (void *)dev + 0xdc);
-		msg_pdbg("GCS = 0x%x: ", gcs);
-		msg_pdbg("BIOS Interface Lock-Down: %sabled, ",
-			(gcs & 0x80) ? "en" : "dis");
+		reg_name = "BIOS_SPI_BC";
+		bild = (gcs >> 7) & 1;
+		top_swap = (gcs >> 4) & 1;
 		break;
 
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 		rpci_write_long(dev, 0xdc, gcs);
-		msg_pdbg("GCS = 0x%x: ", gcs);
-		msg_pdbg("BIOS Interface Lock-Down: %sabled, ",
-			(gcs & 0x80) ? "en" : "dis");
+		reg_name = "BIOS_SPI_BC";
+		bild = (gcs >> 7) & 1;
+		top_swap = (gcs >> 4) & 1;
 		break;
 	default:
 		rmmio_writel(gcs, rcrb + 0x3410);
-		msg_pdbg("GCS = 0x%x: ", gcs);
-		msg_pdbg("BIOS Interface Lock-Down: %sabled, ",
-			(gcs & 0x1) ? "en" : "dis");
+		reg_name = "GCS";
+		bild = (gcs >> 7) & 1;
+		top_swap = (gcs >> 4) & 1;
 		break;
 	}
+
+	msg_pdbg("%s = 0x%x: ", reg_name, gcs);
+	msg_pdbg("BIOS Interface Lock-Down: %sabled, ", bild ? "en" : "dis");
 
 	switch (ich_generation) {
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
@@ -882,16 +924,12 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	}
 	msg_pdbg("Boot BIOS Straps: 0x%x (%s)\n", bbs, boot_straps[bbs].name);
 
-	switch (ich_generation) {
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APOLLO_LAKE:
-		break;
-	default:
-		buc = mmio_readb(rcrb + 0x3414);
-		msg_pdbg("Top Swap : %s\n",
-			(buc & 1) ? "enabled (A16 inverted)" : "not enabled");
-		break;
-	}
+	/* Centerton has its TS bit in [GPE0BLK] + 0x30 while the exact location for Tunnel Creek is unknown. */
+	if (ich_generation != CHIPSET_TUNNEL_CREEK && ich_generation != CHIPSET_CENTERTON)
+		msg_pdbg("Top Swap: %s\n", (top_swap) ? "enabled (A16(+) inverted)" : "not enabled");
+
+	if (ich_generation == CHIPSET_BAYTRAIL)
+		return ret;
 
 	/*
 	 * It seems that the ICH7 does not support SPI and LPC chips at the same time. When booted
@@ -912,6 +950,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	/* SPIBAR is at RCRB+0x3020 for ICH[78], Tunnel Creek and Centerton, and RCRB+0x3800 for ICH9. */
 	uint16_t spibar_offset;
 	switch (ich_generation) {
+	case CHIPSET_BAYTRAIL:
 	case CHIPSET_ICH_UNKNOWN:
 		return ERROR_FATAL;
 	case CHIPSET_ICH7:
@@ -924,7 +963,6 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_APOLLO_LAKE:
-	case CHIPSET_BAYTRAIL:
 		spibar_offset = 0x0;
 		break;
 	case CHIPSET_ICH9:
