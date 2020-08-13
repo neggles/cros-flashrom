@@ -693,20 +693,20 @@ static int compare_range(const uint8_t *wantbuf, const uint8_t *havebuf, unsigne
  */
 int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len)
 {
-	uint8_t *readbuf = malloc(len);
-	int ret = 0, failcount = 0;
-
 	if (!len)
-		goto out_free;
+		return -1;
 
 	if (!flash->chip->read) {
 		msg_cerr("ERROR: flashrom has no read function for this flash chip.\n");
-		return 1;
+		return -1;
 	}
+
+	uint8_t *readbuf = malloc(len);
 	if (!readbuf) {
 		msg_gerr("Could not allocate memory!\n");
-		exit(1);
+		return -1;
 	}
+	int ret = 0, failcount = 0;
 
 	if (start + len > flash->chip->total_size * 1024) {
 		msg_gerr("Error: %s called with start 0x%x + len 0x%x >"
