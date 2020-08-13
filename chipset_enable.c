@@ -1101,62 +1101,14 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 {
 	int ret, ret_spi, ret_bios;
-	uint8_t bbs, buc;
-	uint32_t tmp, gcs;
-	void *rcrb, *spibar;
-
-	static const struct {
-		const char *name;
-		enum chipbustype bus;
-	} boot_straps[] =
-		{ { "LPC", BUS_LPC | BUS_FWH },
-		  { "unknown" },
-		  { "unknown" },
-		  { "SPI", BUS_SPI },
-		};
+	uint32_t tmp;
+	void *spibar;
 
 	/* Enable Flash Writes */
 	ret = enable_flash_ich_fwh_decode(dev, CHIPSET_BAYTRAIL);
 	if (ret == ERROR_FATAL)
 		return ret;
-
-	/* Get physical address of Root Complex Register Block */
-	tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
-	msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
-
-	/* Map RCBA to virtual memory */
-	rcrb = physmap("BYT RCRB", tmp, 0x4000);
-	if (rcrb == ERROR_PTR)
-		return ERROR_FATAL;
-
-	/* Set BBS (Boot BIOS Straps) field of GCS register. */
-	gcs = mmio_readl(rcrb + 0);
-
-	/* Bay Trail BBS (Boot BIOS Straps) field of GCS register.
-	 *   00b: LPC
-	 *   01b: reserved
-	 *   10b: reserved
-	 *   11b: SPI
-	 */
-	if (target_bus == BUS_LPC) {
-		msg_pdbg("Setting BBS to LPC\n");
-		gcs = (gcs & ~0xc00) | (0x0 << 10);
-	} else if (target_bus == BUS_SPI) {
-		msg_pdbg("Setting BBS to SPI\n");
-		gcs = (gcs & ~0xc00) | (0x3 << 10);
-	}
-	rmmio_writel(gcs, rcrb + 0);
-
-	msg_pdbg("GCS = 0x%x: ", gcs);
-	msg_pdbg("BIOS Interface Lock-Down: %sabled, ",
-		 (gcs & 0x1) ? "en" : "dis");
-
-	bbs = (gcs >> 10) & 0x3;
-	msg_pdbg("Boot BIOS Straps: 0x%x (%s)\n", bbs, boot_straps[bbs].name);
-
-	buc = mmio_readb(rcrb + 0x3414);
-	msg_pdbg("Top Swap : %s\n",
-		 (buc & 1) ? "enabled (A16 inverted)" : "not enabled");
+	enable_flash_ich_dc_spi(dev, name, CHIPSET_BAYTRAIL);
 
 	/* This adds BUS_SPI */
 	tmp = pci_read_long(dev, 0x54) & 0xfffffe00;
