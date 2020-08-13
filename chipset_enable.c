@@ -550,7 +550,7 @@ idsel_garbage_out:
 	return 0;
 }
 
-static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
+static int enable_flash_ich_fwh(struct pci_dev *dev, enum ich_chipset ich_generation, uint8_t bios_cntl)
 {
 	int err;
 
@@ -559,47 +559,27 @@ static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_c
 		return err;
 
 	internal_buses_supported &= BUS_FWH;
-	return enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0x4e);
-}
-
-static int enable_flash_ich_dc(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
-{
-	int err;
-
-	/* Configure FWH IDSEL decoder maps. */
-	if ((err = enable_flash_ich_fwh_decode(dev, ich_generation)) != 0)
-		return err;
-
-	/* If we're called by enable_flash_ich_spi, it will override
-	 * internal_buses_supported anyway.
-	 */
-	internal_buses_supported &= BUS_FWH;
-	return enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
+	return enable_flash_ich_bios_cntl_config_space(dev, ich_generation, bios_cntl);
 }
 
 static int enable_flash_ich0(struct pci_dev *dev, const char *name)
 {
-	internal_buses_supported &= BUS_FWH;
-	/* FIXME: Make this use enable_flash_ich_4e() too and add IDSEL support. Unlike later chipsets,
-	 * ICH and ICH-0 do only support mapping of the top-most 4MB and therefore do only feature
-	 * FWH_DEC_EN (E3h, different default too) and FWH_SEL (E8h). */
-	return enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_ICH, 0x4e);
+	return enable_flash_ich_fwh(dev, CHIPSET_ICH, 0x4e);
 }
 
 static int enable_flash_ich2345(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_4e(dev, name, CHIPSET_ICH2345);
+	return enable_flash_ich_fwh(dev, CHIPSET_ICH2345, 0x4e);
 }
 
 static int enable_flash_ich6(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc(dev, name, CHIPSET_ICH6);
+	return enable_flash_ich_fwh(dev, CHIPSET_ICH6, 0xdc);
 }
 
 static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 {
-	internal_buses_supported &= BUS_FWH;
-	return enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_POULSBO, 0xd8);
+	return enable_flash_ich_fwh(dev, CHIPSET_POULSBO, 0xd8);
 }
 
 static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
@@ -758,7 +738,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	default:
 		/* Enable Flash Writes */
-		ret = enable_flash_ich_dc(dev, name, ich_generation);
+		ret = enable_flash_ich_fwh(dev, ich_generation, 0xdc);
 		if (ret == ERROR_FATAL)
 			return ret;
 
