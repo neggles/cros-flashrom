@@ -651,8 +651,7 @@ static int enable_flash_byt(struct pci_dev *dev, const char *name)
 	max_rom_decode.fwh = min(max_decode_fwh_idsel, max_decode_fwh_decode);
 	msg_pdbg("\nMaximum FWH chip size: 0x%x bytes", max_rom_decode.fwh);
 
-	/* Enable BIOS writing */
-	return enable_flash_ich_bios_cntl_memmapped(CHIPSET_BAYTRAIL, ilb + 0x1c);
+	return 0;
 }
 
 static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
@@ -1167,7 +1166,7 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 /* Baytrail */
 static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 {
-	int ret, ret_spi;
+	int ret, ret_spi, ret_bios;
 	uint8_t bbs, buc;
 	uint32_t tmp, gcs;
 	void *rcrb, *spibar;
@@ -1232,11 +1231,18 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 	if (spibar == ERROR_PTR)
 		return ERROR_FATAL;
 
+	/* Enable Flash Writes.
+	 * Silvermont-based: BCR at SBASE + 0xFC (some bits of BCR are also accessible via BC at IBASE + 0x1C).
+	 */
+	ret_bios = enable_flash_ich_bios_cntl_memmapped(CHIPSET_BAYTRAIL, spibar + 0xFC);
+	if (ret_bios == ERROR_FATAL)
+		return ret_bios;
+
 	ret_spi = ich_init_spi(spibar, CHIPSET_BAYTRAIL);
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
-	if (ret || ret_spi)
+	if (ret || ret_spi || ret_bios)
 		ret = ERROR_NONFATAL;
 
 	return ret;
