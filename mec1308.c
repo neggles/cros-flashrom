@@ -359,10 +359,10 @@ static int mec1308_chip_deselect(mec1308_data_t *ctx_data)
  * connected to LPC bus. This function will forward commands issued thru
  * mailbox interface to the SPI flash chip.
  */
-int mec1308_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
-                             unsigned int readcnt,
-                             const unsigned char *writearr,
-                             unsigned char *readarr)
+static int mec1308_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
+                                    unsigned int readcnt,
+                                    const unsigned char *writearr,
+                                    unsigned char *readarr)
 {
 	int i, rc = 0;
 	mec1308_data_t *ctx_data = (mec1308_data_t *)flash->mst->spi.data;
