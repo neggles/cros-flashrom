@@ -344,19 +344,6 @@ static int mec1308_shutdown(void *data)
 	return 0;
 }
 
-int mec1308_spi_read(struct flashctx *flash, uint8_t * buf, int start, int len)
-{
-	return spi_read_chunked(flash, buf, start, len,
-				flash->chip->page_size);
-}
-
-int mec1308_spi_write_256(struct flashctx *flash,
-                          uint8_t *buf, int start, int len)
-{
-	return spi_write_chunked(flash, buf, start, len,
-				 flash->chip->page_size);
-}
-
 static int mec1308_chip_select(mec1308_data_t *ctx_data)
 {
 	return mbx_write(ctx_data, MEC1308_MBX_CMD, MEC1308_CMD_PASSTHRU_CS_EN);
