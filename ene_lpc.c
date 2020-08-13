@@ -417,7 +417,7 @@ static int ene_spi_send_command(const struct flashctx *flash,
 				const unsigned char *writearr,
 				unsigned char *readarr)
 {
-	int i;
+	unsigned int i;
 	int tries = EC_RESET_TRIES;
 	ene_lpc_data_t *ctx_data = (ene_lpc_data_t *)flash->mst->spi.data;
 	const ene_chip_t *chip = ctx_data->chip;
