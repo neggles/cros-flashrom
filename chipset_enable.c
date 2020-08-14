@@ -778,6 +778,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		/* TODO: Support target_bus. */
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT:
+	case CHIPSET_9_SERIES_WILDCAT_POINT:
 		/* Lynx Point BBS (Boot BIOS Straps) field of GCS register.
 		 *   00b: LPC
 		 *   01b: reserved
@@ -793,7 +794,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		}
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
-	case CHIPSET_9_SERIES_WILDCAT_POINT:
+	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
 		/* Lynx Point LP BBS (Boot BIOS Straps) field of GCS register.
 		 *   0b: SPI
 		 *   1b: LPC
@@ -892,7 +893,6 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		bbs = (gcs >> 1) & 0x1;
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
-	case CHIPSET_9_SERIES_WILDCAT_POINT:
 	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
 		/* LP PCHs use a single bit for BBS */
 		bbs = (gcs >> 10) & 0x1;
@@ -1007,22 +1007,34 @@ static int enable_flash_pch6(struct pci_dev *dev, const char *name)
 	return enable_flash_ich_spi(dev, CHIPSET_6_SERIES_COUGAR_POINT, 0xdc);
 }
 
-/* Lynx Point */
-static int enable_flash_lynxpoint(struct pci_dev *dev, const char *name)
+/* Panther Point aka. 7 series */
+static int enable_flash_pch7(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_spi(dev, CHIPSET_7_SERIES_PANTHER_POINT, 0xdc);
+}
+
+/* Lynx Point aka. 8 series */
+static int enable_flash_pch8(struct pci_dev *dev, const char *name)
 {
 	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT, 0xdc);
 }
 
-/* Lynx Point LP */
-static int enable_flash_lynxpoint_lp(struct pci_dev *dev, const char *name)
+/* Lynx Point LP aka. 8 series low-power */
+static int enable_flash_pch8_lp(struct pci_dev *dev, const char *name)
 {
 	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT_LP, 0xdc);
 }
 
 /* Wildcat Point */
-static int enable_flash_wildcatpoint(struct pci_dev *dev, const char *name)
+static int enable_flash_pch9(struct pci_dev *dev, const char *name)
 {
 	return enable_flash_ich_spi(dev, CHIPSET_9_SERIES_WILDCAT_POINT, 0xdc);
+}
+
+/* Wildcat Point LP */
+static int enable_flash_pch9_lp(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_spi(dev, CHIPSET_9_SERIES_WILDCAT_POINT_LP, 0xdc);
 }
 
 /* Sunrise Point */
@@ -1885,22 +1897,24 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x1e41, B_FS,   OK,  "Intel", "Desktop Full",			enable_flash_pch6},
 	{0x8086, 0x1e42, B_FS,   OK,  "Intel", "Mobile Full",			enable_flash_pch6},
 	{0x8086, 0x1e43, B_FS,   OK,  "Intel", "Mobile SFF",			enable_flash_pch6},
-	{0x8086, 0x1e44, B_FS,   DEP, "Intel", "Z77",				enable_flash_pch6},
-	{0x8086, 0x1e46, B_FS,   NT,  "Intel", "Z75",				enable_flash_pch6},
-	{0x8086, 0x1e47, B_FS,   NT,  "Intel", "Q77",				enable_flash_pch6},
-	{0x8086, 0x1e48, B_FS,   DEP, "Intel", "Q75",				enable_flash_pch6},
-	{0x8086, 0x1e49, B_FS,   DEP, "Intel", "B75",				enable_flash_pch6},
-	{0x8086, 0x1e4a, B_FS,   DEP, "Intel", "H77",				enable_flash_pch6},
-	{0x8086, 0x1e53, B_FS,   NT,  "Intel", "C216",				enable_flash_pch6},
-	{0x8086, 0x1e55, B_FS,   DEP, "Intel", "QM77",				enable_flash_pch6},
-	{0x8086, 0x1e56, B_FS,   DEP, "Intel", "QS77",				enable_flash_pch6},
-	{0x8086, 0x1e57, B_FS,   DEP, "Intel", "HM77",				enable_flash_pch6},
-	{0x8086, 0x1e58, B_FS,   NT,  "Intel", "UM77",				enable_flash_pch6},
-	{0x8086, 0x1e59, B_FS,   DEP, "Intel", "HM76",				enable_flash_pch6},
-	{0x8086, 0x1e5d, B_FS,   DEP, "Intel", "HM75",				enable_flash_pch6},
-	{0x8086, 0x1e5e, B_FS,   NT,  "Intel", "HM70",				enable_flash_pch6},
-	{0x8086, 0x1e5f, B_FS,   DEP, "Intel", "NM70",				enable_flash_pch6},
+	{0x8086, 0x1e44, B_FS,   DEP, "Intel", "Z77",				enable_flash_pch7},
+	{0x8086, 0x1e46, B_FS,   NT,  "Intel", "Z75",				enable_flash_pch7},
+	{0x8086, 0x1e47, B_FS,   NT,  "Intel", "Q77",				enable_flash_pch7},
+	{0x8086, 0x1e48, B_FS,   DEP, "Intel", "Q75",				enable_flash_pch7},
+	{0x8086, 0x1e49, B_FS,   DEP, "Intel", "B75",				enable_flash_pch7},
+	{0x8086, 0x1e4a, B_FS,   DEP, "Intel", "H77",				enable_flash_pch7},
+	{0x8086, 0x1e53, B_FS,   NT,  "Intel", "C216",				enable_flash_pch7},
+	{0x8086, 0x1e55, B_FS,   DEP, "Intel", "QM77",				enable_flash_pch7},
+	{0x8086, 0x1e56, B_FS,   DEP, "Intel", "QS77",				enable_flash_pch7},
+	{0x8086, 0x1e57, B_FS,   DEP, "Intel", "HM77",				enable_flash_pch7},
+	{0x8086, 0x1e58, B_FS,   NT,  "Intel", "UM77",				enable_flash_pch7},
+	{0x8086, 0x1e59, B_FS,   DEP, "Intel", "HM76",				enable_flash_pch7},
+	{0x8086, 0x1e5d, B_FS,   DEP, "Intel", "HM75",				enable_flash_pch7},
+	{0x8086, 0x1e5e, B_FS,   NT,  "Intel", "HM70",				enable_flash_pch7},
+	{0x8086, 0x1e5f, B_FS,   DEP, "Intel", "NM70",				enable_flash_pch7},
 	{0x8086, 0x229c, B_FS,   OK,  "Intel", "Braswell",			enable_flash_baytrail},
+	{0x8086, 0x2310, B_FS,   NT,  "Intel", "DH89xxCC (Cave Creek)",		enable_flash_pch7},
+	{0x8086, 0x2390, B_FS,   NT,  "Intel", "Coleto Creek",			enable_flash_pch7},
 	{0x8086, 0x2410, B_FL,   OK,  "Intel", "ICH",				enable_flash_ich0},
 	{0x8086, 0x2420, B_FL,   OK,  "Intel", "ICH0",				enable_flash_ich0},
 	{0x8086, 0x2440, B_FL,   OK,  "Intel", "ICH2",				enable_flash_ich2345},
@@ -1962,29 +1976,30 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x7198, B_P,    OK,  "Intel", "440MX",				enable_flash_piix4},
 	{0x8086, 0x8119, B_FL,   OK,  "Intel", "SCH Poulsbo",			enable_flash_poulsbo},
 	{0x8086, 0x8186, B_FS,   OK,  "Intel", "Atom E6xx(T) (Tunnel Creek)",	enable_flash_tunnelcreek},
-	{0x8086, 0x8c41, B_FS,   NT,  "Intel", "Lynx Point Mobile Eng. Sample",	enable_flash_lynxpoint},
-	{0x8086, 0x8c42, B_FS,   NT,  "Intel", "Lynx Point Desktop Eng. Sample",enable_flash_lynxpoint},
-	{0x8086, 0x8c44, B_FS,   DEP, "Intel", "Z87",				enable_flash_lynxpoint},
-	{0x8086, 0x8c46, B_FS,   NT,  "Intel", "Z85",				enable_flash_lynxpoint},
-	{0x8086, 0x8c49, B_FS,   NT,  "Intel", "HM86",				enable_flash_lynxpoint},
-	{0x8086, 0x8c4a, B_FS,   DEP, "Intel", "H87",				enable_flash_lynxpoint},
-	{0x8086, 0x8c4b, B_FS,   DEP, "Intel", "HM87",				enable_flash_lynxpoint},
-	{0x8086, 0x8c4c, B_FS,   NT,  "Intel", "Q85",				enable_flash_lynxpoint},
-	{0x8086, 0x8c4d, B_FS,   NT,  "Intel", "Lynx Point",			enable_flash_lynxpoint},
-	{0x8086, 0x8c4e, B_FS,   NT,  "Intel", "Q87",				enable_flash_lynxpoint},
-	{0x8086, 0x8c4f, B_FS,   NT,  "Intel", "QM87",				enable_flash_lynxpoint},
-	{0x8086, 0x9c41, B_FS,   NT,  "Intel", "Lynx Point LP Eng. Sample",	enable_flash_lynxpoint_lp},
-	{0x8086, 0x9c43, B_FS,   NT,  "Intel", "Lynx Point LP Premium",		enable_flash_lynxpoint_lp},
-	{0x8086, 0x9c45, B_FS,   NT,  "Intel", "Lynx Point LP Mainstream",	enable_flash_lynxpoint_lp},
-	{0x8086, 0x9c47, B_FS,   NT,  "Intel", "Lynx Point LP Value",		enable_flash_lynxpoint_lp},
-	{0x8086, 0x9cc1, B_FS,   NT,  "Intel", "Haswell U Sample",		enable_flash_wildcatpoint},
-	{0x8086, 0x9cc2, B_FS,   NT,  "Intel", "Broadwell U Sample",		enable_flash_wildcatpoint},
-	{0x8086, 0x9cc3, B_FS,   DEP, "Intel", "Broadwell U Premium",		enable_flash_wildcatpoint},
-	{0x8086, 0x9cc5, B_FS,   NT,  "Intel", "Broadwell U Base",		enable_flash_wildcatpoint},
-	{0x8086, 0x9cc6, B_FS,   NT,  "Intel", "Broadwell Y Sample",		enable_flash_wildcatpoint},
-	{0x8086, 0x9cc7, B_FS,   NT,  "Intel", "Broadwell Y Premium",		enable_flash_wildcatpoint},
-	{0x8086, 0x9cc9, B_FS,   NT,  "Intel", "Broadwell Y Base",		enable_flash_wildcatpoint},
-	{0x8086, 0x9ccb, B_FS,   NT,  "Intel", "Broadwell H",			enable_flash_wildcatpoint},
+	{0x8086, 0x8c41, B_FS,   NT,  "Intel", "Lynx Point Mobile Eng. Sample",	enable_flash_pch8},
+	{0x8086, 0x8c42, B_FS,   NT,  "Intel", "Lynx Point Desktop Eng. Sample",enable_flash_pch8},
+	{0x8086, 0x8c43, B_FS,   NT,  "Intel", "Lynx Point",			enable_flash_pch8},
+	{0x8086, 0x8c44, B_FS,   DEP, "Intel", "Z87",				enable_flash_pch8},
+	{0x8086, 0x8c46, B_FS,   NT,  "Intel", "Z85",				enable_flash_pch8},
+	{0x8086, 0x8c49, B_FS,   NT,  "Intel", "HM86",				enable_flash_pch8},
+	{0x8086, 0x8c4a, B_FS,   DEP, "Intel", "H87",				enable_flash_pch8},
+	{0x8086, 0x8c4b, B_FS,   DEP, "Intel", "HM87",				enable_flash_pch8},
+	{0x8086, 0x8c4c, B_FS,   NT,  "Intel", "Q85",				enable_flash_pch8},
+	{0x8086, 0x8c4d, B_FS,   NT,  "Intel", "Lynx Point",			enable_flash_pch8},
+	{0x8086, 0x8c4e, B_FS,   NT,  "Intel", "Q87",				enable_flash_pch8},
+	{0x8086, 0x8c4f, B_FS,   NT,  "Intel", "QM87",				enable_flash_pch8},
+	{0x8086, 0x9c41, B_FS,   NT,  "Intel", "Lynx Point LP Eng. Sample",	enable_flash_pch8_lp},
+	{0x8086, 0x9c43, B_FS,   NT,  "Intel", "Lynx Point LP Premium",		enable_flash_pch8_lp},
+	{0x8086, 0x9c45, B_FS,   NT,  "Intel", "Lynx Point LP Mainstream",	enable_flash_pch8_lp},
+	{0x8086, 0x9c47, B_FS,   NT,  "Intel", "Lynx Point LP Value",		enable_flash_pch8_lp},
+	{0x8086, 0x9cc1, B_FS,   NT,  "Intel", "Haswell U Sample",		enable_flash_pch9_lp},
+	{0x8086, 0x9cc2, B_FS,   NT,  "Intel", "Broadwell U Sample",		enable_flash_pch9_lp},
+	{0x8086, 0x9cc3, B_FS,   DEP, "Intel", "Broadwell U Premium",		enable_flash_pch9_lp},
+	{0x8086, 0x9cc5, B_FS,   NT,  "Intel", "Broadwell U Base",		enable_flash_pch9_lp},
+	{0x8086, 0x9cc6, B_FS,   NT,  "Intel", "Broadwell Y Sample",		enable_flash_pch9_lp},
+	{0x8086, 0x9cc7, B_FS,   NT,  "Intel", "Broadwell Y Premium",		enable_flash_pch9_lp},
+	{0x8086, 0x9cc9, B_FS,   NT,  "Intel", "Broadwell Y Base",		enable_flash_pch9_lp},
+	{0x8086, 0x9ccb, B_FS,   NT,  "Intel", "Broadwell H",			enable_flash_pch9},
 	{0x8086, 0x9d24, B_FS,   OK, "Intel", "Skylake",			enable_flash_sunrisepoint},
 	{0x8086, 0xa224, B_FS,   OK, "Intel", "Lewisburg",			enable_flash_sunrisepoint},
 	/*
@@ -2109,9 +2124,9 @@ int get_target_bus_from_chipset(enum chipbustype *bus)
 	               CHIPSET_7_SERIES_PANTHER_POINT); */) {
 		is_new_ich = 1;
 	} else if ((chipset_enables[i].doit ==
-		    enable_flash_lynxpoint_lp) ||
+		    enable_flash_pch8_lp) ||
 		   (chipset_enables[i].doit ==
-		    enable_flash_wildcatpoint)) {
+		    enable_flash_pch9_lp)) {
 		/* The new LP chipsets have 1 bit BBS */
 		is_new_ich = 2;
 	} else if (chipset_enables[i].doit ==
