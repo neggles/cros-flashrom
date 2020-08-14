@@ -582,8 +582,7 @@ static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 	return enable_flash_ich_fwh(dev, CHIPSET_POULSBO, 0xd8);
 }
 
-static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
-				   enum ich_chipset ich_generation)
+static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_generation)
 {
 	int ret;
 	uint8_t bbs;
@@ -1005,61 +1004,58 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 
 static int enable_flash_ich7(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name, CHIPSET_ICH7);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH7);
 }
 
 static int enable_flash_ich8(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name, CHIPSET_ICH8);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH8);
 }
 
 static int enable_flash_ich9(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name, CHIPSET_ICH9);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH9);
 }
 
 static int enable_flash_ich10(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name, CHIPSET_ICH10);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH10);
 }
 
 /* Ibex Peak aka. 5 series & 3400 series */
 static int enable_flash_pch5(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name, CHIPSET_5_SERIES_IBEX_PEAK);
+	return enable_flash_ich_spi(dev, CHIPSET_5_SERIES_IBEX_PEAK);
 }
 
 /* Cougar Point aka. 6 series & c200 series */
 static int enable_flash_pch6(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name, CHIPSET_6_SERIES_COUGAR_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_6_SERIES_COUGAR_POINT);
 }
 
 /* Lynx Point */
 static int enable_flash_lynxpoint(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name, CHIPSET_8_SERIES_LYNX_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT);
 }
 
 /* Lynx Point LP */
 static int enable_flash_lynxpoint_lp(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name,
-				       CHIPSET_8_SERIES_LYNX_POINT_LP);
+	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT_LP);
 }
 
 /* Wildcat Point */
 static int enable_flash_wildcatpoint(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name,
-				       CHIPSET_9_SERIES_WILDCAT_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_9_SERIES_WILDCAT_POINT);
 }
 
 /* Sunrise Point */
 static int enable_flash_sunrisepoint(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_dc_spi(dev, name,
-					CHIPSET_100_SERIES_SUNRISE_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_100_SERIES_SUNRISE_POINT);
 }
 
 static int enable_flash_apl(struct pci_dev *dev, const char *name)
@@ -1074,7 +1070,7 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 		 mmio_readw(spicfg + 0x0), mmio_readw(spicfg + 0x2),
 		 mmio_readl(spicfg + 0x10));
 
-	return enable_flash_ich_dc_spi(spicfg, name, CHIPSET_APOLLO_LAKE);
+	return enable_flash_ich_spi(spicfg, CHIPSET_APOLLO_LAKE);
 }
 
 /* Baytrail */
@@ -1088,7 +1084,7 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 	ret = enable_flash_ich_fwh_decode(dev, CHIPSET_BAYTRAIL);
 	if (ret == ERROR_FATAL)
 		return ret;
-	enable_flash_ich_dc_spi(dev, name, CHIPSET_BAYTRAIL);
+	enable_flash_ich_spi(dev, CHIPSET_BAYTRAIL);
 
 	/* This adds BUS_SPI */
 	tmp = pci_read_long(dev, 0x54) & 0xfffffe00;
