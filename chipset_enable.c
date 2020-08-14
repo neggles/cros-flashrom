@@ -641,7 +641,7 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		/* EP80579 may need further changes, but this is the least
 		 * intrusive way to get correct BOOT Strap printing without
 		 * changing the rest of its code path). */
-		if (strcmp(name, "EP80579") == 0)
+		if (dev->device_id == 0x5031)
 			boot_straps = boot_straps_EP80579;
 		else
 			boot_straps = boot_straps_ich7_nm10;
