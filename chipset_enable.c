@@ -1058,38 +1058,46 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 	return enable_flash_ich_spi(spicfg, CHIPSET_APOLLO_LAKE, 0xdc);
 }
 
-/* Baytrail */
-static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
+/* Silvermont architecture: Bay Trail(-T/-I), Avoton/Rangeley.
+ * These have a distinctly different behavior compared to other Intel chipsets and hence are handled separately.
+ *
+ * Differences include:
+ *	- RCBA at LPC config 0xF0 too but mapped range is only 4 B long instead of 16 kB.
+ *	- GCS at [RCRB] + 0 (instead of [RCRB] + 0x3410).
+ *	- TS (Top Swap) in GCS (instead of [RCRB] + 0x3414).
+ *	- SPIBAR (coined SBASE) at LPC config 0x54 (instead of [RCRB] + 0x3800).
+ *	- BIOS_CNTL (coined BCR) at [SPIBAR] + 0xFC (instead of LPC config 0xDC).
+ */
+static int enable_flash_silvermont(struct pci_dev *dev, const char *name)
 {
-	int ret, ret_spi, ret_bios;
-	uint32_t tmp;
-	void *spibar;
+	enum ich_chipset ich_generation = CHIPSET_BAYTRAIL;
 
-	/* Enable Flash Writes */
-	ret = enable_flash_ich_fwh_decode(dev, CHIPSET_BAYTRAIL);
-	if (ret == ERROR_FATAL)
-		return ret;
-	enable_flash_ich_spi(dev, CHIPSET_BAYTRAIL, 0);
+	/* Handle fwh_idsel parameter */
+	int ret_fwh = enable_flash_ich_fwh_decode(dev, ich_generation);
+	if (ret_fwh == ERROR_FATAL)
+		return ret_fwh;
 
-	/* This adds BUS_SPI */
-	tmp = pci_read_long(dev, 0x54) & 0xfffffe00;
-	msg_pdbg("SPI_BASE_ADDRESS = 0x%x\n", tmp);
-	spibar = physmap("BYT SBASE", tmp, 512);
+	internal_buses_supported &= BUS_FWH;
+
+	int ret = enable_flash_ich_spi(dev, ich_generation, 0);
+
+	/* Get physical address of SPI Base Address and map it */
+	uint32_t sbase = pci_read_long(dev, 0x54) & 0xfffffe00;
+	msg_pdbg("SPI_BASE_ADDRESS = 0x%x\n", sbase);
+	void *spibar = rphysmap("BYT SBASE", sbase, 512); /* Last defined address on Bay Trail is 0x100 */
 	if (spibar == ERROR_PTR)
 		return ERROR_FATAL;
 
 	/* Enable Flash Writes.
 	 * Silvermont-based: BCR at SBASE + 0xFC (some bits of BCR are also accessible via BC at IBASE + 0x1C).
 	 */
-	ret_bios = enable_flash_ich_bios_cntl_memmapped(CHIPSET_BAYTRAIL, spibar + 0xFC);
-	if (ret_bios == ERROR_FATAL)
-		return ret_bios;
+	enable_flash_ich_bios_cntl_memmapped(ich_generation, spibar + 0xFC);
 
-	ret_spi = ich_init_spi(spibar, CHIPSET_BAYTRAIL);
+	int ret_spi = ich_init_spi(spibar, ich_generation);
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
-	if (ret || ret_spi || ret_bios)
+	if (ret || ret_spi)
 		ret = ERROR_NONFATAL;
 
 	return ret;
@@ -1874,7 +1882,10 @@ const struct penable chipset_enables[] = {
 	{0x1166, 0x0200, B_P,    OK,  "Broadcom", "OSB4",			enable_flash_osb4},
 	{0x1166, 0x0205, B_PFL,  OK,  "Broadcom", "HT-1000",			enable_flash_ht1000},
 	{0x17f3, 0x6030, B_PFL,  OK,  "RDC", "R8610/R3210",			enable_flash_rdc_r8610},
-	{0x8086, 0x0f1c, B_FS,   OK,  "Intel", "Bay Trail",			enable_flash_baytrail},
+	{0x8086, 0x0f1c, B_FS,   OK,  "Intel", "Bay Trail",			enable_flash_silvermont},
+	{0x8086, 0x0f1d, B_FS,   NT,  "Intel", "Bay Trail",			enable_flash_silvermont},
+	{0x8086, 0x0f1e, B_FS,   NT,  "Intel", "Bay Trail",			enable_flash_silvermont},
+	{0x8086, 0x0f1f, B_FS,   NT,  "Intel", "Bay Trail",			enable_flash_silvermont},
 	{0x8086, 0x122e, B_P,    OK,  "Intel", "PIIX",				enable_flash_piix4},
 	{0x8086, 0x1234, B_P,    NT,  "Intel", "MPIIX",				enable_flash_piix4},
 	{0x8086, 0x1c44, B_FS,   DEP, "Intel", "Z68",				enable_flash_pch6},
@@ -1912,7 +1923,11 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x1e5d, B_FS,   DEP, "Intel", "HM75",				enable_flash_pch7},
 	{0x8086, 0x1e5e, B_FS,   NT,  "Intel", "HM70",				enable_flash_pch7},
 	{0x8086, 0x1e5f, B_FS,   DEP, "Intel", "NM70",				enable_flash_pch7},
-	{0x8086, 0x229c, B_FS,   OK,  "Intel", "Braswell",			enable_flash_baytrail},
+	{0x8086, 0x1f38, B_FS,   DEP, "Intel", "Avoton/Rangeley",		enable_flash_silvermont},
+	{0x8086, 0x1f39, B_FS,   NT,  "Intel", "Avoton/Rangeley",		enable_flash_silvermont},
+	{0x8086, 0x1f3a, B_FS,   NT,  "Intel", "Avoton/Rangeley",		enable_flash_silvermont},
+	{0x8086, 0x1f3b, B_FS,   NT,  "Intel", "Avoton/Rangeley",		enable_flash_silvermont},
+	{0x8086, 0x229c, B_FS,   OK,  "Intel", "Braswell",			enable_flash_silvermont},
 	{0x8086, 0x2310, B_FS,   NT,  "Intel", "DH89xxCC (Cave Creek)",		enable_flash_pch7},
 	{0x8086, 0x2390, B_FS,   NT,  "Intel", "Coleto Creek",			enable_flash_pch7},
 	{0x8086, 0x2410, B_FL,   OK,  "Intel", "ICH",				enable_flash_ich0},
@@ -2130,8 +2145,8 @@ int get_target_bus_from_chipset(enum chipbustype *bus)
 		/* The new LP chipsets have 1 bit BBS */
 		is_new_ich = 2;
 	} else if (chipset_enables[i].doit ==
-		   enable_flash_baytrail) {
-		/* Baytrail has 2 bit BBS at different offset */
+		   enable_flash_silvermont) {
+		/* Silvermont has 2 bit BBS at different offset */
 		is_new_ich = 3;
 	} else if ((chipset_enables[i].doit ==
 		   enable_flash_sunrisepoint) ||
