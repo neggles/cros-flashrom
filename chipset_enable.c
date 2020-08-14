@@ -774,6 +774,9 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 			gcs = (gcs & ~0xc00) | (0x3 << 10);
 		}
 		break;
+	case CHIPSET_TUNNEL_CREEK:
+		/* TODO: Support target_bus. */
+		break;
 	case CHIPSET_8_SERIES_LYNX_POINT:
 		/* Lynx Point BBS (Boot BIOS Straps) field of GCS register.
 		 *   00b: LPC
@@ -885,6 +888,9 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	msg_pdbg("BIOS Interface Lock-Down: %sabled, ", bild ? "en" : "dis");
 
 	switch (ich_generation) {
+	case CHIPSET_TUNNEL_CREEK:
+		bbs = (gcs >> 1) & 0x1;
+		break;
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
 	case CHIPSET_9_SERIES_WILDCAT_POINT:
 	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
@@ -966,41 +972,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 
 static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 {
-	uint32_t tmp, bnt;
-	void *rcrb;
-	int ret;
-
-	/* Enable Flash Writes */
-	ret = enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_TUNNEL_CREEK, 0xd8);
-	if (ret == ERROR_FATAL)
-		return ret;
-
-	/* Get physical address of Root Complex Register Block */
-	tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
-	msg_pdbg("\nRoot Complex Register Block address = 0x%x\n", tmp);
-
-	/* Map RCBA to virtual memory */
-	rcrb = physmap("ICH RCRB", tmp, 0x4000);
-	if (rcrb == ERROR_PTR)
-		return ERROR_FATAL;
-
-	/* Test Boot BIOS Strap Status */
-	bnt = mmio_readl(rcrb + 0x3410);
-	if (bnt & 0x02) {
-		/* If strapped to LPC, no SPI initialization is required */
-		internal_buses_supported &= BUS_FWH;
-		return 0;
-	}
-	int spibar_offset = 0x3020;
-	void *spibar = rcrb + spibar_offset;
-
-	/* This adds BUS_SPI */
-	if (ich_init_spi(spibar, CHIPSET_TUNNEL_CREEK) != 0) {
-		if (!ret)
-			ret = ERROR_NONFATAL;
-	}
-
-	return ret;
+	return enable_flash_ich_spi(dev, CHIPSET_TUNNEL_CREEK, 0xd8);
 }
 
 static int enable_flash_ich7(struct pci_dev *dev, const char *name)
