@@ -582,7 +582,8 @@ static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 	return enable_flash_ich_fwh(dev, CHIPSET_POULSBO, 0xd8);
 }
 
-static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_generation)
+static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_generation,
+				uint8_t bios_cntl)
 {
 	int ret;
 	uint8_t bbs;
@@ -695,13 +696,13 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 			return ERROR_FATAL;
 
 		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = mmio_readl(rcrb + 0);
+		gcs = mmio_readl(rcrb + bios_cntl);
 
 		ret = 0;
 		break;
 	case CHIPSET_APOLLO_LAKE:
 
-		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + 0xdc);
+		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + bios_cntl);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -715,11 +716,11 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 			return ERROR_FATAL;
 
 		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = mmio_readl((void *)dev + 0xdc);
+		gcs = mmio_readl((void *)dev + bios_cntl);
 		break;
 
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
+		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, bios_cntl);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -733,11 +734,11 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 			return ERROR_FATAL;
 
 		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = pci_read_long(dev, 0xdc);
+		gcs = pci_read_long(dev, bios_cntl);
 		break;
 	default:
 		/* Enable Flash Writes */
-		ret = enable_flash_ich_fwh(dev, ich_generation, 0xdc);
+		ret = enable_flash_ich_fwh(dev, ich_generation, bios_cntl);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -853,21 +854,21 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 
 	switch (ich_generation) {
 	case CHIPSET_BAYTRAIL:
-		rmmio_writel(gcs, rcrb + 0);
+		rmmio_writel(gcs, rcrb + bios_cntl);
 
 		reg_name = "GCS";
 		bild = gcs & 1;
 		top_swap = (gcs & 2) >> 1;
 		break;
 	case CHIPSET_APOLLO_LAKE:
-		mmio_writel(gcs, (void *)dev + 0xdc);
+		mmio_writel(gcs, (void *)dev + bios_cntl);
 		reg_name = "BIOS_SPI_BC";
 		bild = (gcs >> 7) & 1;
 		top_swap = (gcs >> 4) & 1;
 		break;
 
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-		rpci_write_long(dev, 0xdc, gcs);
+		rpci_write_long(dev, bios_cntl, gcs);
 		reg_name = "BIOS_SPI_BC";
 		bild = (gcs >> 7) & 1;
 		top_swap = (gcs >> 4) & 1;
@@ -1004,58 +1005,58 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 
 static int enable_flash_ich7(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_ICH7);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH7, 0xdc);
 }
 
 static int enable_flash_ich8(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_ICH8);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH8, 0xdc);
 }
 
 static int enable_flash_ich9(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_ICH9);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH9, 0xdc);
 }
 
 static int enable_flash_ich10(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_ICH10);
+	return enable_flash_ich_spi(dev, CHIPSET_ICH10, 0xdc);
 }
 
 /* Ibex Peak aka. 5 series & 3400 series */
 static int enable_flash_pch5(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_5_SERIES_IBEX_PEAK);
+	return enable_flash_ich_spi(dev, CHIPSET_5_SERIES_IBEX_PEAK, 0xdc);
 }
 
 /* Cougar Point aka. 6 series & c200 series */
 static int enable_flash_pch6(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_6_SERIES_COUGAR_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_6_SERIES_COUGAR_POINT, 0xdc);
 }
 
 /* Lynx Point */
 static int enable_flash_lynxpoint(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT, 0xdc);
 }
 
 /* Lynx Point LP */
 static int enable_flash_lynxpoint_lp(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT_LP);
+	return enable_flash_ich_spi(dev, CHIPSET_8_SERIES_LYNX_POINT_LP, 0xdc);
 }
 
 /* Wildcat Point */
 static int enable_flash_wildcatpoint(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_9_SERIES_WILDCAT_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_9_SERIES_WILDCAT_POINT, 0xdc);
 }
 
 /* Sunrise Point */
 static int enable_flash_sunrisepoint(struct pci_dev *dev, const char *name)
 {
-	return enable_flash_ich_spi(dev, CHIPSET_100_SERIES_SUNRISE_POINT);
+	return enable_flash_ich_spi(dev, CHIPSET_100_SERIES_SUNRISE_POINT, 0xdc);
 }
 
 static int enable_flash_apl(struct pci_dev *dev, const char *name)
@@ -1070,7 +1071,7 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 		 mmio_readw(spicfg + 0x0), mmio_readw(spicfg + 0x2),
 		 mmio_readl(spicfg + 0x10));
 
-	return enable_flash_ich_spi(spicfg, CHIPSET_APOLLO_LAKE);
+	return enable_flash_ich_spi(spicfg, CHIPSET_APOLLO_LAKE, 0xdc);
 }
 
 /* Baytrail */
@@ -1084,7 +1085,7 @@ static int enable_flash_baytrail(struct pci_dev *dev, const char *name)
 	ret = enable_flash_ich_fwh_decode(dev, CHIPSET_BAYTRAIL);
 	if (ret == ERROR_FATAL)
 		return ret;
-	enable_flash_ich_spi(dev, CHIPSET_BAYTRAIL);
+	enable_flash_ich_spi(dev, CHIPSET_BAYTRAIL, 0);
 
 	/* This adds BUS_SPI */
 	tmp = pci_read_long(dev, 0x54) & 0xfffffe00;
