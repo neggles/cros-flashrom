@@ -775,6 +775,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		}
 		break;
 	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_CENTERTON:
 		/* TODO: Support target_bus. */
 		break;
 	case CHIPSET_8_SERIES_LYNX_POINT:
@@ -973,6 +974,11 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 {
 	return enable_flash_ich_spi(dev, CHIPSET_TUNNEL_CREEK, 0xd8);
+}
+
+static int enable_flash_s12x0(struct pci_dev *dev, const char *name)
+{
+	return enable_flash_ich_spi(dev, CHIPSET_CENTERTON, 0xd8);
 }
 
 static int enable_flash_ich7(struct pci_dev *dev, const char *name)
@@ -1882,6 +1888,7 @@ const struct penable chipset_enables[] = {
 	{0x1166, 0x0200, B_P,    OK,  "Broadcom", "OSB4",			enable_flash_osb4},
 	{0x1166, 0x0205, B_PFL,  OK,  "Broadcom", "HT-1000",			enable_flash_ht1000},
 	{0x17f3, 0x6030, B_PFL,  OK,  "RDC", "R8610/R3210",			enable_flash_rdc_r8610},
+	{0x8086, 0x0c60, B_FS,   NT,  "Intel", "S12x0",				enable_flash_s12x0},
 	{0x8086, 0x0f1c, B_FS,   OK,  "Intel", "Bay Trail",			enable_flash_silvermont},
 	{0x8086, 0x0f1d, B_FS,   NT,  "Intel", "Bay Trail",			enable_flash_silvermont},
 	{0x8086, 0x0f1e, B_FS,   NT,  "Intel", "Bay Trail",			enable_flash_silvermont},
