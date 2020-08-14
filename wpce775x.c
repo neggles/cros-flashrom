@@ -62,23 +62,23 @@
  */
 struct __attribute__((packed)) wpce775x_wcb {
 	/* Byte 0: semaphore byte */
-	unsigned char exe:1;  /* Bit0-RW- set by host. means wcb is ready to execute.
+	uint8_t exe:1;  /* Bit0-RW- set by host. means wcb is ready to execute.
 	                         should be cleared by host after RDY=1. */
-	unsigned char resv0_41:4;
-	unsigned char pcp:1;  /* Bit5-RO- set by EPCE775x. means preparation operations for
+	uint8_t resv0_41:4;
+	uint8_t pcp:1;  /* Bit5-RO- set by EPCE775x. means preparation operations for
 	                         flash update process is complete. */
-	unsigned char err:1;  /* Bit6-RO- set by EPCE775x. means an error occurs. */
-	unsigned char rdy:1;  /* Bit7-RO- set by EPCE775x. means operation is completed. */
+	uint8_t err:1;  /* Bit6-RO- set by EPCE775x. means an error occurs. */
+	uint8_t rdy:1;  /* Bit7-RO- set by EPCE775x. means operation is completed. */
 
 	/* Byte 1-2: reserved */
-	unsigned char byte1;
-	unsigned char byte2;
+	uint8_t byte1;
+	uint8_t byte2;
 
 	/* Byte 3: command code */
-	unsigned char code;
+	uint8_t code;
 
 	/* Byte 4-15: command field */
-	unsigned char field[12];
+	uint8_t field[12];
 };
 
 /* The physical address of WCB -- Shared Access Window 2. */
@@ -93,7 +93,7 @@ static int in_flash_update_mode;
 static int firmware_changed;
 
 /*
- * Bytes 0x4-0xf of InitFlash command. These represent opcodes and various
+ * Bytes 0x4-0xf of init_flash command. These represent opcodes and various
  * parameters the WPCE775x will use when communicating with the SPI flash
  * device. DO NOT RE-ORDER THIS STRUCTURE.
  */
@@ -127,7 +127,7 @@ struct wpce775x_initflash_cfg {
 } __attribute__((packed));
 
 /*
- * The WPCE775x can use InitFlash multiple times during an update. We'll use
+ * The WPCE775x can use init_flash multiple times during an update. We'll use
  * this ability primarily for changing write protection bits.
  */
 static struct wpce775x_initflash_cfg *initflash_cfg;
@@ -354,19 +354,19 @@ static int blocked_exec(void)
 
  *  @return 1 for error; 0 for success.
  */
-static int InitFlash()
+static int init_flash()
 {
 	int i;
 
 	if (!initflash_cfg) {
-		msg_perr("%s(): InitFlash config is not defined\n", __func__);
+		msg_perr("%s(): init_flash config is not defined\n", __func__);
 		return 1;
 	}
 
 	assert_ec_is_free();
 	/* Byte 3: command code: Init Flash */
 	wcb->code = 0x5A;
-	msg_pdbg("%s(): InitFlash bytes: ", __func__);
+	msg_pdbg("%s(): init_flash bytes: ", __func__);
 	for (i = 0; i < sizeof(struct wpce775x_initflash_cfg); i++) {
 		wcb->field[i] = *((uint8_t *)initflash_cfg + i);
 		msg_pdbg("%02x ", wcb->field[i]);
@@ -432,13 +432,13 @@ static int initflash_cfg_setup(const struct flashctx *flash)
  *  @param id0, id1, id2, id3 Pointers to store detected IDs. NULL will be ignored.
  *  @return 1 for error; 0 for success.
  */
-static int ReadId(const struct flashctx *flash,
-	          unsigned char* id0, unsigned char* id1,
-	          unsigned char* id2, unsigned char* id3)
+static int read_id(const struct flashctx *flash,
+	          uint8_t* id0, uint8_t* id1,
+	          uint8_t* id2, uint8_t* id3)
 {
 	if (!initflash_cfg) {
 		initflash_cfg_setup(flash);
-		InitFlash();
+		init_flash();
 	}
 
 	assert_ec_is_free();
@@ -466,7 +466,7 @@ static int ReadId(const struct flashctx *flash,
 }
 
 /** Tell EC to "enter flash update" mode. */
-static int EnterFlashUpdate()
+static int enter_flash_update()
 {
 	if (in_flash_update_mode) {
 		/* already in update mode */
@@ -493,10 +493,10 @@ static int EnterFlashUpdate()
  *  Without calling this function, the EC stays in busy-loop and will not
  *  response further request from host, which means system will halt.
  */
-static int ExitFlashUpdate(unsigned char exit_code)
+static int exit_flash_update(uint8_t exit_code)
 {
 	/*
-	 * Note: ExitFlashUpdate must be called before shutting down the
+	 * Note: exit_flash_update must be called before shutting down the
 	 * machine, otherwise the EC will be stuck in update mode, leaving
 	 * the machine in a "wedged" state until power cycled.
 	 */
@@ -520,15 +520,15 @@ static int ExitFlashUpdate(unsigned char exit_code)
  * 0x20 is used for EC F/W no change, but BIOS changed (in Share mode)
  * 0x21 is used for EC F/W changed. Goto EC F/W, wait system reboot.
  * 0x22 is used for EC F/W changed, Goto EC Watchdog reset. */
-static int ExitFlashUpdateFirmwareNoChange(void) {
-	return ExitFlashUpdate(0x20);
+static int exit_flash_update_firmware_no_change(void) {
+	return exit_flash_update(0x20);
 }
 
-static int ExitFlashUpdateFirmwareChanged(void) {
-	return ExitFlashUpdate(0x21);
+static int exit_flash_update_firmware_changed(void) {
+	return exit_flash_update(0x21);
 }
 
-static int wpce775x_read(int addr, unsigned char *buf, unsigned int nbytes)
+static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 {
 	int offset;
         unsigned int bytes_read = 0;
@@ -611,7 +611,7 @@ static int wpce775x_erase_new(const struct flashctx *flash, int blockaddr, uint8
 	if (!initflash_cfg)
 		initflash_cfg_setup(flash);
 	initflash_cfg->block_erase = opcode;
-	InitFlash();
+	init_flash();
 
 	/* Set Write Window on flash chip (optional).
 	 * You may limit the window to partial flash for experimental. */
@@ -651,7 +651,7 @@ wpce775x_erase_new_exit:
 	return ret;
 }
 
-static int wpce775x_nbyte_program(int addr, const unsigned char *buf,
+static int wpce775x_nbyte_program(int addr, const uint8_t *buf,
                           unsigned int nbytes)
 {
 	int offset, ret = 0;
@@ -702,7 +702,7 @@ static int wpce775x_spi_read(struct flashctx *flash, uint8_t * buf,
 {
 	if (!initflash_cfg) {
 		initflash_cfg_setup(flash);
-		InitFlash();
+		init_flash();
 	}
 	return spi_read_chunked(flash, buf, start, len,
 				flash->chip->page_size);
@@ -713,7 +713,7 @@ static int wpce775x_spi_write_256(struct flashctx *flash, const uint8_t *buf,
 {
 	if (!initflash_cfg) {
 		initflash_cfg_setup(flash);
-		InitFlash();
+		init_flash();
 	}
 	return spi_write_chunked(flash, buf, start, len,
 				 flash->chip->page_size);
@@ -780,12 +780,12 @@ static int wpce775x_spi_write_status_register(const struct flashctx *flash, uint
 
 	initflash_cfg->status_reg_value = val;
 	if (in_flash_update_mode) {
-		ExitFlashUpdateFirmwareNoChange();
+		exit_flash_update_firmware_no_change();
 		in_flash_update_mode = 0;
 	}
-	if (InitFlash())
+	if (init_flash())
 		return 1;
-	if (EnterFlashUpdate())
+	if (enter_flash_update())
 		return 1;
 	return 0;
 }
@@ -797,19 +797,19 @@ static int wpce775x_spi_write_status_register(const struct flashctx *flash, uint
 static int wpce775x_spi_send_command(const struct flashctx *flash,
 				     unsigned int writecnt,
 				     unsigned int readcnt,
-				     const unsigned char *writearr,
-				     unsigned char *readarr)
+				     const uint8_t *writearr,
+				     uint8_t *readarr)
 {
 	int rc = 0;
 	uint8_t opcode = writearr[0];
 
 	switch(opcode){
 	case JEDEC_RDID:{
-		unsigned char dummy = 0;
+		uint8_t dummy = 0;
 		if (readcnt == 3)
-			ReadId(flash, &readarr[0], &readarr[1], &readarr[2], &dummy);
+			read_id(flash, &readarr[0], &readarr[1], &readarr[2], &dummy);
 		else if (readcnt == 4)
-			ReadId(flash, &readarr[0], &readarr[1], &readarr[2], &readarr[3]);
+			read_id(flash, &readarr[0], &readarr[1], &readarr[2], &readarr[3]);
 		break;
 	}
 	case JEDEC_RDSR:
@@ -828,7 +828,7 @@ static int wpce775x_spi_send_command(const struct flashctx *flash,
 		break;
 	case JEDEC_WREN:
 	case JEDEC_EWSR:
-		/* Handled by InitFlash() */
+		/* Handled by init_flash() */
 		rc = 0;
 		break;
 	case JEDEC_SE:
@@ -876,9 +876,9 @@ static int wpce775x_shutdown(void *data)
 	msg_pdbg("%s: in_flash_update_mode: %d\n", __func__, in_flash_update_mode);
 	if (in_flash_update_mode) {
 		if (firmware_changed)
-			ExitFlashUpdateFirmwareChanged();
+			exit_flash_update_firmware_changed();
 		else
-			ExitFlashUpdateFirmwareNoChange();
+			exit_flash_update_firmware_no_change();
 
 		in_flash_update_mode = 0;
 	}
@@ -949,7 +949,7 @@ static int wpce775x_spi_common_init(void)
 
 	/* Enter flash update mode unconditionally. This is required even
 	   for reading. */
-	if (EnterFlashUpdate()) return 1;
+	if (enter_flash_update()) return 1;
 
 	/* Add FWH | LPC to list of buses supported if they are not
 	 * both there already. */
