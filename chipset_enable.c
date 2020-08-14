@@ -970,15 +970,18 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	switch (ich_generation) {
 	case CHIPSET_8_SERIES_LYNX_POINT_LP:
 	case CHIPSET_9_SERIES_WILDCAT_POINT:
-		/* Lynx Point LP uses a single bit for GCS */
+	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
+		/* LP PCHs use a single bit for BBS */
 		bbs = (gcs >> 10) & 0x1;
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_APOLLO_LAKE:
-		bbs = (gcs & 0x40) >> 6;
+		bbs = (gcs >> 6) & 0x1;
 		break;
 	default:
-		/* Older chipsets use two bits for GCS */
+		/* Other chipsets use two bits for BBS */
 		bbs = (gcs >> 10) & 0x3;
 		break;
 	}
@@ -995,9 +998,10 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 		break;
 	}
 
-	/* It seems the ICH7 does not support SPI and LPC chips at the same
-	 * time. At least not with our current code. So we prevent searching
-	 * on ICH7 when the southbridge is strapped to LPC
+	/*
+	 * It seems that the ICH7 does not support SPI and LPC chips at the same time. When booted
+	 * from LPC, the SCIP bit will never clear, which causes long delays and many error messages.
+	 * To avoid this, we will not enable SPI on ICH7 when the southbridge is strapped to LPC.
 	 */
 	internal_buses_supported &= BUS_FWH;
 	if (ich_generation == CHIPSET_ICH7) {
@@ -1018,9 +1022,12 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 	case CHIPSET_ICH7:
 	case CHIPSET_ICH8:
 	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_CENTERTON:
 		spibar_offset = 0x3020;
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_BAYTRAIL:
 		spibar_offset = 0x0;
@@ -2198,6 +2205,10 @@ int chipset_flash_enable(void)
 			 chipset_enables[i].device_id);
 		msg_pinfo(".\n");
 
+		if (chipset_enables[i].status == BAD) {
+			msg_perr("ERROR: This chipset is not supported yet.\n");
+			return ERROR_FATAL;
+		}
 		if (chipset_enables[i].status == NT) {
 			msg_pinfo("This chipset is marked as untested. If "
 				  "you are using an up-to-date version\nof "
