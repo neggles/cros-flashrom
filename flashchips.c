@@ -10058,6 +10058,7 @@ const struct flashchip flashchips[] = {
 		.read		= spi_chip_read,
 		.set_4ba	= spi_enter_4ba_b7_we,
 		.voltage	= {2700, 3600},
+		.wp		= &wp_w25q_large,
 	},
 
 	{

@@ -947,6 +947,7 @@ static int w25_range_table(const struct flashctx *flash,
 				*num_entries = ARRAY_SIZE(w25rq128_cmp0_ranges);
 			}
 			break;
+		case WINBOND_NEX_W25Q256_V:
 		case WINBOND_NEX_W25Q256JV_M:
 			if (w25q_read_status_register_2(flash) & (1 << 6)) {
 				/* CMP == 1 */
