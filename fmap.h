@@ -67,6 +67,7 @@ struct fmap {
 }  __attribute__((packed));
 
 int fmap_read_from_buffer(struct fmap **fmap_out, const uint8_t *buf, size_t len);
+int fmap_read_from_rom(struct fmap **fmap_out, struct flashctx *const flashctx, size_t rom_offset, size_t len);
 
 /*
  * fmap_find - find FMAP signature at offset in an image and copy it to buffer
