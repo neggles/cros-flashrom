@@ -404,7 +404,7 @@ static struct spi_master spi_master_mec1308 = {
 };
 
 /* Called by internal_init() */
-int mec1308_probe_spi_flash(const char *name)
+int mec1308_probe_spi_flash(void)
 {
 	uint16_t sio_port;
 	uint8_t device_id;

@@ -595,7 +595,7 @@ int init_superio_ite(void);
 int mcp6x_spi_init(int want_spi);
 
 /* mec1308.c */
-int mec1308_probe_spi_flash(const char *name);
+int mec1308_probe_spi_flash();
 
 /* sb600spi.c */
 int sb600_probe_spi(struct pci_dev *dev);

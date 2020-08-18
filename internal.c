@@ -419,7 +419,7 @@ int internal_init(void)
 			return 0;
 		}
 		if (wpce775x_probe_spi_flash(NULL) &&
-			mec1308_probe_spi_flash(NULL) &&
+			mec1308_probe_spi_flash() &&
 			ene_probe_spi_flash(NULL) &&
 			init_superio_ite())
 			return 1;	/* EC not found */
