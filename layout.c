@@ -309,7 +309,6 @@ static int add_fmap_entries(void *source_handle,
 					      size_t size))
 {
 	static enum found_t found = FOUND_NONE;
-	int ret = -1;
 	struct search_info search;
 	struct fmap fmap_header;
 	uint8_t *buf = NULL;
@@ -334,13 +333,18 @@ static int add_fmap_entries(void *source_handle,
 				 __LINE__, (intmax_t)offset);
 			return -1;
 		}
-		ret = fmap_find(source_handle, read_chunk,
-				&fmap_header, offset, &buf);
-		if (ret == 1) {
+		int buf_size = fmap_find(&fmap_header);
+		if (buf_size == 0)
+			continue;
+		buf = calloc(1, buf_size);
+
+		if (read_chunk(source_handle, buf, offset, buf_size)) {
+			msg_gdbg("[L%d] failed to read %d bytes at offset 0x%lx\n",
+				 __LINE__, buf_size, (unsigned long)offset);
+			return -1;
+		} else {
 			found = FOUND_FMAP;
 		}
-		if (ret < 0)
-			return ret;
 	}
 
 	switch (found) {

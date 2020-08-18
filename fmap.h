@@ -69,31 +69,6 @@ struct fmap {
 int fmap_read_from_buffer(struct fmap **fmap_out, const uint8_t *buf, size_t len);
 int fmap_read_from_rom(struct fmap **fmap_out, struct flashctx *const flashctx, size_t rom_offset, size_t len);
 
-/*
- * fmap_find - find FMAP signature at offset in an image and copy it to buffer
- *
- * @handle:	opaque pointer to be used by the callback function
- * @read_chunk: callback function which given 'handle', 'offset' and 'size'
- *              will read into the provided memory space 'dest' 'size' bytes
- *              starting from 'offset'. Returns zero on success and non-zero
- *              on failure.
- * @fmap:	pointer to fmap header
- * @offset:	offset of fmap header in image
- * @buf:	unallocated buffer to store fmap struct
- *
- * This function allocates memory which the caller must free. It does no error
- * checking. The caller is responsible for verifying that the contents are
- * sane.
- *
- * returns 1 if found, 0 if not found, <0 to indicate failure
- */
-int fmap_find(void *source_handle,
-	      int (*read_chunk)(void *handle,
-				void *dest,
-				size_t offset,
-				size_t size),
-	      struct fmap *fmap,
-	      loff_t offset,
-	      uint8_t **buf);
+int fmap_find(struct fmap *fmap);
 
 #endif	/* __FMAP_H__*/

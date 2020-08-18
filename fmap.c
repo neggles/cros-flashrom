@@ -147,30 +147,12 @@ int fmap_read_from_buffer(struct fmap **fmap_out, const uint8_t *const buf, size
 	return 0;
 }
 
-int fmap_find(void *source_handle,
-	      int (*read_chunk)(void *handle,
-				void *dest,
-				size_t offset,
-				size_t size),
-	      struct fmap *fmap,
-	      loff_t offset,
-	      uint8_t **buf)
+int fmap_find(struct fmap *fmap)
 {
-	int buf_size;
-
 	if (!is_valid_fmap(fmap))
 		return 0;
 
-	buf_size = fmap_size(fmap);
-	*buf = malloc(buf_size);
-
-	if (read_chunk(source_handle, *buf, offset, buf_size)) {
-		msg_gdbg("[L%d] failed to read %d bytes at offset 0x%lx\n",
-			 __LINE__, buf_size, (unsigned long)offset);
-		return -1;
-	}
-
-	return 1;
+	return fmap_size(fmap);
 }
 
 static int fmap_lsearch_rom(struct fmap **fmap_out,
