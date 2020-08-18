@@ -45,8 +45,7 @@ struct flashctx;
 #define FMAP_SIGNATURE		"__FMAP__"
 #define FMAP_VER_MAJOR		1	/* this header's FMAP minor version */
 #define FMAP_VER_MINOR		1	/* this header's FMAP minor version */
-#define FMAP_STRLEN		32	/* maximum length for strings, */
-					/* including null-terminator */
+#define FMAP_STRLEN		32	/* maximum length for strings */
 
 struct fmap_area {
 	uint32_t offset;		/* offset relative to base */
@@ -65,9 +64,7 @@ struct fmap {
 	uint16_t nareas;		/* number of areas described by
 					   fmap_areas[] below */
 	struct fmap_area areas[];
-} __attribute__((packed));
-
-struct search_info;
+}  __attribute__((packed));
 
 int fmap_read_from_buffer(struct fmap **fmap_out, const uint8_t *buf, size_t len);
 

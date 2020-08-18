@@ -41,7 +41,6 @@
 
 #include "flash.h"
 #include "fmap.h"
-#include "search.h"
 
 static size_t fmap_size(const struct fmap *fmap)
 {
