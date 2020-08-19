@@ -465,6 +465,11 @@ int main(int argc, char *argv[])
 #ifdef STANDALONE
 			cli_classic_abort_usage("Log file not supported in standalone mode. Aborting.\n");
 #else /* STANDALONE */
+			if (logfile) {
+				fprintf(stderr, "Warning: -o/--output specified multiple times.\n");
+				free(logfile);
+			}
+
 			logfile = strdup(optarg);
 			if (logfile[0] == '\0') {
 				cli_classic_abort_usage("No log filename specified.\n");
@@ -981,6 +986,7 @@ out_shutdown:
 
 	layout_cleanup();
 #ifndef STANDALONE
+	free(logfile);
 	ret |= close_logfile();
 #endif /* !STANDALONE */
 	return ret;
