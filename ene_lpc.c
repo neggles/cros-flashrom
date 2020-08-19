@@ -524,7 +524,7 @@ static struct spi_master spi_master_ene = {
 	.write_256 = default_spi_write_256,
 };
 
-int ene_probe_spi_flash(const char *name)
+int ene_probe_spi_flash()
 {
 	uint8_t hwver, ediid, i;
 	int ret = 0;

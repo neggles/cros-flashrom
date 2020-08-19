@@ -420,7 +420,7 @@ int internal_init(void)
 		}
 		if (wpce775x_probe_spi_flash(NULL) &&
 			mec1308_probe_spi_flash() &&
-			ene_probe_spi_flash(NULL) &&
+			ene_probe_spi_flash() &&
 			init_superio_ite())
 			return 1;	/* EC not found */
 		else

@@ -577,7 +577,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_generation);
 int via_init_spi(uint32_t mmio_base);
 
 /* ene_lpc.c */
-int ene_probe_spi_flash(const char *name);
+int ene_probe_spi_flash();
 /* amd_imc.c */
 int amd_imc_shutdown(struct pci_dev *dev);
 
