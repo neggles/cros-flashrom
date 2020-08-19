@@ -649,22 +649,6 @@ static unsigned int count_usable_erasers(const struct flashctx *flash)
 	return usable_erasefunctions;
 }
 
-/* start is an offset to the base address of the flash chip */
-static int check_erased_range(struct flashctx *flash, unsigned int start, unsigned int len)
-{
-	int ret;
-	uint8_t *cmpbuf = malloc(len);
-
-	if (!cmpbuf) {
-		msg_gerr("Could not allocate memory!\n");
-		exit(1);
-	}
-	memset(cmpbuf, ERASED_VALUE(flash), len);
-	ret = verify_range(flash, cmpbuf, start, len);
-	free(cmpbuf);
-	return ret;
-}
-
 static int compare_range(const uint8_t *wantbuf, const uint8_t *havebuf, unsigned int start, unsigned int len)
 {
 	int ret = 0, failcount = 0;
@@ -682,6 +666,23 @@ static int compare_range(const uint8_t *wantbuf, const uint8_t *havebuf, unsigne
 			 start, start + len - 1, failcount);
 		ret = -1;
 	}
+	return ret;
+}
+
+/* start is an offset to the base address of the flash chip */
+static int check_erased_range(struct flashctx *flash, unsigned int start, unsigned int len)
+{
+	int ret;
+	uint8_t *cmpbuf = malloc(len);
+	const uint8_t erased_value = ERASED_VALUE(flash);
+
+	if (!cmpbuf) {
+		msg_gerr("Could not allocate memory!\n");
+		exit(1);
+	}
+	memset(cmpbuf, erased_value, len);
+	ret = verify_range(flash, cmpbuf, start, len);
+	free(cmpbuf);
 	return ret;
 }
 
