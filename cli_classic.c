@@ -483,14 +483,14 @@ int main(int argc, char *argv[])
 #if CONFIG_PRINT_WIKI == 1
 	if (list_supported_wiki) {
 		print_supported_wiki();
-		exit(0);
+		goto out;
 	}
 #endif
 
 	if (list_supported) {
 		if (print_supported())
 			ret = 1;
-		exit(0);
+		goto out;
 	}
 
 #ifndef STANDALONE
@@ -505,7 +505,8 @@ int main(int argc, char *argv[])
 	msg_gdbg("\n");
 
 	if (layoutfile && read_romlayout(layoutfile)) {
-		cli_classic_abort_usage(NULL);
+		ret = 1;
+		goto out;
 	}
 
 	/* Does a chip with the requested name exist in the flashchips array? */
@@ -526,7 +527,8 @@ int main(int argc, char *argv[])
 		if (!found_chip) {
 			msg_cerr("Error: Unknown chip '%s' specified.\n", chip_to_probe);
 			msg_gerr("Run flashrom -L to view the hardware supported in this flashrom version.\n");
-			exit(1);
+			ret = 1;
+			goto out;
 		}
 		/* Keep chip around for later usage in case a forced read is requested. */
 	}
@@ -547,7 +549,7 @@ int main(int argc, char *argv[])
 			list_programmers_linebreak(0, 80, 0);
 			msg_ginfo(".\n");
 			ret = 1;
-			exit(0);
+			goto out;
 		}
 	}
 
@@ -557,7 +559,8 @@ int main(int argc, char *argv[])
 		msg_gdbg("Acquiring lock (timeout=%d sec)...\n", LOCK_TIMEOUT_SECS);
 		if (acquire_big_lock(LOCK_TIMEOUT_SECS) < 0) {
 			msg_gerr("Could not acquire lock.\n");
-			exit(1);
+			ret = 1;
+			goto out;
 		}
 		msg_gdbg("Lock acquired.\n");
 	}
@@ -923,6 +926,8 @@ int main(int argc, char *argv[])
 
 out_shutdown:
 	programmer_shutdown();  /* must be done after chip_restore() */
+out:
+
 #if USE_BIG_LOCK == 1
 	if (!set_ignore_lock)
 		release_big_lock();
