@@ -28,7 +28,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "file.h"
 #include "flash.h"
 #include "programmer.h"
 #include "writeprotect.h"
@@ -309,40 +308,14 @@ static struct opaque_master programmer_linux_mtd = {
 static int linux_mtd_setup(int dev_num)
 {
 	char sysfs_path[32];
-	char dev_path[16];	/* "/dev/mtdN" */
 	int ret = 1;
-
-	if (dev_num < 0) {
-		char *tmp, *p;
-
-		tmp = (char *)scanft(LINUX_MTD_SYSFS_ROOT, "type", "nor", 1);
-		if (!tmp) {
-			msg_pdbg("%s: NOR type device not found.\n", __func__);
-			goto linux_mtd_setup_exit;
-		}
-
-		/* "tmp" should be something like "/sys/blah/mtdN/type" */
-		p = tmp + strlen(LINUX_MTD_SYSFS_ROOT);
-		while (p[0] == '/')
-			p++;
-
-		if (sscanf(p, "mtd%d", &dev_num) != 1) {
-			msg_perr("Can't obtain device number from \"%s\"\n", p);
-			free(tmp);
-			goto linux_mtd_setup_exit;
-		}
-		free(tmp);
-	}
 
 	snprintf(sysfs_path, sizeof(sysfs_path), "%s/mtd%d",
 				LINUX_MTD_SYSFS_ROOT, dev_num);
-	snprintf(dev_path, sizeof(dev_path), "%s/mtd%d",
-				LINUX_DEV_ROOT, dev_num);
-	msg_pdbg("%s: sysfs_path: \"%s\", dev_path: \"%s\"\n",
-			__func__, sysfs_path, dev_path);
 
+	char dev_path[32];
 	struct stat s;
-
+	snprintf(dev_path, sizeof(dev_path), "%s/mtd%d", LINUX_DEV_ROOT, dev_num);
 	errno = 0;
 	if (stat(dev_path, &s) < 0) {
 		msg_pdbg("Cannot stat \"%s\": %s\n", dev_path, strerror(errno));
@@ -382,7 +355,7 @@ static int linux_mtd_shutdown(void *data)
 int linux_mtd_init(void)
 {
 	char *param;
-	int dev_num = -1;	/* linux_mtd_setup will search if dev_num < 0 */
+	int dev_num = 0;
 	int ret = 1;
 
 	if (alias && alias->type != ALIAS_HOST)
