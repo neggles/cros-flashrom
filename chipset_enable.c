@@ -552,7 +552,7 @@ idsel_garbage_out:
 
 static int enable_flash_byt(struct pci_dev *dev, const char *name)
 {
-	uint32_t old, new, wanted, fwh_conf;
+	uint32_t fwh_conf;
 	int i, tmp;
 	char *idsel = NULL;
 	int max_decode_fwh_idsel = 0, max_decode_fwh_decode = 0;
@@ -652,30 +652,7 @@ static int enable_flash_byt(struct pci_dev *dev, const char *name)
 	msg_pdbg("\nMaximum FWH chip size: 0x%x bytes", max_rom_decode.fwh);
 
 	/* Enable BIOS writing */
-	old = mmio_readl(ilb + 0x1c);
-	wanted = old;
-
-	msg_pdbg("\nBIOS Lock Enable: %sabled, ",
-		 (old & (1 << 1)) ? "en" : "dis");
-	msg_pdbg("BIOS Write Enable: %sabled, ",
-		 (old & (1 << 0)) ? "en" : "dis");
-	msg_pdbg("BIOS_CNTL is 0x%x\n", old);
-
-	wanted |= (1 << 0);
-
-	/* Only write the register if it's necessary */
-	if (wanted == old)
-		return 0;
-
-	rmmio_writel(wanted, ilb + 0x1c);
-
-	if ((new = mmio_readl(ilb + 0x1c)) != wanted) {
-		msg_pinfo("WARNING: Setting ILB+0x%x from 0x%x to 0x%x on %s "
-			  "failed. New value is 0x%x.\n",
-			  0x1c, old, wanted, name, new);
-		return ERROR_FATAL;
-	}
-	return 0;
+	return enable_flash_ich_bios_cntl_memmapped(CHIPSET_BAYTRAIL, ilb + 0x1c);
 }
 
 static int enable_flash_ich_4e(struct pci_dev *dev, const char *name, enum ich_chipset ich_generation)
