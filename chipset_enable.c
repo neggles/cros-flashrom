@@ -258,21 +258,55 @@ static int enable_flash_piix4(struct pci_dev *dev, const char *name)
 	return 0;
 }
 
-/*
- * See ie. page 375 of "Intel I/O Controller Hub 7 (ICH7) Family Datasheet"
- * http://download.intel.com/design/chipsets/datashts/30701303.pdf
- */
-static int __enable_flash_ich(void *dev, const char *name, int bios_cntl,
-			 u8 (*read_bios_cntl)(struct pci_dev *,int),
-			 int (*write_bios_cntl)(struct pci_dev *, int, uint8_t))
+/* Handle BIOS_CNTL (aka. BCR). Disable locks and enable writes. The register can either be in PCI config space
+ * at the offset given by 'bios_cntl' or at the memory-mapped address 'addr'.
+ *
+ * Note: the ICH0-ICH5 BIOS_CNTL register is actually 16 bit wide, in Poulsbo, Tunnel Creek and other Atom
+ * chipsets/SoCs it is even 32b, but just treating it as 8 bit wide seems to work fine in practice. */
+static int enable_flash_ich_bios_cntl_common(enum ich_chipset ich_generation, void *addr,
+					     struct pci_dev *dev, uint8_t bios_cntl)
 {
 	uint8_t old, new, wanted;
 
-	/*
-	 * Note: the ICH0-ICH5 BIOS_CNTL register is actually 16 bit wide, in Tunnel Creek it is even 32b, but
-	 * just treating it as 8 bit wide seems to work fine in practice.
-	 */
-	wanted = old = read_bios_cntl(dev, bios_cntl);
+	switch (ich_generation) {
+	case CHIPSET_ICH_UNKNOWN:
+		return ERROR_FATAL;
+	/* Non-SPI-capable */
+	case CHIPSET_ICH:
+	case CHIPSET_ICH2345:
+		break;
+	/* Some Atom chipsets are special: The second byte of BIOS_CNTL (D9h) contains a prefetch bit similar to
+	 * what other SPI-capable chipsets have at DCh. Others like Bay Trail use a memmapped register.
+	 * The Tunnel Creek datasheet contains a lot of details about the SPI controller, among other things it
+	 * mentions that the prefetching and caching does only happen for direct memory reads.
+	 * Therefore - at least for Tunnel Creek - it should not matter to flashrom because we use the
+	 * programmed access only and not memory mapping. */
+	case CHIPSET_TUNNEL_CREEK:
+	case CHIPSET_POULSBO:
+	case CHIPSET_CENTERTON:
+		old = pci_read_byte(dev, bios_cntl + 1);
+		msg_pdbg("BIOS Prefetch Enable: %sabled, ", (old & 1) ? "en" : "dis");
+		break;
+	case CHIPSET_BAYTRAIL:
+	case CHIPSET_ICH7:
+	default: /* Future version might behave the same */
+		if (ich_generation == CHIPSET_BAYTRAIL || ich_generation == CHIPSET_APOLLO_LAKE)
+			old = (mmio_readl(addr) >> 2) & 0x3;
+		else
+			old = (pci_read_byte(dev, bios_cntl) >> 2) & 0x3;
+		msg_pdbg("SPI Read Configuration: ");
+		if (old == 3)
+			msg_pdbg("invalid prefetching/caching settings, ");
+		else
+			msg_pdbg("prefetching %sabled, caching %sabled, ",
+				     (old & 0x2) ? "en" : "dis",
+				     (old & 0x1) ? "dis" : "en");
+	}
+
+	if (ich_generation == CHIPSET_BAYTRAIL || ich_generation == CHIPSET_APOLLO_LAKE)
+		wanted = old = mmio_readl(addr);
+	else
+		wanted = old = pci_read_byte(dev, bios_cntl);
 
 	/*
 	 * Quote from the 6 Series datasheet (Document Number: 324645-004):
@@ -283,28 +317,45 @@ static int __enable_flash_ich(void *dev, const char *name, int bios_cntl,
 	 *
 	 * Try to unset it in any case.
 	 * It won't hurt and makes sense in some cases according to Stefan Reinauer.
+	 *
+	 * At least in Centerton aforementioned bit is located at bit 7. It is unspecified in all other Atom
+	 * and Desktop chipsets before Ibex Peak/5 Series, but we reset bit 5 anyway.
 	 */
-	wanted &= ~(1 << 5);
+	int smm_bwp_bit;
+	if (ich_generation == CHIPSET_CENTERTON)
+		smm_bwp_bit = 7;
+	else
+		smm_bwp_bit = 5;
+	wanted &= ~(1 << smm_bwp_bit);
 
-	 /* Set BIOS Write Enable */
-	wanted |= (1 << 0);
+	/* Tunnel Creek has a cache disable at bit 2 of the lowest BIOS_CNTL byte. */
+	if (ich_generation == CHIPSET_TUNNEL_CREEK)
+		wanted |= (1 << 2);
+
+	wanted |= (1 << 0); /* Set BIOS Write Enable */
+	wanted &= ~(1 << 1); /* Disable lock (futile) */
 
 	/* Only write the register if it's necessary */
 	if (wanted != old) {
-		write_bios_cntl(dev, bios_cntl, wanted);
-		new = read_bios_cntl(dev, bios_cntl);
+		if (ich_generation == CHIPSET_BAYTRAIL || ich_generation == CHIPSET_APOLLO_LAKE) {
+			rmmio_writel(wanted, addr);
+			new = mmio_readl(addr);
+		} else {
+			rpci_write_byte(dev, bios_cntl, wanted);
+			new = pci_read_byte(dev, bios_cntl);
+		}
 	} else
 		new = old;
 
 	msg_pdbg("\nBIOS_CNTL = 0x%02x: ", new);
 	msg_pdbg("BIOS Lock Enable: %sabled, ", (new & (1 << 1)) ? "en" : "dis");
 	msg_pdbg("BIOS Write Enable: %sabled\n", (new & (1 << 0)) ? "en" : "dis");
-	if (new & (1 << 5))
+	if (new & (1 << smm_bwp_bit))
 		msg_pwarn("Warning: BIOS region SMM protection is enabled!\n");
 
 	if (new != wanted)
-		msg_pinfo("Warning: Setting Bios Control at 0x%x from 0x%02x to 0x%02x on %s failed.\n"
-			  "New value is 0x%02x.\n", bios_cntl, old, wanted, name, new);
+		msg_pwarn("Warning: Setting BIOS Control at 0x%x from 0x%02x to 0x%02x failed.\n"
+			  "New value is 0x%02x.\n", bios_cntl, old, wanted, new);
 
 	/* Return an error if we could not set the write enable only. */
 	if (!(new & (1 << 0)))
@@ -316,27 +367,12 @@ static int __enable_flash_ich(void *dev, const char *name, int bios_cntl,
 static int enable_flash_ich_bios_cntl_config_space(struct pci_dev *dev, enum ich_chipset ich_generation,
 						   uint8_t bios_cntl)
 {
-	return __enable_flash_ich(dev, NULL, bios_cntl, pci_read_byte,
-				  rpci_write_byte);
-}
-
-static u8 apl_read_bios_cntl(struct pci_dev *dev, int offset)
-{
-	void *base = dev;
-	return mmio_readb(base + offset);
-}
-
-static int apl_write_bios_cntl(struct pci_dev *dev, int offset, uint8_t val)
-{
-	void *base = dev;
-	mmio_writeb(val, base + offset);
-	return 0;
+	return enable_flash_ich_bios_cntl_common(ich_generation, NULL, dev, bios_cntl);
 }
 
 static int enable_flash_ich_bios_cntl_memmapped(enum ich_chipset ich_generation, void *addr)
 {
-	return __enable_flash_ich(addr, NULL, 0, apl_read_bios_cntl,
-				  apl_write_bios_cntl) ? ERROR_FATAL : 0;
+	return enable_flash_ich_bios_cntl_common(ich_generation, addr, NULL, 0);
 }
 
 static int enable_flash_ich_fwh_decode(struct pci_dev *dev, enum ich_chipset ich_generation)
@@ -690,22 +726,8 @@ static int enable_flash_ich6(struct pci_dev *dev, const char *name)
 
 static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 {
-	uint16_t old, new;
-	int err;
-
-	if ((err = enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_POULSBO, 0xd8)) != 0)
-		return err;
-
-	old = pci_read_byte(dev, 0xd9);
-	msg_pdbg("BIOS Prefetch Enable: %sabled, ",
-		 (old & 1) ? "en" : "dis");
-	new = old & ~1;
-
-	if (new != old)
-		rpci_write_byte(dev, 0xd9, new);
-
 	internal_buses_supported &= BUS_FWH;
-	return 0;
+	return enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_POULSBO, 0xd8);
 }
 
 static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
@@ -1054,7 +1076,6 @@ static int enable_flash_ich_dc_spi(struct pci_dev *dev, const char *name,
 
 static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 {
-	uint16_t old, new;
 	uint32_t tmp, bnt;
 	void *rcrb;
 	int ret;
@@ -1063,13 +1084,6 @@ static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
 	ret = enable_flash_ich_bios_cntl_config_space(dev, CHIPSET_TUNNEL_CREEK, 0xd8);
 	if (ret == ERROR_FATAL)
 		return ret;
-
-	/* Make sure BIOS prefetch mechanism is disabled */
-	old = pci_read_byte(dev, 0xd9);
-	msg_pdbg("BIOS Prefetch Enable: %sabled, ", (old & 1) ? "en" : "dis");
-	new = old & ~1;
-	if (new != old)
-		rpci_write_byte(dev, 0xd9, new);
 
 	/* Get physical address of Root Complex Register Block */
 	tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
