@@ -277,6 +277,8 @@ static int linux_mtd_erase(struct flashctx *flash,
 	if (mtd_numeraseregions != 0) {
 		/* TODO: Support non-uniform eraseblock size using
 		   use MEMGETREGIONCOUNT/MEMGETREGIONINFO ioctls */
+		msg_perr("%s: mtd_numeraseregions must be 0\n", __func__);
+		return 1;
 	}
 
 	for (u = 0; u < len; u += mtd_erasesize) {
@@ -310,9 +312,21 @@ static int linux_mtd_setup(int dev_num)
 	char sysfs_path[32];
 	int ret = 1;
 
-	snprintf(sysfs_path, sizeof(sysfs_path), "%s/mtd%d",
-				LINUX_MTD_SYSFS_ROOT, dev_num);
+	/* Start by checking /sys/class/mtd/mtdN/type which should be "nor" for NOR flash */
+	if (snprintf(sysfs_path, sizeof(sysfs_path), "%s/mtd%d/", LINUX_MTD_SYSFS_ROOT, dev_num) < 0)
+		goto linux_mtd_setup_exit;
 
+	char buf[4];
+	memset(buf, 0, sizeof(buf));
+	if (read_sysfs_string(sysfs_path, "type", buf, sizeof(buf)))
+		return 1;
+
+	if (strcmp(buf, "nor")) {
+		msg_perr("MTD device %d type is not \"nor\"\n", dev_num);
+		goto linux_mtd_setup_exit;
+	}
+
+	/* sysfs shows the correct device type, see if corresponding device node exists */
 	char dev_path[32];
 	struct stat s;
 	snprintf(dev_path, sizeof(dev_path), "%s/mtd%d", LINUX_DEV_ROOT, dev_num);
@@ -322,12 +336,9 @@ static int linux_mtd_setup(int dev_num)
 		goto linux_mtd_setup_exit;
 	}
 
-	if (lstat(sysfs_path, &s) < 0) {
-		msg_pdbg("Cannot stat \"%s\" : %s\n",
-				sysfs_path, strerror(errno));
+	/* so far so good, get more info from other files in this dir */
+	if (snprintf(sysfs_path, sizeof(sysfs_path), "%s/mtd%d/", LINUX_MTD_SYSFS_ROOT, dev_num) < 0)
 		goto linux_mtd_setup_exit;
-	}
-
 	if (get_mtd_info(sysfs_path))
 		goto linux_mtd_setup_exit;
 
@@ -336,6 +347,7 @@ static int linux_mtd_setup(int dev_num)
 		msg_perr("Cannot open file stream for %s\n", dev_path);
 		goto linux_mtd_setup_exit;
 	}
+	msg_pinfo("Opened %s successfully\n", dev_path);
 
 	ret = 0;
 linux_mtd_setup_exit:
