@@ -706,6 +706,13 @@ static int emulate_spi_chip_response(const struct flashctx *flash, unsigned int 
 		if (readcnt > 0)
 			memcpy(readarr, flashchip_contents + offs, readcnt);
 		break;
+	case JEDEC_READ_4BA:
+		offs = writearr[1] << 24 | writearr[2] << 16 | writearr[3] << 8 | writearr[4];
+		/* Truncate to emu_chip_size. */
+		offs %= emu_chip_size;
+		if (readcnt > 0)
+			memcpy(readarr, flashchip_contents + offs, readcnt);
+		break;
 	case JEDEC_BYTE_PROGRAM:
 		offs = writearr[1] << 16 | writearr[2] << 8 | writearr[3];
 		/* Truncate to emu_chip_size. */
@@ -719,6 +726,21 @@ static int emulate_spi_chip_response(const struct flashctx *flash, unsigned int 
 			return 1;
 		}
 		memcpy(flashchip_contents + offs, writearr + 4, writecnt - 4);
+		emu_modified = 1;
+		break;
+	case JEDEC_BYTE_PROGRAM_4BA:
+		offs = writearr[1] << 24 | writearr[2] << 16 | writearr[3] << 8 | writearr[4];
+		/* Truncate to emu_chip_size. */
+		offs %= emu_chip_size;
+		if (writecnt < 6) {
+			msg_perr("BYTE PROGRAM size too short!\n");
+			return 1;
+		}
+		if (writecnt - 5 > emu_max_byteprogram_size) {
+			msg_perr("Max BYTE PROGRAM size exceeded!\n");
+			return 1;
+		}
+		memcpy(flashchip_contents + offs, writearr + 5, writecnt - 5);
 		emu_modified = 1;
 		break;
 	case JEDEC_AAI_WORD_PROGRAM:
@@ -974,8 +996,8 @@ int probe_variable_size(struct flashctx *flash)
 		if (eraser->block_erase == NULL)
 			break;
 
-		eraser->eraseblocks[0].count = emu_chip_size /
-		    eraser->eraseblocks[0].size;
+		eraser->eraseblocks[0].count = 1;
+		eraser->eraseblocks[0].size = emu_chip_size;
 		msg_cdbg("%s: eraser.size=%d, .count=%d\n",
 		         __func__, eraser->eraseblocks[0].size,
 		         eraser->eraseblocks[0].count);

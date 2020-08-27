@@ -11401,6 +11401,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= VARIABLE_SIZE_DEVICE_ID,
 		.total_size	= 64,  /* This size is set temporarily */
 		.page_size	= 256,
+		.feature_bits	= FEATURE_4BA,
 		.tested		= TEST_OK_PREW,
 		.probe		= probe_variable_size,
 		.block_erasers	=
@@ -11410,7 +11411,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_20,
 			}, {
 				.eraseblocks = { {64 * 1024, 1} },
-				.block_erase = spi_block_erase_d8,
+				.block_erase = spi_block_erase_c7,
 			}
 		},
 		.write		= spi_chip_write_256,
