@@ -19029,6 +19029,28 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
+		.vendor		= "Unknown",
+		.name		= "SFDP-capable chip",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= GENERIC_MANUF_ID,
+		.model_id	= SFDP_DEVICE_ID,
+		.total_size	= 0, /* set by probing function */
+		.page_size	= 0, /* set by probing function */
+		.feature_bits	= 0, /* set by probing function */
+		/* We present our own "report this" text hence we do not */
+		/* want the default "This flash part has status UNTESTED..." */
+		/* text to be printed. */
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_sfdp,
+		.block_erasers	= {}, /* set by probing function */
+		.unlock		= spi_disable_blockprotect, /* is this safe? */
+		.write		= NULL, /* set by probing function */
+		.read		= spi_chip_read,
+		/* FIXME: some vendor extensions define this */
+		.voltage	= {0},
+	},
+
+	{
 		.vendor		= "Programmer",
 		.name		= "Opaque flash chip",
 		.bustype	= BUS_PROG,
@@ -19160,6 +19182,21 @@ const struct flashchip flashchips[] = {
 		.name		= "unknown Sanyo SPI chip",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= SANYO_ID,
+		.model_id	= GENERIC_DEVICE_ID,
+		.total_size	= 0,
+		.page_size	= 256,
+		.tested		= TEST_BAD_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.write		= NULL,
+		.read		= NULL,
+	},
+
+	{
+		.vendor		= "Winbond",
+		.name		= "unknown Winbond (ex Nexcom) SPI chip",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= WINBOND_NEX_ID,
 		.model_id	= GENERIC_DEVICE_ID,
 		.total_size	= 0,
 		.page_size	= 256,
