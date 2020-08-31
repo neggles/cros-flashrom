@@ -5362,6 +5362,81 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Eon",
+		.name		= "EN25S32",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EON_ID_NOPREFIX,
+		.model_id	= EON_EN25S32,
+		.total_size	= 4096,
+		.page_size	= 256,
+		/* OTP: 512B total; enter 0x3A */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP | FEATURE_QPI,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 1024} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 128} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 64} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {4096 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {4096 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_en25s_wp,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN25S40",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EON_ID_NOPREFIX,
+		.model_id	= EON_EN25S40,
+		.total_size	= 512,
+		.page_size	= 256,
+		/* OTP: 256B total; enter 0x3A */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 128} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 8} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {512 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {512 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_srwd,
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "Eon",
 		.name		= "EN25S64",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= EON_ID_NOPREFIX,
@@ -5395,6 +5470,42 @@ const struct flashchip flashchips[] = {
 		.read		= spi_chip_read,
 		.voltage	= {1650, 1950},
 		.wp		= &wp_w25,
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN25S80",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EON_ID_NOPREFIX,
+		.model_id	= EON_EN25S80,
+		.total_size	= 1024,
+		.page_size	= 256,
+		/* OTP: 256B total; enter 0x3A */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_srwd,
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,
+		.voltage	= {1650, 1950},
 	},
 
 	{
@@ -5487,6 +5598,177 @@ const struct flashchip flashchips[] = {
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {4500, 5500},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN29GL064(A)B",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= EON_ID,
+		.model_id	= EON_EN29GL064B,
+		.total_size	= 8192,
+		.page_size	= 128 * 1024, /* actual page size is 16 */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec_29gl,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{8 * 1024, 8},
+					{64 * 1024, 127},
+				},
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN29GL064(A)T",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= EON_ID,
+		.model_id	= EON_EN29GL064T,
+		.total_size	= 8192,
+		.page_size	= 128 * 1024, /* actual page size is 16 */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec_29gl,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{64 * 1024, 127},
+					{8 * 1024, 8},
+				},
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN29GL064H/L",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= EON_ID,
+		.model_id	= EON_EN29GL064HL,
+		.total_size	= 8192,
+		.page_size	= 128 * 1024, /* actual page size is 16 */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec_29gl,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN29GL128",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= EON_ID,
+		.model_id	= EON_EN29GL128HL,
+		.total_size	= 16384,
+		.page_size	= 128 * 1024, /* actual page size is 16 */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec_29gl,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {128 * 1024, 128} },
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {16 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN29LV040(A)",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= EON_ID,
+		.model_id	= EON_EN29LV040,
+		.total_size	= 512,
+		.page_size	= 4 * 1024,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_jedec,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 8} },
+				.block_erase = erase_sector_jedec,
+			},
+			{
+				.eraseblocks = { {512 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {3000, 3600}, /* 3.0-3.6V for type -45R and 55R, others 2.7-3.6V */
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN29LV640B",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= EON_ID,
+		.model_id	= EON_EN29LV640B,
+		.total_size	= 8192,
+		.page_size	= 8192,
+		.feature_bits	= FEATURE_ADDR_SHIFTED,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_en29lv640b,
+		.probe_timing	= TIMING_ZERO,	/* Datasheet has no timing info specified */
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{8 * 1024, 8},
+					{64 * 1024, 127},
+				},
+				.block_erase = erase_block_jedec,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_en29lv640b,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
 	},
 
 	{
@@ -5616,6 +5898,38 @@ const struct flashchip flashchips[] = {
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {4750, 5250}, /* 4.75-5.25V for type -55, others 4.5-5.5V */
+	},
+
+	{
+		.vendor		= "Fujitsu",
+		.name		= "MBM29LV160BE",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= FUJITSU_ID,
+		.model_id	= FUJITSU_MBM29LV160BE,
+		.total_size	= 2 * 1024,
+		.page_size	= 0,
+		.feature_bits	= FEATURE_ADDR_SHIFTED | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec,
+		.probe_timing	= 10, // FIXME: check datasheet. Using the 10 us from probe_m29f400bt
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{16 * 1024, 1},
+					{8 * 1024, 2},
+					{32 * 1024, 1},
+					{64 * 1024, 31},
+				},
+				.block_erase = erase_block_jedec,
+			}, {
+				.eraseblocks = { {2048 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1, /* Supports a fast mode too */
+		.read		= read_memmapped,
+		.voltage	= {3000, 3600}, /* 3.0-3.6V for type -70, others 2.7-3.6V */
 	},
 
 	{
