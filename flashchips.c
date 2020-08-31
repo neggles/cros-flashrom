@@ -8656,6 +8656,78 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
+		.vendor		= "Macronix",
+		.name		= "MX25L6405",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25L6405,
+		.total_size	= 8192,
+		.page_size	= 256,
+		/* Has an additional 512B EEPROM sector */
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6: error flag */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Macronix",
+		.name		= "MX25L6405D",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25L6405,
+		.total_size	= 8192,
+		.page_size	= 256,
+		/* OTP: 64B total; enter 0xB1, exit 0xC1 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 2048} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6: continuously program mode */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B), dual I/O read (0xBB) supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
 		/* FIXME: This is an evil twin of the MX25L6405, with the same
 		 * ID bytes but different block erase capabilities */
 		.vendor		= "Macronix",
@@ -8697,6 +8769,46 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Macronix",
+		.name		= "MX25L6436E/MX25L6445E/MX25L6465E/MX25L6473E/MX25L6473F",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25L6405,
+		.total_size	= 8192,
+		.page_size	= 256,
+		/* supports SFDP */
+		/* OTP: 512B total; enter 0xB1, exit 0xC1 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 2048} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 256} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Macronix",
 		.name		= "MX25L6495F",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= MACRONIX_ID,
@@ -8731,6 +8843,46 @@ const struct flashchip flashchips[] = {
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {2700, 3600},
 		.wp		= &wp_generic,
+	},
+
+	{
+		.vendor		= "Macronix",
+		.name		= "MX25L8005/MX25L8006E/MX25L8008E/MX25V8005",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25L8005,
+		.total_size	= 1024,
+		.page_size	= 256,
+		/* MX25L8006E, MX25L8008E support SFDP */
+		/* OTP: 64B total; enter 0xB1, exit 0xC1 (MX25L8006E, MX25L8008E only) */
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_srwd,
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {2700, 3600}, /* 2.35-3.6V for MX25V8005 */
 	},
 
 	{
@@ -8813,6 +8965,45 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Macronix",
+		.name		= "MX25R6435F",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25R6435F,
+		.total_size	= 8192,
+		.page_size	= 256,
+		/* OTP: 1024B total; enter 0xB1, exit 0xC1 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 2048} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {32 * 1024, 256} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {1650, 3600},
+	},
+
+	{
+		.vendor		= "Macronix",
 		.name		= "MX25U12835F",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= MACRONIX_ID,
@@ -8847,6 +9038,47 @@ const struct flashchip flashchips[] = {
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {1650, 2000},
 		.wp		= &wp_w25q_large,
+	},
+
+	{
+		.vendor		= "Macronix",
+		.name		= "MX25U1635E",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25U1635E,
+		.total_size	= 2048,
+		.page_size	= 256,
+		/* OTP: 512B total; enter 0xB1, exit 0xC1 */
+		/* QPI enable 0x35, disable 0xF5 (0xFF et al. work too) */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP | FEATURE_QPI,
+		.tested		= TEST_OK_PR,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 512} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 64} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 32} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {2 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {2 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		/* TODO: security register */
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {1650, 2000},
 	},
 
 	{
@@ -8930,6 +9162,55 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Macronix",
+		.name		= "MX25U51245G",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25U51245G,
+		.total_size	= 65536,
+		.page_size	= 256,
+		/* OTP: 512B factory programmed and 512B customer programmed; enter 0xB1, exit 0xC1 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP | FEATURE_QPI | FEATURE_4BA,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 16384} },
+				.block_erase = spi_block_erase_21,
+			}, {
+				.eraseblocks = { {4 * 1024, 16384} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 2048} },
+				.block_erase = spi_block_erase_5c,
+			}, {
+				.eraseblocks = { {32 * 1024, 2048} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 1024} },
+				.block_erase = spi_block_erase_dc,
+			}, {
+				.eraseblocks = { {64 * 1024, 1024} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {64 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {64 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		/* TODO: security register */
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256, /* Multi I/O supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {1650, 2000},
+	},
+
+	{
+		.vendor		= "Macronix",
 		.name		= "MX25U6435E/F",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= MACRONIX_ID,
@@ -8964,6 +9245,46 @@ const struct flashchip flashchips[] = {
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {1650, 2000},
 		.wp		= &wp_w25,
+	},
+
+	{
+		.vendor		= "Macronix",
+		.name		= "MX25U8032E",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX25U8032E,
+		.total_size	= 1024,
+		.page_size	= 256,
+		/* OTP: 512B total; enter 0xB1, exit 0xC1 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 32} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		/* TODO: security register */
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {1650, 2000},
 	},
 
 	{
@@ -9090,6 +9411,70 @@ const struct flashchip flashchips[] = {
 				.eraseblocks = { {256 * 1024, 1} },
 				.block_erase = erase_chip_block_jedec,
 			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {4500, 5500},
+	},
+
+	{
+		.vendor		= "Macronix",
+		.name		= "MX29F022(N)B",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX29F022B,
+		.total_size	= 256,
+		.page_size	= 0, /* unused */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{16 * 1024, 1},
+					{8 * 1024, 2},
+					{32 * 1024, 1},
+					{64 * 1024, 3},
+				},
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			}
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {4500, 5500},
+	},
+
+	{
+		.vendor		= "Macronix",
+		.name		= "MX29F022(N)T",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX29F022T,
+		.total_size	= 256,
+		.page_size	= 0, /* unused */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_jedec,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{64 * 1024, 3},
+					{32 * 1024, 1},
+					{8 * 1024, 2},
+					{16 * 1024, 1},
+				},
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			}
 		},
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
