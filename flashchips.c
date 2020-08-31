@@ -3340,6 +3340,38 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
+		/* 'top' version of AT49F080. equal in all aspects but the boot block address */
+		.vendor		= "Atmel",
+		.name		= "AT49F080T",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= ATMEL_ID,
+		.model_id	= ATMEL_AT49F080T,
+		.total_size	= 1024,
+		.page_size	= 0, /* unused */
+		.feature_bits	= FEATURE_EITHER_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec,
+		.probe_timing	= TIMING_ZERO,  /* Datasheet has no timing info specified */
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			}
+			/* Chip features an optional permanent write protection
+			 * of the first 16 kB. The erase function is the same as
+			 * above, but FC000H to FFFFFH will not be erased.
+			 * FIXME: add another eraser when partial erasers are
+			 * supported.
+			 */
+		},
+		.printlock	= printlock_at49f,
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {4500, 5500},
+	},
+
+	{
 		.vendor		= "Atmel",
 		.name		= "AT49LH002",
 		.bustype	= BUS_LPC | BUS_FWH, /* A/A Mux */
@@ -3364,6 +3396,78 @@ const struct flashchip flashchips[] = {
 			}, {
 				.eraseblocks = {
 					{64 * 1024, 4},
+				},
+				.block_erase = erase_block_82802ab,
+			},
+		},
+		.printlock	= printlock_regspace2_block_eraser_0,
+		.unlock		= unlock_regspace2_block_eraser_0,
+		.write		= write_82802ab,
+		.read		= read_memmapped,
+		.voltage	= {3000, 3600},
+	},
+
+	{
+		.vendor		= "Atmel",
+		.name		= "AT49LH004",
+		.bustype	= BUS_LPC | BUS_FWH, /* A/A Mux */
+		.manufacture_id	= ATMEL_ID,
+		.model_id	= ATMEL_AT49LH004,
+		.total_size	= 512,
+		.page_size	= 0, /* unused */
+		.feature_bits	= FEATURE_REGISTERMAP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_82802ab,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{64 * 1024, 7},
+					{32 * 1024, 1},
+					{8 * 1024, 2},
+					{16 * 1024, 1},
+				},
+				.block_erase = erase_block_82802ab,
+			}, {
+				.eraseblocks = {
+					{64 * 1024, 8},
+				},
+				.block_erase = NULL, /* TODO: Implement. */
+			},
+		},
+		.printlock	= printlock_regspace2_block_eraser_0,
+		.unlock		= unlock_regspace2_block_eraser_0,
+		.write		= write_82802ab,
+		.read		= read_memmapped,
+		.voltage	= {3000, 3600},
+	},
+
+	{
+		.vendor		= "Atmel",
+		.name		= "AT49LH00B4",
+		.bustype	= BUS_LPC | BUS_FWH, /* A/A Mux */
+		.manufacture_id	= ATMEL_ID,
+		.model_id	= ATMEL_AT49LH00B4,
+		.total_size	= 512,
+		.page_size	= 0, /* unused */
+		.feature_bits	= FEATURE_REGISTERMAP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_82802ab,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{8 * 1024, 2},
+					{16 * 1024, 1},
+					{32 * 1024, 1},
+					{64 * 1024, 7},
+				},
+				.block_erase = NULL, /* TODO: Implement. */
+			}, {
+				.eraseblocks = {
+					{64 * 1024, 8},
 				},
 				.block_erase = erase_block_82802ab,
 			},
@@ -3451,6 +3555,99 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
+		.vendor		= "ESI",
+		.name		= "ES25P16",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EXCEL_ID_NOPREFIX,
+		.model_id	= EXCEL_ES25P16,
+		.total_size	= 2 * 1024,
+		.page_size	= 256,
+		/* 256-byte parameter page separate from memory array:
+		 * supports read (0x53), fast read (0x5B), erase (0xD5) and program (0x52) instructions. */
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 32} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {2 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast Read (0x0B) supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "ESI",
+		.name		= "ES25P40",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EXCEL_ID_NOPREFIX,
+		.model_id	= EXCEL_ES25P40,
+		.total_size	= 512,
+		.page_size	= 256,
+		/* 256-byte parameter page separate from memory array:
+		 * supports read (0x53), fast read (0x5B), erase (0xD5) and program (0x52) instructions. */
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 8} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {512 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast Read (0x0B) supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "ESI",
+		.name		= "ES25P80",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EXCEL_ID_NOPREFIX,
+		.model_id	= EXCEL_ES25P80,
+		.total_size	= 1024,
+		.page_size	= 256,
+		/* 256-byte parameter page separate from memory array:
+		 * supports read (0x53), fast read (0x5B), erase (0xD5) and program (0x52) instructions. */
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast Read (0x0B) supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
 		.vendor		= "ESMT",
 		.name		= "F25L008A",
 		.bustype	= BUS_SPI,
@@ -3481,6 +3678,41 @@ const struct flashchip flashchips[] = {
 		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_1,
+		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "ESMT",
+		.name		= "F25L32PA",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= ESMT_ID,
+		.model_id	= ESMT_F25L32PA,
+		.total_size	= 4096,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EITHER | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 1024} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 64} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {4 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {4 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_bpl,
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
 	},
@@ -4335,6 +4567,41 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "Eon",
+		.name		= "EN25F64",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EON_ID_NOPREFIX,
+		.model_id	= EON_EN25F64,
+		.total_size	= 8192,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 2048} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Eon",
 		.name		= "EN25F80",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= EON_ID_NOPREFIX,
@@ -4365,6 +4632,65 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN25P05",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EON_ID_NOPREFIX,
+		.model_id	= EON_EN25B05,
+		.total_size	= 64,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{32 * 1024, 2} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {64 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Eon",
+		.name		= "EN25P10",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= EON_ID_NOPREFIX,
+		.model_id	= EON_EN25B10,
+		.total_size	= 128,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {32 * 1024, 4} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {128 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {2700, 3600},
 	},
 
