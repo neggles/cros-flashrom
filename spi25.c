@@ -588,6 +588,48 @@ int spi_block_erase_dc(struct flashctx *flash, unsigned int addr, unsigned int b
 	return spi_write_cmd(flash, 0xdc, true, addr, NULL, 0, 100 * 1000);
 }
 
+erasefunc_t *spi_get_erasefn_from_opcode(uint8_t opcode)
+{
+	switch(opcode){
+	case 0xff:
+	case 0x00:
+		/* Not specified, assuming "not supported". */
+		return NULL;
+	case 0x20:
+		return &spi_block_erase_20;
+	case 0x21:
+		return &spi_block_erase_21;
+	case 0x50:
+		return &spi_block_erase_50;
+	case 0x52:
+		return &spi_block_erase_52;
+	case 0x5c:
+		return &spi_block_erase_5c;
+	case 0x60:
+		return &spi_block_erase_60;
+	case 0x62:
+		return &spi_block_erase_62;
+	case 0x81:
+		return &spi_block_erase_81;
+	case 0xc4:
+		return &spi_block_erase_c4;
+	case 0xc7:
+		return &spi_block_erase_c7;
+	case 0xd7:
+		return &spi_block_erase_d7;
+	case 0xd8:
+		return &spi_block_erase_d8;
+	case 0xdb:
+		return &spi_block_erase_db;
+	case 0xdc:
+		return &spi_block_erase_dc;
+	default:
+		msg_cinfo("%s: unknown erase opcode (0x%02x). Please report "
+			  "this at flashrom@flashrom.org\n", __func__, opcode);
+		return NULL;
+	}
+}
+
 int spi_write_status_register_wren(const struct flashctx *flash, int status)
 {
 	int result;

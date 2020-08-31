@@ -183,6 +183,8 @@ enum test_state {
 #define TEST_BAD_PRE	(struct tested){ .probe = BAD, .read = BAD, .erase = BAD, .write = NT }
 #define TEST_BAD_PREW	(struct tested){ .probe = BAD, .read = BAD, .erase = BAD, .write = BAD }
 
+typedef int (erasefunc_t)(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
+
 struct flashchip {
 	const char *vendor;
 	const char *name;

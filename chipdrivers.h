@@ -47,6 +47,7 @@ int spi_block_erase_d7(struct flashctx *flash, unsigned int addr, unsigned int b
 int spi_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 int spi_block_erase_db(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 int spi_block_erase_dc(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
+erasefunc_t *spi_get_erasefn_from_opcode(uint8_t opcode);
 int spi_chip_write_1(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 int spi_chip_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 int spi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, int unsigned len);
@@ -101,6 +102,9 @@ int spi_prettyprint_status_register_sst25(struct flashctx *flash);
 int spi_prettyprint_status_register_sst25vf016(struct flashctx *flash);
 int spi_prettyprint_status_register_sst25vf040b(struct flashctx *flash);
 int spi_disable_blockprotect_sst26_global_unprotect(struct flashctx *flash);
+
+/* sfdp.c */
+int probe_spi_sfdp(struct flashctx *flash);
 
 /* opaque.c */
 int probe_opaque(struct flashctx *flash);
