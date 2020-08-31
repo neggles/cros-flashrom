@@ -7343,6 +7343,324 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
+		.vendor		= "ISSI",
+		.name		= "IS29GL064H/L",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= ISSI_ID,
+		.model_id	= ISSI_PMC_IS29GL064HL,
+		.total_size	= 8192,
+		.page_size	= 128 * 1024, /* actual page size is 16 */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec_29gl,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "ISSI",
+		.name		= "IS29GL064T",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= ISSI_ID,
+		.model_id	= ISSI_PMC_IS29GL064T,
+		.total_size	= 8192,
+		.page_size	= 128 * 1024, /* actual page size is 16 */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec_29gl,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = {
+					{64 * 1024, 127},
+					{8 * 1024, 8},
+				},
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "ISSI",
+		.name		= "IS29GL128H/L",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= ISSI_ID,
+		.model_id	= ISSI_PMC_IS29GL128HL,
+		.total_size	= 16384,
+		.page_size	= 128 * 1024, /* actual page size is 16 */
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_SHORT_RESET,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_jedec_29gl,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {128 * 1024, 128} },
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {16 * 1024 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			},
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Intel",
+		.name		= "25F160S33B8",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= INTEL_ID,
+		.model_id	= INTEL_25F160S33B8,
+		.total_size	= 2048,
+		.page_size	= 256,
+		/* OTP: 506B total (2x 8B, 30x 16B, 1x 10B); read 0x4B; write 0x42 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				/* This chip supports erasing of the 8 so-called "parameter blocks" with
+				 * opcode 0x40. Trying to access an address outside these 8 8kB blocks does
+				 * have no effect on the memory contents, but sets a flag in the SR.
+				.eraseblocks = {
+					{8 * 1024, 8},
+					{64 * 1024, 31} // inaccessible
+				},
+				.block_erase = spi_block_erase_40,
+			}, { */
+				.eraseblocks = { {64 * 1024, 32} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {2 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_ep_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_ep_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,	/* also fast read 0x0B */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Intel",
+		.name		= "25F160S33T8",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= INTEL_ID,
+		.model_id	= INTEL_25F160S33T8,
+		.total_size	= 2048,
+		.page_size	= 256,
+		/* OTP: 506B total (2x 8B, 30x 16B, 1x 10B); read 0x4B; write 0x42 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				/* This chip supports erasing of the 8 so-called "parameter blocks" with
+				 * opcode 0x40. Trying to access an address outside these 8 8kB blocks does
+				 * have no effect on the memory contents, but sets a flag in the SR.
+				.eraseblocks = {
+					{64 * 1024, 31}, // inaccessible
+					{8 * 1024, 8}
+				},
+				.block_erase = spi_block_erase_40,
+			}, { */
+				.eraseblocks = { {64 * 1024, 32} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {2 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_ep_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_ep_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,	/* also fast read 0x0B */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Intel",
+		.name		= "25F320S33B8",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= INTEL_ID,
+		.model_id	= INTEL_25F320S33B8,
+		.total_size	= 4096,
+		.page_size	= 256,
+		/* OTP: 506B total (2x 8B, 30x 16B, 1x 10B); read 0x4B; write 0x42 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				/* This chip supports erasing of the 8 so-called "parameter blocks" with
+				 * opcode 0x40. Trying to access an address outside these 8 8kB blocks does
+				 * have no effect on the memory contents, but sets a flag in the SR.
+				.eraseblocks = {
+					{8 * 1024, 8},
+					{64 * 1024, 63} // inaccessible
+				},
+				.block_erase = spi_block_erase_40,
+			}, { */
+				.eraseblocks = { {64 * 1024, 64} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {4 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_ep_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_ep_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,	/* also fast read 0x0B */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Intel",
+		.name		= "25F320S33T8",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= INTEL_ID,
+		.model_id	= INTEL_25F320S33T8,
+		.total_size	= 4096,
+		.page_size	= 256,
+		/* OTP: 506B total (2x 8B, 30x 16B, 1x 10B); read 0x4B; write 0x42 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				/* This chip supports erasing of the 8 so-called "parameter blocks" with
+				 * opcode 0x40. Trying to access an address outside these 8 8kB blocks does
+				 * have no effect on the memory contents, but sets a flag in the SR.
+				.eraseblocks = {
+					{64 * 1024, 63}, // inaccessible
+					{8 * 1024, 8}
+				},
+				.block_erase = spi_block_erase_40,
+			}, { */
+				.eraseblocks = { {64 * 1024, 64} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {4 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_ep_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_ep_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,	/* also fast read 0x0B */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Intel",
+		.name		= "25F640S33B8",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= INTEL_ID,
+		.model_id	= INTEL_25F640S33B8,
+		.total_size	= 8192,
+		.page_size	= 256,
+		/* OTP: 506B total (2x 8B, 30x 16B, 1x 10B); read 0x4B; write 0x42 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				/* This chip supports erasing of the 8 so-called "parameter blocks" with
+				 * opcode 0x40. Trying to access an address outside these 8 8kB blocks does
+				 * have no effect on the memory contents, but sets a flag in the SR.
+				.eraseblocks = {
+					{8 * 1024, 8},
+					{64 * 1024, 127} // inaccessible
+				},
+				.block_erase = spi_block_erase_40,
+			}, { */
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_ep_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_ep_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,	/* also fast read 0x0B */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "Intel",
+		.name		= "25F640S33T8",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= INTEL_ID,
+		.model_id	= INTEL_25F640S33T8,
+		.total_size	= 8192,
+		.page_size	= 256,
+		/* OTP: 506B total (2x 8B, 30x 16B, 1x 10B); read 0x4B; write 0x42 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				/* This chip supports erasing of the 8 so-called "parameter blocks" with
+				 * opcode 0x40. Trying to access an address outside these 8 8kB blocks does
+				 * have no effect on the memory contents, but sets a flag in the SR.
+				.eraseblocks = {
+					{64 * 1024, 127}, // inaccessible
+					{8 * 1024, 8}
+				},
+				.block_erase = spi_block_erase_40,
+			}, { */
+				.eraseblocks = { {64 * 1024, 128} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_ep_srwd,
+		.unlock		= spi_disable_blockprotect_bp2_ep_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read,	/* also fast read 0x0B */
+		.voltage	= {2700, 3600},
+	},
+
+	{
 		.vendor		= "Intel",
 		.name		= "28F001BN/BX-B",
 		.bustype	= BUS_PARALLEL,
@@ -7603,6 +7921,22 @@ const struct flashchip flashchips[] = {
 		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
+		.voltage	= {3000, 3600},
+	},
+
+	{
+		.vendor		= "Macronix",
+		.name		= "MX23L12854",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= MACRONIX_ID,
+		.model_id	= MACRONIX_MX23L12854,
+		.total_size	= 16384,
+		.page_size	= 256,
+		.tested		= {.probe = NT, .read = NT, .erase = NA, .write = NA},
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.write		= NULL, /* MX23L12854 is a mask ROM, so it is read-only */
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {3000, 3600},
 	},
 
