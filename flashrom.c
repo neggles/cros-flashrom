@@ -472,6 +472,22 @@ int programmer_init(enum programmer prog, const char *param)
 	programmer_param = param;
 	msg_pdbg("Initializing %s programmer\n", programmer_table[programmer].name);
 	ret = programmer_table[programmer].init();
+	if (programmer_param && strlen(programmer_param)) {
+		if (ret != 0) {
+			/* It is quite possible that any unhandled programmer parameter would have been valid,
+			 * but an error in actual programmer init happened before the parameter was evaluated.
+			 */
+			msg_pwarn("Unhandled programmer parameters (possibly due to another failure): %s\n",
+				  programmer_param);
+		} else {
+			/* Actual programmer init was successful, but the user specified an invalid or unusable
+			 * (for the current programmer configuration) parameter.
+			 */
+			msg_perr("Unhandled programmer parameters: %s\n", programmer_param);
+			msg_perr("Aborting.\n");
+			ret = ERROR_FATAL;
+		}
+	}
 	return ret;
 }
 
@@ -572,12 +588,14 @@ int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, int
 	return 0;
 }
 
-/* This is a somewhat hacked function similar in some ways to strtok(). It will
- * look for needle with a subsequent '=' in haystack, return a copy of needle.
+/* This is a somewhat hacked function similar in some ways to strtok().
+ * It will look for needle with a subsequent '=' in haystack, return a copy of
+ * needle and remove everything from the first occurrence of needle to the next
+ * delimiter from haystack.
  */
 char *extract_param(const char *const *haystack, const char *needle, const char *delim)
 {
-	char *param_pos, *opt_pos;
+	char *param_pos, *opt_pos, *rest;
 	char *opt = NULL;
 	int optlen;
 	int needlelen;
@@ -597,7 +615,6 @@ char *extract_param(const char *const *haystack, const char *needle, const char 
 			return NULL;
 		/* Needle followed by '='? */
 		if (param_pos[needlelen] == '=') {
-
 			/* Beginning of the string? */
 			if (param_pos == *haystack)
 				break;
@@ -622,6 +639,11 @@ char *extract_param(const char *const *haystack, const char *needle, const char 
 		}
 		strncpy(opt, opt_pos, optlen);
 		opt[optlen] = '\0';
+		rest = opt_pos + optlen;
+		/* Skip all delimiters after the current parameter. */
+		rest += strspn(rest, delim);
+		memmove(param_pos, rest, strlen(rest) + 1);
+		/* We could shrink haystack, but the effort is not worth it. */
 	}
 
 	return opt;
