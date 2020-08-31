@@ -12348,6 +12348,45 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "PMC",
+		.name		= "Pm25LQ080",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= PMC_ID,
+		.model_id	= PMC_PM25LQ080,
+		.total_size	= 1024,
+		.page_size	= 256,
+		/* OTP: 64B total; read 0x4B, write 0xB1 */
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_d7,
+			}, {
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {2300, 3600},
+	},
+
+	{
+		.vendor		= "PMC",
 		.name		= "Pm25LV010",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= PMC_ID,
@@ -12374,6 +12413,38 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "PMC",
+		.name		= "Pm25LV010A",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= PMC_ID,
+		.model_id	= PMC_PM25LV010,
+		.total_size	= 128,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 32} },
+				.block_erase = spi_block_erase_d7,
+			}, {
+				.eraseblocks = { {32 * 1024, 4} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {128 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			}
+		},
+		.printlock	= spi_prettyprint_status_register_bp1_srwd,
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {2700, 3600},
 	},
 
@@ -12703,6 +12774,36 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "PMC",
+		.name		= "Pm39LV512",
+		.bustype	= BUS_PARALLEL,
+		.manufacture_id	= PMC_ID_NOPREFIX,
+		.model_id	= PMC_PM39LV512,
+		.total_size	= 64,
+		.page_size	= 4096,
+		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_EITHER_RESET,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_jedec,
+		.probe_timing	= TIMING_ZERO,	/* Datasheet has no timing info specified */
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 16} },
+				.block_erase = erase_sector_jedec,
+			}, {
+				.eraseblocks = { {64 * 1024, 1} },
+				.block_erase = erase_block_jedec,
+			}, {
+				.eraseblocks = { {64 * 1024, 1} },
+				.block_erase = erase_chip_block_jedec,
+			}
+		},
+		.write		= write_jedec_1,
+		.read		= read_memmapped,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "PMC",
 		.name		= "Pm49FL002",
 		.bustype	= BUS_LPC | BUS_FWH, /* A/A Mux */
 		.manufacture_id	= PMC_ID_NOPREFIX,
@@ -12765,6 +12866,38 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "SST",
+		.name		= "SST25LF020A",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25VF020_REMS,
+		.total_size	= 256,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EWSR,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rems,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 64} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 8} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: No BP2 & 3 */
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
 		.name		= "SST25LF040A",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= SST_ID,
@@ -12789,6 +12922,38 @@ const struct flashchip flashchips[] = {
 			},
 		},
 		.printlock	= spi_prettyprint_status_register_sst25,
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
+		.read		= spi_chip_read,
+		.voltage	= {3000, 3600},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25LF080(A)",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25VF080_REMS,
+		.total_size	= 1024,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EITHER,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_res2,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 32} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* TODO: check */
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
 		.read		= spi_chip_read,
@@ -12919,6 +13084,76 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
 		.read		= spi_chip_read,
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25VF020",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25VF020_REMS,
+		.total_size	= 256,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EWSR,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rems,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 64} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 8} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: No BP2 & 3 */
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
+		.read		= spi_chip_read, /* only */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25VF020B",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25VF020B,
+		.total_size	= 256,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EWSR,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 64} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 8} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 4} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: No BP2 & 3 and 2nd SR */
+		.unlock		= spi_disable_blockprotect, /* FIXME: 2nd SR */
+		.write		= spi_aai_write, /* AAI supported (0xAD) */
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {2700, 3600},
 	},
 
@@ -13137,6 +13372,117 @@ const struct flashchip flashchips[] = {
 		.write		= spi_chip_write_1,
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25VF512(A)",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25VF512_REMS,
+		.total_size	= 64,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EWSR,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rems,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 16} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 2} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {32 * 1024, 2} },
+				.block_erase = spi_block_erase_d8, /* Supported by SST25VF512A only */
+			}, {
+				.eraseblocks = { {64 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {64 * 1024, 1} },
+				.block_erase = spi_block_erase_c7, /* Supported by SST25VF512A only */
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: No BP2 & 3 */
+		.unlock		= spi_disable_blockprotect,
+		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
+		.read		= spi_chip_read, /* Fast read (0x0B) supported by SST25VF512A only */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25WF010",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25WF010,
+		.total_size	= 128,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EITHER,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 32} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 4} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {1024 * 128, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 128, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: does not have a BP3 */
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_aai_write,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25WF020",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25WF020,
+		.total_size	= 256,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EITHER,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 64} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 8} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 4} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 256, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 256, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: does not have a BP3 */
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_aai_write,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {1650, 1950},
 	},
 
 	{
