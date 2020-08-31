@@ -209,6 +209,10 @@ int probe_w29ee011(struct flashctx *flash);
 int erase_sector_stm50flw0x0x(struct flashctx *flash, unsigned int block, unsigned int blocksize);
 int unlock_stm50flw0x0x(struct flashctx *flash);
 
+/* en29lv640b.c */
+int probe_en29lv640b(struct flashctx *flash);
+int write_en29lv640b(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+
 /* dummyflasher.c */
 int probe_variable_size(struct flashctx *flash);
 
