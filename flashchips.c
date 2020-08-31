@@ -13487,6 +13487,336 @@ const struct flashchip flashchips[] = {
 
 	{
 		.vendor		= "SST",
+		.name		= "SST25WF020A",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SANYO_ID, /* See flashchips.h */
+		.model_id	= SST_SST25WF020A,
+		.total_size	= 256,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 64} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 4} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {256 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_tb_bpl,
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25WF040",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25WF040,
+		.total_size	= 512,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EITHER,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 128} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 16} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 8} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 512, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 512, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: does not have a BP3 */
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_aai_write,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25WF040B",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SANYO_ID, /* See flashchips.h */
+		.model_id	= SST_SST25WF040B,
+		.total_size	= 512,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 128} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 8} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {512 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {512 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_tb_bpl,
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B), dual O (0x3B), dual I/O read (0xBB) supported */
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25WF080",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25WF080,
+		.total_size	= 1024,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EITHER,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 32} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* *does* have a BP3 but it is useless */
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
+		.write		= spi_aai_write,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25WF080B",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SANYO_ID, /* See flashchips.h */
+		.model_id	= SST_SST25WF080B,
+		.total_size	= 1024,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 256} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_bp2_tb_bpl,
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_chip_write_256,
+		.read		= spi_chip_read, /* Fast read (0x0B), dual O (0x3B), dual I/O read (0xBB) supported */
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST25WF512",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST25WF512,
+		.total_size	= 64,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_EITHER,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 16} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = { {32 * 1024, 2} },
+				.block_erase = spi_block_erase_52,
+			}, {
+				.eraseblocks = { {1024 * 64, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { {1024 * 64, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_sst25, /* FIXME: does not have a BP3 */
+		.unlock		= spi_disable_blockprotect_bp2_srwd,
+		.write		= spi_aai_write,
+		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.voltage	= {1650, 1950},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST26VF016B(A)",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST26VF016B,
+		.total_size	= 2048,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 512} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = {
+					{8 * 1024, 4},
+					{32 * 1024, 1},
+					{64 * 1024, 30},
+					{32 * 1024, 1},
+					{8 * 1024, 4},
+				},
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {2 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
+		.unlock		= spi_disable_blockprotect_sst26_global_unprotect,
+		.write		= spi_chip_write_256, /* Multi I/O supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST26VF032B(A)",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST26VF032B,
+		.total_size	= 4096,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 1024} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = {
+					{8 * 1024, 4},
+					{32 * 1024, 1},
+					{64 * 1024, 62},
+					{32 * 1024, 1},
+					{8 * 1024, 4},
+				},
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {4 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
+		.unlock		= spi_disable_blockprotect_sst26_global_unprotect,
+		.write		= spi_chip_write_256, /* Multi I/O supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
+		.name		= "SST26VF064B(A)",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= SST_ID,
+		.model_id	= SST_SST26VF064B,
+		.total_size	= 8192,
+		.page_size	= 256,
+		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {4 * 1024, 2048} },
+				.block_erase = spi_block_erase_20,
+			}, {
+				.eraseblocks = {
+					{8 * 1024, 4},
+					{32 * 1024, 1},
+					{64 * 1024, 126},
+					{32 * 1024, 1},
+					{8 * 1024, 4},
+				},
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {8 * 1024 * 1024, 1} },
+				.block_erase = spi_block_erase_c7,
+			},
+		},
+		.printlock	= spi_prettyprint_status_register_plain, /* TODO: improve */
+		.unlock		= spi_disable_blockprotect_sst26_global_unprotect,
+		.write		= spi_chip_write_256, /* Multi I/O supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
+		.voltage	= {2700, 3600},
+	},
+
+	{
+		.vendor		= "SST",
 		.name		= "SST28SF040A",
 		.bustype	= BUS_PARALLEL,
 		.manufacture_id	= SST_ID,
@@ -14736,6 +15066,31 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.unlock		= unlock_stm50flw0x0x,
+		.write		= write_82802ab,
+		.read		= read_memmapped,
+		.voltage	= {3000, 3600}, /* Also has 12V fast program & erase */
+	},
+
+	{
+		.vendor		= "ST",
+		.name		= "M50LPW080",
+		.bustype	= BUS_LPC, /* A/A Mux */
+		.manufacture_id	= ST_ID,
+		.model_id	= ST_M50LPW080,
+		.total_size	= 1024,
+		.page_size	= 0,
+		.feature_bits	= FEATURE_REGISTERMAP,
+		.tested		= TEST_UNTESTED,
+		.probe		= probe_82802ab,
+		.probe_timing	= TIMING_ZERO,	/* Datasheet has no timing info specified */
+		.block_erasers	=
+		{
+			{
+				.eraseblocks = { {64 * 1024, 16} },
+				.block_erase = erase_block_82802ab,
+			}
+		},
+		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program & erase */
