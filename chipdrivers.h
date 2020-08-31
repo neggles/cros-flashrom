@@ -192,6 +192,9 @@ int s25f_set_modifier_bits(const struct flashctx *flash, struct modifier_bits *m
 int s25fs_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 
 /* w39.c */
+int printlock_w39f010(struct flashctx * flash);
+int printlock_w39l010(struct flashctx * flash);
+int printlock_w39l020(struct flashctx * flash);
 int printlock_w39l040(struct flashctx * flash);
 int printlock_w39v040a(struct flashctx *flash);
 int printlock_w39v040b(struct flashctx *flash);
