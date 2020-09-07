@@ -522,11 +522,10 @@ int programmer_shutdown(void)
 	return ret;
 }
 
-void *programmer_map_flash_region(const char *descr, unsigned long phys_addr,
-				  size_t len)
+void *programmer_map_flash_region(const char *descr, uintptr_t phys_addr, size_t len)
 {
-	return programmer_table[programmer].map_flash_region(descr,
-							     phys_addr, len);
+	void *ret = programmer_table[programmer].map_flash_region(descr, phys_addr, len);
+	return ret;
 }
 
 void programmer_unmap_flash_region(void *virt_addr, size_t len)
@@ -570,7 +569,8 @@ uint32_t chip_readl(const struct flashctx *flash, const chipaddr addr)
 	return par_master->chip_readl(flash, addr);
 }
 
-void chip_readn(const struct flashctx *flash, uint8_t *buf, chipaddr addr, size_t len)
+void chip_readn(const struct flashctx *flash, uint8_t *buf, chipaddr addr,
+		size_t len)
 {
 	par_master->chip_readn(flash, buf, addr, len);
 }
@@ -649,7 +649,7 @@ char *extract_param(const char *const *haystack, const char *needle, const char 
 	return opt;
 }
 
-char *extract_programmer_param(const char *const param_name)
+char *extract_programmer_param(const char *param_name)
 {
 	return extract_param(&programmer_param, param_name, ",");
 }
@@ -1802,6 +1802,7 @@ static int check_block_eraser(const struct flashctx *flash, int k, int log)
 				 "eraseblock layout is not defined. ");
 		return 1;
 	}
+	// TODO: Once erase functions are annotated with allowed buses, check that as well.
 	return 0;
 }
 
