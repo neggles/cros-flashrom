@@ -775,7 +775,7 @@ out_free:
 
 /* Helper function for need_erase() that focuses on granularities of gran bytes. */
 static int need_erase_gran_bytes(const uint8_t *have, const uint8_t *want, unsigned int len,
-                                 unsigned int gran)
+                                 unsigned int gran, const uint8_t erased_value)
 {
 	unsigned int i, j, limit;
 	for (j = 0; j < len / gran; j++) {
@@ -785,7 +785,7 @@ static int need_erase_gran_bytes(const uint8_t *have, const uint8_t *want, unsig
 			continue;
 		/* have needs to be in erased state. */
 		for (i = 0; i < limit; i++)
-			if (have[j * gran + i] != 0xff)
+			if (have[j * gran + i] != erased_value)
 				return 1;
 	}
 	return 0;
@@ -796,16 +796,6 @@ static int need_erase_gran_bytes(const uint8_t *have, const uint8_t *want, unsig
  * erasing. This is only possible if all chunks of size @gran are either kept
  * as-is or changed from an all-ones state to any other state.
  *
- * The following write granularities (enum @gran) are known:
- * - 1 bit. Each bit can be cleared individually.
- * - 1 byte. A byte can be written once. Further writes to an already written
- *   byte cause the contents to be either undefined or to stay unchanged.
- * - 128 bytes. If less than 128 bytes are written, the rest will be
- *   erased. Each write to a 128-byte region will trigger an automatic erase
- *   before anything is written. Very uncommon behaviour and unsupported by
- *   this function.
- * - 256 bytes. If less than 256 bytes are written, the contents of the
- *   unwritten bytes are undefined.
  * Warning: This function assumes that @have and @want point to naturally
  * aligned regions.
  *
@@ -815,8 +805,8 @@ static int need_erase_gran_bytes(const uint8_t *have, const uint8_t *want, unsig
  * @gran	write granularity (enum, not count)
  * @return      0 if no erase is needed, 1 otherwise
  */
-static int need_erase(struct flashctx *flash, uint8_t *have, uint8_t *want,
-		      unsigned int len, enum write_granularity gran)
+int need_erase(const uint8_t *have, const uint8_t *want, unsigned int len,
+               enum write_granularity gran, const uint8_t erased_value)
 {
 	int result = 0;
 	unsigned int i;
@@ -831,31 +821,31 @@ static int need_erase(struct flashctx *flash, uint8_t *have, uint8_t *want,
 		break;
 	case write_gran_1byte:
 		for (i = 0; i < len; i++)
-			if ((have[i] != want[i]) && (have[i] != 0xff)) {
+			if ((have[i] != want[i]) && (have[i] != erased_value)) {
 				result = 1;
 				break;
 			}
 		break;
 	case write_gran_128bytes:
-		result = need_erase_gran_bytes(have, want, len, 128);
+		result = need_erase_gran_bytes(have, want, len, 128, erased_value);
 		break;
 	case write_gran_256bytes:
-		result = need_erase_gran_bytes(have, want, len, 256);
+		result = need_erase_gran_bytes(have, want, len, 256, erased_value);
 		break;
 	case write_gran_264bytes:
-		result = need_erase_gran_bytes(have, want, len, 264);
+		result = need_erase_gran_bytes(have, want, len, 264, erased_value);
 		break;
 	case write_gran_512bytes:
-		result = need_erase_gran_bytes(have, want, len, 512);
+		result = need_erase_gran_bytes(have, want, len, 512, erased_value);
 		break;
 	case write_gran_528bytes:
-		result = need_erase_gran_bytes(have, want, len, 528);
+		result = need_erase_gran_bytes(have, want, len, 528, erased_value);
 		break;
 	case write_gran_1024bytes:
-		result = need_erase_gran_bytes(have, want, len, 1024);
+		result = need_erase_gran_bytes(have, want, len, 1024, erased_value);
 		break;
 	case write_gran_1056bytes:
-		result = need_erase_gran_bytes(have, want, len, 1056);
+		result = need_erase_gran_bytes(have, want, len, 1056, erased_value);
 		break;
 	case write_gran_1byte_implicit_erase:
 		/* Do not erase, handle content changes from anything->0xff by writing 0xff. */
@@ -1595,7 +1585,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	newcontents += start;
 
 	msg_cdbg(":");
-	if (need_erase(flash, curcontents, newcontents, len, gran)) {
+	if (need_erase(curcontents, newcontents, len, gran, 0xff)) {
 		content_has_changed |= 1;
 		msg_cdbg(" E");
 		ret = erasefn(flash, start, len);
