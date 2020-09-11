@@ -806,65 +806,6 @@ int handle_partial_read(
 	return count;
 }
 
-/* Instead of verifying the whole chip, this functions only verifies those
- * content in specified partitions (-i).
- */
-int handle_partial_verify(
-    struct flashctx *flash,
-    uint8_t *buf,
-    int (*verify) (struct flashctx *flash, uint8_t *buf,
-                   unsigned int start, unsigned int len, const char *message)) {
-	int i;
-
-	/* If no regions were specified for inclusion, assume
-	 * that the user wants to read the complete image.
-	 */
-	if (num_include_args == 0)
-		return 0;
-
-	if (set_required_erase_size(flash))
-		return -1;
-
-	struct flashrom_layout *const layout = get_global_layout();
-	/* Walk through the table and write content to file for those included
-	 * partition. */
-	for (i = 0; i < layout->num_entries; i++) {
-		unsigned int start, len, start_align, len_align;
-
-		if (!layout->entries[i].included)
-			continue;
-
-		/* round down to nearest eraseable block boundary */
-		start_align = layout->entries[i].start % required_erase_size;
-		start = layout->entries[i].start - start_align;
-
-		/* round up to nearest eraseable block boundary */
-		len = layout->entries[i].end - start + 1;
-		len_align = len % required_erase_size;
-		if (len_align)
-			len = len + required_erase_size - len_align;
-
-		if (start_align || len_align) {
-			msg_gdbg("\n%s: Re-aligned partial verify due to "
-				"eraseable block size requirement:\n"
-				"\tlayout->entries[%d].start: 0x%06x, len: 0x%06x, "
-				"aligned start: 0x%06x, len: 0x%06x\n",
-				__func__, i, layout->entries[i].start,
-				layout->entries[i].end -
-				layout->entries[i].start + 1,
-				start, len);
-		}
-
-		/* read content from flash. */
-		if (verify(flash, buf + start, start, len, NULL)) {
-			msg_perr("flash partial verify failed.");
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
 int extract_regions(struct flashctx *flash)
 {
 	unsigned long size = flash->chip->total_size * 1024;

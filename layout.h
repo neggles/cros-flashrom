@@ -79,13 +79,6 @@ int handle_partial_read(
     /* RETURN: the number of partitions that have beenpartial read.
     *         ==0 means no partition is specified.
     *         < 0 means writing file error. */
-int handle_partial_verify(
-    struct flashctx *flash,
-    uint8_t *buf,
-    int (*verify) (struct flashctx *flash, uint8_t *buf, unsigned int start,
-                   unsigned int len, const char* message));
-    /* RETURN: ==0 means all identical.
-               !=0 means buf and flash are different. */
 
 /*
  * In case layout is used, return the largest offset of the end of all
