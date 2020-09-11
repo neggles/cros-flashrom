@@ -120,6 +120,18 @@ const struct programmer_entry programmer_table[] = {
 	},
 #endif
 
+#if CONFIG_MEC1308 == 1
+	{
+		.name			= "mec1308",
+		.type			= OTHER,
+		.devs.note		= "Microchip MEC1308 Embedded Controller.\n",
+		.init			= mec1308_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
 #if CONFIG_NIC3COM == 1
 	{
 		.name			= "nic3com",
@@ -169,6 +181,18 @@ const struct programmer_entry programmer_table[] = {
 	},
 #endif
 
+#if CONFIG_RAIDEN_DEBUG_SPI == 1
+	{
+		.name			= "raiden_debug_spi",
+		.type			= USB,
+		.devs.dev		= devs_raiden,
+		.init			= raiden_debug_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
 #if CONFIG_DRKAISER == 1
 	{
 		.name			= "drkaiser",
@@ -199,6 +223,42 @@ const struct programmer_entry programmer_table[] = {
 		.type			= PCI,
 		.devs.dev		= ata_hpt,
 		.init			= atahpt_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_ATAVIA == 1
+	{
+		.name			= "atavia",
+		.type			= PCI,
+		.devs.dev		= ata_via,
+		.init			= atavia_init,
+		.map_flash_region	= atavia_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_ATAPROMISE == 1
+	{
+		.name			= "atapromise",
+		.type			= PCI,
+		.devs.dev		= ata_promise,
+		.init			= atapromise_init,
+		.map_flash_region	= atapromise_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_IT8212 == 1
+	{
+		.name			= "it8212",
+		.type			= PCI,
+		.devs.dev		= devs_it8212,
+		.init			= it8212_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
 		.delay			= internal_delay,
@@ -243,23 +303,35 @@ const struct programmer_entry programmer_table[] = {
 	},
 #endif
 
-#if CONFIG_RAIDEN_DEBUG_SPI == 1
+#if CONFIG_DEDIPROG == 1
 	{
-		.name			= "raiden_debug_spi",
+		.name			= "dediprog",
 		.type			= USB,
-		.devs.dev		= devs_raiden,
-		.init			= raiden_debug_spi_init,
+		.init			= dediprog_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
 		.delay			= internal_delay,
 	},
 #endif
 
-#if CONFIG_DEDIPROG == 1
+#if CONFIG_DEVELOPERBOX_SPI == 1
 	{
-		.name			= "dediprog",
+		.name			= "developerbox",
 		.type			= USB,
-		.init			= dediprog_init,
+		.devs.dev		= devs_developerbox_spi,
+		.init			= developerbox_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_ENE_LPC == 1
+	{
+		.name			= "ene_lpc",
+		.type			= OTHER,
+		.devs.note		= "ENE LPC interface keyboard controller\n",
+		.init			= ene_lpc_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
 		.delay			= internal_delay,
@@ -273,6 +345,19 @@ const struct programmer_entry programmer_table[] = {
 					/* FIXME */
 		.devs.note		= "RayeR parallel port programmer\n",
 		.init			= rayer_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_PONY_SPI == 1
+	{
+		.name			= "pony_spi",
+		.type			= OTHER,
+					/* FIXME */
+		.devs.note		= "Programmers compatible with SI-Prog, serbang or AJAWe\n",
+		.init			= pony_spi_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
 		.delay			= internal_delay,
@@ -297,6 +382,18 @@ const struct programmer_entry programmer_table[] = {
 		.type			= PCI,
 		.devs.dev		= nics_intel_spi,
 		.init			= nicintel_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_NICINTEL_EEPROM == 1
+	{
+		.name			= "nicintel_eeprom",
+		.type			= PCI,
+		.devs.dev		= nics_intel_ee,
+		.init			= nicintel_ee_init,
 		.map_flash_region	= fallback_map,
 		.unmap_flash_region	= fallback_unmap,
 		.delay			= internal_delay,
@@ -375,6 +472,102 @@ const struct programmer_entry programmer_table[] = {
 	},
 #endif
 
+#if CONFIG_USBBLASTER_SPI == 1
+	{
+		.name			= "usbblaster_spi",
+		.type			= USB,
+		.devs.dev		= devs_usbblasterspi,
+		.init			= usbblaster_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_MSTARDDC_SPI == 1
+	{
+		.name			= "mstarddc_spi",
+		.type			= OTHER,
+		.devs.note		= "MSTAR DDC devices addressable via /dev/i2c-* on Linux.\n",
+		.init			= mstarddc_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_PICKIT2_SPI == 1
+	{
+		.name			= "pickit2_spi",
+		.type			= USB,
+		.devs.dev		= devs_pickit2_spi,
+		.init			= pickit2_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_CH341A_SPI == 1
+	{
+		.name			= "ch341a_spi",
+		.type			= USB,
+		.devs.dev		= devs_ch341a_spi,
+		.init			= ch341a_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= ch341a_spi_delay,
+	},
+#endif
+
+#if CONFIG_DIGILENT_SPI == 1
+	{
+		.name			= "digilent_spi",
+		.type			= USB,
+		.devs.dev		= devs_digilent_spi,
+		.init			= digilent_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_JLINK_SPI == 1
+	{
+		.name			= "jlink_spi",
+		.type			= OTHER,
+		.init			= jlink_spi_init,
+		.devs.note		= "SEGGER J-Link and compatible devices\n",
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_NI845X_SPI == 1
+	{
+		.name			= "ni845x_spi",
+		.type			= OTHER, // choose other because NI-845x uses own USB implementation
+		.devs.note		= "National Instruments USB-845x\n",
+		.init			= ni845x_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
+#if CONFIG_STLINKV3_SPI == 1
+	{
+		.name			= "stlinkv3_spi",
+		.type			= USB,
+		.devs.dev		= devs_stlinkv3_spi,
+		.init			= stlinkv3_spi_init,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
 	{0}, /* This entry corresponds to PROGRAMMER_INVALID. */
 };
 
@@ -389,6 +582,7 @@ static struct chip_restore_func_data {
 
 #define SHUTDOWN_MAXFN 32
 static int shutdown_fn_count = 0;
+/** @private */
 static struct shutdown_func_data {
 	int (*func) (void *data);
 	void *data;
