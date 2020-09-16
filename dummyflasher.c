@@ -743,15 +743,16 @@ static int emulate_spi_chip_response(unsigned int writecnt,
 			if (readcnt > 2)
 				readarr[2] = 0x18;
 			break;
-		case EMULATE_VARIABLE_SIZE: {
-			const uint16_t man_id = VARIABLE_SIZE_MANUF_ID;
-			const uint16_t dev_id = VARIABLE_SIZE_DEVICE_ID;
-			if (readcnt > 0) readarr[0] = man_id >> 8;
-			if (readcnt > 1) readarr[1] = man_id & 0xff;
-			if (readcnt > 2) readarr[2] = dev_id >> 8;
-			if (readcnt > 3) readarr[3] = dev_id & 0xff;
+		case EMULATE_VARIABLE_SIZE:
+			if (readcnt > 0)
+				readarr[0] = (PROGMANUF_ID >> 8) & 0xff;
+			if (readcnt > 1)
+				readarr[1] = PROGMANUF_ID & 0xff;
+			if (readcnt > 2)
+				readarr[2] = (PROGDEV_ID >> 8) & 0xff;
+			if (readcnt > 3)
+				readarr[3] = PROGDEV_ID & 0xff;
 			break;
-		}
 		default: /* ignore */
 			break;
 		}
