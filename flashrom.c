@@ -775,7 +775,8 @@ void programmer_delay(unsigned int usecs)
 		programmer_table[programmer].delay(usecs);
 }
 
-int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, int unsigned len)
+int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start,
+		   int unsigned len)
 {
 	chip_readn(flash, buf, flash->virtual_memory + start, len);
 
@@ -1483,6 +1484,9 @@ int probe_flash(struct registered_master *mst, int startchip, struct flashctx *f
 		if (map_flash(flash) != 0)
 			goto notfound;
 
+		/* We handle a forced match like a real match, we just avoid probing. Note that probe_flash()
+		 * is only called with force=1 after normal probing failed.
+		 */
 		if (force)
 			break;
 
@@ -1537,9 +1541,8 @@ notfound:
 
 
 	tmp = flashbuses_to_text(chip->bustype);
-	msg_cdbg("%s %s flash chip \"%s\" (%d kB, %s) \n",
-		 force ? "Assuming" : "Found", flash->chip->vendor,
-		 flash->chip->name, flash->chip->total_size, tmp);
+	msg_cinfo("%s %s flash chip \"%s\" (%d kB, %s) ", force ? "Assuming" : "Found",
+		  flash->chip->vendor, flash->chip->name, flash->chip->total_size, tmp);
 	free(tmp);
 #if CONFIG_INTERNAL == 1
 	if (programmer_table[programmer].map_flash_region == physmap)
@@ -1549,9 +1552,8 @@ notfound:
 #endif
 		msg_cinfo("on %s.\n", programmer_table[programmer].name);
 
-	/* Flash registers will not be mapped if the chip was forced. Lock info
-	 * may be stored in registers, so avoid lock info printing.
-	 */
+	/* Flash registers may more likely not be mapped if the chip was forced.
+	 * Lock info may be stored in registers, so avoid lock info printing. */
 	if (!force)
 		if (flash->chip->printlock)
 			flash->chip->printlock(flash);
@@ -2243,7 +2245,6 @@ int selfcheck(void)
 	return ret;
 }
 
-
 /* FIXME: This function signature needs to be improved once doit() has a better
  * function signature.
  */
@@ -2346,6 +2347,11 @@ int prepare_flash_access(struct flashctx *const flash,
 	}
 
 	return 0;
+}
+
+void finalize_flash_access(struct flashctx *const flash)
+{
+	unmap_flash(flash);
 }
 
 /*
@@ -2633,9 +2639,4 @@ out_nofree:
 	 */
 //	programmer_shutdown();
 	return ret;
-}
-
-void finalize_flash_access(struct flashctx *const flash)
-{
-	unmap_flash(flash);
 }
