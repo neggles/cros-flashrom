@@ -55,6 +55,9 @@ struct emu_data {
 	int erase_to_zero;
 	int emu_modified;	/* is the image modified since reading it? */
 	uint8_t emu_status;
+	/* If "freq" parameter is passed in from command line, commands will delay
+	 * for this period before returning. */
+	unsigned long int delay_us;
 	unsigned int emu_max_byteprogram_size;
 	unsigned int emu_max_aai_size;
 	unsigned int emu_jedec_se_size;
@@ -99,10 +102,6 @@ static const uint8_t sfdp_table[] = {
 #endif
 
 static unsigned int spi_write_256_chunksize = 256;
-
-/* If "freq" parameter is passed in from command line, commands will delay
- * for this period before returning. */
-static unsigned long int delay_us = 0;
 
 static int dummy_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
 				  const unsigned char *writearr, unsigned char *readarr);
@@ -187,6 +186,7 @@ int dummy_init(void)
 		return 1;
 	}
 	data->emu_chip = EMULATE_NONE;
+	data->delay_us = 0;
 	spi_master_dummyflasher.data = data;
 
 	msg_pspew("%s\n", __func__);
@@ -313,7 +313,8 @@ int dummy_init(void)
 		if (errno) {
 			msg_perr("Invalid frequency \"%s\", %s\n",
 					tmp, strerror(errno));
-			goto dummy_init_out;
+			free(tmp);
+			return 1;
 		}
 
 		if ((units > tmp) && (units < end)) {
@@ -336,13 +337,15 @@ int dummy_init(void)
 
 			if (!units_valid) {
 				msg_perr("Invalid units: %s\n", units);
+				free(tmp);
 				return 1;
 			}
 		}
 
 		/* Assume we only work with bytes and transfer at 1 bit/Hz */
-		delay_us = (1000000 * 8) / freq;
+		data->delay_us = (1000000 * 8) / freq;
 	}
+	free(tmp);
 
 #if EMULATE_CHIP
 #if EMULATE_SPI_CHIP
@@ -1059,7 +1062,7 @@ static int dummy_spi_send_command(const struct flashctx *flash, unsigned int wri
 		msg_pspew(" 0x%02x", readarr[i]);
 	msg_pspew("\n");
 
-	programmer_delay((writecnt + readcnt) * delay_us);
+	programmer_delay((writecnt + readcnt) * emu_data->delay_us);
 	return 0;
 }
 
