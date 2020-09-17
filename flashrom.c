@@ -1833,18 +1833,6 @@ static void emergency_help_message(void)
 			 "mail flashrom@flashrom.org, thanks!\n");
 }
 
-/* The way to go if you want a delimited list of programmers */
-void list_programmers(const char *delim)
-{
-	enum programmer p;
-	for (p = 0; p < PROGRAMMER_INVALID; p++) {
-		msg_ginfo("%s", programmer_table[p].name);
-		if (p < PROGRAMMER_INVALID - 1)
-			msg_ginfo("%s", delim);
-	}
-	msg_ginfo("\n");
-}
-
 void list_programmers_linebreak(int startcol, int cols, int paren)
 {
 	const char *pname;
