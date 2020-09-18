@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <strings.h>
 #include <string.h>
 #include "flash.h"
@@ -29,6 +30,74 @@
 
 static char *cb_vendor = NULL, *cb_model = NULL;
 int partvendor_from_cbtable = 0;
+
+/* Tries to find coreboot IDs in the supplied image and compares them to the current IDs.
+ * Returns...
+ *	-1	if IDs in the image do not match the IDs embedded in the current firmware,
+ *	 0	if the IDs could not be found in the image or if they match correctly.
+ */
+int cb_check_image(const uint8_t *image, unsigned int size)
+{
+	const unsigned int *walk;
+	unsigned int mb_part_offset, mb_vendor_offset;
+	const char *mb_part, *mb_vendor;
+
+	walk = (const unsigned int *)(image + size - 0x10);
+	walk--;
+
+	if ((*walk) == 0 || ((*walk) & 0x3ff) != 0) {
+		/* Some NVIDIA chipsets store chipset soft straps (IIRC Hypertransport init info etc.) in
+		 * flash at exactly the location where coreboot image size, coreboot vendor name pointer and
+		 * coreboot board name pointer are usually stored. In this case coreboot uses an alternate
+		 * location for the coreboot image data. */
+		walk = (const unsigned int *)(image + size - 0x80);
+		walk--;
+	}
+
+	/*
+	 * Check if coreboot last image size is 0 or not a multiple of 1k or
+	 * bigger than the chip or if the pointers to vendor ID or mainboard ID
+	 * are outside the image of if the start of ID strings are nonsensical
+	 * (nonprintable and not \0).
+	 */
+	mb_part_offset = *(walk - 1);
+	mb_vendor_offset = *(walk - 2);
+	if ((*walk) == 0 || ((*walk) & 0x3ff) != 0 || (*walk) > size ||
+	    mb_part_offset > size || mb_vendor_offset > size) {
+		msg_pdbg("Flash image seems to be a legacy BIOS. Disabling coreboot-related checks.\n");
+		return 0;
+	}
+
+	mb_part = (const char *)(image + size - mb_part_offset);
+	mb_vendor = (const char *)(image + size - mb_vendor_offset);
+	if (!isprint((unsigned char)*mb_part) ||
+	    !isprint((unsigned char)*mb_vendor)) {
+		msg_pdbg("Flash image seems to have garbage in the ID location. "
+			 "Disabling coreboot-related checks.\n");
+		return 0;
+	}
+
+	msg_pdbg("coreboot last image size (not ROM size) is %d bytes.\n", *walk);
+
+	msg_pdbg("Manufacturer: %s\n", mb_vendor);
+	msg_pdbg("Mainboard ID: %s\n", mb_part);
+
+	/* If these are not set, the coreboot table was not found. */
+	if (!cb_vendor || !cb_model)
+		return 0;
+
+	/* These comparisons are case insensitive to make things a little less user^Werror prone. */
+	if (!strcasecmp(mb_vendor, cb_vendor) && !strcasecmp(mb_part, cb_model)) {
+		msg_pdbg2("This coreboot image matches this mainboard.\n");
+	} else {
+		msg_perr("This coreboot image (%s:%s) does not appear to\n"
+			 "be correct for the detected mainboard (%s:%s).\n",
+			 mb_vendor, mb_part, cb_vendor, cb_model);
+		return -1;
+	}
+
+	return 0;
+}
 
 /* Parse the [<vendor>:]<board> string specified by the user as part of
  * -p internal:mainboard=[<vendor>:]<board> and set cb_vendor and cb_model

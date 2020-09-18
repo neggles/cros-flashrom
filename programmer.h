@@ -296,6 +296,7 @@ void cleanup_cpu_msr(void);
 
 /* cbtable.c */
 int cb_parse_table(const char **vendor, const char **model);
+int cb_check_image(const uint8_t *bios, unsigned int size);
 void lb_vendor_dev_from_string(const char *boardstring);
 extern int partvendor_from_cbtable;
 
