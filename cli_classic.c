@@ -795,12 +795,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* Map the selected flash chip again. */
-	if (map_flash(fill_flash) != 0) {
-		ret = 1;
-		goto out_shutdown;
-	}
-
 	/* Always verify write operations unless -n is used. */
 	if (write_it && !dont_verify_it)
 		if (!verify_it) verify_it = VERIFY_FULL;
@@ -974,7 +968,6 @@ int main(int argc, char *argv[])
 
 	msg_ginfo("%s\n", ret ? "FAILED" : "SUCCESS");
 
-	unmap_flash(fill_flash);
 out_shutdown:
 	programmer_shutdown();  /* must be done after chip_restore() */
 #if USE_BIG_LOCK == 1
