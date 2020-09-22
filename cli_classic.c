@@ -144,23 +144,19 @@ int main(int argc, char *argv[])
 	const struct flashchip *chip = NULL;
 	struct flashctx flashes[3] = {{0}};
 	struct flashctx *fill_flash;
-	int startchip = 0;
-	int chipcount = 0;
 	const char *name;
-	int namelen;
-	int opt;
-	int option_index = 0;
-	int force = 0;
-	int read_it = 0, write_it = 0, erase_it = 0, verify_it = 0,
-		flash_size = 0, extract_it = 0, flash_name = 0, do_diff = 1;
-	int set_wp_range = 0, set_wp_region = 0, set_wp_enable = 0,
-	    set_wp_disable = 0, wp_status = 0, wp_list = 0;
-	int set_ignore_fmap = 0;
+	int namelen, opt, i, j;
+	int startchip = 0, chipcount = 0, option_index = 0, force = 0;
 #if CONFIG_PRINT_WIKI == 1
 	int list_supported_wiki = 0;
 #endif
-	int i, j;
+	int flash_name = 0, flash_size = 0;
+	int read_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
+	int extract_it = 0, do_diff = 1;
+	int set_wp_range = 0, set_wp_region = 0, set_wp_enable = 0,
+	    set_wp_disable = 0, wp_status = 0, wp_list = 0;
+	int set_ignore_fmap = 0;
 	enum programmer prog = PROGRAMMER_INVALID;
 	enum {
 		/* start after ASCII chars */
