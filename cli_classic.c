@@ -71,6 +71,7 @@ static void cli_classic_usage(const char *name)
 	       " -c | --chip <chipname>             probe only for specified flash chip\n"
 	       " -f | --force                       force specific operations (see man page)\n"
 	       " -n | --noverify                    don't auto-verify\n"
+	       " -N | --noverify-all                verify included regions only (cf. -i)\n"
 	       " -l | --layout <layoutfile>         read ROM layout from <layoutfile>\n"
 	       "   -i | --image <name>[:<file>]      only access image <name> "
 	         "from flash layout\n"
@@ -151,16 +152,15 @@ int main(int argc, char *argv[])
 	int option_index = 0;
 	int force = 0;
 	int read_it = 0, write_it = 0, erase_it = 0, verify_it = 0,
-		flash_size = 0, dont_verify_it = 0, list_supported = 0,
-		extract_it = 0, flash_name = 0, do_diff = 1;
+		flash_size = 0, extract_it = 0, flash_name = 0, do_diff = 1;
 	int set_wp_range = 0, set_wp_region = 0, set_wp_enable = 0,
 	    set_wp_disable = 0, wp_status = 0, wp_list = 0;
 	int set_ignore_fmap = 0;
 #if CONFIG_PRINT_WIKI == 1
 	int list_supported_wiki = 0;
 #endif
-	int operation_specified = 0;
 	int i, j;
+	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
 	enum programmer prog = PROGRAMMER_INVALID;
 	enum {
 		/* start after ASCII chars */
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	int found_chip = 0;
 
-	static const char optstring[] = "rRwvnVEfc:l:i:p:o:Lzhbx";
+	static const char optstring[] = "rRwvnNVEfc:l:i:p:o:Lzhbx";
 	static const struct option long_options[] = {
 		{"read",		0, NULL, 'r'},
 		{"write",		0, NULL, 'w'},
@@ -260,6 +260,10 @@ int main(int argc, char *argv[])
 				cli_classic_abort_usage("--verify and --noverify are mutually exclusive. Aborting.\n");
 			}
 			dont_verify_it = 1;
+			break;
+		case 'N':
+			dont_verify_all = 1;
+			verify_it = VERIFY_PARTIAL;
 			break;
 		case 'c':
 			chip_to_probe = strdup(optarg);
