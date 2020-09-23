@@ -916,6 +916,8 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
+	fill_flash->flags.force = force;
+
 	if (read_it || write_it || erase_it || verify_it || extract_it) {
 		ret = doit(fill_flash, force, filename,
 		          read_it, write_it, erase_it, verify_it,

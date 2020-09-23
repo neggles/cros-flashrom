@@ -49,8 +49,6 @@ const char *chip_to_probe = NULL;
  * decide if final verification is needed. */
 static int content_has_changed = 0;
 
-static int g_force = 0; // HACK to keep prepare_flash_access() signature the same.
-
 /* error handling stuff */
 enum error_action access_denied_action = error_ignore;
 
@@ -2332,7 +2330,7 @@ int prepare_flash_access(struct flashctx *const flash,
 			 const bool read_it, const bool write_it,
 			 const bool erase_it, const bool verify_it)
 {
-	if (chip_safety_check(flash, g_force /*flash->flags.force*/, read_it, write_it, erase_it, verify_it)) {
+	if (chip_safety_check(flash, flash->flags.force, read_it, write_it, erase_it, verify_it)) {
 		msg_cerr("Aborting.\n");
 		return 1;
 	}
@@ -2437,7 +2435,6 @@ int doit(struct flashctx *flash, int force, const char *filename, int read_it,
 	unsigned long size = flash->chip->total_size * 1024;
 	struct action_descriptor *descriptor = NULL;
 
-        g_force = force; // HACK
 	ret = prepare_flash_access(flash, read_it, write_it, erase_it, verify_it);
 	if (ret)
 		goto out_nofree;

@@ -275,6 +275,12 @@ struct flashctx {
 	uintptr_t physical_registers;
 	chipaddr virtual_registers;
 	struct registered_master *mst;
+	struct {
+		bool force;
+		bool force_boardmismatch;
+		bool verify_after_write;
+		bool verify_whole_chip;
+	} flags;
 
 	/* We cache the state of the extended address register (highest byte
 	 * of a 4BA for 3BA instructions) and the state of the 4BA mode here.
