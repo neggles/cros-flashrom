@@ -907,11 +907,16 @@ int main(int argc, char *argv[])
 	 * Give the chip time to settle.
 	 */
 	programmer_delay(100000);
-	if (read_it || write_it || erase_it || verify_it || extract_it) {
-		ret = doit(fill_flash, filename,
-		          read_it, write_it, erase_it, verify_it,
-		          extract_it, diff_file);
-	}
+	if (read_it)
+		ret = do_read(fill_flash, filename);
+	else if (erase_it)
+		ret = do_erase(fill_flash, diff_file);
+	else if (write_it)
+		ret = do_write(fill_flash, filename, NULL, diff_file);
+	else if (verify_it)
+		ret = do_verify(fill_flash, filename, diff_file);
+	else if (extract_it)
+		ret = do_extract_it(fill_flash);
 
 	msg_ginfo("%s\n", ret ? "FAILED" : "SUCCESS");
 
