@@ -1496,9 +1496,14 @@ int probe_flash(struct registered_master *mst, int startchip, struct flashctx *f
 		 * one for this programmer interface (master) and thus no other chip has
 		 * been found on this interface.
 		 */
-		if (startchip == 0 || flash->chip->model_id != GENERIC_DEVICE_ID)
-			break;
 
+		/* First flash chip detected on this bus. */
+		if (startchip == 0)
+			break;
+		/* Not the first flash chip detected on this bus, but not a generic match either. */
+		if ((flash->chip->model_id != GENERIC_DEVICE_ID))
+			break;
+		/* Not the first flash chip detected on this bus, and it's just a generic match. Ignore it. */
 notfound:
 		unmap_flash(flash);
 		free(flash->chip);
