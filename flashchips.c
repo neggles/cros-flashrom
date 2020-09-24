@@ -18990,6 +18990,28 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
+		.vendor		= "Unknown",
+		.name		= "SFDP-capable chip",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= GENERIC_MANUF_ID,
+		.model_id	= SFDP_DEVICE_ID,
+		.total_size	= 0, /* set by probing function */
+		.page_size	= 0, /* set by probing function */
+		.feature_bits	= 0, /* set by probing function */
+		/* We present our own "report this" text hence we do not */
+		/* want the default "This flash part has status UNTESTED..." */
+		/* text to be printed. */
+		.tested		= TEST_OK_PREW,
+		.probe		= probe_spi_sfdp,
+		.block_erasers	= {}, /* set by probing function */
+		.unlock		= spi_disable_blockprotect, /* is this safe? */
+		.write		= NULL, /* set by probing function */
+		.read		= spi_chip_read,
+		/* FIXME: some vendor extensions define this */
+		.voltage	= {0},
+	},
+
+	{
 		.vendor		= "Programmer",
 		.name		= "Opaque flash chip",
 		.bustype	= BUS_PROG,
