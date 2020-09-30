@@ -537,7 +537,7 @@ int main(int argc, char *argv[])
 		if (CONFIG_DEFAULT_PROGRAMMER != PROGRAMMER_INVALID) {
 			prog = CONFIG_DEFAULT_PROGRAMMER;
 			/* We need to strdup here because we free(pparam) unconditionally later. */
-			pparam = strdup(CONFIG_DEFAULT_PROGRAMMER_ARGS);
+			pparam = !pparam ? strdup(CONFIG_DEFAULT_PROGRAMMER_ARGS) : pparam; /* b/169587323 */
 			msg_pinfo("Using default programmer \"%s\" with arguments \"%s\".\n",
 				  programmer_table[CONFIG_DEFAULT_PROGRAMMER].name, pparam);
 		} else {
