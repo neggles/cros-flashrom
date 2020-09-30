@@ -94,6 +94,9 @@ enum programmer {
 #if CONFIG_REALTEK_MST_I2C_SPI == 1
 	PROGRAMMER_REALTEK_MST_I2C_SPI,
 #endif
+#if CONFIG_GOOGLE_EC == 1
+	PROGRAMMER_GOOGLE_EC,
+#endif
 	PROGRAMMER_INVALID /* This must always be the last entry. */
 };
 

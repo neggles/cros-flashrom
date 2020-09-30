@@ -568,6 +568,18 @@ const struct programmer_entry programmer_table[] = {
 	},
 #endif
 
+#if CONFIG_GOOGLE_EC == 1
+	{
+		.name			= "google_ec",
+		.type			= OTHER,
+		.devs.note		= "Google EC.\n",
+		.init			= cros_ec_probe_dev,
+		.map_flash_region	= fallback_map,
+		.unmap_flash_region	= fallback_unmap,
+		.delay			= internal_delay,
+	},
+#endif
+
 	{0}, /* This entry corresponds to PROGRAMMER_INVALID. */
 };
 

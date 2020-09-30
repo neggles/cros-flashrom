@@ -193,6 +193,11 @@ UNSUPPORTED_FEATURES += CONFIG_REALTEK_MST_I2C_SPI=yes
 else
 override CONFIG_REALTEK_MST_I2C_SPI = no
 endif
+ifeq ($(CONFIG_GOOGLE_EC), yes)
+UNSUPPORTED_FEATURES += CONFIG_GOOGLE_EC=yes
+else
+override CONFIG_GOOGLE_EC = no
+endif
 endif
 
 # FIXME: Should we check for Cygwin/MSVC as well?
@@ -365,6 +370,11 @@ UNSUPPORTED_FEATURES += CONFIG_REALTEK_MST_I2C_SPI=yes
 else
 override CONFIG_REALTEK_MST_I2C_SPI = no
 endif
+ifeq ($(CONFIG_GOOGLE_EC), yes)
+UNSUPPORTED_FEATURES += CONFIG_GOOGLE_EC=yes
+else
+override CONFIG_GOOGLE_EC = no
+endif
 ifeq ($(CONFIG_CH341A_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_CH341A_SPI=yes
 else
@@ -519,6 +529,9 @@ CONFIG_LSPCON_I2C_SPI ?= no
 # Disables REALTEK_MST support until the i2c helper supports multiple systems.
 CONFIG_REALTEK_MST_I2C_SPI ?= no
 
+# Enable Google EC by default.
+CONFIG_GOOGLE_EC ?= yes
+
 # Always enable dummy tracing for now.
 CONFIG_DUMMY ?= yes
 
@@ -622,7 +635,7 @@ FEATURE_CFLAGS += -D'CONFIG_DEFAULT_PROGRAMMER_ARGS="$(CONFIG_DEFAULT_PROGRAMMER
 
 ifeq ($(CONFIG_INTERNAL), yes)
 FEATURE_CFLAGS += -D'CONFIG_INTERNAL=1'
-PROGRAMMER_OBJS += processor_enable.o chipset_enable.o board_enable.o cbtable.o dmi.o internal.o cros_ec.o
+PROGRAMMER_OBJS += processor_enable.o chipset_enable.o board_enable.o cbtable.o dmi.o internal.o
 ifeq ($(ARCH),x86)
 PROGRAMMER_OBJS += it87spi.o it85spi.o mec1308.o sb600spi.o wbsio_spi.o mcp6x_spi.o wpce775x.o ene_lpc.o
 PROGRAMMER_OBJS += ichspi.o ich_descriptors.o amd_imc.o
@@ -631,6 +644,7 @@ NEED_LIBPCI += CONFIG_INTERNAL
 endif
 endif
 
+# TODO(quasisec): Remove when flashrom.c isn't poisoned with cros_ec fn calls.
 PROGRAMMER_OBJS += cros_ec_dev.o
 
 ifeq ($(CONFIG_SERPROG), yes)
@@ -714,6 +728,11 @@ endif
 ifeq ($(CONFIG_REALTEK_MST_I2C_SPI), yes)
 FEATURE_CFLAGS += -D'CONFIG_REALTEK_MST_I2C_SPI=1'
 PROGRAMMER_OBJS += realtek_mst_i2c_spi.o
+endif
+
+ifeq ($(CONFIG_GOOGLE_EC), yes)
+FEATURE_CFLAGS += -D'CONFIG_GOOGLE_EC=1'
+PROGRAMMER_OBJS += cros_ec.o #cros_ec_dev.o
 endif
 
 ifneq ($(NEED_LIBFTDI), )
