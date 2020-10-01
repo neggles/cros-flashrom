@@ -8298,6 +8298,7 @@ const struct flashchip flashchips[] = {
 		.model_id	= MACRONIX_MX25L25635F,
 		.total_size	= 32768,
 		.page_size	= 256,
+		/* OTP: 512B total; enter 0xB1, exit 0xC1 */
 		.feature_bits	=
 			FEATURE_WRSR_WREN | FEATURE_4BA_WREN,
 		.tested		= TEST_UNTESTED,
@@ -8738,7 +8739,7 @@ const struct flashchip flashchips[] = {
 		},
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
-		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.read		= spi_chip_read, /* Fast read (0x0B), dual I/O read supported */
 		.voltage	= {2700, 3600}, /* 2.35-3.6V for MX25V8005 */
 		.wp		= &wp_generic,
 	},
@@ -8817,7 +8818,7 @@ const struct flashchip flashchips[] = {
 		},
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
-		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {2700, 3600},
 		.wp		= &wp_generic,
 	},
@@ -9013,7 +9014,7 @@ const struct flashchip flashchips[] = {
 		},
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256, /* Multi I/O supported */
-		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {1650, 2000},
 		.wp		= &wp_w25q_large,
 	},
@@ -9095,7 +9096,7 @@ const struct flashchip flashchips[] = {
 		},
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256, /* Multi I/O supported */
-		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {1650, 2000},
 		/* FIXME(dhendrix): write-protect support */
 		/* .wp		= &wp_generic, */
@@ -9137,7 +9138,7 @@ const struct flashchip flashchips[] = {
 		},
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
-		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {1650, 2000},
 		.wp		= &wp_w25,
 	},
@@ -9227,7 +9228,7 @@ const struct flashchip flashchips[] = {
 		},
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
-		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {1650, 2000},
 		.wp		= &wp_w25,
 	},
@@ -17053,7 +17054,8 @@ const struct flashchip flashchips[] = {
 		.model_id	= WINBOND_NEX_W25Q16_V,
 		.total_size	= 2048,
 		.page_size	= 256,
-		/* OTP: 1024B total, 256B reserved; read 0x48; write 0x42 */
+		/* supports SFDP */
+		/* OTP: 1024B total, 256B reserved; read 0x48; write 0x42, erase 0x44, read ID 0x4B */
 		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
 		.tested		= TEST_OK_PREW,
 		.probe		= probe_spi_rdid,
