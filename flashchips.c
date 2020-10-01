@@ -8025,6 +8025,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
+		.printlock	= spi_prettyprint_status_register_bp3_srwd,
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
@@ -14327,6 +14328,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_1,
 		.unlock		= unlock_49lfxxxc,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
@@ -14392,6 +14394,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_1,
 		.unlock		= unlock_49lfxxxc,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
@@ -14425,6 +14428,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_1,
 		.unlock		= unlock_49lfxxxc,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
@@ -14609,6 +14613,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_1,
 		.unlock		= unlock_49lfxxxc,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
@@ -14943,6 +14948,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_0,
 		.unlock		= unlock_stm50flw0x0x,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
@@ -14976,6 +14982,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_0,
 		.unlock		= unlock_stm50flw0x0x,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
@@ -15006,6 +15013,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_0,
 		.unlock		= unlock_stm50flw0x0x,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
@@ -15137,6 +15145,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
+		.printlock	= printlock_regspace2_block_eraser_0,
 		.unlock		= unlock_stm50flw0x0x,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
