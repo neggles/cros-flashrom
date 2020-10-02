@@ -35,7 +35,6 @@
 #endif
 #include <string.h>
 #include <errno.h>
-#include <inttypes.h>
 #include "flash.h"
 #include "programmer.h"
 #include "chipdrivers.h"
@@ -474,6 +473,7 @@ int serprog_init(void)
 	/* Check for the minimum operational set of commands. */
 	if (serprog_buses_supported & BUS_SPI) {
 		uint8_t bt = BUS_SPI;
+		char *spispeed;
 		if (sp_check_commandavail(S_CMD_O_SPIOP) == 0) {
 			msg_perr("Error: SPI operation not supported while the "
 				 "bustype is SPI\n");
@@ -505,6 +505,53 @@ int serprog_init(void)
 			spi_master_serprog.max_data_read = v;
 			msg_pdbg(MSGHEADER "Maximum read-n length is %d\n", v);
 		}
+		spispeed = extract_programmer_param("spispeed");
+		if (spispeed && strlen(spispeed)) {
+			uint32_t f_spi_req, f_spi;
+			uint8_t buf[4];
+			char *f_spi_suffix;
+
+			errno = 0;
+			f_spi_req = strtol(spispeed, &f_spi_suffix, 0);
+			if (errno != 0 || spispeed == f_spi_suffix) {
+				msg_perr("Error: Could not convert 'spispeed'.\n");
+				free(spispeed);
+				return 1;
+			}
+			if (strlen(f_spi_suffix) == 1) {
+				if (!strcasecmp(f_spi_suffix, "M"))
+					f_spi_req *= 1000000;
+				else if (!strcasecmp(f_spi_suffix, "k"))
+					f_spi_req *= 1000;
+				else {
+					msg_perr("Error: Garbage following 'spispeed' value.\n");
+					free(spispeed);
+					return 1;
+				}
+			} else if (strlen(f_spi_suffix) > 1) {
+				msg_perr("Error: Garbage following 'spispeed' value.\n");
+				free(spispeed);
+				return 1;
+			}
+
+			buf[0] = (f_spi_req >> (0 * 8)) & 0xFF;
+			buf[1] = (f_spi_req >> (1 * 8)) & 0xFF;
+			buf[2] = (f_spi_req >> (2 * 8)) & 0xFF;
+			buf[3] = (f_spi_req >> (3 * 8)) & 0xFF;
+
+			if (sp_check_commandavail(S_CMD_S_SPI_FREQ) == 0)
+				msg_pwarn(MSGHEADER "Warning: Setting the SPI clock rate is not supported!\n");
+			else if (sp_docommand(S_CMD_S_SPI_FREQ, 4, buf, 4, buf) == 0) {
+				f_spi = buf[0];
+				f_spi |= buf[1] << (1 * 8);
+				f_spi |= buf[2] << (2 * 8);
+				f_spi |= buf[3] << (3 * 8);
+				msg_pdbg(MSGHEADER "Requested to set SPI clock frequency to %u Hz. "
+					 "It was actually set to %u Hz\n", f_spi_req, f_spi);
+			} else
+				msg_pwarn(MSGHEADER "Setting SPI clock rate to %u Hz failed!\n", f_spi_req);
+		}
+		free(spispeed);
 		bt = serprog_buses_supported;
 		if (sp_docommand(S_CMD_S_BUSTYPE, 1, &bt, 0, NULL))
 			return 1;
@@ -611,6 +658,15 @@ int serprog_init(void)
 			 sp_device_opbuf_size);
 	}
 
+	if (sp_check_commandavail(S_CMD_S_PIN_STATE)) {
+		uint8_t en = 1;
+		if (sp_docommand(S_CMD_S_PIN_STATE, 1, &en, 0, NULL) != 0) {
+			msg_perr("Error: could not enable output buffers\n");
+			return 1;
+		} else
+			msg_pdbg(MSGHEADER "Output drivers enabled\n");
+	} else
+		msg_pdbg(MSGHEADER "Warning: Programmer does not support toggling its output drivers\n");
 	sp_prev_was_write = 0;
 	sp_streamed_transmit_ops = 0;
 	sp_streamed_transmit_bytes = 0;
@@ -700,6 +756,13 @@ static int serprog_shutdown(void *data)
 	if ((sp_opbuf_usage) || (sp_max_write_n && sp_write_n_bytes))
 	if (sp_execute_opbuf() != 0)
 		msg_pwarn("Could not flush command buffer.\n");
+	if (sp_check_commandavail(S_CMD_S_PIN_STATE)) {
+		uint8_t dis = 0;
+		if (sp_docommand(S_CMD_S_PIN_STATE, 1, &dis, 0, NULL) == 0)
+			msg_pdbg(MSGHEADER "Output drivers disabled\n");
+		else
+			msg_pwarn(MSGHEADER "%s: Warning: could not disable output buffers\n", __func__);
+	}
 	/* FIXME: fix sockets on windows(?), especially closing */
 	serialport_shutdown(&sp_fd);
 	if (sp_max_write_n)
@@ -861,4 +924,19 @@ static int serprog_spi_send_command(const struct flashctx *flash,
 			   readarr);
 	free(parmbuf);
 	return ret;
+}
+
+void *serprog_map(const char *descr, uintptr_t phys_addr, size_t len)
+{
+	/* Serprog transmits 24 bits only and assumes the underlying implementation handles any remaining bits
+	 * correctly (usually setting them to one either in software (for FWH/LPC) or relying on the fact that
+	 * the hardware observes a subset of the address bits only). Combined with the standard mapping of
+	 * flashrom this creates a 16 MB-wide window just below the 4 GB boundary where serprog can operate (as
+	 * needed for non-SPI chips). Below we make sure that the requested range is within this window. */
+	if ((phys_addr & 0xFF000000) == 0xFF000000) {
+		return (void*)phys_addr;
+	}
+	msg_pwarn(MSGHEADER "requested mapping %s is incompatible: 0x%zx bytes at 0x%0*" PRIxPTR ".\n",
+		  descr, len, PRIxPTR_WIDTH, phys_addr);
+	return NULL;
 }
