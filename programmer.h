@@ -52,6 +52,18 @@ enum programmer {
 #if CONFIG_ATAHPT == 1
 	PROGRAMMER_ATAHPT,
 #endif
+#if CONFIG_ATAVIA == 1
+	PROGRAMMER_ATAVIA,
+#endif
+#if CONFIG_ATAPROMISE == 1
+	PROGRAMMER_ATAPROMISE,
+#endif
+#if CONFIG_ENE_LPC == 1
+	PROGRAMMER_ENE_LPC,
+#endif
+#if CONFIG_IT8212 == 1
+	PROGRAMMER_IT8212,
+#endif
 #if CONFIG_FT2232_SPI == 1
 	PROGRAMMER_FT2232_SPI,
 #endif
@@ -67,14 +79,23 @@ enum programmer {
 #if CONFIG_DEDIPROG == 1
 	PROGRAMMER_DEDIPROG,
 #endif
+#if CONFIG_DEVELOPERBOX_SPI == 1
+	PROGRAMMER_DEVELOPERBOX_SPI,
+#endif
 #if CONFIG_RAYER_SPI == 1
 	PROGRAMMER_RAYER_SPI,
+#endif
+#if CONFIG_PONY_SPI == 1
+	PROGRAMMER_PONY_SPI,
 #endif
 #if CONFIG_NICINTEL == 1
 	PROGRAMMER_NICINTEL,
 #endif
 #if CONFIG_NICINTEL_SPI == 1
 	PROGRAMMER_NICINTEL_SPI,
+#endif
+#if CONFIG_NICINTEL_EEPROM == 1
+	PROGRAMMER_NICINTEL_EEPROM,
 #endif
 #if CONFIG_OGP_SPI == 1
 	PROGRAMMER_OGP_SPI,
@@ -87,6 +108,33 @@ enum programmer {
 #endif
 #if CONFIG_LINUX_SPI == 1
 	PROGRAMMER_LINUX_SPI,
+#endif
+#if CONFIG_USBBLASTER_SPI == 1
+	PROGRAMMER_USBBLASTER_SPI,
+#endif
+#if CONFIG_MEC1308 == 1
+	PROGRAMMER_MEC1308,
+#endif
+#if CONFIG_MSTARDDC_SPI == 1
+	PROGRAMMER_MSTARDDC_SPI,
+#endif
+#if CONFIG_PICKIT2_SPI == 1
+	PROGRAMMER_PICKIT2_SPI,
+#endif
+#if CONFIG_CH341A_SPI == 1
+	PROGRAMMER_CH341A_SPI,
+#endif
+#if CONFIG_DIGILENT_SPI == 1
+	PROGRAMMER_DIGILENT_SPI,
+#endif
+#if CONFIG_JLINK_SPI == 1
+	PROGRAMMER_JLINK_SPI,
+#endif
+#if CONFIG_NI845X_SPI == 1
+	PROGRAMMER_NI845X_SPI,
+#endif
+#if CONFIG_STLINKV3_SPI == 1
+	PROGRAMMER_STLINKV3_SPI,
 #endif
 #if CONFIG_LSPCON_I2C_SPI == 1
 	PROGRAMMER_LSPCON_I2C_SPI,
@@ -427,6 +475,12 @@ int nicintel_spi_init(void);
 extern const struct dev_entry nics_intel_spi[];
 #endif
 
+/* nicintel_eeprom.c */
+#if CONFIG_NICINTEL_EEPROM == 1
+int nicintel_ee_init(void);
+extern const struct dev_entry nics_intel_ee[];
+#endif
+
 /* ogp_spi.c */
 #if CONFIG_OGP_SPI == 1
 int ogp_spi_init(void);
@@ -451,15 +505,63 @@ int atahpt_init(void);
 extern const struct dev_entry ata_hpt[];
 #endif
 
+/* atavia.c */
+#if CONFIG_ATAVIA == 1
+int atavia_init(void);
+void *atavia_map(const char *descr, uintptr_t phys_addr, size_t len);
+extern const struct dev_entry ata_via[];
+#endif
+
+/* atapromise.c */
+#if CONFIG_ATAPROMISE == 1
+int atapromise_init(void);
+void *atapromise_map(const char *descr, uintptr_t phys_addr, size_t len);
+extern const struct dev_entry ata_promise[];
+#endif
+
+/* it8212.c */
+#if CONFIG_IT8212 == 1
+int it8212_init(void);
+extern const struct dev_entry devs_it8212[];
+#endif
+
 /* ft2232_spi.c */
 #if CONFIG_FT2232_SPI == 1
 int ft2232_spi_init(void);
 extern const struct dev_entry devs_ft2232spi[];
 #endif
 
+/* usbblaster_spi.c */
+#if CONFIG_USBBLASTER_SPI == 1
+int usbblaster_spi_init(void);
+extern const struct dev_entry devs_usbblasterspi[];
+#endif
+
+/* mstarddc_spi.c */
+#if CONFIG_MSTARDDC_SPI == 1
+int mstarddc_spi_init(void);
+#endif
+
+/* pickit2_spi.c */
+#if CONFIG_PICKIT2_SPI == 1
+int pickit2_spi_init(void);
+extern const struct dev_entry devs_pickit2_spi[];
+#endif
+
+/* stlinkv3_spi.c */
+#if CONFIG_STLINKV3_SPI == 1
+int stlinkv3_spi_init(void);
+extern const struct dev_entry devs_stlinkv3_spi[];
+#endif
+
 /* rayer_spi.c */
 #if CONFIG_RAYER_SPI == 1
 int rayer_spi_init(void);
+#endif
+
+/* pony_spi.c */
+#if CONFIG_PONY_SPI == 1
+int pony_spi_init(void);
 #endif
 
 /* bitbang_spi.c */
@@ -491,6 +593,40 @@ int linux_spi_init(void);
 #if CONFIG_DEDIPROG == 1
 int dediprog_init(void);
 extern const struct dev_entry devs_dediprog[];
+#endif
+
+/* developerbox_spi.c */
+#if CONFIG_DEVELOPERBOX_SPI == 1
+int developerbox_spi_init(void);
+extern const struct dev_entry devs_developerbox_spi[];
+#endif
+
+/* ch341a_spi.c */
+#if CONFIG_CH341A_SPI == 1
+int ch341a_spi_init(void);
+void ch341a_spi_delay(unsigned int usecs);
+extern const struct dev_entry devs_ch341a_spi[];
+#endif
+
+/* digilent_spi.c */
+#if CONFIG_DIGILENT_SPI == 1
+int digilent_spi_init(void);
+extern const struct dev_entry devs_digilent_spi[];
+#endif
+
+/* ene_lpc.c */
+#if CONFIG_ENE_LPC == 1
+int ene_lpc_init(void);
+#endif
+
+/* jlink_spi.c */
+#if CONFIG_JLINK_SPI == 1
+int jlink_spi_init(void);
+#endif
+
+/* ni845x_spi.c */
+#if CONFIG_NI845X_SPI == 1
+int ni845x_spi_init(void);
 #endif
 
 /* flashrom.c */
