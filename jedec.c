@@ -20,7 +20,7 @@
  */
 
 #include "flash.h"
-#include <inttypes.h>
+#include "chipdrivers.h"
 
 #define MAX_REFLASH_TRIES 0x10
 #define MASK_FULL 0xffff
