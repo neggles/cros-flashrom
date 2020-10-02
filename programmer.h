@@ -177,8 +177,29 @@ struct bitbang_spi_master {
 	unsigned int half_period;
 };
 
-#if CONFIG_INTERNAL == 1
+#if NEED_PCI == 1
 struct pci_dev;
+
+/* pcidev.c */
+// FIXME: This needs to be local, not global(?)
+extern struct pci_access *pacc;
+int pci_init_common(void);
+uintptr_t pcidev_readbar(struct pci_dev *dev, int bar);
+struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar);
+/* rpci_write_* are reversible writes. The original PCI config space register
+ * contents will be restored on shutdown.
+ * To clone the pci_dev instances internally, the `pacc` global
+ * variable has to reference a pci_access method that is compatible
+ * with the given pci_dev handle. The referenced pci_access (not
+ * the variable) has to stay valid until the shutdown handlers are
+ * finished.
+ */
+int rpci_write_byte(struct pci_dev *dev, int reg, uint8_t data);
+int rpci_write_word(struct pci_dev *dev, int reg, uint16_t data);
+int rpci_write_long(struct pci_dev *dev, int reg, uint32_t data);
+#endif
+
+#if CONFIG_INTERNAL == 1
 struct penable {
 	uint16_t vendor_id;
 	uint16_t device_id;
@@ -251,20 +272,6 @@ void myusec_calibrate_delay(void);
 void internal_sleep(unsigned int usecs);
 void internal_delay(unsigned int usecs);
 void internal_sleep(unsigned int usecs);
-
-#if NEED_PCI == 1
-/* pcidev.c */
-extern struct pci_access *pacc;
-int pci_init_common(void);
-uintptr_t pcidev_readbar(struct pci_dev *dev, int bar);
-struct pci_dev *pcidev_init(const struct dev_entry *devs, int bar);
-/* rpci_write_* are reversible writes. The original PCI config space register
- * contents will be restored on shutdown.
- */
-int rpci_write_byte(struct pci_dev *dev, int reg, uint8_t data);
-int rpci_write_word(struct pci_dev *dev, int reg, uint16_t data);
-int rpci_write_long(struct pci_dev *dev, int reg, uint32_t data);
-#endif
 
 #if CONFIG_INTERNAL == 1
 /* board_enable.c */
