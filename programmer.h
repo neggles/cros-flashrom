@@ -43,6 +43,9 @@ enum programmer {
 #if CONFIG_GFXNVIDIA == 1
 	PROGRAMMER_GFXNVIDIA,
 #endif
+#if CONFIG_RAIDEN_DEBUG_SPI == 1
+	PROGRAMMER_RAIDEN_DEBUG_SPI,
+#endif
 #if CONFIG_DRKAISER == 1
 	PROGRAMMER_DRKAISER,
 #endif
@@ -72,9 +75,6 @@ enum programmer {
 #endif
 #if CONFIG_BUSPIRATE_SPI == 1
 	PROGRAMMER_BUSPIRATE_SPI,
-#endif
-#if CONFIG_RAIDEN_DEBUG_SPI == 1
-	PROGRAMMER_RAIDEN_DEBUG_SPI,
 #endif
 #if CONFIG_DEDIPROG == 1
 	PROGRAMMER_DEDIPROG,
@@ -445,6 +445,12 @@ int gfxnvidia_init(void);
 extern const struct dev_entry gfx_nvidia[];
 #endif
 
+/* raiden_debug_spi.c */
+#if CONFIG_RAIDEN_DEBUG_SPI == 1
+int raiden_debug_spi_init(void);
+extern const struct dev_entry devs_raiden[];
+#endif
+
 /* drkaiser.c */
 #if CONFIG_DRKAISER == 1
 int drkaiser_init(void);
@@ -571,12 +577,6 @@ int bitbang_spi_shutdown(const struct bitbang_spi_master *master);
 /* buspirate_spi.c */
 #if CONFIG_BUSPIRATE_SPI == 1
 int buspirate_spi_init(void);
-#endif
-
-/* raiden_debug_spi.c */
-#if CONFIG_RAIDEN_DEBUG_SPI == 1
-int raiden_debug_spi_init(void);
-extern const struct dev_entry devs_raiden[];
 #endif
 
 /* linux_mtd.c */
