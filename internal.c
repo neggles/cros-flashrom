@@ -149,9 +149,7 @@ enum chipbustype target_bus;
 
 int internal_init(void)
 {
-#if defined (__FLASHROM_LITTLE_ENDIAN__)
 	int ret = 0;
-#endif
 	int force_laptop = 0;
 	int not_a_laptop = 0;
 	char *board_vendor = NULL;
@@ -243,8 +241,10 @@ int internal_init(void)
 #endif
 	}
 
-	if (rget_io_perms())
-		return 1;
+	if (rget_io_perms()) {
+		ret = 1;
+		goto internal_init_exit;
+	}
 	if (register_shutdown(internal_shutdown, NULL))
 		return 1;
 
@@ -256,8 +256,10 @@ int internal_init(void)
 	internal_buses_supported = BUS_NONSPI;
 
 	/* Initialize PCI access for flash enables */
-	if (pci_init_common() != 0)
-		return 1;
+	if (pci_init_common() != 0) {
+		ret = 1;
+		goto internal_init_exit;
+	}
 #else
 	internal_buses_supported = BUS_NONE;
 #endif
@@ -285,7 +287,8 @@ int internal_init(void)
 #endif
 
 	if (try_mtd() == 0) {
-		return 0;
+		ret = 0;
+		goto internal_init_exit;
 	}
 
 #if IS_ARM || IS_MIPS && CONFIG_LINUX_SPI == 1
@@ -308,7 +311,8 @@ int internal_init(void)
 	if (processor_flash_enable()) {
 		msg_perr("Processor detection/init failed.\n"
 			 "Aborting.\n");
-		return 1;
+		ret = 1;
+		goto internal_init_exit;
 	}
 
 #if IS_X86 || IS_ARM
@@ -320,8 +324,10 @@ int internal_init(void)
 			msg_pwarn("Warning: The mainboard IDs set by -p internal:mainboard (%s:%s) do not\n"
 				  "         match the current coreboot IDs of the mainboard (%s:%s).\n",
 				  board_vendor, board_model, cb_vendor, cb_model);
-			if (!force_boardmismatch)
-				return 1;
+			if (!force_boardmismatch) {
+				ret = 1;
+				goto internal_init_exit;
+			}
 			msg_pinfo("Continuing anyway.\n");
 		}
 	}
@@ -375,8 +381,9 @@ int internal_init(void)
 	if (ret == -2) {
 		msg_perr("WARNING: No chipset found. Flash detection "
 			 "will most likely fail.\n");
-	} else if (ret == ERROR_FATAL)
-		return ret;
+	} else if (ret == ERROR_FATAL) {
+		goto internal_init_exit;
+	}
 
 	if (internal_buses_supported & BUS_NONSPI)
 		register_par_master(&par_master_internal, internal_buses_supported);
@@ -462,6 +469,13 @@ int internal_init(void)
 		 "Aborting.\n");
 	return 1;
 #endif
+	ret = 0;
+
+internal_init_exit:
+	free(board_vendor);
+	free(board_model);
+
+	return ret;
 }
 #endif
 
