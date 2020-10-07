@@ -492,9 +492,7 @@ int probe_spi_big_spansion(struct flashctx *flash)
 	ret = spi_send_command(flash, sizeof(cmd), sizeof(dev_id), &cmd, dev_id);
 
 	if (!ret) {
-		int i;
-
-		for (i = 0; i < sizeof(dev_id); i++)
+		for (size_t i = 0; i < sizeof(dev_id); i++)
 			msg_gdbg(" 0x%02x", dev_id[i]);
 		msg_gdbg(".\n");
 
