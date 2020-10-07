@@ -154,14 +154,14 @@ int internal_init(void)
 #endif
 	int force_laptop = 0;
 	int not_a_laptop = 0;
-	const char *board_vendor = NULL;
-	const char *board_model = NULL;
-	char *arg;
+	char *board_vendor = NULL;
+	char *board_model = NULL;
 #if IS_X86 || IS_ARM
 	const char *cb_vendor = NULL;
 	const char *cb_model = NULL;
 	int probe_target_bus_later = 0;
 #endif
+	char *arg;
 
 	arg = extract_programmer_param("boardenable");
 	if (arg && !strcmp(arg,"force")) {
@@ -373,7 +373,7 @@ int internal_init(void)
 	 */
 	ret = chipset_flash_enable();
 	if (ret == -2) {
-		msg_pdbg("WARNING: No chipset found. Flash detection "
+		msg_perr("WARNING: No chipset found. Flash detection "
 			 "will most likely fail.\n");
 	} else if (ret == ERROR_FATAL)
 		return ret;
@@ -383,23 +383,23 @@ int internal_init(void)
 
 	/* Report if a non-whitelisted laptop is detected that likely uses a legacy bus. */
 	if (is_laptop && !laptop_ok) {
-		msg_perr("========================================================================\n");
+		msg_pinfo("========================================================================\n");
 		if (is_laptop == 1) {
 			msg_pinfo("You seem to be running flashrom on an unknown laptop. Some\n"
 				  "internal buses have been disabled for safety reasons.\n\n");
 		} else {
 			msg_pinfo("You may be running flashrom on an unknown laptop. We could not\n"
-				 "detect this for sure because your vendor has not setup the SMBIOS\n"
-				 "tables correctly. Some internal buses have been disabled for\n"
-				 "safety reasons. You can enforce using all buses by adding\n"
-				 "  -p internal:laptop=this_is_not_a_laptop\n"
-				 "to the command line, but please read the following warning if you\n"
-				 "are not sure.\n\n");
+				  "detect this for sure because your vendor has not set up the SMBIOS\n"
+				  "tables correctly. Some internal buses have been disabled for\n"
+				  "safety reasons. You can enforce using all buses by adding\n"
+				  "  -p internal:laptop=this_is_not_a_laptop\n"
+				  "to the command line, but please read the following warning if you\n"
+				  "are not sure.\n\n");
 		}
 		msg_perr("Laptops, notebooks and netbooks are difficult to support and we\n"
 			 "recommend to use the vendor flashing utility. The embedded controller\n"
 			 "(EC) in these machines often interacts badly with flashing.\n"
-			 "See http://www.flashrom.org/Laptops for details.\n\n"
+			 "See the manpage and https://flashrom.org/Laptops for details.\n\n"
 			 "If flash is shared with the EC, erase is guaranteed to brick your laptop\n"
 			 "and write may brick your laptop.\n"
 			 "Read and probe may irritate your EC and cause fan failure, backlight\n"
