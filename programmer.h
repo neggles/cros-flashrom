@@ -734,6 +734,13 @@ void exit_conf_mode_ite(uint16_t port);
 void probe_superio_ite(void);
 int init_superio_ite(void);
 
+#if CONFIG_LINUX_MTD == 1
+/* trivial wrapper to avoid cluttering internal_init() with #if */
+static inline int try_mtd(void) { return linux_mtd_init(); };
+#else
+static inline int try_mtd(void) { return 1; };
+#endif
+
 /* mcp6x_spi.c */
 int mcp6x_spi_init(int want_spi);
 
