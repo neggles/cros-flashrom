@@ -141,10 +141,6 @@ static const struct par_master par_master_internal = {
 
 enum chipbustype internal_buses_supported = BUS_NONE;
 
-static int internal_shutdown(void *data)
-{
-	return 0;
-}
 enum chipbustype target_bus;
 
 int internal_init(void)
@@ -245,8 +241,6 @@ int internal_init(void)
 		ret = 1;
 		goto internal_init_exit;
 	}
-	if (register_shutdown(internal_shutdown, NULL))
-		return 1;
 
 #if IS_X86
 	/* Default to Parallel/LPC/FWH flash devices. If a known host controller
