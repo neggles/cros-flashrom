@@ -746,6 +746,9 @@ int mcp6x_spi_init(int want_spi);
 
 /* mec1308.c */
 int mec1308_probe_spi_flash();
+#if CONFIG_MEC1308 == 1
+int mec1308_init(void);
+#endif
 
 /* sb600spi.c */
 int sb600_probe_spi(struct pci_dev *dev);
