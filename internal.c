@@ -203,7 +203,10 @@ int internal_init(void)
 
 	arg = extract_programmer_param("mainboard");
 	if (arg && strlen(arg)) {
-		lb_vendor_dev_from_string(arg);
+		if (board_parse_parameter(arg, &board_vendor, &board_model)) {
+			free(arg);
+			return 1;
+		}
 	} else if (arg && !strlen(arg)) {
 		msg_perr("Missing argument for mainboard.\n");
 		free(arg);

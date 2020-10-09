@@ -2384,6 +2384,30 @@ const struct board_match board_matches[] = {
 	{     0,      0,      0,      0,       0,      0,      0,      0, NULL,         NULL, NULL,           P3, NULL,          NULL,                    0,   NT, NULL}, /* end marker */
 };
 
+/* Parse the <vendor>:<board> string specified by the user as part of -p internal:mainboard=<vendor>:<board>.
+ * Parameters vendor and model will be overwritten. Returns 0 on success.
+ * Note: strtok modifies the original string, so we work on a copy and allocate memory for the results.
+ */
+int board_parse_parameter(const char *boardstring, char **vendor, char **model)
+{
+	/* strtok may modify the original string. */
+	char *tempstr = strdup(boardstring);
+	char *tempstr2 = NULL;
+	strtok(tempstr, ":");
+	tempstr2 = strtok(NULL, ":");
+	if (tempstr == NULL || tempstr2 == NULL) {
+		free(tempstr);
+		msg_pinfo("Please supply the board vendor and model name with the "
+			  "-p internal:mainboard=<vendor>:<model> option.\n");
+		return 1;
+	}
+	*vendor = strdup(tempstr);
+	*model = strdup(tempstr2);
+	msg_pspew("-p internal:mainboard: vendor=\"%s\", model=\"%s\"\n", tempstr, tempstr2);
+	free(tempstr);
+	return 0;
+}
+
 /*
  * Match boards on coreboot table gathered vendor and part name.
  * Require main PCI IDs to match too as extra safety.
@@ -2426,14 +2450,6 @@ static const struct board_match *board_match_cbname(const char *vendor,
 	if (partmatch)
 		return partmatch;
 
-	if (!partvendor_from_cbtable) {
-		/* Only warn if the mainboard type was not gathered from the
-		 * coreboot table. If it was, the coreboot implementor is
-		 * expected to fix flashrom, too.
-		 */
-		msg_perr("\nUnknown vendor:board from -p internal:mainboard= programmer parameter:\n%s:%s\n\n",
-			 vendor, part);
-	}
 	return NULL;
 }
 

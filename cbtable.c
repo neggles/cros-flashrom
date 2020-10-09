@@ -29,7 +29,6 @@
 #include "coreboot_tables.h"
 
 static char *cb_vendor = NULL, *cb_model = NULL;
-int partvendor_from_cbtable = 0;
 
 /* Tries to find coreboot IDs in the supplied image and compares them to the current IDs.
  * Returns...
@@ -97,29 +96,6 @@ int cb_check_image(const uint8_t *image, unsigned int size)
 	}
 
 	return 0;
-}
-
-/* Parse the [<vendor>:]<board> string specified by the user as part of
- * -p internal:mainboard=[<vendor>:]<board> and set cb_vendor and cb_model
- * to the extracted values.
- * Note: strtok modifies the original string, so we work on a copy and allocate
- * memory for cb_vendor and cb_model with strdup.
- */
-void lb_vendor_dev_from_string(const char *boardstring)
-{
-	/* strtok may modify the original string. */
-	char *tempstr = strdup(boardstring);
-	char *tempstr2 = NULL;
-	strtok(tempstr, ":");
-	tempstr2 = strtok(NULL, ":");
-	if (tempstr2) {
-		cb_vendor = strdup(tempstr);
-		cb_model = strdup(tempstr2);
-	} else {
-		cb_vendor = NULL;
-		cb_model = strdup(tempstr);
-	}
-	free(tempstr);
 }
 
 static unsigned long compute_checksum(void *addr, unsigned long length)
@@ -311,13 +287,8 @@ static void find_mainboard(struct lb_record *ptr, unsigned long addr)
 	snprintf(vendor, 255, "%.*s", max_size - rec->vendor_idx, rec->strings + rec->vendor_idx);
 	snprintf(part, 255, "%.*s", max_size - rec->part_number_idx, rec->strings + rec->part_number_idx);
 
-	if (cb_model) {
-		msg_pdbg("Overwritten by command line, vendor ID: %s, part ID: %s.\n", cb_vendor, cb_model);
-	} else {
-		partvendor_from_cbtable = 1;
-		cb_model = strdup(part);
-		cb_vendor = strdup(vendor);
-	}
+	cb_vendor = strdup(vendor);
+	cb_model = strdup(part);
 }
 
 static struct lb_record *next_record(struct lb_record *rec)

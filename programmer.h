@@ -323,6 +323,7 @@ void internal_sleep(unsigned int usecs);
 
 #if CONFIG_INTERNAL == 1
 /* board_enable.c */
+int board_parse_parameter(const char *boardstring, char **vendor, char **model);
 void w836xx_ext_enter(uint16_t port);
 void w836xx_ext_leave(uint16_t port);
 int it8705f_write_enable(uint8_t port);
@@ -355,8 +356,6 @@ void cleanup_cpu_msr(void);
 /* cbtable.c */
 int cb_parse_table(const char **vendor, const char **model);
 int cb_check_image(const uint8_t *bios, unsigned int size);
-void lb_vendor_dev_from_string(const char *boardstring);
-extern int partvendor_from_cbtable;
 
 /* dmi.c */
 extern int has_dmi_support;
