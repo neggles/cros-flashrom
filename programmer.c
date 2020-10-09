@@ -24,19 +24,6 @@
  */
 enum ich_chipset g_ich_generation = CHIPSET_ICH_UNKNOWN;
 
-static const struct par_master par_master_none = {
-		.chip_readb		= noop_chip_readb,
-		.chip_readw		= fallback_chip_readw,
-		.chip_readl		= fallback_chip_readl,
-		.chip_readn		= fallback_chip_readn,
-		.chip_writeb		= noop_chip_writeb,
-		.chip_writew		= fallback_chip_writew,
-		.chip_writel		= fallback_chip_writel,
-		.chip_writen		= fallback_chip_writen,
-};
-
-const struct par_master *par_master = &par_master_none;
-
 /* No-op shutdown() for programmers which don't need special handling */
 int noop_shutdown(void)
 {
@@ -114,10 +101,22 @@ void fallback_chip_readn(const struct flashctx *flash, uint8_t *buf, chipaddr ad
 	return;
 }
 
-void register_par_master(const struct par_master *pgm, const enum chipbustype buses)
+int register_par_master(const struct par_master *mst,
+			    const enum chipbustype buses)
 {
-	par_master = pgm;
-	buses_supported |= buses;
+	struct registered_master rmst;
+	if (!mst->chip_writeb || !mst->chip_writew || !mst->chip_writel ||
+	    !mst->chip_writen || !mst->chip_readb || !mst->chip_readw ||
+	    !mst->chip_readl || !mst->chip_readn) {
+		msg_perr("%s called with incomplete master definition. "
+			 "Please report a bug at flashrom@flashrom.org\n",
+			 __func__);
+		return ERROR_FLASHROM_BUG;
+	}
+
+	rmst.buses_supported = buses;
+	rmst.par = *mst;
+	return register_master(&rmst);
 }
 
 /* The limit of 4 is totally arbitrary. */

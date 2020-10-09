@@ -581,7 +581,7 @@ int ene_lpc_init()
 
 	ene_enter_flash_mode(ctx_data);
 
-	buses_supported |= BUS_LPC;
+	internal_buses_supported |= BUS_LPC;
 	spi_master_ene.data = ctx_data;
 	register_spi_master(&spi_master_ene);
 	msg_pdbg("%s: successfully initialized ene\n", __func__);

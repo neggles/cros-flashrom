@@ -1094,7 +1094,7 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 		      uint8_t datalength, uint8_t * data)
 {
 	/* max_data_read == max_data_write for all Intel/VIA SPI masters */
-	uint8_t maxlength = spi_master->max_data_read;
+	uint8_t maxlength = flash->mst->spi.max_data_read;
 
 	if (g_ich_generation == CHIPSET_ICH_UNKNOWN) {
 		msg_perr("%s: unsupported chipset\n", __func__);
@@ -1718,7 +1718,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 
 	while (len > 0) {
 		/* Obey programmer limit... */
-		block_len = min(len, opaque_master->max_data_read);
+		block_len = min(len, flash->mst->opaque.max_data_read);
 		/* as well as flash chip page borders as demanded in the Intel datasheets. */
 		block_len = min(block_len, 256 - (addr & 0xFF));
 
@@ -1774,7 +1774,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 	while (len > 0) {
 		ich_hwseq_set_addr(addr);
 		/* Obey programmer limit... */
-		block_len = min(len, opaque_master->max_data_write);
+		block_len = min(len, flash->mst->opaque.max_data_write);
 		/* as well as flash chip page borders as demanded in the Intel datasheets. */
 		block_len = min(block_len, 256 - (addr & 0xFF));
 		/* Check flash region permissions before writing */

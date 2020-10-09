@@ -461,7 +461,7 @@ int it8518_spi_init(struct superio s)
 		 */
 		/* Set this as SPI controller and add FWH | LPC to
 		 * supported buses. */
-		buses_supported |= BUS_LPC | BUS_FWH;
+		internal_buses_supported |= BUS_LPC | BUS_FWH;
 		register_spi_master(&spi_master_it8518);
 	}
 	return ret;
@@ -505,7 +505,7 @@ int it85xx_spi_init(struct superio s)
 		 */
 		/* Set this as SPI controller and add FWH | LPC to
 		 * supported buses. */
-		buses_supported |= BUS_LPC | BUS_FWH;
+		internal_buses_supported |= BUS_LPC | BUS_FWH;
 		register_spi_master(&spi_master_it85xx);
 	}
 

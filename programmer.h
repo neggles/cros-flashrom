@@ -208,7 +208,9 @@ struct bitbang_spi_master {
 	int (*get_miso) (void);
 	void (*request_bus) (void);
 	void (*release_bus) (void);
-
+	/* optional functions to optimize xfers */
+	void (*set_sck_set_mosi) (int sck, int mosi);
+	int (*set_sck_get_miso) (int sck);
 	/* Length of half a clock period in usecs. */
 	unsigned int half_period;
 };
@@ -630,12 +632,10 @@ struct decode_sizes {
 extern struct decode_sizes max_rom_decode;
 extern int programmer_may_write;
 extern unsigned long flashbase;
-int check_max_decode(enum chipbustype buses, uint32_t size);
+unsigned int count_max_decode_exceedings(const struct flashctx *flash);
 char *extract_programmer_param(const char *param_name);
 
 /* spi.c */
-extern const int spi_master_count;
-
 #define MAX_DATA_UNSPECIFIED 0
 #define MAX_DATA_READ_UNLIMITED 64 * 1024
 #define MAX_DATA_WRITE_UNLIMITED 256
@@ -646,8 +646,8 @@ extern const int spi_master_count;
 
 struct spi_master {
 	uint32_t features;
-	unsigned int max_data_read;
-	unsigned int max_data_write;
+	unsigned int max_data_read; // (Ideally,) maximum data read size in one go (excluding opcode+address).
+	unsigned int max_data_write; // (Ideally,) maximum data write size in one go (excluding opcode+address).
 	int (*command)(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
 		   const unsigned char *writearr, unsigned char *readarr);
 	int (*multicommand)(const struct flashctx *flash, struct spi_command *cmds);
@@ -659,14 +659,13 @@ struct spi_master {
 	const void *data;
 };
 
-extern const struct spi_master *spi_master;
 int default_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
 			     const unsigned char *writearr, unsigned char *readarr);
 int default_spi_send_multicommand(const struct flashctx *flash, struct spi_command *cmds);
 int default_spi_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int default_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 int default_spi_write_aai(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
-int register_spi_master(const struct spi_master *programmer);
+int register_spi_master(const struct spi_master *mst);
 
 /* The following enum is needed by ich_descriptor_tool and ich* code as well as in chipset_enable.c. */
 enum ich_chipset {
@@ -759,8 +758,7 @@ struct opaque_master {
 	int (*check_access) (const struct flashctx *flash, unsigned int start, unsigned int len, int read);
 	const void *data;
 };
-extern struct opaque_master *opaque_master;
-void register_opaque_master(struct opaque_master *pgm);
+int register_opaque_master(const struct opaque_master *mst);
 
 /* programmer.c */
 int noop_shutdown(void);
@@ -785,8 +783,7 @@ struct par_master {
 	void (*chip_readn) (const struct flashctx *flash, uint8_t *buf, const chipaddr addr, size_t len);
 	const void *data;
 };
-extern const struct par_master *par_master;
-void register_par_master(const struct par_master *pgm, const enum chipbustype buses);
+int register_par_master(const struct par_master *mst, const enum chipbustype buses);
 struct registered_master {
 	enum chipbustype buses_supported;
 	union {
@@ -869,12 +866,8 @@ int sp_get_pin(enum SP_PIN pin);
 /* spi_master feature checks */
 static inline bool spi_master_4ba(const struct flashctx *const flash)
 {
-	/* TODO(b/171755805): Assume the spi drv supports 4BA now regardless until re-enterent patches land. */
-	/*
 	return flash->mst->buses_supported & BUS_SPI &&
 		flash->mst->spi.features & SPI_MASTER_4BA;
-	*/
-	return true;
 }
 static inline bool spi_master_no_4ba_modes(const struct flashctx *const flash)
 {

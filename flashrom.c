@@ -71,9 +71,6 @@ int ignore_error(int err) {
 static enum programmer programmer = PROGRAMMER_INVALID;
 static const char *programmer_param = NULL;
 
-/* Supported buses for the current programmer. */
-enum chipbustype buses_supported;
-
 /*
  * Programmers supporting multiple buses can have differing size limits on
  * each bus. Store the limits for each bus in a common struct.
@@ -703,7 +700,6 @@ int programmer_init(enum programmer prog, const char *param)
 		.fwh		= 0xffffffff,
 		.spi		= 0xffffffff,
 	};
-	buses_supported = BUS_NONE;
 	/* Default to top aligned flash at 4 GB. */
 	flashbase = 0;
 	/* Registering shutdown functions is now allowed. */
@@ -782,43 +778,43 @@ void programmer_unmap_flash_region(void *virt_addr, size_t len)
 
 void chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr)
 {
-	par_master->chip_writeb(flash, val, addr);
+	flash->mst->par.chip_writeb(flash, val, addr);
 }
 
 void chip_writew(const struct flashctx *flash, uint16_t val, chipaddr addr)
 {
-	par_master->chip_writew(flash, val, addr);
+	flash->mst->par.chip_writew(flash, val, addr);
 }
 
 void chip_writel(const struct flashctx *flash, uint32_t val, chipaddr addr)
 {
-	par_master->chip_writel(flash, val, addr);
+	flash->mst->par.chip_writel(flash, val, addr);
 }
 
 void chip_writen(const struct flashctx *flash, const uint8_t *buf, chipaddr addr, size_t len)
 {
-	par_master->chip_writen(flash, buf, addr, len);
+	flash->mst->par.chip_writen(flash, buf, addr, len);
 }
 
 uint8_t chip_readb(const struct flashctx *flash, const chipaddr addr)
 {
-	return par_master->chip_readb(flash, addr);
+	return flash->mst->par.chip_readb(flash, addr);
 }
 
 uint16_t chip_readw(const struct flashctx *flash, const chipaddr addr)
 {
-	return par_master->chip_readw(flash, addr);
+	return flash->mst->par.chip_readw(flash, addr);
 }
 
 uint32_t chip_readl(const struct flashctx *flash, const chipaddr addr)
 {
-	return par_master->chip_readl(flash, addr);
+	return flash->mst->par.chip_readl(flash, addr);
 }
 
 void chip_readn(const struct flashctx *flash, uint8_t *buf, chipaddr addr,
 		size_t len)
 {
-	par_master->chip_readn(flash, buf, addr, len);
+	flash->mst->par.chip_readn(flash, buf, addr, len);
 }
 
 void programmer_delay(unsigned int usecs)
@@ -1348,9 +1344,13 @@ int generate_testpattern(uint8_t *buf, uint32_t size, int variant)
 	return 0;
 }
 
-int check_max_decode(enum chipbustype buses, uint32_t size)
+/* Returns the number of busses commonly supported by the current programmer and flash chip where the latter
+ * can not be completely accessed due to size/address limits of the programmer. */
+unsigned int count_max_decode_exceedings(const struct flashctx *flash)
 {
-	int limitexceeded = 0;
+	unsigned int limitexceeded = 0;
+	uint32_t size = flash->chip->total_size * 1024;
+	enum chipbustype buses = flash->mst->buses_supported & flash->chip->bustype;
 
 	if ((buses & BUS_PARALLEL) && (max_rom_decode.parallel < size)) {
 		limitexceeded++;
@@ -1384,17 +1384,7 @@ int check_max_decode(enum chipbustype buses, uint32_t size)
 			 "probe/read/erase/write may fail. ", size / 1024,
 			 max_rom_decode.spi / 1024, "SPI");
 	}
-	if (!limitexceeded)
-		return 0;
-	/* Sometimes chip and programmer have more than one bus in common,
-	 * and the limit is not exceeded on all buses. Tell the user.
-	 */
-	if (bitcount(buses) > limitexceeded)
-		/* FIXME: This message is designed towards CLI users. */
-		msg_pdbg("There is at least one common chip/programmer "
-			 "interface which can support a chip of this size. "
-			 "You can try --force at your own risk.\n");
-	return 1;
+	return limitexceeded;
 }
 
 void unmap_flash(struct flashctx *flash)
@@ -1488,7 +1478,6 @@ char *flashbuses_to_text(enum chipbustype bustype)
 int probe_flash(struct registered_master *mst, int startchip, struct flashctx *flash, int force)
 {
 	const struct flashchip *chip, *flash_list;
-	uint32_t size;
 	enum chipbustype buses_common;
 	char *tmp;
 
@@ -1509,7 +1498,7 @@ int probe_flash(struct registered_master *mst, int startchip, struct flashctx *f
 	for (chip = flash_list + startchip; chip && chip->name; chip++) {
 		if (chip_to_probe && strcmp(chip->name, chip_to_probe) != 0)
 			continue;
-		buses_common = buses_supported & chip->bustype;
+		buses_common = mst->buses_supported & chip->bustype;
 		if (!buses_common)
 			continue;
 		/* Only probe for SPI25 chips by default. */
@@ -1520,9 +1509,6 @@ int probe_flash(struct registered_master *mst, int startchip, struct flashctx *f
 			msg_gdbg("failed! flashrom has no probe function for this flash chip.\n");
 			continue;
 		}
-
-		size = chip->total_size * 1024;
-		check_max_decode(buses_common, size);
 
 		/* Start filling in the dynamic data. */
 		flash->chip = calloc(1, sizeof(struct flashchip));

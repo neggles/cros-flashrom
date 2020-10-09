@@ -953,7 +953,7 @@ static int wpce775x_spi_common_init(void)
 
 	/* Add FWH | LPC to list of buses supported if they are not
 	 * both there already. */
-	buses_supported |= BUS_FWH | BUS_LPC;
+	internal_buses_supported |= BUS_FWH | BUS_LPC;
 	register_spi_master(&spi_master_wpce775x);
 	msg_pdbg("%s(): successfully initialized wpce775x\n", __func__);
 	return 0;

@@ -140,14 +140,13 @@ static int check_filename(char *filename, char *type)
 
 int main(int argc, char *argv[])
 {
-	unsigned long size;
-	/* Probe for up to three flash chips. */
 	const struct flashchip *chip = NULL;
-	struct flashctx flashes[3] = {{0}};
+	/* Probe for up to eight flash chips. */
+	struct flashctx flashes[8] = {{0}};
 	struct flashctx *fill_flash;
 	const char *name;
 	int namelen, opt, i, j;
-	int startchip = 0, chipcount = 0, option_index = 0, force = 0;
+	int startchip = -1, chipcount = 0, option_index = 0, force = 0;
 #if CONFIG_PRINT_WIKI == 1
 	int list_supported_wiki = 0;
 #endif
@@ -562,18 +561,13 @@ int main(int argc, char *argv[])
 		ret = 1;
 		goto out_shutdown;
 	}
-
-	// FIXME(quasisec): Hack to loop correctly while we have no actual
-	// registered masters. Remove once we use new dispatch mechanism!
-	const struct registered_master mst_nop;
-	if (!registered_master_count) register_master(&mst_nop);
-
 	tempstr = flashbuses_to_text(get_buses_supported());
 	msg_pdbg("The following protocols are supported: %s.\n", tempstr);
 	free(tempstr);
 	tempstr = NULL;
 
 	for (j = 0; j < registered_master_count; j++) {
+		startchip = 0;
 		while (chipcount < (int)ARRAY_SIZE(flashes)) {
 			startchip = probe_flash(&registered_masters[j], startchip, &flashes[chipcount], 0);
 			if (startchip == -1)
@@ -598,10 +592,30 @@ int main(int argc, char *argv[])
 				  "automatically.\n");
 		}
 		if (force && read_it && chip_to_probe) {
-			msg_ginfo("Force read (-f -r -c) requested, pretending the chip is there:\n");
-			// FIXME(quasisec): Passing in NULL for registered_master as we don't know how to handle
-			// the case of a forced chip with multiple compatible programmers that are registered.
-			startchip = probe_flash(NULL, 0, &flashes[0], 1);
+			struct registered_master *mst;
+			int compatible_masters = 0;
+			msg_cinfo("Force read (-f -r -c) requested, pretending the chip is there:\n");
+			/* This loop just counts compatible controllers. */
+			for (j = 0; j < registered_master_count; j++) {
+				mst = &registered_masters[j];
+				/* chip is still set from the chip_to_probe earlier in this function. */
+				if (mst->buses_supported & chip->bustype)
+					compatible_masters++;
+			}
+			if (!compatible_masters) {
+				msg_cinfo("No compatible controller found for the requested flash chip.\n");
+				ret = 1;
+				goto out_shutdown;
+			}
+			if (compatible_masters > 1)
+				msg_cinfo("More than one compatible controller found for the requested flash "
+					  "chip, using the first one.\n");
+			for (j = 0; j < registered_master_count; j++) {
+				mst = &registered_masters[j];
+				startchip = probe_flash(mst, 0, &flashes[0], 1);
+				if (startchip != -1)
+					break;
+			}
 			if (startchip == -1) {
 				// FIXME: This should never happen! Ask for a bug report?
 				msg_cinfo("Probing for flash chip '%s' failed.\n", chip_to_probe);
@@ -621,17 +635,30 @@ int main(int argc, char *argv[])
 		}
 		ret = 1;
 		goto out_shutdown;
+	} else if (!chip_to_probe) {
+		/* repeat for convenience when looking at foreign logs */
+		tempstr = flashbuses_to_text(flashes[0].chip->bustype);
+		msg_gdbg("Found %s flash chip \"%s\" (%d kB, %s).\n",
+			 flashes[0].chip->vendor, flashes[0].chip->name, flashes[0].chip->total_size, tempstr);
+		free(tempstr);
 	}
 
 	fill_flash = &flashes[0];
 
 	print_chip_support_status(fill_flash->chip);
 
-	size = fill_flash->chip->total_size * 1024;
-	if (check_max_decode((buses_supported & fill_flash->chip->bustype), size) &&
-	    (!force)) {
-		msg_gerr("Chip is too big for this programmer "
-			"(-V gives details). Use --force to override.\n");
+	unsigned int limitexceeded = count_max_decode_exceedings(fill_flash);
+	if (limitexceeded > 0 && !force) {
+		enum chipbustype commonbuses = fill_flash->mst->buses_supported & fill_flash->chip->bustype;
+
+		/* Sometimes chip and programmer have more than one bus in common,
+		 * and the limit is not exceeded on all buses. Tell the user. */
+		if ((bitcount(commonbuses) > limitexceeded)) {
+			msg_pdbg("There is at least one interface available which could support the size of\n"
+				 "the selected flash chip.\n");
+		}
+		msg_cerr("This flash chip is too big for this programmer (--verbose/-V gives details).\n"
+			 "Use --force/-f to override at your own risk.\n");
 		ret = 1;
 		goto out_shutdown;
 	}

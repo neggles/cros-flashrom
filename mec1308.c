@@ -509,7 +509,7 @@ int mec1308_init(void)
 		goto mec1308_init_exit;
 	}
 
-	buses_supported |= BUS_LPC;	/* for LPC <--> SPI bridging */
+	internal_buses_supported |= BUS_LPC;	/* for LPC <--> SPI bridging */
 	spi_master_mec1308.data = ctx_data;
 	register_spi_master(&spi_master_mec1308);
 	msg_pdbg("%s(): successfully initialized mec1308\n", __func__);

@@ -40,7 +40,6 @@ int cros_ec_alias_init(void)
 	/* probe for programmers that bridge LPC <--> SPI */
 	/* Try to probe via kernel device first */
 	if (!cros_ec_probe_dev()) {
-		buses_supported &= ~(BUS_LPC|BUS_SPI);
 		return 0;
 	}
 #if defined(__i386__) || defined(__x86_64__)

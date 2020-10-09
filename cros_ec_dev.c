@@ -565,6 +565,8 @@ int cros_ec_probe_dev(void)
 
 	cros_ec_set_max_size(&cros_ec_dev_priv, &opaque_master_cros_ec_dev);
 
+	internal_buses_supported &= ~(BUS_LPC|BUS_SPI);
+
 	msg_pdbg("CROS_EC detected at %s\n", dev_path);
 	register_opaque_master(&opaque_master_cros_ec_dev);
 	register_shutdown(cros_ec_dev_shutdown, NULL);

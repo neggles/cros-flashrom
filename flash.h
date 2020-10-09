@@ -348,7 +348,6 @@ size_t strnlen(const char *str, size_t n);
 extern const char flashrom_version[];
 extern const char *chip_to_probe;
 char *flashbuses_to_text(enum chipbustype bustype);
-extern enum chipbustype buses_supported;
 int map_flash(struct flashctx *flash);
 void unmap_flash(struct flashctx *flash);
 int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
