@@ -323,6 +323,7 @@ void internal_sleep(unsigned int usecs);
 
 #if CONFIG_INTERNAL == 1
 /* board_enable.c */
+int selfcheck_board_enables(void);
 int board_parse_parameter(const char *boardstring, char **vendor, char **model);
 void w836xx_ext_enter(uint16_t port);
 void w836xx_ext_leave(uint16_t port);
