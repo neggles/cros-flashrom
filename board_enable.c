@@ -2537,7 +2537,7 @@ static const struct board_match *board_match_pci_ids(enum board_match_phase phas
 	return NULL;
 }
 
-static int unsafe_board_handler(const struct board_match *board)
+static int board_enable_safetycheck(const struct board_match *board)
 {
 	if (!board)
 		return 1;
@@ -2565,10 +2565,10 @@ static int board_handle_phase(enum board_match_phase phase)
 
 	board = board_match_pci_ids(phase);
 
-	if (unsafe_board_handler(board))
-		board = NULL;
-
 	if (!board)
+		return 0;
+
+	if (board_enable_safetycheck(board))
 		return 0;
 
 	if (!board->enable) {
@@ -2601,7 +2601,7 @@ int board_flash_enable(const char *vendor, const char *part)
 	if (!board)
 		board = board_match_pci_ids(P3);
 
-	if (unsafe_board_handler(board))
+	if (board_enable_safetycheck(board))
 		board = NULL;
 
 	if (board) {
