@@ -90,6 +90,13 @@ int force_boardmismatch = 0;
 #if IS_X86
 void probe_superio(void)
 {
+	probe_superio_winbond();
+	/* ITE probe causes SMSC LPC47N217 to power off the serial UART.
+	 * Always probe for SMSC first, and if a SMSC Super I/O is detected
+	 * at a given I/O port, do _not_ probe that port with the ITE probe.
+	 * This means SMSC probing must be done before ITE probing.
+	 */
+	//probe_superio_smsc();
 	probe_superio_ite();
 }
 
@@ -382,6 +389,18 @@ int internal_init(void)
 		goto internal_init_exit;
 	}
 
+#if IS_X86
+	/* Probe unconditionally for ITE Super I/O chips. This enables LPC->SPI translation on IT87* and
+	 * parallel writes on IT8705F. Also, this handles the manual chip select for Gigabyte's DualBIOS. */
+	init_superio_ite();
+
+	if (board_flash_enable(board_vendor, board_model, cb_vendor, cb_model)) {
+		msg_perr("Aborting to be safe.\n");
+		ret = 1;
+		goto internal_init_exit;
+	}
+#endif
+
 	if (internal_buses_supported & BUS_NONSPI)
 		register_par_master(&par_master_internal, internal_buses_supported);
 
@@ -423,20 +442,13 @@ int internal_init(void)
 		}
 		if (wpce775x_probe_spi_flash(NULL) &&
 			mec1308_probe_spi_flash() &&
-			ene_probe_spi_flash() &&
-			init_superio_ite())
+			ene_probe_spi_flash())
 			return 1;	/* EC not found */
 		else
 			return 0;
 	}
 
 #endif
-
-	if (board_flash_enable(board_vendor, board_model, cb_vendor, cb_model)) {
-		msg_perr("Aborting to be safe.\n");
-		ret = 1;
-		goto internal_init_exit;
-	}
 
 	if (!(buses_supported & target_bus) &&
 		(!alias || (alias && alias->type == ALIAS_NONE))) {
