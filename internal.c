@@ -23,7 +23,6 @@
 #include "programmer.h"
 #include "hwaccess.h"
 
-#if NEED_PCI == 1
 struct pci_dev *pci_dev_find_vendorclass(uint16_t vendor, uint16_t devclass)
 {
 	struct pci_dev *temp;
@@ -81,9 +80,7 @@ struct pci_dev *pci_card_find(uint16_t vendor, uint16_t device,
 
 	return NULL;
 }
-#endif // NEED_PCI == 1
 
-#if CONFIG_INTERNAL == 1
 int force_boardenable = 0;
 int force_boardmismatch = 0;
 
@@ -132,8 +129,6 @@ static uint32_t internal_chip_readl(const struct flashctx *flash,
 				    const chipaddr addr);
 static void internal_chip_readn(const struct flashctx *flash, uint8_t *buf,
 				const chipaddr addr, size_t len);
-
-#if defined (__FLASHROM_LITTLE_ENDIAN__)
 static const struct par_master par_master_internal = {
 		.chip_readb		= internal_chip_readb,
 		.chip_readw		= internal_chip_readw,
@@ -144,7 +139,6 @@ static const struct par_master par_master_internal = {
 		.chip_writel		= internal_chip_writel,
 		.chip_writen		= fallback_chip_writen,
 };
-#endif // if defined (__FLASHROM_LITTLE_ENDIAN__)
 
 enum chipbustype internal_buses_supported = BUS_NONE;
 
@@ -158,8 +152,10 @@ int internal_init(void)
 	char *board_vendor = NULL;
 	char *board_model = NULL;
 #if IS_X86 || IS_ARM
+#if IS_X86
 	const char *cb_vendor = NULL;
 	const char *cb_model = NULL;
+#endif // if IS_X86
 	int probe_target_bus_later = 0;
 #endif // if IS_X86 || IS_ARM
 	char *arg;
@@ -319,10 +315,7 @@ int internal_init(void)
 		goto internal_init_exit;
 	}
 
-#if IS_X86 || IS_ARM
-	/* We look at the cbtable first to see if we need a
-	 * mainboard specific flash enable sequence.
-	 */
+#if IS_X86
 	if ((cb_parse_table(&cb_vendor, &cb_model) == 0) && (board_vendor != NULL) && (board_model != NULL)) {
 		if (strcasecmp(board_vendor, cb_vendor) || strcasecmp(board_model, cb_model)) {
 			msg_pwarn("Warning: The mainboard IDs set by -p internal:mainboard (%s:%s) do not\n"
@@ -335,7 +328,7 @@ int internal_init(void)
 			msg_pinfo("Continuing anyway.\n");
 		}
 	}
-#endif // if IS_X86 || IS_ARM
+#endif // if IS_X86
 
 #if IS_X86
 	is_laptop = 2; /* Assume that we don't know by default. */
@@ -376,8 +369,6 @@ int internal_init(void)
 	if (force_laptop || (not_a_laptop && (is_laptop == 2)))
 		internal_buses_supported = BUS_NONE;
 
-#if defined (__FLASHROM_LITTLE_ENDIAN__)
-#if IS_X86 || IS_MIPS || IS_ARM
 	/* try to enable it. Failure IS an option, since not all motherboards
 	 * really need this to be done, etc., etc.
 	 */
@@ -463,25 +454,6 @@ int internal_init(void)
 	 * The error code might have been a warning only.
 	 * Besides that, we don't check the board enable return code either.
 	 */
-	return 0;
-#else
-	msg_perr("Your platform is not supported yet for the internal "
-		 "programmer due to missing\n"
-		 "flash_base and top/bottom alignment information.\n"
-		 "Aborting.\n");
-	return 1;
-#endif // if IS_X86 || IS_MIPS || IS_ARM
-#else
-	/* FIXME: Remove this unconditional abort once all PCI drivers are
-	 * converted to use little-endian accesses for memory BARs.
-	 */
-	msg_perr("Your platform is not supported yet for the internal "
-		 "programmer because it has\n"
-		 "not been converted from native endian to little endian "
-		 "access yet.\n"
-		 "Aborting.\n");
-	return 1;
-#endif // if defined (__FLASHROM_LITTLE_ENDIAN__)
 	ret = 0;
 
 internal_init_exit:
@@ -490,7 +462,6 @@ internal_init_exit:
 
 	return ret;
 }
-#endif // if CONFIG_INTERNAL == 1
 
 static void internal_chip_writeb(const struct flashctx *flash, uint8_t val,
 				 chipaddr addr)
