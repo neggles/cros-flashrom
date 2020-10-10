@@ -81,7 +81,7 @@ struct pci_dev *pci_card_find(uint16_t vendor, uint16_t device,
 
 	return NULL;
 }
-#endif
+#endif // NEED_PCI == 1
 
 #if CONFIG_INTERNAL == 1
 int force_boardenable = 0;
@@ -113,7 +113,7 @@ int register_superio(struct superio s)
 	return 0;
 }
 
-#endif
+#endif // if IS_X86
 
 int is_laptop = 0;
 int laptop_ok = 1;	/* FIXME: proper whitelisting hasn't been added yet */
@@ -144,7 +144,7 @@ static const struct par_master par_master_internal = {
 		.chip_writel		= internal_chip_writel,
 		.chip_writen		= fallback_chip_writen,
 };
-#endif
+#endif // if defined (__FLASHROM_LITTLE_ENDIAN__)
 
 enum chipbustype internal_buses_supported = BUS_NONE;
 
@@ -161,7 +161,7 @@ int internal_init(void)
 	const char *cb_vendor = NULL;
 	const char *cb_model = NULL;
 	int probe_target_bus_later = 0;
-#endif
+#endif // if IS_X86 || IS_ARM
 	char *arg;
 
 	arg = extract_programmer_param("boardenable");
@@ -244,7 +244,7 @@ int internal_init(void)
 #if IS_X86 || IS_ARM
 		/* The pacc must be initialized before access pci devices. */
 		probe_target_bus_later = 1;
-#endif
+#endif // if IS_X86 || IS_ARM
 	}
 
 	if (rget_io_perms()) {
@@ -266,7 +266,7 @@ int internal_init(void)
 	}
 #else
 	internal_buses_supported = BUS_NONE;
-#endif
+#endif // if IS_X86
 
 #if IS_ARM
 	/*
@@ -288,7 +288,7 @@ int internal_init(void)
 		if (!cros_ec_probe_dev())
 			return 0;
 	}
-#endif
+#endif // if IS_ARM
 
 	if (try_mtd() == 0) {
 		ret = 0;
@@ -311,7 +311,7 @@ int internal_init(void)
 	if (!programmer_init(PROGRAMMER_LINUX_SPI, NULL)) {
 		return 0;
 	} else /* if failed, fall through */
-#endif
+#endif // if IS_ARM || IS_MIPS && CONFIG_LINUX_SPI == 1
 	if (processor_flash_enable()) {
 		msg_perr("Processor detection/init failed.\n"
 			 "Aborting.\n");
@@ -335,7 +335,7 @@ int internal_init(void)
 			msg_pinfo("Continuing anyway.\n");
 		}
 	}
-#endif
+#endif // if IS_X86 || IS_ARM
 
 #if IS_X86
 	is_laptop = 2; /* Assume that we don't know by default. */
@@ -363,7 +363,7 @@ int internal_init(void)
 	 * FIXME: Find a replacement for DMI on non-x86.
 	 * FIXME: Enable Super I/O probing once port I/O is possible.
 	 */
-#endif
+#endif // if IS_X86
 
 	/* Check laptop whitelist. */
 	board_handle_before_laptop();
@@ -399,7 +399,7 @@ int internal_init(void)
 		ret = 1;
 		goto internal_init_exit;
 	}
-#endif
+#endif // if IS_X86
 
 	if (internal_buses_supported & BUS_NONSPI)
 		register_par_master(&par_master_internal, internal_buses_supported);
@@ -448,7 +448,7 @@ int internal_init(void)
 			return 0;
 	}
 
-#endif
+#endif // if IS_X86
 
 	if (!(buses_supported & target_bus) &&
 		(!alias || (alias && alias->type == ALIAS_NONE))) {
@@ -470,7 +470,7 @@ int internal_init(void)
 		 "flash_base and top/bottom alignment information.\n"
 		 "Aborting.\n");
 	return 1;
-#endif
+#endif // if IS_X86 || IS_MIPS || IS_ARM
 #else
 	/* FIXME: Remove this unconditional abort once all PCI drivers are
 	 * converted to use little-endian accesses for memory BARs.
@@ -481,7 +481,7 @@ int internal_init(void)
 		 "access yet.\n"
 		 "Aborting.\n");
 	return 1;
-#endif
+#endif // if defined (__FLASHROM_LITTLE_ENDIAN__)
 	ret = 0;
 
 internal_init_exit:
@@ -490,7 +490,7 @@ internal_init_exit:
 
 	return ret;
 }
-#endif
+#endif // if CONFIG_INTERNAL == 1
 
 static void internal_chip_writeb(const struct flashctx *flash, uint8_t val,
 				 chipaddr addr)
