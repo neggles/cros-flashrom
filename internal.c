@@ -432,7 +432,11 @@ int internal_init(void)
 
 #endif
 
-	board_flash_enable(cb_vendor, cb_model);
+	if (board_flash_enable(board_vendor, board_model, cb_vendor, cb_model)) {
+		msg_perr("Aborting to be safe.\n");
+		ret = 1;
+		goto internal_init_exit;
+	}
 
 	if (!(buses_supported & target_bus) &&
 		(!alias || (alias && alias->type == ALIAS_NONE))) {

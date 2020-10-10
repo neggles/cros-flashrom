@@ -2439,39 +2439,43 @@ int board_parse_parameter(const char *boardstring, char **vendor, char **model)
 }
 
 /*
- * Match boards on coreboot table gathered vendor and part name.
+ * Match boards on vendor and model name.
+ * The string parameters can come either from the coreboot table or the command line (i.e. the user).
+ * The boolean needs to be set accordingly to compare them to the right entries of the board enables table.
  * Require main PCI IDs to match too as extra safety.
+ * Parameters vendor and model must be non-NULL!
  */
-static const struct board_match *board_match_cbname(const char *vendor,
-						    const char *part)
+static const struct board_match *board_match_name(const char *vendor, const char *model, bool cb)
 {
 	const struct board_match *board = board_matches;
 	const struct board_match *partmatch = NULL;
 
 	for (; board->vendor_name; board++) {
-		if (vendor && (!board->lb_vendor
-			       || strcasecmp(board->lb_vendor, vendor)))
+		const char *cur_vendor = cb ? board->lb_vendor : board->vendor_name;
+		const char *cur_model = cb ? board->lb_part : board->board_name;
+
+		if (!cur_vendor || strcasecmp(cur_vendor, vendor))
 			continue;
 
-		if (!board->lb_part || strcasecmp(board->lb_part, part))
+		if (!cur_model || strcasecmp(cur_model, model))
 			continue;
 
-		if (!pci_dev_find(board->first_vendor, board->first_device))
+		if (!pci_dev_find(board->first_vendor, board->first_device)) {
+			msg_pdbg("Odd. Board name \"%s\":\"%s\" matches, but first PCI device %04x:%04x "
+				 "doesn't.\n", vendor, model, board->first_vendor, board->first_device);
 			continue;
+		}
 
-		if (board->second_vendor &&
-		    !pci_dev_find(board->second_vendor, board->second_device))
+		if (!pci_dev_find(board->second_vendor, board->second_device)) {
+			msg_pdbg("Odd. Board name \"%s\":\"%s\" matches, but second PCI device %04x:%04x "
+				 "doesn't.\n", vendor, model, board->second_vendor, board->second_device);
 			continue;
-
-		if (vendor)
-			return board;
+		}
 
 		if (partmatch) {
-			/* a second entry has a matching part name */
-			msg_pinfo("AMBIGUOUS BOARD NAME: %s\n", part);
-			msg_pinfo("At least vendors '%s' and '%s' match.\n",
-				  partmatch->lb_vendor, board->lb_vendor);
-			msg_perr("Please use the full -p internal:mainboard=vendor:part syntax.\n");
+			/* More than one entry has a matching name. */
+			msg_perr("Board name \"%s\":\"%s\" and PCI IDs matched more than one board enable "
+				 "entry. Please report a bug at flashrom@flashrom.org\n", vendor, model);
 			return NULL;
 		}
 		partmatch = board;
@@ -2590,36 +2594,48 @@ void board_handle_before_laptop(void)
 	board_handle_phase(P2);
 }
 
-int board_flash_enable(const char *vendor, const char *part)
+int board_flash_enable(const char *vendor, const char *model, const char *cb_vendor, const char *cb_model)
 {
 	const struct board_match *board = NULL;
 	int ret = 0;
 
-	if (part)
-		board = board_match_cbname(vendor, part);
-
-	if (!board)
+	if (vendor != NULL  && model != NULL) {
+		board = board_match_name(vendor, model, false);
+		if (!board) { /* If a board was given by the user it has to match, else we abort here. */
+			msg_perr("No suitable board enable found for vendor=\"%s\", model=\"%s\".\n",
+				 vendor, model);
+			return 1;
+		}
+	}
+	if (board == NULL && cb_vendor != NULL && cb_model != NULL) {
+		board = board_match_name(cb_vendor, cb_model, true);
+		if (!board) { /* Failure is an option here, because many cb boards don't require an enable. */
+			msg_pdbg2("No board enable found matching coreboot IDs vendor=\"%s\", model=\"%s\".\n",
+				  cb_vendor, cb_model);
+		}
+	}
+	if (board == NULL) {
 		board = board_match_pci_ids(P3);
+		if (!board) /* i.e. there is just no board enable available for this board */
+			return 0;
+	}
 
 	if (board_enable_safetycheck(board))
-		board = NULL;
+		return 1;
 
-	if (board) {
-		if (board->max_rom_decode_parallel)
-			max_rom_decode.parallel =
-				board->max_rom_decode_parallel * 1024;
+	/* limit the maximum size of the parallel bus */
+	if (board->max_rom_decode_parallel)
+		max_rom_decode.parallel = board->max_rom_decode_parallel * 1024;
 
-		if (board->enable != NULL) {
-			msg_pinfo("Disabling flash write protection for "
-				  "board \"%s %s\"... ", board->vendor_name,
-				  board->board_name);
+	if (board->enable != NULL) {
+		msg_pinfo("Enabling full flash access for board \"%s %s\"... ",
+			  board->vendor_name, board->board_name);
 
-			ret = board->enable();
-			if (ret)
-				msg_pinfo("FAILED!\n");
-			else
-				msg_pinfo("OK.\n");
-		}
+		ret = board->enable();
+		if (ret)
+			msg_pinfo("FAILED!\n");
+		else
+			msg_pinfo("OK.\n");
 	}
 
 	return ret;
