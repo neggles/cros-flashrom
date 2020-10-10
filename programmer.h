@@ -327,6 +327,7 @@ int selfcheck_board_enables(void);
 int board_parse_parameter(const char *boardstring, char **vendor, char **model);
 void w836xx_ext_enter(uint16_t port);
 void w836xx_ext_leave(uint16_t port);
+void probe_superio_winbond(void);
 int it8705f_write_enable(uint8_t port);
 uint8_t sio_read(uint16_t port, uint8_t reg);
 void sio_write(uint16_t port, uint8_t reg, uint8_t data);
@@ -373,6 +374,7 @@ extern struct superio superios[];
 extern int superio_count;
 #define SUPERIO_VENDOR_NONE	0x0
 #define SUPERIO_VENDOR_ITE	0x1
+#define SUPERIO_VENDOR_WINBOND	0x2
 #endif
 #if NEED_PCI == 1
 struct pci_filter;
