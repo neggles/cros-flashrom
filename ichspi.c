@@ -2028,6 +2028,7 @@ static const struct spi_master spi_master_ich7 = {
 	.multicommand = ich_spi_send_multicommand,
 	.read = default_spi_read,
 	.write_256 = default_spi_write_256,
+	.write_aai = default_spi_write_aai,
 };
 
 static const struct spi_master spi_master_ich9 = {
@@ -2037,6 +2038,7 @@ static const struct spi_master spi_master_ich9 = {
 	.multicommand = ich_spi_send_multicommand,
 	.read = default_spi_read,
 	.write_256 = default_spi_write_256,
+	.write_aai = default_spi_write_aai,
 };
 
 static struct opaque_master opaque_master_ich_hwseq = {
@@ -2404,6 +2406,7 @@ static const struct spi_master spi_master_via = {
 	.multicommand = ich_spi_send_multicommand,
 	.read = default_spi_read,
 	.write_256 = default_spi_write_256,
+	.write_aai = default_spi_write_aai,
 };
 
 int via_init_spi(uint32_t mmio_base)

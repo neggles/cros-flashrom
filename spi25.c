@@ -852,7 +852,7 @@ int spi_chip_write_1(struct flashctx *flash, const uint8_t *buf, unsigned int st
 	return 0;
 }
 
-int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
+int default_spi_write_aai(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
 {
 	uint32_t pos = start;
 	int result;
@@ -903,10 +903,12 @@ int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start
 			goto bailout;
 	}
 
-	/* Use WRDI to exit AAI mode. This needs to be done before issuing any
-	 * other non-AAI command.
-	 */
-	spi_write_disable(flash);
+	/* Use WRDI to exit AAI mode. This needs to be done before issuing any other non-AAI command. */
+	result = spi_write_disable(flash);
+	if (result != 0) {
+		msg_cerr("%s failed to disable AAI mode.\n", __func__);
+		return SPI_GENERIC_ERROR;
+	}
 
 	/* Write remaining byte (if any). */
 	if (pos < start + len) {
@@ -917,6 +919,8 @@ int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start
 	return 0;
 
 bailout:
-	spi_write_disable(flash);
+	result = spi_write_disable(flash);
+	if (result != 0)
+		msg_cerr("%s failed to disable AAI mode.\n", __func__);
 	return SPI_GENERIC_ERROR;
 }

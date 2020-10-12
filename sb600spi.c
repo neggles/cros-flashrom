@@ -77,6 +77,7 @@ static struct spi_master spi_master_sb600 = {
 	.multicommand = default_spi_send_multicommand,
 	.read = default_spi_read,
 	.write_256 = default_spi_write_256,
+	.write_aai = default_spi_write_aai,
 };
 
 static struct spi_master spi_master_yangtze = {
@@ -86,6 +87,7 @@ static struct spi_master spi_master_yangtze = {
 	.multicommand = default_spi_send_multicommand,
 	.read = default_spi_read,
 	.write_256 = default_spi_write_256,
+	.write_aai = default_spi_write_aai,
 };
 
 static uint8_t pm_ioread (uint8_t addr)
