@@ -40,7 +40,7 @@
 .    \}
 .  \}
 ..
-.TH FLASHROM 8 "" ""
+.TH FLASHROM 8 "@MAN_DATE@" "@VERSION@" "@MAN_DATE@"
 .SH NAME
 flashrom \- detect, read, write, verify and erase flash chips
 .SH SYNOPSIS
@@ -342,6 +342,8 @@ bitbanging adapter)
 .BR "* jlink_spi" " (for SPI flash ROMs attached to SEGGER J-Link and compatible devices)"
 .sp
 .BR "* ni845x_spi" " (for SPI flash ROMs attached to National Instruments USB-8451 or USB-8452)"
+.sp
+.BR "* stlinkv3_spi" " (for SPI flash ROMs attached to STMicroelectronics STLINK V3 devices)"
 .sp
 Some programmers have optional or mandatory parameters which are described
 in detail in the
@@ -776,7 +778,8 @@ Atmel AT25128, AT25256, Micron (ST) M95128, M95256 and OnSemi (Catalyst) CAT25CS
 This module supports various programmers based on FTDI FT2232/FT4232H/FT232H chips including the DLP Design
 DLP-USB1232H, openbiosprog-spi, Amontec JTAGkey/JTAGkey-tiny/JTAGkey-2, Dangerous Prototypes Bus Blaster,
 Olimex ARM-USB-TINY/-H, Olimex ARM-USB-OCD/-H, OpenMoko Neo1973 Debug board (V2+), TIAO/DIYGADGET USB
-Multi-Protocol Adapter (TUMPA), TUMPA Lite, GOEPEL PicoTAP and Google Servo v1/v2.
+Multi-Protocol Adapter (TUMPA), TUMPA Lite, GOEPEL PicoTAP, Google Servo v1/v2 and Tin Can Tools
+Flyswatter/Flyswatter 2.
 .sp
 An optional parameter specifies the controller
 type, channel/interface/port and GPIO-based chip select it should support. For that you have to use the
@@ -1276,6 +1279,31 @@ The SPI speed can be selected by using the
 .sp
 syntax where \fBfrequency\fP is the SPI clock frequency in kHz.
 The maximum speed depends on the device in use.
+.SS
+.BR "stlinkv3_spi " programmer
+.IP
+This module supports SPI flash programming through the STMicroelectronics
+STLINK V3 programmer/debugger's SPI bridge interface
+.sp
+.B "  flashrom \-p stlinkv3_spi"
+.sp
+If there is more than one compatible device connected, you can select which one
+should be used by specifying its serial number with the
+.sp
+.B "  flashrom \-p stlinkv3_spi:serial=number"
+.sp
+syntax where
+.B number
+is the serial number of the device (which can be found for example in the
+output of lsusb -v).
+.sp
+The SPI speed can be selected by using the
+.sp
+.B "  flashrom \-p stlinkv3_spi:spispeed=frequency"
+.sp
+syntax where \fBfrequency\fP is the SPI clock frequency in kHz.
+If the passed frequency is not supported by the adapter the nearest lower
+supported frequency will be used.
 .SS
 
 .SH EXAMPLES
