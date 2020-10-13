@@ -327,9 +327,11 @@ static int spi_simple_write_cmd(struct flashctx *const flash, const uint8_t op, 
 {
 	struct spi_command cmds[] = {
 	{
+		.readarr = 0,
 		.writecnt = 1,
 		.writearr = (const unsigned char[]){ JEDEC_WREN },
 	}, {
+		.readarr = 0,
 		.writecnt = 1,
 		.writearr = (const unsigned char[]){ op },
 	},
@@ -410,9 +412,11 @@ static int spi_write_cmd(struct flashctx *const flash, const uint8_t op,
 	uint8_t cmd[1 + JEDEC_MAX_ADDR_LEN + 256];
 	struct spi_command cmds[] = {
 	{
+		.readarr = 0,
 		.writecnt = 1,
 		.writearr = (const unsigned char[]){ JEDEC_WREN },
 	}, {
+		.readarr = 0,
 		.writearr = cmd,
 	},
 		NULL_SPI_CMD,
