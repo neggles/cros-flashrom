@@ -26,7 +26,6 @@
 #include "chipdrivers.h"
 #include "programmer.h"
 #include "spi.h"
-#include "spi4ba.h"
 
 enum id_type {
 	RDID,
@@ -351,7 +350,29 @@ static int spi_simple_write_cmd(struct flashctx *const flash, const uint8_t op, 
 	return result ? result : status;
 }
 
-static int spi_set_extended_address(struct flashctx *const flash, const uint8_t addr_high)
+static int spi_write_extended_address_register(struct flashctx *const flash, const uint8_t regdata)
+{
+	const uint8_t op = flash->chip->wrea_override ? : JEDEC_WRITE_EXT_ADDR_REG;
+	struct spi_command cmds[] = {
+	{
+		.readarr = 0,
+		.writecnt = 1,
+		.writearr = (const unsigned char[]){ JEDEC_WREN },
+	}, {
+		.readarr = 0,
+		.writecnt = 2,
+		.writearr = (const unsigned char[]){ op, regdata },
+	},
+		NULL_SPI_CMD,
+	};
+
+	const int result = spi_send_multicommand(flash, cmds);
+	if (result)
+		msg_cerr("%s failed during command execution\n", __func__);
+	return result;
+}
+
+int spi_set_extended_address(struct flashctx *const flash, const uint8_t addr_high)
 {
 	if (flash->address_high_byte != addr_high &&
 	    spi_write_extended_address_register(flash, addr_high))
@@ -922,4 +943,31 @@ bailout:
 	if (result != 0)
 		msg_cerr("%s failed to disable AAI mode.\n", __func__);
 	return SPI_GENERIC_ERROR;
+}
+
+static int spi_enter_exit_4ba(struct flashctx *const flash, const bool enter)
+{
+	const unsigned char cmd = enter ? JEDEC_ENTER_4_BYTE_ADDR_MODE : JEDEC_EXIT_4_BYTE_ADDR_MODE;
+	int ret = 1;
+
+	if (flash->chip->feature_bits & FEATURE_4BA_ENTER)
+		ret = spi_send_command(flash, sizeof(cmd), 0, &cmd, NULL);
+	else if (flash->chip->feature_bits & FEATURE_4BA_ENTER_WREN)
+		ret = spi_simple_write_cmd(flash, cmd, 0);
+	else if (flash->chip->feature_bits & FEATURE_4BA_ENTER_EAR7)
+		ret = spi_set_extended_address(flash, enter ? 0x80 : 0x00);
+
+	if (!ret)
+		flash->in_4ba_mode = enter;
+	return ret;
+}
+
+int spi_enter_4ba(struct flashctx *const flash)
+{
+	return spi_enter_exit_4ba(flash, true);
+}
+
+int spi_exit_4ba(struct flashctx *flash)
+{
+	return spi_enter_exit_4ba(flash, false);
 }

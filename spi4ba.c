@@ -80,36 +80,3 @@ int spi_enter_4ba_b7_we(struct flashctx *flash)
 		flash->in_4ba_mode = true;
 	return result;
 }
-
-/* Write Extended Address Register value */
-int spi_write_extended_address_register(struct flashctx *flash, uint8_t regdata)
-{
-	int result;
-	const uint8_t op = flash->chip->wrea_override ? : JEDEC_WRITE_EXT_ADDR_REG;
-	struct spi_command cmds[] = {
-	{
-		.writecnt	= JEDEC_WREN_OUTSIZE,
-		.writearr	= (const unsigned char[]){ JEDEC_WREN },
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}, {
-		.writecnt	= JEDEC_WRITE_EXT_ADDR_REG_OUTSIZE,
-		.writearr	= (const unsigned char[]){ op, regdata },
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}, {
-		.writecnt	= 0,
-		.writearr	= NULL,
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}};
-
-	msg_trace("-> %s (%02X)\n", __func__, regdata);
-
-	result = spi_send_multicommand(flash, cmds);
-	if (result) {
-		msg_cerr("%s failed during command execution\n", __func__);
-		return result;
-	}
-	return 0;
-}

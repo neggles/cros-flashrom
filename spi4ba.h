@@ -33,11 +33,6 @@
 #define JEDEC_EXIT_4_BYTE_ADDR_MODE_OUTSIZE	0x01
 #define JEDEC_EXIT_4_BYTE_ADDR_MODE_INSIZE	0x00
 
-/* Write Extended Address Register */
-#define JEDEC_WRITE_EXT_ADDR_REG		0xC5
-#define JEDEC_WRITE_EXT_ADDR_REG_OUTSIZE	0x02
-#define JEDEC_WRITE_EXT_ADDR_REG_INSIZE		0x00
-
 /* Read Extended Address Register */
 #define JEDEC_READ_EXT_ADDR_REG			0xC8
 #define JEDEC_READ_EXT_ADDR_REG_OUTSIZE		0x01
@@ -76,7 +71,5 @@
 /* enter 4-bytes addressing mode */
 int spi_enter_4ba_b7(struct flashctx *flash);
 int spi_enter_4ba_b7_we(struct flashctx *flash);
-
-int spi_write_extended_address_register(struct flashctx *flash, uint8_t regdata);
 
 #endif /* __SPI_4BA_H__ */

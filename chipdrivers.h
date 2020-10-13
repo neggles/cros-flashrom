@@ -23,6 +23,11 @@
 #include "flash.h"		/* for chipaddr and flashctx */
 #include "writeprotect.h"	/* for modifier_bits */
 
+/* spi.c */
+int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+int spi_chip_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+int spi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, int unsigned len);
+
 /* spi25.c */
 int probe_spi_rdid(struct flashctx *flash);
 int probe_spi_rdid4(struct flashctx *flash);
@@ -49,12 +54,12 @@ int spi_block_erase_db(struct flashctx *flash, unsigned int addr, unsigned int b
 int spi_block_erase_dc(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 erasefunc_t *spi_get_erasefn_from_opcode(uint8_t opcode);
 int spi_chip_write_1(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
-int spi_chip_write_256(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
-int spi_chip_read(struct flashctx *flash, uint8_t *buf, unsigned int start, int unsigned len);
 int spi_nbyte_read(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
 int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len, unsigned int chunksize);
 int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len, unsigned int chunksize);
-int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
+int spi_enter_4ba(struct flashctx *flash);
+int spi_exit_4ba(struct flashctx *flash);
+int spi_set_extended_address(struct flashctx *, uint8_t addr_high);
 
 
 /* spi25_statusreg.c */
