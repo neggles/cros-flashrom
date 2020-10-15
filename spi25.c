@@ -139,16 +139,16 @@ static void rdid_get_ids(unsigned char *readarr,
 	}
 }
 
-static int compare_id(struct flashctx *flash, uint32_t id1, uint32_t id2)
+static int compare_id(const struct flashctx *flash, uint32_t id1, uint32_t id2)
 {
-	msg_cdbg("id1 0x%02x, id2 0x%02x\n", id1, id2);
+	const struct flashchip *chip = flash->chip;
 
-	if (id1 == flash->chip->manufacture_id && id2 == flash->chip->model_id)
+	msg_cdbg("%s: id1 0x%02x, id2 0x%02x\n", __func__, id1, id2);
+	if (id1 == chip->manufacture_id && id2 == chip->model_id)
 		return 1;
 
 	/* Test if this is a pure vendor match. */
-	if (id1 == flash->chip->manufacture_id &&
-	    GENERIC_DEVICE_ID == flash->chip->model_id)
+	if (id1 == chip->manufacture_id && GENERIC_DEVICE_ID == chip->model_id)
 		return 1;
 
 	/* Test if there is any vendor ID. */
