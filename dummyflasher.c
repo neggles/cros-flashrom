@@ -127,7 +127,7 @@ static struct spi_master spi_master_dummyflasher = {
 	.write_aai	= default_spi_write_aai,
 };
 
-static const struct par_master par_master_dummy = {
+static struct par_master par_master_dummy = {
 		.chip_readb		= dummy_chip_readb,
 		.chip_readw		= dummy_chip_readw,
 		.chip_readl		= dummy_chip_readl,
@@ -188,6 +188,7 @@ int dummy_init(void)
 	data->emu_chip = EMULATE_NONE;
 	data->delay_us = 0;
 	spi_master_dummyflasher.data = data;
+	par_master_dummy.data = data;
 
 	msg_pspew("%s\n", __func__);
 
@@ -353,8 +354,15 @@ int dummy_init(void)
 	if (tmp) {
 		if (!strcmp(tmp, "auto"))
 			size = SIZE_AUTO;
-		else if (strlen(tmp))
-			size = atoi(tmp);
+		else {
+			size = strtol(tmp, NULL, 10);
+			if (size <= 0 || (size % 1024 != 0)) {
+				msg_perr("%s: Chip size is not a multipler of 1024: %s\n",
+						 __func__, tmp);
+				free(tmp);
+				return 1;
+			}
+		}
 		free(tmp);
 	}
 #endif
