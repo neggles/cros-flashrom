@@ -140,7 +140,6 @@ int register_master(const struct registered_master *mst)
 }
 
 struct programmer_alias aliases[] = {
-	{ "ec", ALIAS_EC },
 	{ "host", ALIAS_HOST },
 	{ NULL },
 };

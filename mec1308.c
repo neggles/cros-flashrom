@@ -417,9 +417,6 @@ int mec1308_init(void)
 
 	msg_pdbg("%s(): entered\n", __func__);
 
-	if (alias && alias->type != ALIAS_EC)
-		return 1;
-
 	ctx_data = calloc(1, sizeof(mec1308_data_t));
 	if (!ctx_data) {
 		msg_perr("Unable to allocate space for extra context data.\n");

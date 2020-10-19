@@ -991,9 +991,6 @@ int wpce775x_probe_spi_flash(const char *name)
 	int ret = 0;
 	char *p = NULL;
 
-	if (alias && alias->type != ALIAS_EC)
-		return 1;
-
 	p = extract_programmer_param("type");
 	if (p && strcmp(p, "ec")) {
 		msg_pdbg("mec1308 only supports \"ec\" type devices\n");
@@ -1015,4 +1012,4 @@ wpce775x_probe_spi_flash_exit:
 	free(p);
 	return ret;
 }
-#endif
+#endif /* __i386__ || __x86_64__ */

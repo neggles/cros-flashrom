@@ -145,12 +145,14 @@ enum programmer {
 #if CONFIG_GOOGLE_EC == 1
 	PROGRAMMER_GOOGLE_EC,
 #endif
+#if CONFIG_CROS_ALIAS == 1
+	PROGRAMMER_GOOGLE_EC_ALIAS,
+#endif
 	PROGRAMMER_INVALID /* This must always be the last entry. */
 };
 
 enum alias_type {
 	ALIAS_NONE = 0,	/* no alias (default) */
-	ALIAS_EC,	/* embedded controller */
 	ALIAS_HOST,	/* chipset / PCH / SoC / etc. */
 };
 
@@ -166,9 +168,7 @@ extern struct programmer_alias aliases[];
  * This function returns 'true' if current flashrom invocation is programming
  * the EC.
  */
-static inline int programming_ec(void) {
-	return alias && (alias->type == ALIAS_EC);
-}
+int programming_ec(void);
 
 enum programmer_type {
 	PCI = 1, /* to detect uninitialized values */
@@ -910,6 +910,11 @@ int lspcon_i2c_spi_init(void);
 /* realtek_mst_i2c_spi.c */
 #if CONFIG_REALTEK_MST_I2C_SPI == 1
 int realtek_mst_i2c_spi_init(void);
+#endif
+
+/* cros_alias.c */
+#if CONFIG_CROS_ALIAS == 1
+int cros_ec_alias_init(void);
 #endif
 
 #endif				/* !__PROGRAMMER_H__ */

@@ -228,6 +228,11 @@ UNSUPPORTED_FEATURES += CONFIG_GOOGLE_EC=yes
 else
 override CONFIG_GOOGLE_EC = no
 endif
+ifeq ($(CONFIG_CROS_ALIAS), yes)
+UNSUPPORTED_FEATURES += CONFIG_CROS_ALIAS=yes
+else
+override CONFIG_CROS_ALIAS = no
+endif
 endif
 
 # FIXME: Should we check for Cygwin/MSVC as well?
@@ -719,6 +724,9 @@ CONFIG_REALTEK_MST_I2C_SPI ?= no
 # Enable Google EC by default.
 CONFIG_GOOGLE_EC ?= yes
 
+# Enable Google CROS EC-HOST ALIAS mechanism by default.
+CONFIG_CROS_ALIAS ?= yes
+
 # Always enable dummy tracing for now.
 CONFIG_DUMMY ?= yes
 
@@ -987,6 +995,11 @@ endif
 ifeq ($(CONFIG_GOOGLE_EC), yes)
 FEATURE_CFLAGS += -D'CONFIG_GOOGLE_EC=1'
 PROGRAMMER_OBJS += cros_ec.o #cros_ec_dev.o
+endif
+
+ifeq ($(CONFIG_CROS_ALIAS), yes)
+FEATURE_CFLAGS += -D'CONFIG_CROS_ALIAS=1'
+PROGRAMMER_OBJS += cros_alias.o
 endif
 
 ifneq ($(NEED_LIBFTDI), )

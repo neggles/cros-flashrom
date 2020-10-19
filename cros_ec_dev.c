@@ -544,9 +544,6 @@ int cros_ec_probe_dev(void)
 {
 	char dev_path[32];
 
-	if (alias && alias->type != ALIAS_EC)
-		return 1;
-
 	if (cros_ec_parse_param(&cros_ec_dev_priv))
 		return 1;
 

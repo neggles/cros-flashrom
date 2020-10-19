@@ -471,9 +471,6 @@ int it85xx_spi_init(struct superio s)
 {
 	int ret;
 
-	if (alias && alias->type != ALIAS_EC)
-		return 1;
-
 	if (check_params())
 		return 1;
 

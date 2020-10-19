@@ -534,9 +534,6 @@ int ene_lpc_init()
 	char *p = NULL;
 	ene_lpc_data_t *ctx_data = NULL;
 
-	if (alias && alias->type != ALIAS_EC)
-		return 1;
-
 	msg_pdbg("%s\n", __func__);
 
 	ctx_data = calloc(1, sizeof(ene_lpc_data_t));

@@ -180,13 +180,10 @@ int internal_init(void)
 	int not_a_laptop = 0;
 	char *board_vendor = NULL;
 	char *board_model = NULL;
-#if IS_X86 || IS_ARM
 #if IS_X86
 	const char *cb_vendor = NULL;
 	const char *cb_model = NULL;
 #endif // if IS_X86
-	int probe_target_bus_later = 0;
-#endif // if IS_X86 || IS_ARM
 	char *arg;
 
 	arg = extract_programmer_param("boardenable");
@@ -246,11 +243,6 @@ int internal_init(void)
 	}
 	free(arg);
 
-#if IS_X86 || IS_ARM
-	/* The pacc must be initialized before access pci devices. */
-	probe_target_bus_later = 1;
-#endif // if IS_X86 || IS_ARM
-
 	if (rget_io_perms()) {
 		ret = 1;
 		goto internal_init_exit;
@@ -271,28 +263,6 @@ int internal_init(void)
 #else
 	internal_buses_supported = BUS_NONE;
 #endif // if IS_X86
-
-#if IS_ARM
-	/*
-	 * FIXME: CrOS EC probing should not require this "IS_ARM"
-	 * and should not depend on the target bus. This is only to satisfy
-	 * users and scripts who currently depend on the old "-p internal:bus="
-	 * syntax or some default behavior.
-	 *
-	 * Once everything is finally updated, we should only rely on
-	 * alias == ALIAS_EC in order to call cros_ec_probe_*.
-	 *
-	 * Also, ensure probing does not get confused when removing the
-	 * "#if IS_ARM" (see crbug.com/249568).
-	 */
-	if (!alias && probe_target_bus_later)
-		target_bus = BUS_SPI;
-
-	if (target_bus != BUS_SPI) {
-		if (!cros_ec_probe_dev())
-			return 0;
-	}
-#endif // if IS_ARM
 
 	if (try_mtd() == 0) {
 		ret = 0;
@@ -343,15 +313,12 @@ int internal_init(void)
 
 	dmi_init();
 
-	if (probe_target_bus_later) {
-		/* read the target bus value from register. */
-		if (get_target_bus_from_chipset(&target_bus)) {
-			msg_perr("Cannot get target bus from programmer.\n");
-			return 1;
-		}
-		msg_pdbg("get_target_bus_from_chipset() returns 0x%x.\n",
-		         target_bus);
+	/* read the target bus value from register. */
+	if (get_target_bus_from_chipset(&target_bus)) {
+		msg_perr("Cannot get target bus from programmer.\n");
+		return 1;
 	}
+	msg_pdbg("get_target_bus_from_chipset() returns 0x%x.\n", target_bus);
 
 	/* In case Super I/O probing would cause pretty explosions. */
 	board_handle_before_superio();
@@ -428,39 +395,6 @@ int internal_init(void)
 			 "failure and sudden poweroff.\n"
 			 "You have been warned.\n"
 			 "========================================================================\n");
-	}
-#if IS_X86
-
-	/* probe for programmers that bridge LPC <--> SPI */
-	if (target_bus == BUS_LPC || target_bus == BUS_FWH ||
-	    (alias && alias->type == ALIAS_EC)) {
-		/* Try to probe via kernel device first */
-		if (!cros_ec_probe_dev()) {
-			buses_supported &= ~(BUS_LPC|BUS_SPI);
-			return 0;
-		}
-		if (wpce775x_probe_spi_flash(NULL)
-#if CONFIG_MEC1308 == 1
-			&& mec1308_init()
-#endif
-#if CONFIG_ENE_LPC == 1
-			&& ene_lpc_init()
-#endif
-			)
-			return 1;	/* EC not found */
-		else
-			return 0;
-	}
-
-#endif // if IS_X86
-
-	if (!(buses_supported & target_bus) &&
-		(!alias || (alias && alias->type == ALIAS_NONE))) {
-		/* User specified a target bus which is not supported on the
-		 * platform or specified an alias which does not enable it.
-		 */
-		msg_perr("Programmer does not support specified bus\n");
-		return 1;
 	}
 
 	/* Even if chipset init returns an error code, we don't want to abort.

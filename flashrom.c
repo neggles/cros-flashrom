@@ -580,6 +580,25 @@ const struct programmer_entry programmer_table[] = {
 	},
 #endif
 
+#if CONFIG_CROS_ALIAS == 1
+	{
+		.name			= "ec",
+		.type			= OTHER,
+		.devs.note		= "Google EC alias mechanism.\n",
+		.init			= cros_ec_alias_init,
+		.map_flash_region	= physmap, /* TODO(b/171934191) */
+		.unmap_flash_region	= physunmap, /* TODO(b/171934191) */
+		.delay			= internal_delay,
+
+		/*
+		 * "ec" implies in-system programming on a live system, so
+		 * handle with paranoia to catch errors early. If something goes
+		 * wrong then hopefully the system will still be recoverable.
+		 */
+		.paranoid		= 1,
+	},
+#endif
+
 	{0}, /* This entry corresponds to PROGRAMMER_INVALID. */
 };
 
