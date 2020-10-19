@@ -246,26 +246,24 @@ int internal_init(void)
 		goto internal_init_exit;
 	}
 
-#if IS_X86
 	/* Default to Parallel/LPC/FWH flash devices. If a known host controller
 	 * is found, the host controller init routine sets the
 	 * internal_buses_supported bitfield.
 	 */
 	internal_buses_supported = BUS_NONSPI;
 
+	if (try_mtd() == 0) {
+		ret = 0;
+		goto internal_init_exit;
+	}
+
+#if IS_X86
 	/* Initialize PCI access for flash enables */
 	if (pci_init_common() != 0) {
 		ret = 1;
 		goto internal_init_exit;
 	}
-#else
-	internal_buses_supported = BUS_NONE;
 #endif // if IS_X86
-
-	if (try_mtd() == 0) {
-		ret = 0;
-		goto internal_init_exit;
-	}
 
 #if IS_ARM || IS_MIPS && CONFIG_LINUX_SPI == 1
 	/* On the ARM platform, we prefer /dev/spidev if it is supported.
