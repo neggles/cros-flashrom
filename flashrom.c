@@ -639,6 +639,36 @@ static int may_register_shutdown = 0;
 
 static int check_block_eraser(const struct flashctx *flash, int k, int log);
 
+//int register_chip_restore(int (*function) (void *data), void *data)
+int register_chip_restore(CHIP_RESTORE_CALLBACK,
+                          struct flashctx *flash, uint8_t status)
+{
+	if (chip_restore_fn_count >= CHIP_RESTORE_MAXFN) {
+		msg_perr("Tried to register more than %i chip restore"
+		         " functions.\n", CHIP_RESTORE_MAXFN);
+		return 1;
+	}
+	chip_restore_fn[chip_restore_fn_count].func = func;	/* from macro */
+	chip_restore_fn[chip_restore_fn_count].flash = flash;
+	chip_restore_fn[chip_restore_fn_count].status = status;
+	chip_restore_fn_count++;
+
+	return 0;
+}
+
+int chip_restore()
+{
+	int rc = 0;
+
+	while (chip_restore_fn_count > 0) {
+		int i = --chip_restore_fn_count;
+		rc |= chip_restore_fn[i].func(chip_restore_fn[i].flash,
+		                              chip_restore_fn[i].status);
+	}
+
+	return rc;
+}
+
 /* Register a function to be executed on programmer shutdown.
  * The advantage over atexit() is that you can supply a void pointer which will
  * be used as parameter to the registered function upon programmer shutdown.
@@ -662,23 +692,6 @@ int register_shutdown(int (*function) (void *data), void *data)
 	shutdown_fn[shutdown_fn_count].func = function;
 	shutdown_fn[shutdown_fn_count].data = data;
 	shutdown_fn_count++;
-
-	return 0;
-}
-
-//int register_chip_restore(int (*function) (void *data), void *data)
-int register_chip_restore(CHIP_RESTORE_CALLBACK,
-                          struct flashctx *flash, uint8_t status)
-{
-	if (chip_restore_fn_count >= CHIP_RESTORE_MAXFN) {
-		msg_perr("Tried to register more than %i chip restore"
-		         " functions.\n", CHIP_RESTORE_MAXFN);
-		return 1;
-	}
-	chip_restore_fn[chip_restore_fn_count].func = func;	/* from macro */
-	chip_restore_fn[chip_restore_fn_count].flash = flash;
-	chip_restore_fn[chip_restore_fn_count].status = status;
-	chip_restore_fn_count++;
 
 	return 0;
 }
@@ -727,19 +740,6 @@ int programmer_init(enum programmer prog, const char *param)
 		}
 	}
 	return ret;
-}
-
-int chip_restore()
-{
-	int rc = 0;
-
-	while (chip_restore_fn_count > 0) {
-		int i = --chip_restore_fn_count;
-		rc |= chip_restore_fn[i].func(chip_restore_fn[i].flash,
-		                              chip_restore_fn[i].status);
-	}
-
-	return rc;
 }
 
 /** Calls registered shutdown functions and resets internal programmer-related variables.
