@@ -527,7 +527,7 @@ static struct spi_master spi_master_ene = {
 	.write_256 = default_spi_write_256,
 };
 
-int ene_probe_spi_flash()
+int ene_lpc_init()
 {
 	uint8_t hwver, ediid, i;
 	int ret = 0;
@@ -596,4 +596,6 @@ ene_probe_spi_flash_exit:
 	return ret;
 }
 
+#else
+int ene_lpc_init() { return 1; }
 #endif /* __i386__ || __x86_64__ */

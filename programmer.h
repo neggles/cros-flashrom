@@ -722,8 +722,6 @@ extern enum ich_chipset g_ich_generation;
 int ich_init_spi(void *spibar, enum ich_chipset ich_generation);
 int via_init_spi(uint32_t mmio_base);
 
-/* ene_lpc.c */
-int ene_probe_spi_flash();
 /* amd_imc.c */
 int amd_imc_shutdown(struct pci_dev *dev);
 
@@ -748,7 +746,6 @@ static inline int try_mtd(void) { return 1; };
 int mcp6x_spi_init(int want_spi);
 
 /* mec1308.c */
-int mec1308_probe_spi_flash();
 #if CONFIG_MEC1308 == 1
 int mec1308_init(void);
 #endif

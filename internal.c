@@ -431,9 +431,14 @@ int internal_init(void)
 			buses_supported &= ~(BUS_LPC|BUS_SPI);
 			return 0;
 		}
-		if (wpce775x_probe_spi_flash(NULL) &&
-			mec1308_probe_spi_flash() &&
-			ene_probe_spi_flash())
+		if (wpce775x_probe_spi_flash(NULL)
+#if CONFIG_MEC1308 == 1
+			&& mec1308_init()
+#endif
+#if CONFIG_ENE_LPC == 1
+			&& ene_lpc_init()
+#endif
+			)
 			return 1;	/* EC not found */
 		else
 			return 0;

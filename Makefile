@@ -13,10 +13,6 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
-#
 
 PROGRAM = flashrom
 
@@ -163,10 +159,20 @@ UNSUPPORTED_FEATURES += CONFIG_DEDIPROG=yes
 else
 override CONFIG_DEDIPROG = no
 endif
+ifeq ($(CONFIG_ENE_LPC), yes)
+UNSUPPORTED_FEATURES += CONFIG_ENE_LPC=yes
+else
+override CONFIG_ENE_LPC = no
+endif
 ifeq ($(CONFIG_FT2232_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_FT2232_SPI=yes
 else
 override CONFIG_FT2232_SPI = no
+endif
+ifeq ($(CONFIG_MEC1308), yes)
+UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
+else
+override CONFIG_MEC1308 = no
 endif
 ifeq ($(CONFIG_USBBLASTER_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_USBBLASTER_SPI=yes
@@ -249,6 +255,11 @@ UNSUPPORTED_FEATURES += CONFIG_ATAPROMISE=yes
 else
 override CONFIG_ATAPROMISE = no
 endif
+ifeq ($(CONFIG_ENE_LPC), yes)
+UNSUPPORTED_FEATURES += CONFIG_ENE_LPC=yes
+else
+override CONFIG_ENE_LPC = no
+endif
 ifeq ($(CONFIG_IT8212), yes)
 UNSUPPORTED_FEATURES += CONFIG_IT8212=yes
 else
@@ -258,6 +269,11 @@ ifeq ($(CONFIG_DRKAISER), yes)
 UNSUPPORTED_FEATURES += CONFIG_DRKAISER=yes
 else
 override CONFIG_DRKAISER = no
+endif
+ifeq ($(CONFIG_MEC1308), yes)
+UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
+else
+override CONFIG_MEC1308 = no
 endif
 ifeq ($(CONFIG_NICREALTEK), yes)
 UNSUPPORTED_FEATURES += CONFIG_NICREALTEK=yes
@@ -345,10 +361,20 @@ UNSUPPORTED_FEATURES += CONFIG_DEDIPROG=yes
 else
 override CONFIG_DEDIPROG = no
 endif
+ifeq ($(CONFIG_ENE_LPC), yes)
+UNSUPPORTED_FEATURES += CONFIG_ENE_LPC=yes
+else
+override CONFIG_ENE_LPC = no
+endif
 ifeq ($(CONFIG_FT2232_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_FT2232_SPI=yes
 else
 override CONFIG_FT2232_SPI = no
+endif
+ifeq ($(CONFIG_MEC1308), yes)
+UNSUPPORTED_FEATURES += CONFIG_MEC1308=yes
+else
+override CONFIG_MEC1308 = no
 endif
 ifeq ($(CONFIG_USBBLASTER_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_USBBLASTER_SPI=yes
@@ -520,8 +546,14 @@ CONFIG_SATASII ?= yes
 # IMPORTANT: This code is not yet working!
 CONFIG_ATAHPT ?= no
 
+# ENE LPC interface keyboard controller
+CONFIG_ENE_LPC ?= yes
+
 # Always enable FT2232 SPI dongles for now.
 CONFIG_FT2232_SPI ?= yes
+
+# Microchip MEC1308 Embedded Controller
+CONFIG_MEC1308 ?= yes
 
 # Disables LSPCON support until the i2c helper supports multiple systems.
 CONFIG_LSPCON_I2C_SPI ?= no
@@ -637,15 +669,25 @@ ifeq ($(CONFIG_INTERNAL), yes)
 FEATURE_CFLAGS += -D'CONFIG_INTERNAL=1'
 PROGRAMMER_OBJS += processor_enable.o chipset_enable.o board_enable.o cbtable.o dmi.o internal.o
 ifeq ($(ARCH),x86)
-PROGRAMMER_OBJS += it87spi.o it85spi.o mec1308.o sb600spi.o wbsio_spi.o mcp6x_spi.o wpce775x.o ene_lpc.o
+PROGRAMMER_OBJS += it87spi.o it85spi.o sb600spi.o wbsio_spi.o mcp6x_spi.o wpce775x.o
 PROGRAMMER_OBJS += ichspi.o ich_descriptors.o amd_imc.o
 else
-NEED_LIBPCI += CONFIG_INTERNAL
 endif
+NEED_LIBPCI += CONFIG_INTERNAL
 endif
 
 # TODO(quasisec): Remove when flashrom.c isn't poisoned with cros_ec fn calls.
 PROGRAMMER_OBJS += cros_ec_dev.o
+
+ifeq ($(CONFIG_ENE_LPC), yes)
+FEATURE_CFLAGS += -D'CONFIG_ENE_LPC=1'
+PROGRAMMER_OBJS += ene_lpc.o
+endif
+
+ifeq ($(CONFIG_MEC1308), yes)
+FEATURE_CFLAGS += -D'CONFIG_MEC1308=1'
+PROGRAMMER_OBJS += mec1308.o
+endif
 
 ifeq ($(CONFIG_SERPROG), yes)
 FEATURE_CFLAGS += -D'CONFIG_SERPROG=1'
