@@ -339,48 +339,12 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			for (i = 0; aliases[i].name; i++) {
-				name = aliases[i].name;
-				namelen = strlen(aliases[i].name);
-
-				if (strncmp(optarg, name, namelen))
-					continue;
-
-				switch (optarg[namelen]) {
-				case ':':
-					pparam = strdup(optarg + namelen + 1);
-					if (!strlen(pparam)) {
-						free(pparam);
-						pparam = NULL;
-					}
-					break;
-				case '\0':
-					break;
-				default:
-					/* The continue refers to the for-loop.
-					 * It is here to be able to
-					 * differentiate between foo and foobar.
-					 */
-					continue;
-				}
-
-				alias = &aliases[i];
-				msg_gdbg("Programmer alias: \"%s\", parameter: "
-					" \"%s\",\n", alias->name, pparam);
-
-				break;
-			}
-
-			if ((prog == PROGRAMMER_INVALID) && !alias) {
+			if (prog == PROGRAMMER_INVALID) {
 				fprintf(stderr, "Error: Unknown programmer \"%s\". Valid choices are:\n",
 					optarg);
 				list_programmers_linebreak(0, 80, 0);
 				msg_ginfo(".\n");
 				cli_classic_abort_usage(NULL);
-			}
-
-			if ((prog != PROGRAMMER_INVALID) && alias) {
-				cli_classic_abort_usage("Error: Alias cannot be used with programmer name.\n");
 			}
 			break;
 		case 'R':
@@ -537,7 +501,7 @@ int main(int argc, char *argv[])
 		if (CONFIG_DEFAULT_PROGRAMMER != PROGRAMMER_INVALID) {
 			prog = CONFIG_DEFAULT_PROGRAMMER;
 			/* We need to strdup here because we free(pparam) unconditionally later. */
-			pparam = !pparam ? strdup(CONFIG_DEFAULT_PROGRAMMER_ARGS) : pparam; /* b/169587323 */
+			pparam = strdup(CONFIG_DEFAULT_PROGRAMMER_ARGS);
 			msg_pinfo("Using default programmer \"%s\" with arguments \"%s\".\n",
 				  programmer_table[CONFIG_DEFAULT_PROGRAMMER].name, pparam);
 		} else {

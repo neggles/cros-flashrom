@@ -57,3 +57,9 @@ int cros_ec_alias_init(void)
 
 	return 0;
 }
+
+int cros_host_alias_init(void)
+{
+	msg_pdbg("%s(): Redirecting dispatch -> internal_init().\n", __func__);
+	return internal_init();
+}

@@ -370,9 +370,6 @@ int linux_mtd_init(void)
 	int dev_num = 0;
 	int ret = 1;
 
-	if (alias && alias->type != ALIAS_HOST)
-		return 1;
-
 	param = extract_programmer_param("dev");
 	if (param) {
 		char *endptr;

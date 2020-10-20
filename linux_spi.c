@@ -153,14 +153,6 @@ int linux_spi_init(void)
 	const uint8_t mode = SPI_MODE_0;
 	const uint8_t bits = 8;
 
-	/*
-	 * FIXME: There might be other programmers with flash memory (such as
-	 * an EC) connected via SPI. For now we rely on the device's driver to
-	 * distinguish it and assume generic SPI implies host.
-	 */
-	if (alias && alias->type != ALIAS_HOST)
-		return 1;
-
 	p = extract_programmer_param("spispeed");
 	if (p && strlen(p)) {
 		speed_hz = (uint32_t)strtoul(p, &endp, 10) * 1000;

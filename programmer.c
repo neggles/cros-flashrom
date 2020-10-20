@@ -139,11 +139,6 @@ int register_master(const struct registered_master *mst)
 	return 0;
 }
 
-struct programmer_alias aliases[] = {
-	{ "host", ALIAS_HOST },
-	{ NULL },
-};
-struct programmer_alias *alias;
 enum chipbustype get_buses_supported(void)
 {
 	int i;

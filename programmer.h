@@ -147,22 +147,10 @@ enum programmer {
 #endif
 #if CONFIG_CROS_ALIAS == 1
 	PROGRAMMER_GOOGLE_EC_ALIAS,
+	PROGRAMMER_GOOGLE_HOST_ALIAS,
 #endif
 	PROGRAMMER_INVALID /* This must always be the last entry. */
 };
-
-enum alias_type {
-	ALIAS_NONE = 0,	/* no alias (default) */
-	ALIAS_HOST,	/* chipset / PCH / SoC / etc. */
-};
-
-struct programmer_alias {
-	const char *name;
-	enum alias_type type;
-};
-
-extern struct programmer_alias *alias;
-extern struct programmer_alias aliases[];
 
 /*
  * This function returns 'true' if current flashrom invocation is programming
@@ -915,6 +903,7 @@ int realtek_mst_i2c_spi_init(void);
 /* cros_alias.c */
 #if CONFIG_CROS_ALIAS == 1
 int cros_ec_alias_init(void);
+int cros_host_alias_init(void);
 #endif
 
 #endif				/* !__PROGRAMMER_H__ */
