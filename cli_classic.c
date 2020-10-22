@@ -881,8 +881,7 @@ int main(int argc, char *argv[])
 		if (fill_flash->chip->wp && fill_flash->chip->wp->enable) {
 			ret |= fill_flash->chip->wp->enable(fill_flash, wp_mode);
 		} else {
-			msg_gerr("Error: write protect is not supported "
-			       "on this flash chip.\n");
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 			goto out_shutdown;
 		}
@@ -897,8 +896,7 @@ int main(int argc, char *argv[])
 		if (fill_flash->chip->wp && fill_flash->chip->wp->wp_status) {
 			ret |= fill_flash->chip->wp->wp_status(fill_flash);
 		} else {
-			msg_gerr("Error: write protect is not supported "
-			       "on this flash chip.\n");
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 		}
 		goto out_shutdown;
