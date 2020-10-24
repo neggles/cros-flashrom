@@ -223,30 +223,6 @@ int write_en29lv640b(struct flashctx *flash, const uint8_t *buf, unsigned int st
 /* dummyflasher.c */
 int probe_variable_size(struct flashctx *flash);
 
-/* spi4ba.c */
-int spi_enter_4ba_b7(struct flashctx *flash);
-int spi_enter_4ba_b7_we(struct flashctx *flash);
-int spi_exit_4ba_e9(struct flashctx *flash);
-int spi_exit_4ba_e9_we(struct flashctx *flash);
-int spi_byte_program_4ba(struct flashctx *flash, unsigned int addr, uint8_t databyte);
-int spi_nbyte_program_4ba(struct flashctx *flash, unsigned int addr, const uint8_t *bytes, unsigned int len);
-int spi_nbyte_read_4ba(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
-int spi_block_erase_20_4ba(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_52_4ba(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_d8_4ba(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_byte_program_4ba_ereg(struct flashctx *flash, unsigned int addr, uint8_t databyte);
-int spi_nbyte_program_4ba_ereg(struct flashctx *flash, unsigned int addr, const uint8_t *bytes, unsigned int len);
-int spi_nbyte_read_4ba_ereg(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
-int spi_block_erase_20_4ba_ereg(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_52_4ba_ereg(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_d8_4ba_ereg(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_byte_program_4ba_direct(struct flashctx *flash, unsigned int addr, uint8_t databyte);
-int spi_nbyte_program_4ba_direct(struct flashctx *flash, unsigned int addr, const uint8_t *bytes, unsigned int len);
-int spi_nbyte_read_4ba_direct(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
-int spi_block_erase_21_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_5c_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_dc_4ba_direct(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-
 /* edi.c */
 int edi_chip_block_erase(struct flashctx *flash, unsigned int page, unsigned int size);
 int edi_chip_write(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);

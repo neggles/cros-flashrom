@@ -77,35 +77,6 @@
 int spi_enter_4ba_b7(struct flashctx *flash);
 int spi_enter_4ba_b7_we(struct flashctx *flash);
 
-/* exit 4-bytes addressing mode */
-int spi_exit_4ba_e9(struct flashctx *flash);
-int spi_exit_4ba_e9_we(struct flashctx *flash);
-
-/* read/write flash bytes in 4-bytes addressing mode */
-int spi_byte_program_4ba(struct flashctx *flash, unsigned int addr, uint8_t databyte);
-int spi_nbyte_program_4ba(struct flashctx *flash, unsigned int addr, const uint8_t *bytes, unsigned int len);
-int spi_nbyte_read_4ba(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
-
-/* erase flash bytes in 4-bytes addressing mode */
-int spi_block_erase_20_4ba(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_52_4ba(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_d8_4ba(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-
-/* read/write flash bytes from 3-bytes addressing mode using extended address register */
-int spi_byte_program_4ba_ereg(struct flashctx *flash, unsigned int addr, uint8_t databyte);
-int spi_nbyte_program_4ba_ereg(struct flashctx *flash, unsigned int addr, const uint8_t *bytes, unsigned int len);
-int spi_nbyte_read_4ba_ereg(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
-
-/* erase flash bytes from 3-bytes addressing mode using extended address register */
-int spi_block_erase_20_4ba_ereg(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_52_4ba_ereg(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int spi_block_erase_d8_4ba_ereg(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-
-/* read/write flash bytes with 4-bytes address from any mode (3-byte or 4-byte) */
-int spi_byte_program_4ba_direct(struct flashctx *flash, unsigned int addr, uint8_t databyte);
-int spi_nbyte_program_4ba_direct(struct flashctx *flash, unsigned int addr, const uint8_t *bytes, unsigned int len);
-int spi_nbyte_read_4ba_direct(struct flashctx *flash, unsigned int addr, uint8_t *bytes, unsigned int len);
-
 int spi_write_extended_address_register(struct flashctx *flash, uint8_t regdata);
 
 #endif /* __SPI_4BA_H__ */
