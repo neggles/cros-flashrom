@@ -1625,93 +1625,68 @@ static int verify_flash(struct flashctx *flash,
 int read_buf_from_file(unsigned char *buf, unsigned long size,
 		       const char *filename)
 {
-#ifdef __LIBPAYLOAD__
-	msg_gerr("Error: No file I/O support in libpayload\n");
-	return 1;
-#else
-	int ret = 0;
-
+	unsigned long numbytes;
 	FILE *image;
-	if ((image = fopen(filename, "rb")) == NULL) {
-		msg_gerr("Error: opening file \"%s\" failed: %s\n", filename, strerror(errno));
+	struct stat image_stat;
+
+	if (!strncmp(filename, "-", sizeof("-")))
+		image = fdopen(STDIN_FILENO, "rb");
+	else
+		image = fopen(filename, "rb");
+	if (image == NULL) {
+		perror(filename);
 		return 1;
 	}
-
-	struct stat image_stat;
 	if (fstat(fileno(image), &image_stat) != 0) {
-		msg_gerr("Error: getting metadata of file \"%s\" failed: %s\n", filename, strerror(errno));
-		ret = 1;
-		goto out;
+		perror(filename);
+		fclose(image);
+		return 1;
 	}
-	if (image_stat.st_size != (intmax_t)size) {
-		msg_gerr("Error: Image size (%jd B) doesn't match the flash chip's size (%lu B)!\n",
-			 (intmax_t)image_stat.st_size, size);
-		ret = 1;
-		goto out;
+	if ((image_stat.st_size != size) &&
+	    (strncmp(filename, "-", sizeof("-")))) {
+		msg_gerr("Error: Image size doesn't match: stat %jd bytes, "
+			 "wanted %ld!\n", (intmax_t)image_stat.st_size, size);
+		fclose(image);
+		return 1;
 	}
-
-	unsigned long numbytes = fread(buf, 1, size, image);
+	numbytes = fread(buf, 1, size, image);
+	if (fclose(image)) {
+		perror(filename);
+		return 1;
+	}
 	if (numbytes != size) {
 		msg_gerr("Error: Failed to read complete file. Got %ld bytes, "
 			 "wanted %ld!\n", numbytes, size);
-		ret = 1;
+		return 1;
 	}
-out:
-	(void)fclose(image);
-	return ret;
-#endif
+	return 0;
 }
 
 int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *filename)
 {
-#ifdef __LIBPAYLOAD__
-	msg_gerr("Error: No file I/O support in libpayload\n");
-	return 1;
-#else
+	unsigned long numbytes;
 	FILE *image;
-	int ret = 0;
 
 	if (!filename) {
 		msg_gerr("No filename specified.\n");
 		return 1;
 	}
-	if ((image = fopen(filename, "wb")) == NULL) {
-		msg_gerr("Error: opening file \"%s\" failed: %s\n", filename, strerror(errno));
+	if (!strncmp(filename, "-", sizeof("-")))
+		image = fdopen(STDOUT_FILENO, "wb");
+	else
+		image = fopen(filename, "wb");
+	if (image == NULL) {
+		perror(filename);
 		return 1;
 	}
 
-	unsigned long numbytes = fwrite(buf, 1, size, image);
+	numbytes = fwrite(buf, 1, size, image);
+	fclose(image);
 	if (numbytes != size) {
 		msg_gerr("Error: file %s could not be written completely.\n", filename);
-		ret = 1;
-		goto out;
+		return 1;
 	}
-	if (fflush(image)) {
-		msg_gerr("Error: flushing file \"%s\" failed: %s\n", filename, strerror(errno));
-		ret = 1;
-	}
-	// Try to fsync() only regular files and if that function is available at all (e.g. not on MinGW).
-#if defined(_POSIX_FSYNC) && (_POSIX_FSYNC != -1)
-	struct stat image_stat;
-	if (fstat(fileno(image), &image_stat) != 0) {
-		msg_gerr("Error: getting metadata of file \"%s\" failed: %s\n", filename, strerror(errno));
-		ret = 1;
-		goto out;
-	}
-	if (S_ISREG(image_stat.st_mode)) {
-		if (fsync(fileno(image))) {
-			msg_gerr("Error: fsyncing file \"%s\" failed: %s\n", filename, strerror(errno));
-			ret = 1;
-		}
-	}
-#endif
-out:
-	if (fclose(image)) {
-		msg_gerr("Error: closing file \"%s\" failed: %s\n", filename, strerror(errno));
-		ret = 1;
-	}
-	return ret;
-#endif
+	return 0;
 }
 
 /*
