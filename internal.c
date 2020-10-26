@@ -115,7 +115,7 @@ int register_superio(struct superio s)
 	return 0;
 }
 
-#endif // if IS_X86
+#endif /* IS_X86 */
 
 static void internal_chip_writeb(const struct flashctx *flash, uint8_t val,
 				 chipaddr addr)
@@ -306,9 +306,7 @@ int internal_init(void)
 			msg_pinfo("Continuing anyway.\n");
 		}
 	}
-#endif // if IS_X86
 
-#if IS_X86
 	is_laptop = 2; /* Assume that we don't know by default. */
 
 	dmi_init();
@@ -331,7 +329,7 @@ int internal_init(void)
 	 * FIXME: Find a replacement for DMI on non-x86.
 	 * FIXME: Enable Super I/O probing once port I/O is possible.
 	 */
-#endif // if IS_X86
+#endif /* IS_X86 */
 
 	/* Check laptop whitelist. */
 	board_handle_before_laptop();
@@ -365,7 +363,7 @@ int internal_init(void)
 		ret = 1;
 		goto internal_init_exit;
 	}
-#endif // if IS_X86
+#endif /* IS_X86 */
 
 	if (internal_buses_supported & BUS_NONSPI)
 		register_par_master(&par_master_internal, internal_buses_supported);
