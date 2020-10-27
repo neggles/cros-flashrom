@@ -246,31 +246,10 @@ int internal_init(void)
 	}
 	free(arg);
 
-	arg = extract_programmer_param("bus");
-	if (arg) {
-		if (!strcasecmp(arg,"parallel")) {
-			target_bus = BUS_PARALLEL;
-		} else if (!strcasecmp(arg,"lpc")) {
-			target_bus = BUS_LPC;
-		} else if (!strcasecmp(arg,"fwh")) {
-			target_bus = BUS_FWH;
-		} else if (!strcasecmp(arg,"spi")) {
-			target_bus = BUS_SPI;
-		} else if (!strcasecmp(arg,"i2c")) {
-			target_bus = BUS_PROG;
-		} else {
-			msg_perr("Unsupported bus: %s\n", arg);
-			free(arg);
-			return 1;
-		}
-
-		free(arg);
-	} else {
 #if IS_X86 || IS_ARM
-		/* The pacc must be initialized before access pci devices. */
-		probe_target_bus_later = 1;
+	/* The pacc must be initialized before access pci devices. */
+	probe_target_bus_later = 1;
 #endif // if IS_X86 || IS_ARM
-	}
 
 	if (rget_io_perms()) {
 		ret = 1;
