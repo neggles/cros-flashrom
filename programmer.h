@@ -881,8 +881,12 @@ int sp_get_pin(enum SP_PIN pin);
 /* spi_master feature checks */
 static inline bool spi_master_4ba(const struct flashctx *const flash)
 {
+	/* TODO(b/171755805): Assume the spi drv supports 4BA now regardless until re-enterent patches land. */
+	/*
 	return flash->mst->buses_supported & BUS_SPI &&
 		flash->mst->spi.features & SPI_MASTER_4BA;
+	*/
+	return true;
 }
 static inline bool spi_master_no_4ba_modes(const struct flashctx *const flash)
 {
