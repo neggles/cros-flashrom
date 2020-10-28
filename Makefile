@@ -413,6 +413,11 @@ endif
 ifneq ($(TARGET_OS), Linux)
 # Android is handled internally as separate OS, but it supports CONFIG_LINUX_SPI and CONFIG_MSTARDDC_SPI
 ifneq ($(TARGET_OS), Android)
+ifeq ($(CONFIG_LINUX_MTD), yes)
+UNSUPPORTED_FEATURES += CONFIG_LINUX_MTD=yes
+else
+override CONFIG_LINUX_MTD = no
+endif
 ifeq ($(CONFIG_LINUX_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_LINUX_SPI=yes
 else
@@ -595,15 +600,14 @@ CONFIG_BUSPIRATE_SPI ?= yes
 # Raiden Debug SPI-over-USB support.
 CONFIG_RAIDEN_DEBUG_SPI ?= no
 
-CONFIG_LINUX_MTD ?= no
-
 # Always enable Dediprog SF100 for now.
 CONFIG_DEDIPROG ?= yes
 
 # Always enable Marvell SATA controllers for now.
 CONFIG_SATAMV ?= yes
 
-# Enable Linux spidev interface by default. We disable it on non-Linux targets.
+# Enable Linux spidev and MTD interfaces by default. We disable them on non-Linux targets.
+CONFIG_LINUX_MTD ?= yes
 CONFIG_LINUX_SPI ?= yes
 
 # Disable wiki printing by default. It is only useful if you have wiki access.
@@ -850,11 +854,6 @@ PROGRAMMER_OBJS += raiden_debug_spi.o usb_device.o
 NEED_LIBUSB1 += CONFIG_RAIDEN_DEBUG_SPI
 endif
 
-ifeq ($(CONFIG_LINUX_MTD), yes)
-FEATURE_CFLAGS += -D'CONFIG_LINUX_MTD=1'
-PROGRAMMER_OBJS += linux_mtd.o
-endif
-
 ifeq ($(CONFIG_DEDIPROG), yes)
 FEATURE_CFLAGS += -D'CONFIG_DEDIPROG=1'
 PROGRAMMER_OBJS += dediprog.o
@@ -865,6 +864,12 @@ ifeq ($(CONFIG_SATAMV), yes)
 FEATURE_CFLAGS += -D'CONFIG_SATAMV=1'
 PROGRAMMER_OBJS += satamv.o
 NEED_LIBPCI += CONFIG_SATAMV
+endif
+
+ifeq ($(CONFIG_LINUX_MTD), yes)
+# This is a totally ugly hack.
+FEATURE_CFLAGS += $(call debug_shell,grep -q "LINUX_MTD_SUPPORT := yes" .features && printf "%s" "-D'CONFIG_LINUX_MTD=1'")
+PROGRAMMER_OBJS += linux_mtd.o
 endif
 
 ifeq ($(CONFIG_LINUX_SPI), yes)
@@ -1238,6 +1243,18 @@ int main(int argc, char **argv)
 endef
 export UTSNAME_TEST
 
+define LINUX_MTD_TEST
+#include <mtd/mtd-user.h>
+
+int main(int argc, char **argv)
+{
+	(void) argc;
+	(void) argv;
+	return 0;
+}
+endef
+export LINUX_MTD_TEST
+
 define LINUX_SPI_TEST
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
@@ -1293,6 +1310,15 @@ ifneq ($(NEED_LIBFTDI), )
 	) || \
 	( echo "not found."; echo "FTDISUPPORT := no" >> .features.tmp ) } \
 	2>>$(BUILD_DETAILS_FILE) | tee -a $(BUILD_DETAILS_FILE)
+endif
+ifeq ($(CONFIG_LINUX_MTD), yes)
+	@printf "Checking if Linux MTD headers are present... " | tee -a $(BUILD_DETAILS_FILE)
+	@echo "$$LINUX_MTD_TEST" > .featuretest.c
+	@printf "\nexec: %s\n" "$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) .featuretest.c -o .featuretest$(EXEC_SUFFIX)" >>$(BUILD_DETAILS_FILE)
+	@ { $(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) .featuretest.c -o .featuretest$(EXEC_SUFFIX) >&2 && \
+		( echo "yes."; echo "LINUX_MTD_SUPPORT := yes" >> .features.tmp ) ||	\
+		( echo "no."; echo "LINUX_MTD_SUPPORT := no" >> .features.tmp ) } \
+		2>>$(BUILD_DETAILS_FILE) | tee -a $(BUILD_DETAILS_FILE)
 endif
 ifeq ($(CONFIG_LINUX_SPI), yes)
 	@printf "Checking if Linux SPI headers are present... " | tee -a $(BUILD_DETAILS_FILE)
