@@ -667,6 +667,10 @@ endif
 endif
 endif
 
+# Use internal DMI/SMBIOS decoder by default instead of relying on dmidecode.
+CONFIG_INTERNAL_DMI ?= yes
+
+###############################################################################
 # Programmer drivers and programmer support infrastructure.
 # Depending on the CONFIG_* variables set and verified above we set compiler flags and parameters below.
 
@@ -675,10 +679,14 @@ FEATURE_CFLAGS += -D'CONFIG_DEFAULT_PROGRAMMER_ARGS="$(CONFIG_DEFAULT_PROGRAMMER
 
 ifeq ($(CONFIG_INTERNAL), yes)
 FEATURE_CFLAGS += -D'CONFIG_INTERNAL=1'
-PROGRAMMER_OBJS += processor_enable.o chipset_enable.o board_enable.o cbtable.o dmi.o internal.o
-ifeq ($(ARCH),x86)
+PROGRAMMER_OBJS += processor_enable.o chipset_enable.o board_enable.o cbtable.o internal.o
+ifeq ($(ARCH), x86)
 PROGRAMMER_OBJS += it87spi.o it85spi.o sb600spi.o wbsio_spi.o mcp6x_spi.o wpce775x.o
-PROGRAMMER_OBJS += ichspi.o ich_descriptors.o amd_imc.o
+PROGRAMMER_OBJS += ich_descriptors.o amd_imc.o
+PROGRAMMER_OBJS += ichspi.o dmi.o
+ifeq ($(CONFIG_INTERNAL_DMI), yes)
+FEATURE_CFLAGS += -D'CONFIG_INTERNAL_DMI=1'
+endif
 else
 endif
 NEED_LIBPCI += CONFIG_INTERNAL
