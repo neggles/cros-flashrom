@@ -799,7 +799,7 @@ FEATURE_CFLAGS += $(call debug_shell,grep -q "FT232H := yes" .features && printf
 FTDI_INCLUDES := $(call debug_shell,[ -n "$(PKG_CONFIG_LIBDIR)" ] && export PKG_CONFIG_LIBDIR="$(PKG_CONFIG_LIBDIR)" ; $(PKG_CONFIG) --cflags-only-I libftdi1)
 FEATURE_CFLAGS += $(FTDI_INCLUDES)
 FEATURE_LIBS += $(call debug_shell,grep -q "FTDISUPPORT := yes" .features && printf "%s" "$(FTDILIBS)")
-# We can't set NEED_LIBUSB0 here because that would transform libftdi auto-enabling
+# We can't set NEED_LIBUSB1 here because that would transform libftdi auto-enabling
 # into a hard requirement for libusb, defeating the purpose of auto-enabling.
 endif
 
@@ -858,7 +858,7 @@ endif
 
 ifeq ($(CONFIG_RAIDEN_DEBUG_SPI), yes)
 FEATURE_CFLAGS += -D'CONFIG_RAIDEN_DEBUG_SPI=1'
-PROGRAMMER_OBJS += raiden_debug_spi.o usb_device.o
+PROGRAMMER_OBJS += raiden_debug_spi.o
 NEED_LIBUSB1 += CONFIG_RAIDEN_DEBUG_SPI
 endif
 
@@ -941,16 +941,11 @@ endif
 
 endif
 
-ifneq ($(NEED_LIBUSB0), )
-CHECK_LIBUSB0 = yes
-FEATURE_CFLAGS += -D'NEED_LIBUSB0=1'
-USBLIBS := $(call debug_shell,[ -n "$(PKG_CONFIG_LIBDIR)" ] && export PKG_CONFIG_LIBDIR="$(PKG_CONFIG_LIBDIR)" ; $(PKG_CONFIG) --libs libusb || printf "%s" "-lusb")
-endif
 
 ifneq ($(NEED_LIBUSB1), )
 CHECK_LIBUSB1 = yes
 FEATURE_CFLAGS += -D'NEED_LIBUSB1=1'
-PROGRAMMER_OBJS += usbdev.o
+PROGRAMMER_OBJS += usbdev.o usb_device.o
 # FreeBSD and DragonflyBSD use a reimplementation of libusb-1.0 that is simply called libusb
 ifeq ($(TARGET_OS),$(filter $(TARGET_OS),FreeBSD DragonFlyBSD))
 USB1LIBS += -lusb
@@ -1094,23 +1089,6 @@ int main(int argc, char **argv)
 endef
 export PCI_GET_DEV_TEST
 
-define LIBUSB0_TEST
-#include "platform.h"
-#if IS_WINDOWS
-#include <lusb0_usb.h>
-#else
-#include <usb.h>
-#endif
-int main(int argc, char **argv)
-{
-	(void) argc;
-	(void) argv;
-	usb_init();
-	return 0;
-}
-endef
-export LIBUSB0_TEST
-
 define LIBUSB1_TEST
 #include <stddef.h>
 #include <libusb.h>
@@ -1156,28 +1134,6 @@ ifeq ($(CHECK_LIBPCI), yes)
 		echo "mentioned above by specifying make CONFIG_ENABLE_LIBPCI_PROGRAMMERS=no"; \
 		echo "See README for more information."; echo;				\
 		rm -f .test.c .test.o .test$(EXEC_SUFFIX); exit 1; }; }; } 2>>$(BUILD_DETAILS_FILE); echo $? >&3 ; } | tee -a $(BUILD_DETAILS_FILE) >&4; } 3>&1;} | { read rc ; exit ${rc}; } } 4>&1
-	@rm -f .test.c .test.o .test$(EXEC_SUFFIX)
-endif
-ifeq ($(CHECK_LIBUSB0), yes)
-	@printf "Checking for libusb-0.1/libusb-compat headers... " | tee -a $(BUILD_DETAILS_FILE)
-	@echo "$$LIBUSB0_TEST" > .test.c
-	@printf "\nexec: %s\n" "$(CC) -c $(CPPFLAGS) $(CFLAGS) .test.c -o .test.o" >>$(BUILD_DETAILS_FILE)
-	@{ { { { { $(CC) -c $(CPPFLAGS) $(CFLAGS) .test.c -o .test.o >&2 && \
-		echo "found." || { echo "not found."; echo;				\
-		echo "The following features require libusb-0.1/libusb-compat: $(NEED_LIBUSB0)."; \
-		echo "Please install libusb-0.1 headers or libusb-compat headers or disable all features"; \
-		echo "mentioned above by specifying make CONFIG_ENABLE_LIBUSB0_PROGRAMMERS=no"; \
-		echo "See README for more information."; echo;				\
-		rm -f .test.c .test.o; exit 1; }; } 2>>$(BUILD_DETAILS_FILE); echo $? >&3 ; } | tee -a $(BUILD_DETAILS_FILE) >&4; } 3>&1;} | { read rc ; exit ${rc}; } } 4>&1
-	@printf "Checking if libusb-0.1 is usable... " | tee -a $(BUILD_DETAILS_FILE)
-	@printf "\nexec: %s\n" "$(CC) $(LDFLAGS) .test.o -o .test$(EXEC_SUFFIX) $(LIBS) $(USBLIBS)" >>$(BUILD_DETAILS_FILE)
-	@{ { { { { $(CC) $(LDFLAGS) .test.o -o .test$(EXEC_SUFFIX) $(LIBS) $(USBLIBS) >&2 && \
-		echo "yes." || { echo "no.";						\
-		echo "The following features require libusb-0.1/libusb-compat: $(NEED_LIBUSB0)."; \
-		echo "Please install libusb-0.1 or libusb-compat or disable all features"; \
-		echo "mentioned above by specifying make CONFIG_ENABLE_LIBUSB0_PROGRAMMERS=no"; \
-		echo "See README for more information."; echo;				\
-		rm -f .test.c .test.o .test$(EXEC_SUFFIX); exit 1; }; } 2>>$(BUILD_DETAILS_FILE); echo $? >&3 ; } | tee -a $(BUILD_DETAILS_FILE) >&4; } 3>&1;} | { read rc ; exit ${rc}; } } 4>&1
 	@rm -f .test.c .test.o .test$(EXEC_SUFFIX)
 endif
 ifeq ($(CHECK_LIBUSB1), yes)
