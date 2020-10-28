@@ -155,11 +155,21 @@ UNSUPPORTED_FEATURES += CONFIG_PONY_SPI=yes
 else
 override CONFIG_PONY_SPI = no
 endif
-# Dediprog, USB-Blaster, PICkit2, CH341A and FT2232 are not supported under DOS (missing USB support).
+# Digilent SPI, Dediprog, Developerbox, USB-Blaster, PICkit2, CH341A and FT2232 are not supported under DOS (missing USB support).
+ifeq ($(CONFIG_DIGILENT_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_DIGILENT_SPI=yes
+else
+override CONFIG_DIGILENT_SPI = no
+endif
 ifeq ($(CONFIG_DEDIPROG), yes)
 UNSUPPORTED_FEATURES += CONFIG_DEDIPROG=yes
 else
 override CONFIG_DEDIPROG = no
+endif
+ifeq ($(CONFIG_DEVELOPERBOX_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_DEVELOPERBOX_SPI=yes
+else
+override CONFIG_DEVELOPERBOX_SPI = no
 endif
 ifeq ($(CONFIG_ENE_LPC), yes)
 UNSUPPORTED_FEATURES += CONFIG_ENE_LPC=yes
@@ -191,6 +201,11 @@ UNSUPPORTED_FEATURES += CONFIG_CH341A_SPI=yes
 else
 override CONFIG_CH341A_SPI = no
 endif
+ifeq ($(CONFIG_STLINKV3_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_STLINKV3_SPI=yes
+else
+override CONFIG_STLINKV3_SPI = no
+endif
 ifeq ($(CONFIG_LSPCON_I2C_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_LSPCON_I2C_SPI=yes
 else
@@ -200,6 +215,12 @@ ifeq ($(CONFIG_REALTEK_MST_I2C_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_REALTEK_MST_I2C_SPI=yes
 else
 override CONFIG_REALTEK_MST_I2C_SPI = no
+endif
+# libjaylink is also not available for DOS
+ifeq ($(CONFIG_JLINK_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_JLINK_SPI=yes
+else
+override CONFIG_JLINK_SPI = no
 endif
 ifeq ($(CONFIG_GOOGLE_EC), yes)
 UNSUPPORTED_FEATURES += CONFIG_GOOGLE_EC=yes
@@ -216,6 +237,10 @@ FLASHROM_CFLAGS += -Dffs=__builtin_ffs
 # Some functions provided by Microsoft do not work as described in C99 specifications. This macro fixes that
 # for MinGW. See http://sourceforge.net/p/mingw-w64/wiki2/printf%20and%20scanf%20family/ */
 FLASHROM_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
+
+# National Instruments USB-845x is Windows only for now
+CONFIG_NI845X_SPI ?= no
+
 # For now we disable all PCI-based programmers on Windows/MinGW (no libpci).
 ifeq ($(CONFIG_INTERNAL), yes)
 UNSUPPORTED_FEATURES += CONFIG_INTERNAL=yes
@@ -324,6 +349,15 @@ override CONFIG_REALTEK_MST_I2C_SPI = no
 endif
 endif
 
+ifneq ($(TARGET_OS), MinGW)
+# NI USB-845x only supported on Windows at the moment
+ifeq ($(CONFIG_NI845X_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_NI845X_SPI=yes
+else
+override CONFIG_NI845X_SPI = no
+endif
+endif
+
 ifeq ($(TARGET_OS), libpayload)
 ifeq ($(MAKECMDGOALS),)
 .DEFAULT_GOAL := libflashrom.a
@@ -357,11 +391,16 @@ UNSUPPORTED_FEATURES += CONFIG_PONY_SPI=yes
 else
 override CONFIG_PONY_SPI = no
 endif
-# Dediprog, USB-Blaster, PICkit2, CH341A and FT2232 are not supported with libpayload (missing libusb support).
+# Dediprog, Developerbox, USB-Blaster, PICkit2, CH341A and FT2232 are not supported with libpayload (missing libusb support).
 ifeq ($(CONFIG_DEDIPROG), yes)
 UNSUPPORTED_FEATURES += CONFIG_DEDIPROG=yes
 else
 override CONFIG_DEDIPROG = no
+endif
+ifeq ($(CONFIG_DEVELOPERBOX_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_DEVELOPERBOX_SPI=yes
+else
+override CONFIG_DEVELOPERBOX_SPI = no
 endif
 ifeq ($(CONFIG_ENE_LPC), yes)
 UNSUPPORTED_FEATURES += CONFIG_ENE_LPC=yes
@@ -387,6 +426,11 @@ ifeq ($(CONFIG_PICKIT2_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_PICKIT2_SPI=yes
 else
 override CONFIG_PICKIT2_SPI = no
+endif
+ifeq ($(CONFIG_STLINKV3_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_STLINKV3_SPI=yes
+else
+override CONFIG_STLINKV3_SPI = no
 endif
 ifeq ($(CONFIG_LSPCON_I2C_SPI), yes)
 UNSUPPORTED_FEATURES += CONFIG_LSPCON_I2C_SPI=yes
@@ -497,6 +541,92 @@ override CONFIG_SATAMV = no
 endif
 endif
 
+# Disable all drivers needing raw access (memory, PCI, port I/O) on
+# architectures with unknown raw access properties.
+# Right now those architectures are alpha hppa m68k sh s390
+ifneq ($(ARCH),$(filter $(ARCH),x86 mips ppc arm sparc arc))
+ifeq ($(CONFIG_RAYER_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_RAYER_SPI=yes
+else
+override CONFIG_RAYER_SPI = no
+endif
+ifeq ($(CONFIG_NIC3COM), yes)
+UNSUPPORTED_FEATURES += CONFIG_NIC3COM=yes
+else
+override CONFIG_NIC3COM = no
+endif
+ifeq ($(CONFIG_GFXNVIDIA), yes)
+UNSUPPORTED_FEATURES += CONFIG_GFXNVIDIA=yes
+else
+override CONFIG_GFXNVIDIA = no
+endif
+ifeq ($(CONFIG_SATASII), yes)
+UNSUPPORTED_FEATURES += CONFIG_SATASII=yes
+else
+override CONFIG_SATASII = no
+endif
+ifeq ($(CONFIG_ATAHPT), yes)
+UNSUPPORTED_FEATURES += CONFIG_ATAHPT=yes
+else
+override CONFIG_ATAHPT = no
+endif
+ifeq ($(CONFIG_ATAVIA), yes)
+UNSUPPORTED_FEATURES += CONFIG_ATAVIA=yes
+else
+override CONFIG_ATAVIA = no
+endif
+ifeq ($(CONFIG_ATAPROMISE), yes)
+UNSUPPORTED_FEATURES += CONFIG_ATAPROMISE=yes
+else
+override CONFIG_ATAPROMISE = no
+endif
+ifeq ($(CONFIG_DRKAISER), yes)
+UNSUPPORTED_FEATURES += CONFIG_DRKAISER=yes
+else
+override CONFIG_DRKAISER = no
+endif
+ifeq ($(CONFIG_NICREALTEK), yes)
+UNSUPPORTED_FEATURES += CONFIG_NICREALTEK=yes
+else
+override CONFIG_NICREALTEK = no
+endif
+ifeq ($(CONFIG_NICNATSEMI), yes)
+UNSUPPORTED_FEATURES += CONFIG_NICNATSEMI=yes
+else
+override CONFIG_NICNATSEMI = no
+endif
+ifeq ($(CONFIG_NICINTEL), yes)
+UNSUPPORTED_FEATURES += CONFIG_NICINTEL=yes
+else
+override CONFIG_NICINTEL = no
+endif
+ifeq ($(CONFIG_NICINTEL_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_NICINTEL_SPI=yes
+else
+override CONFIG_NICINTEL_SPI = no
+endif
+ifeq ($(CONFIG_NICINTEL_EEPROM), yes)
+UNSUPPORTED_FEATURES += CONFIG_NICINTEL_EEPROM=yes
+else
+override CONFIG_NICINTEL_EEPROM = no
+endif
+ifeq ($(CONFIG_OGP_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_OGP_SPI=yes
+else
+override CONFIG_OGP_SPI = no
+endif
+ifeq ($(CONFIG_SATAMV), yes)
+UNSUPPORTED_FEATURES += CONFIG_SATAMV=yes
+else
+override CONFIG_SATAMV = no
+endif
+ifeq ($(CONFIG_IT8212), yes)
+UNSUPPORTED_FEATURES += CONFIG_IT8212=yes
+else
+override CONFIG_IT8212 = no
+endif
+endif
+
 CHIP_OBJS = jedec.o stm50flw0x0x.o w39.o w29ee011.o \
 	sst28sf040.o m29f400bt.o 82802ab.o at45db.o \
 	sst49lfxxxc.o sst_fwhub.o edi.o flashchips.o flashchips_hwseq.o spi.o spi25.o sharplhf00l04.o \
@@ -555,6 +685,9 @@ CONFIG_SATASII ?= yes
 # IMPORTANT: This code is not yet working!
 CONFIG_ATAHPT ?= no
 
+# Promise ATA controller support.
+CONFIG_ATAPROMISE ?= no
+
 # ENE LPC interface keyboard controller
 CONFIG_ENE_LPC ?= yes
 
@@ -563,6 +696,9 @@ CONFIG_FT2232_SPI ?= yes
 
 # Microchip MEC1308 Embedded Controller
 CONFIG_MEC1308 ?= yes
+
+# MSTAR DDC support needs more tests/reviews/cleanups.
+CONFIG_MSTARDDC_SPI ?= no
 
 # Disables LSPCON support until the i2c helper supports multiple systems.
 CONFIG_LSPCON_I2C_SPI ?= no
@@ -610,6 +746,9 @@ CONFIG_SATAMV ?= yes
 CONFIG_LINUX_MTD ?= yes
 CONFIG_LINUX_SPI ?= yes
 
+# Disable J-Link for now.
+CONFIG_JLINK_SPI ?= no
+
 # Disable wiki printing by default. It is only useful if you have wiki access.
 CONFIG_PRINT_WIKI ?= no
 
@@ -628,6 +767,34 @@ ifeq ($(CONFIG_EVERYTHING), yes)
 $(foreach var, $(filter CONFIG_%, $(.VARIABLES)),\
 	$(if $(filter no, $($(var))),\
 		$(eval $(var)=yes)))
+endif
+
+ifeq ($(CONFIG_ENABLE_LIBUSB1_PROGRAMMERS), no)
+override CONFIG_CH341A_SPI = no
+override CONFIG_DEDIPROG = no
+override CONFIG_DIGILENT_SPI = no
+override CONFIG_DEVELOPERBOX_SPI = no
+override CONFIG_PICKIT2_SPI = no
+override CONFIG_RAIDEN = no
+override CONFIG_STLINKV3_SPI = no
+endif
+ifeq ($(CONFIG_ENABLE_LIBPCI_PROGRAMMERS), no)
+override CONFIG_INTERNAL = no
+override CONFIG_NIC3COM = no
+override CONFIG_GFXNVIDIA = no
+override CONFIG_SATASII = no
+override CONFIG_ATAHPT = no
+override CONFIG_ATAVIA = no
+override CONFIG_ATAPROMISE = no
+override CONFIG_IT8212 = no
+override CONFIG_DRKAISER = no
+override CONFIG_NICREALTEK = no
+override CONFIG_NICNATSEMI = no
+override CONFIG_NICINTEL = no
+override CONFIG_NICINTEL_SPI = no
+override CONFIG_NICINTEL_EEPROM = no
+override CONFIG_OGP_SPI = no
+override CONFIG_SATAMV = no
 endif
 
 # Bitbanging SPI infrastructure, default off unless needed.
@@ -778,6 +945,25 @@ NEED_LIBFTDI += CONFIG_FT2232_SPI
 PROGRAMMER_OBJS += ft2232_spi.o
 endif
 
+ifeq ($(CONFIG_USBBLASTER_SPI), yes)
+# This is a totally ugly hack.
+FEATURE_CFLAGS += $(call debug_shell,grep -q "FTDISUPPORT := yes" .features && printf "%s" "-D'CONFIG_USBBLASTER_SPI=1'")
+NEED_LIBFTDI += CONFIG_USBBLASTER_SPI
+PROGRAMMER_OBJS += usbblaster_spi.o
+endif
+
+ifeq ($(CONFIG_PICKIT2_SPI), yes)
+FEATURE_CFLAGS += -D'CONFIG_PICKIT2_SPI=1'
+PROGRAMMER_OBJS += pickit2_spi.o
+NEED_LIBUSB1 += CONFIG_PICKIT2_SPI
+endif
+
+ifeq ($(CONFIG_STLINKV3_SPI), yes)
+FEATURE_CFLAGS += -D'CONFIG_STLINKV3_SPI=1'
+PROGRAMMER_OBJS += stlinkv3_spi.o
+NEED_LIBUSB1 += CONFIG_STLINKV3_SPI
+endif
+
 ifeq ($(CONFIG_LSPCON_I2C_SPI), yes)
 FEATURE_CFLAGS += -D'CONFIG_LSPCON_I2C_SPI=1'
 PROGRAMMER_OBJS += lspcon_i2c_spi.o
@@ -868,6 +1054,12 @@ PROGRAMMER_OBJS += dediprog.o
 NEED_LIBUSB1 += CONFIG_DEDIPROG
 endif
 
+ifeq ($(CONFIG_DEVELOPERBOX_SPI), yes)
+FEATURE_CFLAGS += -D'CONFIG_DEVELOPERBOX_SPI=1'
+PROGRAMMER_OBJS += developerbox_spi.o
+NEED_LIBUSB1 += CONFIG_DEVELOPERBOX_SPI
+endif
+
 ifeq ($(CONFIG_SATAMV), yes)
 FEATURE_CFLAGS += -D'CONFIG_SATAMV=1'
 PROGRAMMER_OBJS += satamv.o
@@ -884,6 +1076,51 @@ ifeq ($(CONFIG_LINUX_SPI), yes)
 # This is a totally ugly hack.
 FEATURE_CFLAGS += $(call debug_shell,grep -q "LINUX_SPI_SUPPORT := yes" .features && printf "%s" "-D'CONFIG_LINUX_SPI=1'")
 PROGRAMMER_OBJS += linux_spi.o
+endif
+
+ifeq ($(CONFIG_MSTARDDC_SPI), yes)
+# This is a totally ugly hack.
+FEATURE_CFLAGS += $(call debug_shell,grep -q "LINUX_I2C_SUPPORT := yes" .features && printf "%s" "-D'CONFIG_MSTARDDC_SPI=1'")
+NEED_LINUX_I2C += CONFIG_MSTARDDC_SPI
+PROGRAMMER_OBJS += mstarddc_spi.o
+endif
+
+ifeq ($(CONFIG_CH341A_SPI), yes)
+FEATURE_CFLAGS += -D'CONFIG_CH341A_SPI=1'
+PROGRAMMER_OBJS += ch341a_spi.o
+NEED_LIBUSB1 += CONFIG_CH341A_SPI
+endif
+
+ifeq ($(CONFIG_DIGILENT_SPI), yes)
+FEATURE_CFLAGS += -D'CONFIG_DIGILENT_SPI=1'
+PROGRAMMER_OBJS += digilent_spi.o
+NEED_LIBUSB1 += CONFIG_DIGILENT_SPI
+endif
+
+ifeq ($(CONFIG_JLINK_SPI), yes)
+NEED_LIBJAYLINK += CONFIG_JLINK_SPI
+FEATURE_CFLAGS += -D'CONFIG_JLINK_SPI=1'
+PROGRAMMER_OBJS += jlink_spi.o
+endif
+
+ifeq ($(CONFIG_NI845X_SPI), yes)
+FEATURE_CFLAGS += -D'CONFIG_NI845X_SPI=1'
+
+ifeq ($(CONFIG_NI845X_LIBRARY_PATH),)
+# if the user did not specified the NI-845x headers/lib path
+# do a guess for both 32 and 64 bit Windows versions
+NI845X_LIBS += -L'${PROGRAMFILES}\National Instruments\NI-845x\MS Visual C'
+NI845X_LIBS += -L'${PROGRAMFILES(x86)}\National Instruments\NI-845x\MS Visual C'
+NI845X_INCLUDES += -I'${PROGRAMFILES}\National Instruments\NI-845x\MS Visual C'
+NI845X_INCLUDES += -I'${PROGRAMFILES(x86)}\National Instruments\NI-845x\MS Visual C'
+else
+NI845X_LIBS += -L'$(CONFIG_NI845X_LIBRARY_PATH)'
+NI845X_INCLUDES += -I'$(CONFIG_NI845X_LIBRARY_PATH)'
+endif
+
+FEATURE_CFLAGS += $(NI845X_INCLUDES)
+LIBS += -lni845x
+PROGRAMMER_OBJS += ni845x_spi.o
 endif
 
 ifeq ($(CONFIG_LINUX_I2C_HELPER), yes)
@@ -960,6 +1197,12 @@ endif
 endif
 endif
 
+ifneq ($(NEED_LIBJAYLINK), )
+CHECK_LIBJAYLINK = yes
+JAYLINKLIBS += $(call debug_shell,[ -n "$(PKG_CONFIG_LIBDIR)" ] && export PKG_CONFIG_LIBDIR="$(PKG_CONFIG_LIBDIR)"; $(PKG_CONFIG) --libs libjaylink)
+override CPPFLAGS += $(call debug_shell,[ -n "$(PKG_CONFIG_LIBDIR)" ] && export PKG_CONFIG_LIBDIR="$(PKG_CONFIG_LIBDIR)"; $(PKG_CONFIG) --cflags-only-I libjaylink)
+endif
+
 ifeq ($(CONFIG_PRINT_WIKI), yes)
 FEATURE_CFLAGS += -D'CONFIG_PRINT_WIKI=1'
 CLI_OBJS += print_wiki.o
@@ -983,7 +1226,7 @@ ifeq ($(ARCH), x86)
 endif
 
 $(PROGRAM)$(EXEC_SUFFIX): $(OBJS)
-	$(CC) $(LDFLAGS) -o $(PROGRAM)$(EXEC_SUFFIX) $(OBJS) $(LIBS) $(PCILIBS) $(FEATURE_LIBS) $(USBLIBS) $(USB1LIBS)
+	$(CC) $(LDFLAGS) -o $(PROGRAM)$(EXEC_SUFFIX) $(OBJS) $(LIBS) $(PCILIBS) $(FEATURE_LIBS) $(USBLIBS) $(USB1LIBS) $(JAYLINKLIBS) $(NI845X_LIBS)
 
 libflashrom.a: $(LIBFLASHROM_OBJS)
 	$(AR) rcs $@ $^
@@ -1102,6 +1345,24 @@ int main(int argc, char **argv)
 endef
 export LIBUSB1_TEST
 
+define LIBJAYLINK_TEST
+#include <stddef.h>
+#include <libjaylink/libjaylink.h>
+int main(int argc, char **argv)
+{
+	struct jaylink_context *ctx;
+
+	(void)argc;
+	(void)argv;
+
+	jaylink_init(&ctx);
+	jaylink_exit(ctx);
+
+	return 0;
+}
+endef
+export LIBJAYLINK_TEST
+
 hwlibs: compiler
 	@printf "" > .libdeps
 ifeq ($(CHECK_LIBPCI), yes)
@@ -1154,6 +1415,28 @@ ifeq ($(CHECK_LIBUSB1), yes)
 		echo "The following features require libusb-1.0: $(NEED_LIBUSB1).";	\
 		echo "Please install libusb-1.0 or disable all features"; \
 		echo "mentioned above by specifying make CONFIG_ENABLE_LIBUSB1_PROGRAMMERS=no"; \
+		echo "See README for more information."; echo;				\
+		rm -f .test.c .test.o .test$(EXEC_SUFFIX); exit 1; }; } 2>>$(BUILD_DETAILS_FILE); echo $? >&3 ; } | tee -a $(BUILD_DETAILS_FILE) >&4; } 3>&1;} | { read rc ; exit ${rc}; } } 4>&1
+	@rm -f .test.c .test.o .test$(EXEC_SUFFIX)
+endif
+ifeq ($(CHECK_LIBJAYLINK), yes)
+	@printf "Checking for libjaylink headers... " | tee -a $(BUILD_DETAILS_FILE)
+	@echo "$$LIBJAYLINK_TEST" > .test.c
+	@printf "\nexec: %s\n" "$(CC) -c $(CPPFLAGS) $(CFLAGS) .test.c -o .test.o" >>$(BUILD_DETAILS_FILE)
+	@{ { { { { $(CC) -c $(CPPFLAGS) $(CFLAGS) .test.c -o .test.o >&2 && \
+		echo "found." || { echo "not found."; echo;				\
+		echo "The following feature requires libjaylink: $(NEED_LIBJAYLINK).";	\
+		echo "Please install libjaylink headers or disable the feature"; \
+		echo "mentioned above by specifying make CONFIG_JLINK_SPI=no"; \
+		echo "See README for more information."; echo;				\
+		rm -f .test.c .test.o; exit 1; }; } 2>>$(BUILD_DETAILS_FILE); echo $? >&3 ; } | tee -a $(BUILD_DETAILS_FILE) >&4; } 3>&1;} | { read rc ; exit ${rc}; } } 4>&1
+	@printf "Checking if libjaylink is usable... " | tee -a $(BUILD_DETAILS_FILE)
+	@printf "\nexec: %s\n" "$(CC) $(LDFLAGS) .test.o -o .test$(EXEC_SUFFIX) $(LIBS) $(JAYLINKLIBS)" >>$(BUILD_DETAILS_FILE)
+	@{ { { { { $(CC) $(LDFLAGS) .test.o -o .test$(EXEC_SUFFIX) $(LIBS) $(JAYLINKLIBS) >&2 && \
+		echo "yes." || { echo "no.";						\
+		echo "The following feature requires libjaylink: $(NEED_LIBJAYLINK).";	\
+		echo "Please install libjaylink or disable the feature"; \
+		echo "mentioned above by specifying make CONFIG_JLINK_SPI=no"; \
 		echo "See README for more information."; echo;				\
 		rm -f .test.c .test.o .test$(EXEC_SUFFIX); exit 1; }; } 2>>$(BUILD_DETAILS_FILE); echo $? >&3 ; } | tee -a $(BUILD_DETAILS_FILE) >&4; } 3>&1;} | { read rc ; exit ${rc}; } } 4>&1
 	@rm -f .test.c .test.o .test$(EXEC_SUFFIX)
@@ -1257,6 +1540,23 @@ int main(int argc, char **argv)
 endef
 export CLOCK_GETTIME_TEST
 
+define NI845X_TEST
+#include <ni845x.h>
+
+int main(int argc, char **argv)
+{
+    (void) argc;
+    (void) argv;
+    char I2C_Device[256];
+    NiHandle Dev_Handle;
+    uInt32 NumberFound = 0;
+    ni845xFindDevice(I2C_Device, &Dev_Handle, &NumberFound);
+    ni845xCloseFindDeviceHandle(Dev_Handle);
+    return 0;
+}
+endef
+export NI845X_TEST
+
 features: compiler
 	@echo "FEATURES := yes" > .features.tmp
 ifneq ($(NEED_LIBFTDI), )
@@ -1301,6 +1601,22 @@ ifneq ($(NEED_LINUX_I2C), )
 		( echo "yes."; echo "LINUX_I2C_SUPPORT := yes" >> .features.tmp ) ||	\
 		( echo "no."; echo "LINUX_I2C_SUPPORT := no" >> .features.tmp ) } \
 		2>>$(BUILD_DETAILS_FILE) | tee -a $(BUILD_DETAILS_FILE)
+endif
+ifeq ($(CONFIG_NI845X_SPI), yes)
+	@printf "Checking for NI USB-845x installation... " | tee -a $(BUILD_DETAILS_FILE)
+	@echo "$$NI845X_TEST" > .featuretest.c
+	@printf "\nexec: %s\n" "$(CC) $(CPPFLAGS) $(CFLAGS) $(NI845X_INCLUDES) $(LDFLAGS) .featuretest.c -o .featuretest$(EXEC_SUFFIX) $(NI845X_LIBS) $(LIBS)" >>$(BUILD_DETAILS_FILE)
+
+	@ { { { { { $(CC) $(CPPFLAGS) $(CFLAGS) $(NI845X_INCLUDES) $(LDFLAGS) .featuretest.c -o .featuretest$(EXEC_SUFFIX) $(NI845X_LIBS) $(LIBS) >&2 && \
+		( echo "yes."; echo "NI845X_SUPPORT := yes" >> .features.tmp ) ||	\
+		{   echo -e "\nUnable to find NI-845x headers or libraries."; \
+			echo "Please pass the NI-845x library path to the make with the CONFIG_NI845X_LIBRARY_PATH parameter,"; \
+			echo "or disable the NI-845x support by specifying make CONFIG_NI845X_SPI=no"; \
+			echo "For the NI-845x 17.0 the library path is:"; \
+			echo " On 32 bit systems: C:\Program Files)\National Instruments\NI-845x\MS Visual C"; \
+			echo " On 64 bit systems: C:\Program Files (x86)\National Instruments\NI-845x\MS Visual C"; \
+			exit 1; }; } \
+		2>>$(BUILD_DETAILS_FILE); echo $? >&3 ; } | tee -a $(BUILD_DETAILS_FILE) >&4; } 3>&1;} | { read rc ; exit ${rc}; } } 4>&1
 endif
 	@printf "Checking for utsname support... " | tee -a $(BUILD_DETAILS_FILE)
 	@echo "$$UTSNAME_TEST" > .featuretest.c
