@@ -627,16 +627,24 @@ override CONFIG_IT8212 = no
 endif
 endif
 
+###############################################################################
+# Flash chip drivers and bus support infrastructure.
+
 CHIP_OBJS = jedec.o stm50flw0x0x.o w39.o w29ee011.o \
 	sst28sf040.o m29f400bt.o 82802ab.o at45db.o \
 	sst49lfxxxc.o sst_fwhub.o edi.o flashchips.o flashchips_hwseq.o spi.o spi25.o sharplhf00l04.o \
 	s25f.o opaque.o writeprotect.o spi25_statusreg.o en29lv640b.o spi95.o sfdp.o
 
+###############################################################################
+# Library code.
 LIB_OBJS = layout.o file.o fmap.o power.o search.o
 
 LOCK_OBJS = big_lock.o file_lock.o
 LIB_OBJS += $(LOCK_OBJS)
 FEATURE_CFLAGS += -D'USE_BIG_LOCK=1'
+
+###############################################################################
+# Frontend related stuff.
 
 CLI_OBJS = action_descriptor.o cli_classic.o cli_output.o cli_common.o flashrom.o print.o
 
