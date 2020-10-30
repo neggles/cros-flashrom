@@ -2462,13 +2462,8 @@ int prepare_flash_access(struct flashctx *const flash,
 	}
 
 	/* Enable/disable 4-byte addressing mode if flash chip supports it */
-	if (flash->chip->feature_bits & (FEATURE_4BA_ENTER | FEATURE_4BA_ENTER_WREN | FEATURE_4BA_ENTER_EAR7)) {
-		int ret;
-		if (spi_master_4ba(flash))
-			ret = spi_enter_4ba(flash);
-		else
-			ret = spi_exit_4ba(flash);
-		if (ret) {
+	if ((flash->chip->feature_bits & (FEATURE_4BA_ENTER | FEATURE_4BA_ENTER_WREN | FEATURE_4BA_ENTER_EAR7)) && flash->chip->set_4ba) {
+		if (flash->chip->set_4ba(flash)) {
 			msg_cerr("Failed to set correct 4BA mode! Aborting.\n");
 			return 1;
 		}

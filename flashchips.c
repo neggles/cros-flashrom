@@ -22,6 +22,7 @@
 #include "flashchips.h"
 #include "chipdrivers.h"
 #include "writeprotect.h"
+#include "spi4ba.h"
 
 /**
  * List of supported flash chips.
@@ -6412,6 +6413,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.set_4ba	= spi_enter_4ba_b7_we,
 		.voltage	= {2700, 3600},
 		.wp		= &wp_w25q_large,
 	},
@@ -8332,6 +8334,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
+		.set_4ba	= spi_enter_4ba_b7,
 		.voltage	= {2700, 3600},
 		.wp		= &wp_generic,
 	},
@@ -17241,6 +17244,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.set_4ba	= spi_enter_4ba_b7_we,
 		.voltage	= {2700, 3600},
 		.wp		= &wp_w25q_large,
 	},
@@ -17280,6 +17284,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
+		.set_4ba	= spi_enter_4ba_b7_we,
 		.voltage	= {2700, 3600},
 		.wp		= &wp_w25q_large,
 	},
