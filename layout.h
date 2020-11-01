@@ -79,12 +79,6 @@ int handle_partial_read(
     *         ==0 means no partition is specified.
     *         < 0 means writing file error. */
 
-/*
- * In case layout is used, return the largest offset of the end of all
- * included sections. If layout is not used, return zero.
- */
-size_t top_section_offset(void);
-
 int normalize_romentries(const struct flashctx *flash);
 /*
  * In case user specified sections to program (using the -i command line

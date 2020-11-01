@@ -623,6 +623,28 @@ static void fill_action_descriptor(struct action_descriptor *descriptor,
 	descriptor->processing_units[pu_index].num_blocks = 0;
 }
 
+/*
+ * In case layout is used, return the largest offset of the end of all
+ * included sections. If layout is not used, return zero.
+ */
+static size_t top_section_offset(void)
+{
+	size_t top = 0;
+	int i;
+	struct flashrom_layout *const layout = get_global_layout();
+
+	for (i = 0; i < layout->num_entries; i++) {
+
+		if (!layout->entries[i].included)
+			continue;
+
+		if (layout->entries[i].end > top)
+			top = layout->entries[i].end;
+	}
+
+	return top;
+}
+
 bool is_dry_run()
 {
 	return dry_run;
