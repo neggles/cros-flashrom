@@ -153,14 +153,6 @@ int fmap_read_from_buffer(struct fmap **fmap_out, const uint8_t *const buf, size
 	return 0;
 }
 
-int fmap_find(struct fmap *fmap)
-{
-	if (!is_valid_fmap(fmap))
-		return 0;
-
-	return fmap_size(fmap);
-}
-
 static int fmap_lsearch_rom(struct fmap **fmap_out,
 		struct flashctx *const flashctx, size_t rom_offset, size_t len)
 {
@@ -554,9 +546,9 @@ static int add_fmap_entries(void *source_handle,
 				 __LINE__, (intmax_t)offset);
 			return -1;
 		}
-		int buf_size = fmap_find(&fmap_header);
-		if (buf_size == 0)
+		if (!is_valid_fmap(&fmap_header))
 			continue;
+		int buf_size = fmap_size(&fmap_header);
 		buf = calloc(1, buf_size);
 
 		if (read_chunk(source_handle, buf, offset, buf_size)) {
