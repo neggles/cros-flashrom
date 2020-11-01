@@ -71,4 +71,6 @@ int fmap_read_from_rom(struct fmap **fmap_out, struct flashctx *const flashctx, 
 
 int fmap_find(struct fmap *fmap);
 
+int get_fmap_entries(const char *filename, struct flashctx *flash);
+
 #endif	/* __FMAP_H__*/

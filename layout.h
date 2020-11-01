@@ -64,7 +64,6 @@ int extract_regions(struct flashctx *flash);
 int read_romlayout(const char *name);
 int find_romentry(struct flashrom_layout *const l, char *name);
 int fill_romentry(struct romentry *entry, int n);
-int get_fmap_entries(const char *filename, struct flashctx *flash);
 int get_num_include_args(void);
 int register_include_arg(char *name);
 int process_include_args(void);
