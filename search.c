@@ -79,19 +79,16 @@ int search_find_next(struct search_info *search, off_t *offsetp)
 		search->state = SEARCH_STATE_USE_HANDLER;
 		search->stride = search->ceiling_size / 2;
 		search->offset = search->ceiling_size - search->stride;
-		/* no break */
+		/* fallthrough */
 	case SEARCH_STATE_USE_HANDLER:
 		search->state = SEARCH_STATE_BINARY_SEARCH;
 		search->offset = search->ceiling_size - search->stride;
 		if (search->handler) {
 			ret = search->handler(search, offsetp);
-			if (!ret &&
-			    (*offsetp <
-			     (search->total_size - search->min_size)) &&
-			    (*offsetp >= 0))
+			if (!ret && ((size_t)*offsetp < (search->total_size - search->min_size)) && (*offsetp >= 0))
 				return 0;
 		}
-		/* no break */
+		/* fallthrough */
 	case SEARCH_STATE_BINARY_SEARCH:
 		/*
 		* For efficient operation, we start with the largest stride
@@ -127,8 +124,7 @@ int search_find_next(struct search_info *search, off_t *offsetp)
 		if (search->offset < 0) {
 			search->stride /= 2;
 			search->offset = search->ceiling_size - search->stride;
-			while (search->offset >
-			       (search->total_size - search->min_size))
+			while ((size_t)search->offset > (search->total_size - search->min_size))
 				search->offset -= search->stride;
 			if (search->stride < 16) {
 				search->state = SEARCH_STATE_FULL_SEARCH;
@@ -163,7 +159,7 @@ int search_find_next(struct search_info *search, off_t *offsetp)
 		 */
 		do {
 			*offsetp = search->offset--;
-		} while (*offsetp > search->total_size - search->min_size);
+		} while ((size_t)*offsetp > search->total_size - search->min_size);
 		if (search->offset < 0)
 			search->state = SEARCH_STATE_DONE;
 		return 0;
