@@ -59,9 +59,6 @@ typedef uintptr_t chipaddr;
 #define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
 
 int register_shutdown(int (*function) (void *data), void *data);
-#define CHIP_RESTORE_CALLBACK	int (*func) (struct flashctx *flash, uint8_t status)
-
-int register_chip_restore(CHIP_RESTORE_CALLBACK, struct flashctx *flash, uint8_t status);
 void *programmer_map_flash_region(const char *descr, uintptr_t phys_addr, size_t len);
 void programmer_unmap_flash_region(void *virt_addr, size_t len);
 void programmer_delay(unsigned int usecs);
@@ -110,6 +107,8 @@ enum write_granularity {
  * Macronix MX25L25635F has 8 different functions.
  */
 #define NUM_ERASEFUNCTIONS 8
+
+#define MAX_CHIP_RESTORE_FUNCTIONS 4
 
 /* Feature bits used for non-SPI only */
 #define FEATURE_REGISTERMAP	(1 << 0)
@@ -257,6 +256,8 @@ struct flashchip {
 	struct wp *wp;
 };
 
+typedef int (*chip_restore_fn_cb_t)(struct flashctx *flash, uint8_t status);
+
 /* struct flashctx must always contain struct flashchip at the beginning. */
 struct flashctx {
 	struct flashchip *chip;
@@ -284,6 +285,12 @@ struct flashctx {
 	 */
 	int address_high_byte;
 	bool in_4ba_mode;
+
+	int chip_restore_fn_count;
+	struct chip_restore_func_data {
+		chip_restore_fn_cb_t func;
+		uint8_t status;
+	} chip_restore_fn[MAX_CHIP_RESTORE_FUNCTIONS];
 };
 
 /* Timing used in probe routines. ZERO is -2 to differentiate between an unset
@@ -370,6 +377,7 @@ enum error_action {
 	error_fail,	/* fail immediately */
 	error_ignore,	/* non-fatal error; continue */
 };
+int register_chip_restore(chip_restore_fn_cb_t func, struct flashctx *flash, uint8_t status);
 
 /* Something happened that shouldn't happen, but we can go on. */
 #define ERROR_NONFATAL 0x100

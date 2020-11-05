@@ -616,15 +616,6 @@ const struct programmer_entry programmer_table[] = {
 	{0}, /* This entry corresponds to PROGRAMMER_INVALID. */
 };
 
-#define CHIP_RESTORE_MAXFN 4
-static int chip_restore_fn_count = 0;
-static struct chip_restore_func_data {
-	CHIP_RESTORE_CALLBACK;
-	struct flashctx *flash;
-	uint8_t status;
-} chip_restore_fn[CHIP_RESTORE_MAXFN];
-
-
 #define SHUTDOWN_MAXFN 32
 static int shutdown_fn_count = 0;
 /** @private */
@@ -638,36 +629,6 @@ static struct shutdown_func_data {
 static int may_register_shutdown = 0;
 
 static int check_block_eraser(const struct flashctx *flash, int k, int log);
-
-//int register_chip_restore(int (*function) (void *data), void *data)
-int register_chip_restore(CHIP_RESTORE_CALLBACK,
-                          struct flashctx *flash, uint8_t status)
-{
-	if (chip_restore_fn_count >= CHIP_RESTORE_MAXFN) {
-		msg_perr("Tried to register more than %i chip restore"
-		         " functions.\n", CHIP_RESTORE_MAXFN);
-		return 1;
-	}
-	chip_restore_fn[chip_restore_fn_count].func = func;	/* from macro */
-	chip_restore_fn[chip_restore_fn_count].flash = flash;
-	chip_restore_fn[chip_restore_fn_count].status = status;
-	chip_restore_fn_count++;
-
-	return 0;
-}
-
-int chip_restore()
-{
-	int rc = 0;
-
-	while (chip_restore_fn_count > 0) {
-		int i = --chip_restore_fn_count;
-		rc |= chip_restore_fn[i].func(chip_restore_fn[i].flash,
-		                              chip_restore_fn[i].status);
-	}
-
-	return rc;
-}
 
 /* Register a function to be executed on programmer shutdown.
  * The advantage over atexit() is that you can supply a void pointer which will
@@ -694,6 +655,34 @@ int register_shutdown(int (*function) (void *data), void *data)
 	shutdown_fn_count++;
 
 	return 0;
+}
+
+int register_chip_restore(chip_restore_fn_cb_t func,
+			  struct flashctx *flash, uint8_t status)
+{
+	if (flash->chip_restore_fn_count >= MAX_CHIP_RESTORE_FUNCTIONS) {
+		msg_perr("Tried to register more than %i chip restore"
+		         " functions.\n", MAX_CHIP_RESTORE_FUNCTIONS);
+		return 1;
+	}
+	flash->chip_restore_fn[flash->chip_restore_fn_count].func = func;
+	flash->chip_restore_fn[flash->chip_restore_fn_count].status = status;
+	flash->chip_restore_fn_count++;
+
+	return 0;
+}
+
+static int deregister_chip_restore(struct flashctx *flash)
+{
+	int rc = 0;
+
+	while (flash->chip_restore_fn_count > 0) {
+		int i = --flash->chip_restore_fn_count;
+		rc |= flash->chip_restore_fn[i].func(
+			flash, flash->chip_restore_fn[i].status);
+	}
+
+	return rc;
 }
 
 int programmer_init(enum programmer prog, const char *param)
@@ -2424,6 +2413,7 @@ int prepare_flash_access(struct flashctx *const flash,
 
 	flash->address_high_byte = -1;
 	flash->in_4ba_mode = false;
+	flash->chip_restore_fn_count = 0;
 
 	/* Be careful about 4BA chips and broken masters */
 	if (flash->chip->total_size > 16 * 1024 && spi_master_no_4ba_modes(flash)) {
@@ -2440,6 +2430,7 @@ int prepare_flash_access(struct flashctx *const flash,
 
 void finalize_flash_access(struct flashctx *const flash)
 {
+	deregister_chip_restore(flash);
 	unmap_flash(flash);
 }
 
@@ -2732,7 +2723,6 @@ out:
 	free(oldcontents);
 	free(newcontents);
 out_nofree:
-	chip_restore();	/* must be done before programmer_shutdown() */
 	/*
 	 * programmer_shutdown() call is moved to cli_classic() in chromium os
 	 * tree. This is because some operations, such as write protection,
