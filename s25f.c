@@ -30,7 +30,9 @@
  * PUNITIVE DAMAGES, HOWEVER CAUSED AND REGARDLESS OF THE THEORY OF
  * LIABILITY, ARISING OUT OF THE USE OF OR INABILITY TO USE THIS SOFTWARE,
  * EVEN IF GOOGLE HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
- *
+ */
+
+/*
  * s25f.c - Helper functions for Spansion S25FL and S25FS SPI flash chips.
  * Uses 24 bit addressing for the FS chips and 32 bit addressing for the FL
  * chips (which is required by the overlayed sector size devices).
@@ -190,12 +192,12 @@ static int s25fs_read_cr(const struct flashctx *flash, uint32_t addr)
 	/* By default, 8 dummy cycles are necessary for variable-latency
 	   commands such as RDAR (see CR2NV[3:0]). */
 	unsigned char read_cr_cmd[] = {
-					CMD_RDAR,
-					(addr >> 16) & 0xff,
-					(addr >> 8) & 0xff,
-					(addr & 0xff),
-					0x00, 0x00, 0x00, 0x00,
-					0x00, 0x00, 0x00, 0x00,
+		CMD_RDAR,
+		(addr >> 16) & 0xff,
+		(addr >> 8) & 0xff,
+		(addr & 0xff),
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
 	};
 
 	result = spi_send_command(flash, sizeof(read_cr_cmd), 1, read_cr_cmd, &cfg);
