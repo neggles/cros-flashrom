@@ -42,7 +42,6 @@
 #include <string.h>
 
 #include "chipdrivers.h"
-#include "hwaccess.h"
 #include "spi.h"
 #include "writeprotect.h"
 
@@ -497,12 +496,6 @@ int probe_spi_big_spansion(struct flashctx *flash)
 		msg_gdbg(" 0x%02x", dev_id[i]);
 	msg_gdbg(".\n");
 
-	if (dev_id[0] == flash->chip->manufacture_id) {
-		union {
-			uint8_t array[4];
-			uint32_t whole;
-		} model_id;
-
 	/*
 	 * The structure of the RDID output is as follows:
 	 *
@@ -526,10 +519,15 @@ int probe_spi_big_spansion(struct flashctx *flash)
 	 * 2 types * 2 possible sizes * 2 possible sector layouts
 	 *
 	 */
-		memcpy(model_id.array, dev_id + 1, 2);
-		memcpy(model_id.array + 2, dev_id + 4, 2);
-		if (be_to_cpu32(model_id.whole) == flash->chip->model_id)
-				return 1;
-	}
+
+	uint32_t model_id =
+		dev_id[1] << 24 |
+		dev_id[2] << 16 |
+		dev_id[4] << 8  |
+		dev_id[5] << 0;
+
+	if (dev_id[0] == flash->chip->manufacture_id && model_id == flash->chip->model_id)
+		return 1;
+
 	return 0;
 }
