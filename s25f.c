@@ -488,21 +488,20 @@ int s25fl_block_erase(struct flashctx *flash,
 int probe_spi_big_spansion(struct flashctx *flash)
 {
 	static const unsigned char cmd = JEDEC_RDID;
-	int ret;
 	unsigned char dev_id[6]; /* We care only about 6 first bytes */
 
-	ret = spi_send_command(flash, sizeof(cmd), sizeof(dev_id), &cmd, dev_id);
+	if (spi_send_command(flash, sizeof(cmd), sizeof(dev_id), &cmd, dev_id))
+		return 0;
 
-	if (!ret) {
-		for (size_t i = 0; i < sizeof(dev_id); i++)
-			msg_gdbg(" 0x%02x", dev_id[i]);
-		msg_gdbg(".\n");
+	for (size_t i = 0; i < sizeof(dev_id); i++)
+		msg_gdbg(" 0x%02x", dev_id[i]);
+	msg_gdbg(".\n");
 
-		if (dev_id[0] == flash->chip->manufacture_id) {
-			union {
-				uint8_t array[4];
-				uint32_t whole;
-			} model_id;
+	if (dev_id[0] == flash->chip->manufacture_id) {
+		union {
+			uint8_t array[4];
+			uint32_t whole;
+		} model_id;
 
 	/*
 	 * The structure of the RDID output is as follows:
@@ -527,11 +526,10 @@ int probe_spi_big_spansion(struct flashctx *flash)
 	 * 2 types * 2 possible sizes * 2 possible sector layouts
 	 *
 	 */
-			memcpy(model_id.array, dev_id + 1, 2);
-			memcpy(model_id.array + 2, dev_id + 4, 2);
-			if (be_to_cpu32(model_id.whole) == flash->chip->model_id)
+		memcpy(model_id.array, dev_id + 1, 2);
+		memcpy(model_id.array + 2, dev_id + 4, 2);
+		if (be_to_cpu32(model_id.whole) == flash->chip->model_id)
 				return 1;
-		}
 	}
 	return 0;
 }
