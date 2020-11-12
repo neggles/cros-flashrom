@@ -520,6 +520,4 @@ mec1308_init_exit:
 		free(ctx_data);
 	return ret;
 }
-#else
-int mec1308_init(void) { return 1; }
 #endif

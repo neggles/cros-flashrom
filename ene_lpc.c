@@ -593,6 +593,4 @@ ene_probe_spi_flash_exit:
 	return ret;
 }
 
-#else
-int ene_lpc_init() { return 1; }
 #endif /* __i386__ || __x86_64__ */
