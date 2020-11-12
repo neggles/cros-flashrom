@@ -1461,7 +1461,7 @@ static int ich_hwseq_wait_for_cycle_complete(unsigned int timeout,
 	return 0;
 }
 
-static int ich_hwseq_get_flash_id(struct flashctx *flash)
+static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_gen)
 {
 	uint32_t hsfsc, data, mfg_id, model_id;
 	const struct flashchip *entry;
@@ -1478,7 +1478,7 @@ static int ich_hwseq_get_flash_id(struct flashctx *flash)
 	hsfsc |= (0x6 << HSFSC_FCYCLE_OFF) | HSFSC_FGO;
 	REGWRITE32(ICH9_REG_HSFS, hsfsc);
 	/* poll for 100ms */
-	if (ich_hwseq_wait_for_cycle_complete(100 * 1000, len, g_ich_generation)) {
+	if (ich_hwseq_wait_for_cycle_complete(100 * 1000, len, ich_gen)) {
 		msg_perr("Timed out waiting for RDID to complete.\n");
 		return 0;
 	}
@@ -1584,7 +1584,7 @@ static int ich_hwseq_probe(struct flashctx *flash)
 	uint32_t erase_size_low, size_low, erase_size_high, size_high;
 	struct block_eraser *eraser;
 
-	if (ich_hwseq_get_flash_id(flash) != 1) {
+	if (ich_hwseq_get_flash_id(flash, g_ich_generation) != 1) {
 		msg_perr("Unable to read flash chip ID\n");
 		return 0;
 	}
