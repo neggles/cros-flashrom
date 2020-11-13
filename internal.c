@@ -311,13 +311,6 @@ int internal_init(void)
 
 	dmi_init();
 
-	/* read the target bus value from register. */
-	if (get_target_bus_from_chipset(&target_bus)) {
-		msg_perr("Cannot get target bus from programmer.\n");
-		return 1;
-	}
-	msg_pdbg("get_target_bus_from_chipset() returns 0x%x.\n", target_bus);
-
 	/* In case Super I/O probing would cause pretty explosions. */
 	board_handle_before_superio();
 

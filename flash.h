@@ -78,9 +78,6 @@ enum chipbustype {
 	BUS_NONSPI	= BUS_PARALLEL | BUS_LPC | BUS_FWH,
 };
 
-/* used to select bus which target chip resides */
-extern enum chipbustype target_bus;
-
 /*
  * The following enum defines possible write granularities of flash chips. These tend to reflect the properties
  * of the actual hardware not necesserily the write function(s) defined by the respective struct flashchip.
