@@ -757,129 +757,23 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	}
 
 	switch (ich_generation) {
-	case CHIPSET_5_SERIES_IBEX_PEAK:
-	case CHIPSET_6_SERIES_COUGAR_POINT:
-	case CHIPSET_7_SERIES_PANTHER_POINT:
-		/* ICH 10 BBS (Boot BIOS Straps) field of GCS register.
-		 *   00b: LPC.
-		 *   01b: reserved
-		 *   10b: PCI
-		 *   11b: SPI
-		 */
-		if (target_bus == BUS_LPC) {
-			msg_pdbg("Setting BBS to LPC\n");
-			gcs = (gcs & ~0xc00) | (0x0 << 10);
-		} else if (target_bus == BUS_SPI) {
-			msg_pdbg("Setting BBS to SPI\n");
-			gcs = (gcs & ~0xc00) | (0x3 << 10);
-		}
-		break;
-	case CHIPSET_TUNNEL_CREEK:
-	case CHIPSET_CENTERTON:
-		/* TODO: Support target_bus. */
-		break;
-	case CHIPSET_8_SERIES_LYNX_POINT:
-	case CHIPSET_9_SERIES_WILDCAT_POINT:
-		/* Lynx Point BBS (Boot BIOS Straps) field of GCS register.
-		 *   00b: LPC
-		 *   01b: reserved
-		 *   10b: reserved
-		 *   11b: SPI
-		 */
-		if (target_bus == BUS_LPC) {
-			msg_pdbg("Setting BBS to LPC\n");
-			gcs = (gcs & ~0xc00) | (0x0 << 10);
-		} else if (target_bus == BUS_SPI) {
-			msg_pdbg("Setting BBS to SPI\n");
-			gcs = (gcs & ~0xc00) | (0x3 << 10);
-		}
-		break;
-	case CHIPSET_8_SERIES_LYNX_POINT_LP:
-	case CHIPSET_9_SERIES_WILDCAT_POINT_LP:
-		/* Lynx Point LP BBS (Boot BIOS Straps) field of GCS register.
-		 *   0b: SPI
-		 *   1b: LPC
-		 */
-		if (target_bus == BUS_LPC) {
-			msg_pdbg("Setting BBS to LPC\n");
-			gcs = (gcs & ~0x400) | (0x1 << 10);
-		} else if (target_bus == BUS_SPI) {
-			msg_pdbg("Setting BBS to SPI\n");
-			gcs = (gcs & ~0x400) | (0x0 << 10);
-		}
-		break;
-	case CHIPSET_ICH7:
-	case CHIPSET_ICH8:
-	case CHIPSET_ICH9:
-	case CHIPSET_ICH10:
-		/* Older BBS (Boot BIOS Straps) field of GCS register.
-		 *   00: reserved
-		 *   01: SPI
-		 *   02: PCI
-		 *   03: LPC
-		 */
-		if (target_bus == BUS_LPC) {
-			msg_pdbg("Setting BBS to LPC\n");
-			gcs = (gcs & ~0xc00) | (0x3 << 10);
-		} else if (target_bus == BUS_SPI) {
-			msg_pdbg("Setting BBS to SPI\n");
-			gcs = (gcs & ~0xc00) | (0x1 << 10);
-		}
-		break;
 	case CHIPSET_BAYTRAIL:
-		/* Bay Trail BBS (Boot BIOS Straps) field of GCS register.
-		 *   00b: LPC
-		 *   01b: reserved
-		 *   10b: reserved
-		 *   11b: SPI
-		 */
-		if (target_bus == BUS_LPC) {
-			msg_pdbg("Setting BBS to LPC\n");
-			gcs = (gcs & ~0xc00) | (0x0 << 10);
-		} else if (target_bus == BUS_SPI) {
-			msg_pdbg("Setting BBS to SPI\n");
-			gcs = (gcs & ~0xc00) | (0x3 << 10);
-		}
-		break;
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_APOLLO_LAKE:
-		if (target_bus == BUS_SPI) {
-			msg_pdbg("Setting BBS to SPI -\n");
-			gcs = (gcs & ~0x40) | (0x0 << 6);
-		} else if (target_bus == BUS_LPC) {
-			msg_pdbg("Setting BBS to LPC\n");
-			gcs = (gcs & ~0x40) | (0x1 << 6);
-		}
-		break;
-	default:
-		msg_perr("Cannot determine what to set for BBS.\n");
-		return -1;
-		break;
-	}
-
-	switch (ich_generation) {
-	case CHIPSET_BAYTRAIL:
-		rmmio_writel(gcs, rcrb + bios_cntl);
-
 		reg_name = "GCS";
 		bild = gcs & 1;
 		top_swap = (gcs & 2) >> 1;
 		break;
 	case CHIPSET_APOLLO_LAKE:
-		mmio_writel(gcs, (void *)dev + bios_cntl);
 		reg_name = "BIOS_SPI_BC";
 		bild = (gcs >> 7) & 1;
 		top_swap = (gcs >> 4) & 1;
 		break;
 
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
-		rpci_write_long(dev, bios_cntl, gcs);
 		reg_name = "BIOS_SPI_BC";
 		bild = (gcs >> 7) & 1;
 		top_swap = (gcs >> 4) & 1;
 		break;
 	default:
-		rmmio_writel(gcs, rcrb + 0x3410);
 		reg_name = "GCS";
 		bild = (gcs >> 7) & 1;
 		top_swap = (gcs >> 4) & 1;
