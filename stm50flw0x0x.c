@@ -78,7 +78,7 @@ static int unlock_block_stm50flw0x0x(struct flashctx *flash, int offset)
 
 int unlock_stm50flw0x0x(struct flashctx *flash)
 {
-	int i;
+	unsigned i;
 
 	for (i = 0; i < flash->chip->total_size * 1024; i+= flash->chip->page_size) {
 		if(unlock_block_stm50flw0x0x(flash, i)) {

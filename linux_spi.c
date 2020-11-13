@@ -78,7 +78,7 @@ static const struct spi_master spi_master_linux = {
 
 static char *check_sysfs(void)
 {
-	int i;
+	unsigned i;
 	const char *sysfs_path = NULL;
 	char *devfs_path = NULL;
 	char *p;
