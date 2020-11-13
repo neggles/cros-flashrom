@@ -906,15 +906,6 @@ static int wpce775x_spi_common_init(void)
 
 	msg_pdbg("%s(): entered\n", __func__);
 
-	/*
-	 * FIXME: This is necessary to ensure that access to the shared access
-	 * window region is sent on the LPC bus. The old CLI syntax
-	 * (-p internal:bus=lpc) would cause the chipset enable code to set the
-	 * target bus appropriately before this function gets run, but the new
-	 * syntax ("-p ec") does not cause that to happen.
-	 */
-	target_bus = BUS_LPC;
-	msg_pdbg("%s: forcing target bus: 0x%08x\n", __func__, target_bus);
 	chipset_flash_enable();
 
 	/* get the address of Shadow Window 2. */
