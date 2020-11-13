@@ -89,21 +89,3 @@ int unlock_stm50flw0x0x(struct flashctx *flash)
 
 	return 0;
 }
-
-/* This function is unused. */
-int erase_sector_stm50flw0x0x(struct flashctx *flash, unsigned int sector, unsigned int sectorsize)
-{
-	chipaddr bios = flash->virtual_memory + sector;
-
-	// clear status register
-	chip_writeb(flash, 0x50, bios);
-	// now start it
-	chip_writeb(flash, 0x32, bios);
-	chip_writeb(flash, 0xd0, bios);
-	programmer_delay(10);
-
-	wait_82802ab(flash);
-
-	/* FIXME: Check the status register for errors. */
-	return 0;
-}
