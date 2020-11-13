@@ -1847,7 +1847,6 @@ const struct penable chipset_enables[] = {
 	{0x10de, 0x0367, B_L,    OK,  "NVIDIA", "MCP55",			enable_flash_mcp55}, /* Pro */
 	{0x10de, 0x03e0, B_LS,   OK,  "NVIDIA", "MCP61",			enable_flash_mcp6x_7x},
 	{0x10de, 0x03e1, B_LS,   OK,  "NVIDIA", "MCP61",			enable_flash_mcp6x_7x},
-	{0x10de, 0x03e2, B_LS,   NT,  "NVIDIA", "MCP61",			enable_flash_mcp6x_7x},
 	{0x10de, 0x03e3, B_LS,   NT,  "NVIDIA", "MCP61",			enable_flash_mcp6x_7x},
 	{0x10de, 0x0440, B_LS,   NT,  "NVIDIA", "MCP65",			enable_flash_mcp6x_7x},
 	{0x10de, 0x0441, B_LS,   NT,  "NVIDIA", "MCP65",			enable_flash_mcp6x_7x},
