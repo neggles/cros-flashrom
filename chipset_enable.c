@@ -1988,6 +1988,10 @@ int chipset_flash_enable(void)
 				  "flashrom@flashrom.org including a verbose "
 				  "(-V) log.\nThank you!\n");
 		}
+		if (!(chipset_enables[i].buses & (internal_buses_supported | BUS_SPI))) {
+			msg_pdbg("Skipping chipset enable: No supported buses enabled.\n");
+			continue;
+		}
 		msg_pinfo("Enabling flash write... ");
 		ret = chipset_enables[i].doit(dev, chipset_enables[i].device_name);
 		if (ret == NOT_DONE_YET) {
