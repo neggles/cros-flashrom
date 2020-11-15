@@ -591,6 +591,83 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	void *rcrb;
 	const char *reg_name;
 	bool bild, top_swap;
+
+	switch (ich_generation) {
+	case CHIPSET_BAYTRAIL:
+		/* Get physical address of Root Complex Register Block */
+		tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
+		msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
+		ret = 0;
+		break;
+	case CHIPSET_APOLLO_LAKE:
+		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + bios_cntl);
+		if (ret == ERROR_FATAL)
+			return ret;
+
+		/* Read SPI BAR */
+		tmp = mmio_readl((void *)dev + 0x10) & 0xfffff000;
+		msg_pdbg("SPI BAR is = 0x%x\n", tmp);
+		break;
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, bios_cntl);
+		if (ret == ERROR_FATAL)
+			return ret;
+
+		/* Read SPI BAR */
+		tmp = pci_read_long(dev, 0x10) & 0xfffff000;
+		msg_pdbg("SPI BAR is = 0x%x\n", tmp);
+		break;
+	default:
+		/* Enable Flash Writes */
+		ret = enable_flash_ich_fwh(dev, ich_generation, bios_cntl);
+		if (ret == ERROR_FATAL)
+			return ret;
+
+		/* Get physical address of Root Complex Register Block */
+		tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
+		msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
+		break;
+	}
+	/* Map RCBA to virtual memory */
+	rcrb = physmap("ICH RCRB", tmp, 0x4000);
+	if (rcrb == ERROR_PTR)
+		return ERROR_FATAL;
+
+	switch (ich_generation) {
+	case CHIPSET_BAYTRAIL:
+		reg_name = "GCS";
+		/* Set BBS (Boot BIOS Straps) field of GCS register. */
+		gcs = mmio_readl(rcrb + bios_cntl);
+		bild = gcs & 1;
+		top_swap = (gcs & 2) >> 1;
+		break;
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+	case CHIPSET_APOLLO_LAKE:
+		reg_name = "BIOS_SPI_BC";
+		/* Set BBS (Boot BIOS Straps) field of GCS register. */
+		if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT)
+			gcs = pci_read_long(dev, bios_cntl);
+		else
+			gcs = mmio_readl((void *)dev + bios_cntl);
+		bild = (gcs >> 7) & 1;
+		top_swap = (gcs >> 4) & 1;
+		break;
+	default:
+		reg_name = "GCS";
+		/* Set BBS (Boot BIOS Straps) field of GCS register. */
+		gcs = mmio_readl(rcrb + 0x3410);
+		bild = (gcs >> 7) & 1;
+		top_swap = (gcs >> 4) & 1;
+		break;
+	}
+
+	msg_pdbg("%s = 0x%x: ", reg_name, gcs);
+	msg_pdbg("BIOS Interface Lock-Down: %sabled, ", bild ? "en" : "dis");
+
 	struct boot_straps {
 		const char *name;
 		enum chipbustype bus;
@@ -683,104 +760,6 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		boot_straps = boot_straps_unknown;
 		break;
 	}
-
-	switch (ich_generation) {
-	case CHIPSET_BAYTRAIL:
-		/* Get physical address of Root Complex Register Block */
-		tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
-		msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
-
-		/* Map RCBA to virtual memory */
-		rcrb = physmap("BYT RCRB", tmp, 0x4000);
-		if (rcrb == ERROR_PTR)
-			return ERROR_FATAL;
-
-		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = mmio_readl(rcrb + bios_cntl);
-
-		ret = 0;
-		break;
-	case CHIPSET_APOLLO_LAKE:
-
-		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + bios_cntl);
-		if (ret == ERROR_FATAL)
-			return ret;
-
-		/* Read SPI BAR */
-		tmp = mmio_readl((void *)dev + 0x10) & 0xfffff000;
-		msg_pdbg("SPI BAR is = 0x%x\n", tmp);
-
-		/* Map SPI BAR to virtual memory */
-		rcrb = physmap("PCH SPI BAR0", tmp, 0x4000);
-		if (rcrb == ERROR_PTR)
-			return ERROR_FATAL;
-
-		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = mmio_readl((void *)dev + bios_cntl);
-		break;
-
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_C620_SERIES_LEWISBURG:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, bios_cntl);
-		if (ret == ERROR_FATAL)
-			return ret;
-
-		/* Read SPI BAR */
-		tmp = pci_read_long(dev, 0x10) & 0xfffff000;
-		msg_pdbg("SPI BAR is = 0x%x\n", tmp);
-
-		/* Map SPI BAR to virtual memory */
-		rcrb = physmap("PCH SPI BAR0", tmp, 0x4000);
-		if (rcrb == ERROR_PTR)
-			return ERROR_FATAL;
-
-		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = pci_read_long(dev, bios_cntl);
-		break;
-	default:
-		/* Enable Flash Writes */
-		ret = enable_flash_ich_fwh(dev, ich_generation, bios_cntl);
-		if (ret == ERROR_FATAL)
-			return ret;
-
-		/* Get physical address of Root Complex Register Block */
-		tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
-		msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
-
-		/* Map RCBA to virtual memory */
-		rcrb = physmap("ICH RCRB", tmp, 0x4000);
-		if (rcrb == ERROR_PTR)
-			return ERROR_FATAL;
-
-		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = mmio_readl(rcrb + 0x3410);
-		break;
-	}
-
-	switch (ich_generation) {
-	case CHIPSET_BAYTRAIL:
-		reg_name = "GCS";
-		bild = gcs & 1;
-		top_swap = (gcs & 2) >> 1;
-		break;
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_C620_SERIES_LEWISBURG:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-	case CHIPSET_APOLLO_LAKE:
-		reg_name = "BIOS_SPI_BC";
-		bild = (gcs >> 7) & 1;
-		top_swap = (gcs >> 4) & 1;
-		break;
-	default:
-		reg_name = "GCS";
-		bild = (gcs >> 7) & 1;
-		top_swap = (gcs >> 4) & 1;
-		break;
-	}
-
-	msg_pdbg("%s = 0x%x: ", reg_name, gcs);
-	msg_pdbg("BIOS Interface Lock-Down: %sabled, ", bild ? "en" : "dis");
 
 	switch (ich_generation) {
 	case CHIPSET_TUNNEL_CREEK:
