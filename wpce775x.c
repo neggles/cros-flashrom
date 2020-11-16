@@ -106,7 +106,7 @@ struct wpce775x_initflash_cfg {
 	uint8_t flash_program;		/* Byte 0x09. Ex: JEDEC_BYTE_PROGRAM */
 
 	/* Byte 0x0A. Ex: sector/block/chip erase opcode */
-	uint8_t block_erase;	
+	uint8_t block_erase;
 
 	uint8_t status_busy_mask;	/* Byte B: bit position of BUSY bit */
 
@@ -173,7 +173,6 @@ static int nuvoton_get_sio_index(uint16_t *port)
 	uint16_t ports[] = { NUVOTON_SIO_PORT2,
 	                     NUVOTON_SIO_PORT1,
 	};
-	int i;
 	static uint16_t port_internal, port_found = 0;
 
 	if (port_found) {
@@ -184,7 +183,7 @@ static int nuvoton_get_sio_index(uint16_t *port)
 	if (rget_io_perms())
 		return 1;
 
-	for (i = 0; i < ARRAY_SIZE(ports); i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(ports); i++) {
 		uint8_t sid = sio_read(ports[i], NUVOTON_SIOCFG_SID);
 
 		if (sid == 0xfc) {  /* Family ID */
@@ -254,7 +253,7 @@ static int get_shaw2ba(chipaddr *shaw2ba)
 		*shaw2ba &= 0x0fffffff;
 		*shaw2ba |= (chipaddr)idsel << 28;
 	}
-	
+
 	sio_write(idx, NUVOTON_SIOCFG_LDN, org_ldn);
 	return 0;
 error:
@@ -356,8 +355,6 @@ static int blocked_exec(void)
  */
 static int init_flash()
 {
-	int i;
-
 	if (!initflash_cfg) {
 		msg_perr("%s(): init_flash config is not defined\n", __func__);
 		return 1;
@@ -367,7 +364,7 @@ static int init_flash()
 	/* Byte 3: command code: Init Flash */
 	wcb->code = 0x5A;
 	msg_pdbg("%s(): init_flash bytes: ", __func__);
-	for (i = 0; i < sizeof(struct wpce775x_initflash_cfg); i++) {
+	for (size_t i = 0; i < sizeof(struct wpce775x_initflash_cfg); i++) {
 		wcb->field[i] = *((uint8_t *)initflash_cfg + i);
 		msg_pdbg("%02x ", wcb->field[i]);
 	}
@@ -422,7 +419,7 @@ static int initflash_cfg_setup(const struct flashctx *flash)
 		initflash_cfg->page_size = logbase2(flash->chip->page_size);
 	else
 		initflash_cfg->page_size = 0x08;
-	
+
 	initflash_cfg->read_device_id_type = 0x00;
 
 	return 0;
@@ -530,7 +527,6 @@ static int exit_flash_update_firmware_changed(void) {
 
 static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 {
-	int offset;
         unsigned int bytes_read = 0;
 
 	assert_ec_is_free();
@@ -547,11 +543,8 @@ static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 		return 1;
 	}
 
-	for (offset = 0;
-	     offset < nbytes;
-	     offset += bytes_read) {
-		int i;
-        	unsigned int bytes_left;
+	for (unsigned int offset = 0; offset < nbytes; offset += bytes_read) {
+		unsigned int bytes_left;
 
 		bytes_left = nbytes - offset;
 		if (bytes_left > 0 && bytes_left < WPCE775X_MAX_READ_SIZE)
@@ -563,7 +556,7 @@ static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 			return 1;
 		}
 
-		for (i = 0; i < bytes_read; i++)
+		for (size_t i = 0; i < bytes_read; i++)
 			buf[offset + i] = wcb->field[i];
 	}
 
@@ -571,8 +564,7 @@ static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 }
 
 static int wpce775x_erase_new(const struct flashctx *flash, int blockaddr, uint8_t opcode) {
-	unsigned int current;
-	int blocksize;
+	unsigned int blocksize;
 	int ret = 0;
 
 	assert_ec_is_free();
@@ -629,7 +621,7 @@ static int wpce775x_erase_new(const struct flashctx *flash, int blockaddr, uint8
 
 	msg_pspew("Erasing ... 0x%08x 0x%08x\n", blockaddr, blocksize);
 
-	for (current = 0;
+	for (unsigned int current = 0;
 	     current < blocksize;
 	     current += blocksize) {
 		wcb->code = 0x80;  /* Sector/block erase */
@@ -654,7 +646,7 @@ wpce775x_erase_new_exit:
 static int wpce775x_nbyte_program(int addr, const uint8_t *buf,
                           unsigned int nbytes)
 {
-	int offset, ret = 0;
+	int ret = 0;
         unsigned int written = 0;
 
 	assert_ec_is_free();
@@ -671,11 +663,8 @@ static int wpce775x_nbyte_program(int addr, const uint8_t *buf,
 		return 1;
 	}
 
-	for (offset = 0;
-	     offset < nbytes;
-	     offset += written) {
-		int i;
-        	unsigned int bytes_left;
+	for (unsigned int offset = 0; offset < nbytes; offset += written) {
+		unsigned int bytes_left;
 
 		bytes_left = nbytes - offset;
 		if (bytes_left > 0 && bytes_left < WPCE775X_MAX_WRITE_SIZE)
@@ -684,7 +673,7 @@ static int wpce775x_nbyte_program(int addr, const uint8_t *buf,
 			written = WPCE775X_MAX_WRITE_SIZE;
 		wcb->code = 0xB0 | written;
 
-		for (i = 0; i < written; i++)
+		for (size_t i = 0; i < written; i++)
 			wcb->field[i] = buf[offset + i];
 		if (blocked_exec()) {
 			ret = 1;
@@ -723,7 +712,6 @@ static int wpce775x_spi_read_status_register(unsigned int readcnt, uint8_t *read
 {
 	uint8_t before[2];
 	int ret = 0;
-	int i;
 
 	assert_ec_is_free();
 	msg_pdbg("%s(): reading status register.\n", __func__);
@@ -738,7 +726,7 @@ static int wpce775x_spi_read_status_register(unsigned int readcnt, uint8_t *read
 	wcb->field[0] = ~initflash_cfg->status_reg_value;
 	wcb->field[1] = 0xfc;  /* set reserved bits to 1s */
 	/* save original values */
-	for (i = 0; i < ARRAY_SIZE(before); i++)
+	for (size_t i = 0; i < ARRAY_SIZE(before); i++)
 		before[i] = wcb->field[i];
 
 	wcb->code = 0x30;  /* JEDEC_RDSR */
@@ -747,7 +735,7 @@ static int wpce775x_spi_read_status_register(unsigned int readcnt, uint8_t *read
 		msg_perr("%s(): blocked_exec() returns error.\n", __func__);
 	}
 	msg_pdbg("%s(): WCB code=0x%02x field[]= ", __func__, wcb->code);
-	for (i = 0; i < readcnt; ++i) {
+	for (size_t i = 0; i < readcnt; ++i) {
 		readarr[i] = wcb->field[i];
 		msg_pdbg("%02x ", wcb->field[i]);
 	}
