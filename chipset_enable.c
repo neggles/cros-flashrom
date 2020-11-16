@@ -763,6 +763,8 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		top_swap = (gcs & 2) >> 1;
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_APOLLO_LAKE:
 		reg_name = "BIOS_SPI_BC";
 		bild = (gcs >> 7) & 1;
