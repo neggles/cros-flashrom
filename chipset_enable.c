@@ -741,28 +741,8 @@ static enum chipbustype enable_flash_ich_report_gcs(
 
 static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_generation, uint8_t bios_cntl)
 {
-	int ret = 0;
-
 	/* Get physical address of Root Complex Register Block */
-	uint32_t rcra;
-	switch (ich_generation) {
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_C620_SERIES_LEWISBURG:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
-		if (ret == ERROR_FATAL)
-			return ret;
-		rcra = pci_read_long(dev, 0x10) & 0xfffff000;
-		break;
-	default:
-		/* Handle FWH-related parameters and initialization */
-		ret = enable_flash_ich_fwh(dev, ich_generation, bios_cntl);
-		if (ret == ERROR_FATAL)
-			return ret;
-
-		rcra = pci_read_long(dev, 0xf0) & 0xffffc000;
-		break;
-	}
+	uint32_t rcra = pci_read_long(dev, 0xf0) & 0xffffc000;
 	msg_pdbg("Root Complex Register Block address = 0x%x\n", rcra);
 
 	/* Map RCBA to virtual memory */
@@ -771,6 +751,11 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		return ERROR_FATAL;
 
 	const enum chipbustype boot_buses = enable_flash_ich_report_gcs(dev, ich_generation, rcrb);
+
+	/* Handle FWH-related parameters and initialization */
+	int ret_fwh = enable_flash_ich_fwh(dev, ich_generation, bios_cntl);
+	if (ret_fwh == ERROR_FATAL)
+		return ret_fwh;
 
 	/*
 	 * It seems that the ICH7 does not support SPI and LPC chips at the same time. When booted
@@ -811,14 +796,14 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
-	if (ret || ret_spi)
-		ret = ERROR_NONFATAL;
+	if (((boot_buses & BUS_FWH) && ret_fwh) || ((boot_buses & BUS_SPI) && ret_spi))
+		return ERROR_NONFATAL;
 
 	/* Suppress unknown laptop warning if we booted from SPI. */
 	if (boot_buses & BUS_SPI)
 		laptop_ok = 1;
 
-	return ret;
+	return 0;
 }
 
 static int enable_flash_tunnelcreek(struct pci_dev *dev, const char *name)
@@ -894,10 +879,6 @@ static int enable_flash_pch9_lp(struct pci_dev *dev, const char *name)
 }
 
 /* Sunrise Point */
-static int enable_flash_sunrisepoint(struct pci_dev *dev, const char *name)
-{
-	return enable_flash_ich_spi(dev, CHIPSET_100_SERIES_SUNRISE_POINT, 0xdc);
-}
 static int enable_flash_pch100_shutdown(void *const pci_acc)
 {
 	pci_cleanup(pci_acc);
@@ -967,6 +948,11 @@ _freepci_ret:
 	return ret;
 }
 
+static int enable_flash_pch100(struct pci_dev *const dev, const char *const name)
+{
+	return enable_flash_pch100_or_c620(dev, name, 0x1f, 5, CHIPSET_100_SERIES_SUNRISE_POINT);
+}
+
 static int enable_flash_apl(struct pci_dev *const dev, const char *const name)
 {
 	return enable_flash_pch100_or_c620(dev, name, 0x0d, 2, CHIPSET_APOLLO_LAKE);
@@ -985,7 +971,6 @@ static int enable_flash_apl(struct pci_dev *const dev, const char *const name)
 static int enable_flash_silvermont(struct pci_dev *dev, const char *name)
 {
 	enum ich_chipset ich_generation = CHIPSET_BAYTRAIL;
-	int ret = 0;
 
 	/* Get physical address of Root Complex Register Block */
 	uint32_t rcba = pci_read_long(dev, 0xf0) & 0xfffffc00;
@@ -1021,14 +1006,14 @@ static int enable_flash_silvermont(struct pci_dev *dev, const char *name)
 	if (ret_spi == ERROR_FATAL)
 		return ret_spi;
 
-	if (ret || ret_spi)
-		ret = ERROR_NONFATAL;
+	if (((boot_buses & BUS_FWH) && ret_fwh) || ((boot_buses & BUS_SPI) && ret_spi))
+		return ERROR_NONFATAL;
 
 	/* Suppress unknown laptop warning if we booted from SPI. */
 	if (boot_buses & BUS_SPI)
 		laptop_ok = 1;
 
-	return ret;
+	return 0;
 }
 
 static int via_no_byte_merge(struct pci_dev *dev, const char *name)
@@ -1947,20 +1932,20 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x9cc7, B_FS,   NT,  "Intel", "Broadwell Y Premium",		enable_flash_pch9_lp},
 	{0x8086, 0x9cc9, B_FS,   NT,  "Intel", "Broadwell Y Base",		enable_flash_pch9_lp},
 	{0x8086, 0x9ccb, B_FS,   NT,  "Intel", "Broadwell H",			enable_flash_pch9},
-	{0x8086, 0x9d24, B_FS,   OK, "Intel", "Skylake",			enable_flash_sunrisepoint},
-	{0x8086, 0xa224, B_FS,   OK, "Intel", "Lewisburg",			enable_flash_sunrisepoint},
+	{0x8086, 0x9d24, B_FS,   OK, "Intel", "Skylake",			enable_flash_pch100},
+	{0x8086, 0xa224, B_FS,   OK, "Intel", "Lewisburg",			enable_flash_pch100},
 	/*
 	 * TODO(b/173164205): Merged with upstream.
 	 */
 	{0x8086, 0x5af0, B_FS,    OK, "Intel", "Apollolake",			enable_flash_apl},
 	{0x8086, 0x31f0, B_FS,    OK, "Intel", "Geminilake",			enable_flash_apl},
-	{0x8086, 0x9da4, B_FS,    OK, "Intel", "Cannonlake",			enable_flash_sunrisepoint},
-	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_sunrisepoint},
-	{0x8086, 0x02a4, B_FS,    OK, "Intel", "Cometlake",			enable_flash_sunrisepoint},
-	{0x8086, 0x4da4, B_FS,    OK, "Intel", "Jasperlake",			enable_flash_sunrisepoint},
-	{0x8086, 0xa0a4, B_FS,    OK, "Intel", "Tigerlake",			enable_flash_sunrisepoint},
-	{0x8086, 0x7aa4, B_FS,     OK, "Intel", "Alderlake-S",			enable_flash_sunrisepoint},
-	{0x8086, 0x51a4, B_FS,     OK, "Intel", "Alderlake-P",			enable_flash_sunrisepoint},
+	{0x8086, 0x9da4, B_FS,    OK, "Intel", "Cannonlake",			enable_flash_pch100},
+	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_pch100},
+	{0x8086, 0x02a4, B_FS,    OK, "Intel", "Cometlake",			enable_flash_pch100},
+	{0x8086, 0x4da4, B_FS,    OK, "Intel", "Jasperlake",			enable_flash_pch100},
+	{0x8086, 0xa0a4, B_FS,    OK, "Intel", "Tigerlake",			enable_flash_pch100},
+	{0x8086, 0x7aa4, B_FS,     OK, "Intel", "Alderlake-S",			enable_flash_pch100},
+	{0x8086, 0x51a4, B_FS,     OK, "Intel", "Alderlake-P",			enable_flash_pch100},
 #endif
 	{0},
 };
