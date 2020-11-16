@@ -290,7 +290,7 @@ static int enable_flash_ich_bios_cntl_common(enum ich_chipset ich_generation, vo
 	case CHIPSET_BAYTRAIL:
 	case CHIPSET_ICH7:
 	default: /* Future version might behave the same */
-		if (ich_generation == CHIPSET_BAYTRAIL || ich_generation == CHIPSET_APOLLO_LAKE)
+		if (ich_generation == CHIPSET_BAYTRAIL)
 			old = (mmio_readl(addr) >> 2) & 0x3;
 		else
 			old = (pci_read_byte(dev, bios_cntl) >> 2) & 0x3;
@@ -303,7 +303,7 @@ static int enable_flash_ich_bios_cntl_common(enum ich_chipset ich_generation, vo
 				     (old & 0x1) ? "dis" : "en");
 	}
 
-	if (ich_generation == CHIPSET_BAYTRAIL || ich_generation == CHIPSET_APOLLO_LAKE)
+	if (ich_generation == CHIPSET_BAYTRAIL)
 		wanted = old = mmio_readl(addr);
 	else
 		wanted = old = pci_read_byte(dev, bios_cntl);
@@ -337,7 +337,7 @@ static int enable_flash_ich_bios_cntl_common(enum ich_chipset ich_generation, vo
 
 	/* Only write the register if it's necessary */
 	if (wanted != old) {
-		if (ich_generation == CHIPSET_BAYTRAIL || ich_generation == CHIPSET_APOLLO_LAKE) {
+		if (ich_generation == CHIPSET_BAYTRAIL) {
 			rmmio_writel(wanted, addr);
 			new = mmio_readl(addr);
 		} else {
@@ -601,10 +601,7 @@ static enum chipbustype enable_flash_ich_report_gcs(
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_APOLLO_LAKE:
 		reg_name = "BIOS_SPI_BC";
-		if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT)
-			gcs = pci_read_long(dev, 0xdc);
-		else
-			gcs = mmio_readl((void *)dev + 0xdc);
+		gcs = pci_read_long(dev, 0xdc);
 		bild = (gcs >> 7) & 1;
 		top_swap = (gcs >> 4) & 1;
 		break;
@@ -750,12 +747,6 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	/* Get physical address of Root Complex Register Block */
 	uint32_t rcra;
 	switch (ich_generation) {
-	case CHIPSET_APOLLO_LAKE:
-		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + 0xdc);
-		if (ret == ERROR_FATAL)
-			return ret;
-		rcra = mmio_readl((void *)dev + 0x10) & 0xfffff000;
-		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
@@ -908,20 +899,78 @@ static int enable_flash_sunrisepoint(struct pci_dev *dev, const char *name)
 {
 	return enable_flash_ich_spi(dev, CHIPSET_100_SERIES_SUNRISE_POINT, 0xdc);
 }
-
-static int enable_flash_apl(struct pci_dev *dev, const char *name)
+static int enable_flash_pch100_shutdown(void *const pci_acc)
 {
-	uint32_t addr = (0xe0000000 | (0xd << 15) | (0x2 << 12));
+	pci_cleanup(pci_acc);
+	return 0;
+}
 
-	void *spicfg = physmap("SPI PCI CONFIG", addr, 0x1000);
-	if (spicfg == ERROR_PTR)
-		return ERROR_FATAL;
+static int enable_flash_pch100_or_c620(
+		struct pci_dev *const dev, const char *const name,
+		const int slot, const int func, const enum ich_chipset pch_generation)
+{
+	int ret = ERROR_FATAL;
 
-	msg_pdbg("Vendor ID: %x, Device ID: %x, BAR: %x\n",
-		 mmio_readw(spicfg + 0x0), mmio_readw(spicfg + 0x2),
-		 mmio_readl(spicfg + 0x10));
+	/*
+	 * The SPI PCI device is usually hidden (by hiding PCI vendor
+	 * and device IDs). So we need a PCI access method that works
+	 * even when the OS doesn't know the PCI device. We can't use
+	 * this method globally since it would bring along other con-
+	 * straints (e.g. on PCI domains, extended PCIe config space).
+	 */
+	struct pci_access *const pci_acc = pci_alloc();
+	struct pci_access *const saved_pacc = pacc;
+	if (!pci_acc) {
+		msg_perr("Can't allocate PCI accessor.\n");
+		return ret;
+	}
+	pci_acc->method = PCI_ACCESS_I386_TYPE1;
+	pci_init(pci_acc);
+	register_shutdown(enable_flash_pch100_shutdown, pci_acc);
 
-	return enable_flash_ich_spi(spicfg, CHIPSET_APOLLO_LAKE, 0xdc);
+	struct pci_dev *const spi_dev = pci_get_dev(pci_acc, dev->domain, dev->bus, slot, func);
+	if (!spi_dev) {
+		msg_perr("Can't allocate PCI device.\n");
+		return ret;
+	}
+
+	/* Modify pacc so the rpci_write can register the undo callback with a
+	 * device using the correct pci_access */
+	pacc = pci_acc;
+	const enum chipbustype boot_buses = enable_flash_ich_report_gcs(spi_dev, pch_generation, NULL);
+
+	const int ret_bc = enable_flash_ich_bios_cntl_config_space(spi_dev, pch_generation, 0xdc);
+	if (ret_bc == ERROR_FATAL)
+		goto _freepci_ret;
+
+	const uint32_t phys_spibar = pci_read_long(spi_dev, PCI_BASE_ADDRESS_0) & 0xfffff000;
+	void *const spibar = rphysmap("SPIBAR", phys_spibar, 0x1000);
+	if (spibar == ERROR_PTR)
+		goto _freepci_ret;
+	msg_pdbg("SPIBAR = 0x%0*" PRIxPTR " (phys = 0x%08x)\n", PRIxPTR_WIDTH, (uintptr_t)spibar, phys_spibar);
+
+	/* This adds BUS_SPI */
+	const int ret_spi = ich_init_spi(spibar, pch_generation);
+	if (ret_spi != ERROR_FATAL) {
+		if (ret_bc || ret_spi)
+			ret = ERROR_NONFATAL;
+		else
+			ret = 0;
+	}
+
+	/* Suppress unknown laptop warning if we booted from SPI. */
+	if (!ret && (boot_buses & BUS_SPI))
+		laptop_ok = 1;
+
+_freepci_ret:
+	pci_free_dev(spi_dev);
+	pacc = saved_pacc;
+	return ret;
+}
+
+static int enable_flash_apl(struct pci_dev *const dev, const char *const name)
+{
+	return enable_flash_pch100_or_c620(dev, name, 0x0d, 2, CHIPSET_APOLLO_LAKE);
 }
 
 /* Silvermont architecture: Bay Trail(-T/-I), Avoton/Rangeley.
@@ -1902,11 +1951,7 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x9d24, B_FS,   OK, "Intel", "Skylake",			enable_flash_sunrisepoint},
 	{0x8086, 0xa224, B_FS,   OK, "Intel", "Lewisburg",			enable_flash_sunrisepoint},
 	/*
-	 * Currently, on Apollolake platform, the SPI PCI device is hidden in
-	 * the OS. Thus, flashrom is not able to find the SPI device while
-	 * walking the PCI tree. Instead use the PCI ID of APL host bridge. In
-	 * the callback for enabling APL flash, use mmio-based access to mmap
-	 * SPI PCI device and work with it.
+	 * TODO(b/173164205): Merged with upstream.
 	 */
 	{0x8086, 0x5af0, B_FS,    OK, "Intel", "Apollolake",			enable_flash_apl},
 	{0x8086, 0x31f0, B_FS,    OK, "Intel", "Geminilake",			enable_flash_apl},
