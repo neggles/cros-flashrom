@@ -245,50 +245,6 @@ static int it85xx_shutdown(void *data)
 	return 0;	/* FIXME: Should probably return something meaningful */
 }
 
-static int it85xx_spi_common_init(struct superio s)
-{
-	chipaddr base;
-
-	msg_pdbg("%s():%d superio.vendor=0x%02x\n", __func__, __LINE__,
-	         s.vendor);
-
-	if (register_shutdown(it85xx_shutdown, NULL))
-		return 1;
-
-#ifdef LPC_IO
-	/* Get LPCPNP of SHM. That's big-endian. */
-	sio_write(s.port, LDNSEL, 0x0F); /* Set LDN to SHM (0x0F) */
-	shm_io_base = (sio_read(s.port, SHM_IO_BAR0) << 8) +
-	              sio_read(s.port, SHM_IO_BAR1);
-	msg_pdbg("%s():%d shm_io_base=0x%04x\n", __func__, __LINE__,
-	         shm_io_base);
-
-	/* These pointers are not used directly. They will be send to EC's
-	 * register for indirect access. */
-	base = 0xFFFFF000;
-	ce_high = ((unsigned char *)base) + 0xE00;  /* 0xFFFFFE00 */
-	ce_low = ((unsigned char *)base) + 0xD00;  /* 0xFFFFFD00 */
-
-	/* pre-set indirect-access registers since in most of cases they are
-	 * 0xFFFFxx00. */
-	INDIRECT_A0(shm_io_base, base & 0xFF);
-	INDIRECT_A2(shm_io_base, (base >> 16) & 0xFF);
-	INDIRECT_A3(shm_io_base, (base >> 24));
-#endif
-#ifdef LPC_MEMORY
-	/* FIXME: We should block accessing that region for anything else.
-	 * Major TODO here, and it will be a lot of work.
-	 */
-	base = (chipaddr)physmap("it85 communication", 0xFFFFF000, 0x1000);
-	msg_pdbg("%s():%d base=0x%08x\n", __func__, __LINE__,
-	         (unsigned int)base);
-	ce_high = (unsigned char *)(base + 0xE00);  /* 0xFFFFFE00 */
-	ce_low = (unsigned char *)(base + 0xD00);  /* 0xFFFFFD00 */
-#endif
-
-	return 0;
-}
-
 /* According to ITE 8502 document, the procedure to follow mode is following:
  *   1. write 0x00 to LPC/FWH address 0xffff_fexxh (drive CE# high)
  *   2. write data to LPC/FWH address 0xffff_fdxxh (drive CE# low and MOSI
@@ -424,6 +380,50 @@ static int check_params(void)
 
 	free(p);
 	return ret;
+}
+
+static int it85xx_spi_common_init(struct superio s)
+{
+	chipaddr base;
+
+	msg_pdbg("%s():%d superio.vendor=0x%02x\n", __func__, __LINE__,
+	         s.vendor);
+
+	if (register_shutdown(it85xx_shutdown, NULL))
+		return 1;
+
+#ifdef LPC_IO
+	/* Get LPCPNP of SHM. That's big-endian. */
+	sio_write(s.port, LDNSEL, 0x0F); /* Set LDN to SHM (0x0F) */
+	shm_io_base = (sio_read(s.port, SHM_IO_BAR0) << 8) +
+	              sio_read(s.port, SHM_IO_BAR1);
+	msg_pdbg("%s():%d shm_io_base=0x%04x\n", __func__, __LINE__,
+	         shm_io_base);
+
+	/* These pointers are not used directly. They will be send to EC's
+	 * register for indirect access. */
+	base = 0xFFFFF000;
+	ce_high = ((unsigned char *)base) + 0xE00;  /* 0xFFFFFE00 */
+	ce_low = ((unsigned char *)base) + 0xD00;  /* 0xFFFFFD00 */
+
+	/* pre-set indirect-access registers since in most of cases they are
+	 * 0xFFFFxx00. */
+	INDIRECT_A0(shm_io_base, base & 0xFF);
+	INDIRECT_A2(shm_io_base, (base >> 16) & 0xFF);
+	INDIRECT_A3(shm_io_base, (base >> 24));
+#endif
+#ifdef LPC_MEMORY
+	/* FIXME: We should block accessing that region for anything else.
+	 * Major TODO here, and it will be a lot of work.
+	 */
+	base = (chipaddr)physmap("it85 communication", 0xFFFFF000, 0x1000);
+	msg_pdbg("%s():%d base=0x%08x\n", __func__, __LINE__,
+	         (unsigned int)base);
+	ce_high = (unsigned char *)(base + 0xE00);  /* 0xFFFFFE00 */
+	ce_low = (unsigned char *)(base + 0xD00);  /* 0xFFFFFD00 */
+#endif
+
+	return 0;
 }
 
 int it8518_spi_init(struct superio s)
