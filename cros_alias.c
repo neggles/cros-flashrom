@@ -42,19 +42,30 @@ int cros_ec_alias_init(void)
 	if (!cros_ec_probe_dev()) {
 		return 0;
 	}
+
 #if defined(__i386__) || defined(__x86_64__)
-	if (wpce775x_probe_spi_flash(NULL)
+/* TODO: wpce775x needs CONFIG_ guards. */
+	if (!wpce775x_probe_spi_flash(NULL)) {
+		msg_cdbg("legacy x86 EC: wpce775x found!\n");
+		return 0;
+	}
 #if CONFIG_MEC1308 == 1
-		&& mec1308_init()
+	if (!mec1308_init()) {
+		msg_cdbg("legacy x86 EC: mec1308 found!\n");
+		return 0;
+	}
 #endif
 #if CONFIG_ENE_LPC == 1
-		&& ene_lpc_init()
+	if (!ene_lpc_init()) {
+		msg_cdbg("legacy x86 EC: ene_lpc found!\n");
+		return 0;
+	}
 #endif
-		)
-		return 1;	/* EC not found */
-#endif /* __i386__ || __x86_64__ */
-
+	msg_cdbg("legacy x86 EC not found!\n");
+	return 1;	/* EC not found */
+#else
 	return 0;
+#endif /* !__i386__ || __x86_64__ */
 }
 
 int cros_host_alias_init(void)
