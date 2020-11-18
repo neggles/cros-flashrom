@@ -81,9 +81,6 @@ struct __attribute__((packed)) wpce775x_wcb {
 	uint8_t field[12];
 };
 
-/* The physical address of WCB -- Shared Access Window 2. */
-static chipaddr wcb_physical_address;
-
 /* The virtual address of WCB -- Shared Access Window 2. */
 static volatile struct wpce775x_wcb *volatile wcb;
 
@@ -897,6 +894,7 @@ static int wpce775x_spi_common_init(void)
 	chipset_flash_enable();
 
 	/* get the address of Shadow Window 2. */
+	chipaddr wcb_physical_address;
 	if (get_shaw2ba(&wcb_physical_address) < 0) {
 		msg_pdbg("Cannot get the address of Shadow Window 2");
 		return 1;
