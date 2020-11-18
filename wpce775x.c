@@ -63,10 +63,10 @@
 struct __attribute__((packed)) wpce775x_wcb {
 	/* Byte 0: semaphore byte */
 	uint8_t exe:1;  /* Bit0-RW- set by host. means wcb is ready to execute.
-	                         should be cleared by host after RDY=1. */
+	                   should be cleared by host after RDY=1. */
 	uint8_t resv0_41:4;
 	uint8_t pcp:1;  /* Bit5-RO- set by EPCE775x. means preparation operations for
-	                         flash update process is complete. */
+	                   flash update process is complete. */
 	uint8_t err:1;  /* Bit6-RO- set by EPCE775x. means an error occurs. */
 	uint8_t rdy:1;  /* Bit7-RO- set by EPCE775x. means operation is completed. */
 
@@ -427,8 +427,8 @@ static int initflash_cfg_setup(const struct flashctx *flash)
  *  @return 1 for error; 0 for success.
  */
 static int read_id(const struct flashctx *flash,
-	          uint8_t* id0, uint8_t* id1,
-	          uint8_t* id2, uint8_t* id3)
+	           uint8_t* id0, uint8_t* id1,
+	           uint8_t* id2, uint8_t* id3)
 {
 	if (!initflash_cfg) {
 		initflash_cfg_setup(flash);
@@ -475,12 +475,11 @@ static int enter_flash_update()
 	wcb->field[1] = 0xAA;  /* required pattern by EC */
 	wcb->field[2] = 0xCD;  /* required pattern by EC */
 	wcb->field[3] = 0xBE;  /* required pattern by EC */
-	if (blocked_exec()) {
+	if (blocked_exec())
 		return 1;
-	} else {
-		in_flash_update_mode = 1;
-		return 0;
-	}
+
+	in_flash_update_mode = 1;
+	return 0;
 }
 
 /** Tell EC to "exit flash update" mode.
@@ -500,9 +499,8 @@ static int exit_flash_update(uint8_t exit_code)
 	}
 
 	wcb->code = exit_code;  /* Exit Flash Update */
-	if (blocked_exec()) {
+	if (blocked_exec())
 		return 1;
-	}
 
 	in_flash_update_mode = 0;
 	return 0;
@@ -536,9 +534,8 @@ static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 	wcb->field[1] = (addr >> 8) & 0xff;
 	wcb->field[2] = (addr >> 16) & 0xff;
 	wcb->field[3] = (addr >> 24) & 0xff;
-	if (blocked_exec()) {
+	if (blocked_exec())
 		return 1;
-	}
 
 	for (unsigned int offset = 0; offset < nbytes; offset += bytes_read) {
 		unsigned int bytes_left;
@@ -549,9 +546,8 @@ static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 		else
 			bytes_read = WPCE775X_MAX_READ_SIZE;
 		wcb->code = 0xD0 | bytes_read;
-		if (blocked_exec()) {
+		if (blocked_exec())
 			return 1;
-		}
 
 		for (size_t i = 0; i < bytes_read; i++)
 			buf[offset + i] = wcb->field[i];
@@ -560,7 +556,9 @@ static int wpce775x_read(int addr, uint8_t *buf, unsigned int nbytes)
 	return 0;
 }
 
-static int wpce775x_erase_new(const struct flashctx *flash, int blockaddr, uint8_t opcode) {
+static int wpce775x_erase_new(const struct flashctx *flash, int blockaddr,
+			      uint8_t opcode)
+{
 	unsigned int blocksize;
 	int ret = 0;
 
@@ -656,9 +654,8 @@ static int wpce775x_nbyte_program(int addr, const uint8_t *buf,
 	wcb->field[1] = (addr >> 8) & 0xff;
 	wcb->field[2] = (addr >> 16) & 0xff;
 	wcb->field[3] = (addr >> 24) & 0xff;
-	if (blocked_exec()) {
+	if (blocked_exec())
 		return 1;
-	}
 
 	for (unsigned int offset = 0; offset < nbytes; offset += written) {
 		unsigned int bytes_left;
@@ -684,7 +681,7 @@ wpce775x_nbyte_program_exit:
 }
 
 static int wpce775x_spi_read(struct flashctx *flash, uint8_t * buf,
-                      unsigned int start, unsigned int len)
+                             unsigned int start, unsigned int len)
 {
 	if (!initflash_cfg) {
 		initflash_cfg_setup(flash);
@@ -695,7 +692,7 @@ static int wpce775x_spi_read(struct flashctx *flash, uint8_t * buf,
 }
 
 static int wpce775x_spi_write_256(struct flashctx *flash, const uint8_t *buf,
-                           unsigned int start, unsigned int len)
+                                  unsigned int start, unsigned int len)
 {
 	if (!initflash_cfg) {
 		initflash_cfg_setup(flash);
