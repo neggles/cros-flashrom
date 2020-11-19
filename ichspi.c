@@ -1461,6 +1461,20 @@ static int ich_hwseq_wait_for_cycle_complete(unsigned int timeout,
 	return 0;
 }
 
+/* Given RDID info, return pointer to entry in flashchips[] */
+static const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model_id)
+{
+	const struct flashchip *chip;
+
+	for (chip = &flashchips[0]; chip->vendor; chip++) {
+		if ((chip->manufacture_id == mfg_id) &&
+			(chip->model_id == model_id))
+			return chip;
+	}
+
+	return NULL;
+}
+
 static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_gen)
 {
 	uint32_t hsfsc, data, mfg_id, model_id;

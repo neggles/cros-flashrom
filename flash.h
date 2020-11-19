@@ -289,9 +289,6 @@ struct flashctx {
 };
 
 
-/* Given RDID info, return pointer to entry in flashchips[] */
-const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model_id);
-
 /* Timing used in probe routines. ZERO is -2 to differentiate between an unset
  * field and zero delay.
  *

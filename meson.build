@@ -341,7 +341,6 @@ srcs += 's25f.c'
 srcs += 'spi4ba.c'
 srcs += 'stm50flw0x0x.c'
 srcs += 'action_descriptor.c'
-srcs += 'flashchips_hwseq.c'
 srcs += 'writeprotect.c'
 ###
 

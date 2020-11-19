@@ -650,7 +650,7 @@ CHIP_OBJS = jedec.o stm50.o w39.o w29ee011.o \
 	sst28sf040.o 82802ab.o \
 	sst49lfxxxc.o sst_fwhub.o edi.o flashchips.o spi.o spi25.o spi25_statusreg.o \
 	spi95.o opaque.o sfdp.o en29lv640b.o at45db.o writeprotect.o \
-	stm50flw0x0x.o flashchips_hwseq.o sharplhf00l04.o s25f.o m29f400bt.o spi4ba.o
+	stm50flw0x0x.o sharplhf00l04.o s25f.o m29f400bt.o spi4ba.o
 
 ###############################################################################
 # Library code.
