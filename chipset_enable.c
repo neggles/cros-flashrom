@@ -720,6 +720,8 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		break;
 
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
 		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, bios_cntl);
 		if (ret == ERROR_FATAL)
 			return ret;
