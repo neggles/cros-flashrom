@@ -485,10 +485,5 @@ int spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsign
 		const unsigned char *writearr, unsigned char *readarr);
 int spi_send_multicommand(const struct flashctx *flash, struct spi_command *cmds);
 
-#define NUM_VOLTAGE_RANGES	16
-extern struct voltage_range voltage_ranges[];
-/* returns number of unique voltage ranges, or <0 to indicate failure */
-extern int flash_supported_voltage_ranges(enum chipbustype bus);
-
 enum chipbustype get_buses_supported(void);
 #endif				/* !__FLASH_H__ */
