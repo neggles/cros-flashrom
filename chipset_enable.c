@@ -582,58 +582,12 @@ static int enable_flash_poulsbo(struct pci_dev *dev, const char *name)
 	return enable_flash_ich_fwh(dev, CHIPSET_POULSBO, 0xd8);
 }
 
-static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_generation,
-				uint8_t bios_cntl)
+static enum chipbustype enable_flash_ich_report_gcs(
+		struct pci_dev *const dev, const enum ich_chipset ich_generation, const uint8_t *const rcrb)
 {
-	int ret;
-	uint8_t bbs;
-	uint32_t tmp, gcs;
-	void *rcrb;
+	uint32_t gcs;
 	const char *reg_name;
 	bool bild, top_swap;
-
-	switch (ich_generation) {
-	case CHIPSET_BAYTRAIL:
-		/* Get physical address of Root Complex Register Block */
-		tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
-		msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
-		ret = 0;
-		break;
-	case CHIPSET_APOLLO_LAKE:
-		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + 0xdc);
-		if (ret == ERROR_FATAL)
-			return ret;
-
-		/* Read SPI BAR */
-		tmp = mmio_readl((void *)dev + 0x10) & 0xfffff000;
-		msg_pdbg("SPI BAR is = 0x%x\n", tmp);
-		break;
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_C620_SERIES_LEWISBURG:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
-		if (ret == ERROR_FATAL)
-			return ret;
-
-		/* Read SPI BAR */
-		tmp = pci_read_long(dev, 0x10) & 0xfffff000;
-		msg_pdbg("SPI BAR is = 0x%x\n", tmp);
-		break;
-	default:
-		/* Enable Flash Writes */
-		ret = enable_flash_ich_fwh(dev, ich_generation, bios_cntl);
-		if (ret == ERROR_FATAL)
-			return ret;
-
-		/* Get physical address of Root Complex Register Block */
-		tmp = pci_read_long(dev, 0xf0) & 0xffffc000;
-		msg_pdbg("Root Complex Register Block address = 0x%x\n", tmp);
-		break;
-	}
-	/* Map RCBA to virtual memory */
-	rcrb = physmap("ICH RCRB", tmp, 0x4000);
-	if (rcrb == ERROR_PTR)
-		return ERROR_FATAL;
 
 	switch (ich_generation) {
 	case CHIPSET_BAYTRAIL:
@@ -759,6 +713,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		break;
 	}
 
+	uint8_t bbs;
 	switch (ich_generation) {
 	case CHIPSET_TUNNEL_CREEK:
 		bbs = (gcs >> 1) & 0x1;
@@ -785,25 +740,56 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	if (ich_generation != CHIPSET_TUNNEL_CREEK && ich_generation != CHIPSET_CENTERTON)
 		msg_pdbg("Top Swap: %s\n", (top_swap) ? "enabled (A16(+) inverted)" : "not enabled");
 
-	if (ich_generation == CHIPSET_BAYTRAIL)
-		return ret;
+	return boot_straps[bbs].bus;
+}
+
+static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_generation, uint8_t bios_cntl)
+{
+	int ret = 0;
+
+	/* Get physical address of Root Complex Register Block */
+	uint32_t rcra;
+	switch (ich_generation) {
+	case CHIPSET_APOLLO_LAKE:
+		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + 0xdc);
+		if (ret == ERROR_FATAL)
+			return ret;
+		rcra = mmio_readl((void *)dev + 0x10) & 0xfffff000;
+		break;
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_C620_SERIES_LEWISBURG:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
+		if (ret == ERROR_FATAL)
+			return ret;
+		rcra = pci_read_long(dev, 0x10) & 0xfffff000;
+		break;
+	default:
+		/* Handle FWH-related parameters and initialization */
+		ret = enable_flash_ich_fwh(dev, ich_generation, bios_cntl);
+		if (ret == ERROR_FATAL)
+			return ret;
+
+		rcra = pci_read_long(dev, 0xf0) & 0xffffc000;
+		break;
+	}
+	msg_pdbg("Root Complex Register Block address = 0x%x\n", rcra);
+
+	/* Map RCBA to virtual memory */
+	void *rcrb = rphysmap("ICH RCRB", rcra, 0x4000);
+	if (rcrb == ERROR_PTR)
+		return ERROR_FATAL;
+
+	const enum chipbustype boot_buses = enable_flash_ich_report_gcs(dev, ich_generation, rcrb);
 
 	/*
 	 * It seems that the ICH7 does not support SPI and LPC chips at the same time. When booted
 	 * from LPC, the SCIP bit will never clear, which causes long delays and many error messages.
 	 * To avoid this, we will not enable SPI on ICH7 when the southbridge is strapped to LPC.
 	 */
-	internal_buses_supported &= BUS_FWH;
-	if (ich_generation == CHIPSET_ICH7) {
-		if (bbs == 0x03) {
-			/* If strapped to LPC, no further SPI initialization is
-			 * required. */
-			return ret;
-		} else {
-			/* Disable LPC/FWH if strapped to PCI or SPI */
-			internal_buses_supported &= BUS_NONE;
-		}
-	}
+	if (ich_generation == CHIPSET_ICH7 && (boot_buses & BUS_LPC))
+		return 0;
+
 	/* SPIBAR is at RCRB+0x3020 for ICH[78], Tunnel Creek and Centerton, and RCRB+0x3800 for ICH9. */
 	uint16_t spibar_offset;
 	switch (ich_generation) {
@@ -837,6 +823,10 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 
 	if (ret || ret_spi)
 		ret = ERROR_NONFATAL;
+
+	/* Suppress unknown laptop warning if we booted from SPI. */
+	if (boot_buses & BUS_SPI)
+		laptop_ok = 1;
 
 	return ret;
 }
@@ -947,6 +937,18 @@ static int enable_flash_apl(struct pci_dev *dev, const char *name)
 static int enable_flash_silvermont(struct pci_dev *dev, const char *name)
 {
 	enum ich_chipset ich_generation = CHIPSET_BAYTRAIL;
+	int ret = 0;
+
+	/* Get physical address of Root Complex Register Block */
+	uint32_t rcba = pci_read_long(dev, 0xf0) & 0xfffffc00;
+	msg_pdbg("Root Complex Register Block address = 0x%x\n", rcba);
+
+	/* Handle GCS (in RCRB) */
+	void *rcrb = physmap("BYT RCRB", rcba, 4);
+	if (rcrb == ERROR_PTR)
+		return ERROR_FATAL;
+	const enum chipbustype boot_buses = enable_flash_ich_report_gcs(dev, ich_generation, rcrb);
+	physunmap(rcrb, 4);
 
 	/* Handle fwh_idsel parameter */
 	int ret_fwh = enable_flash_ich_fwh_decode(dev, ich_generation);
@@ -954,8 +956,6 @@ static int enable_flash_silvermont(struct pci_dev *dev, const char *name)
 		return ret_fwh;
 
 	internal_buses_supported &= BUS_FWH;
-
-	int ret = enable_flash_ich_spi(dev, ich_generation, 0);
 
 	/* Get physical address of SPI Base Address and map it */
 	uint32_t sbase = pci_read_long(dev, 0x54) & 0xfffffe00;
@@ -975,6 +975,10 @@ static int enable_flash_silvermont(struct pci_dev *dev, const char *name)
 
 	if (ret || ret_spi)
 		ret = ERROR_NONFATAL;
+
+	/* Suppress unknown laptop warning if we booted from SPI. */
+	if (boot_buses & BUS_SPI)
+		laptop_ok = 1;
 
 	return ret;
 }
@@ -1538,12 +1542,12 @@ static int enable_flash_mcp6x_7x(struct pci_dev *dev, const char *name)
 		/* SPI is added in mcp6x_spi_init if it works.
 		 * Do we really want to disable LPC in this case?
 		 */
-		internal_buses_supported &= BUS_NONE;
+		internal_buses_supported = BUS_NONE;
 		msg_pdbg("Flash bus type is SPI\n");
 		break;
 	default:
 		/* Should not happen. */
-		internal_buses_supported &= BUS_NONE;
+		internal_buses_supported = BUS_NONE;
 		msg_pwarn("Flash bus type is unknown (none)\n");
 		msg_pinfo("Please send the log files created by \"flashrom -p internal -o logfile\" to\n"
 			  "flashrom@flashrom.org with \"your board name: flashrom -V\" as the subject to\n"
@@ -1560,6 +1564,10 @@ static int enable_flash_mcp6x_7x(struct pci_dev *dev, const char *name)
 
 	if (mcp6x_spi_init(want_spi))
 		ret = 1;
+
+	/* Suppress unknown laptop warning if we booted from SPI. */
+	if (!ret && want_spi)
+		laptop_ok = 1;
 
 	return ret;
 }
