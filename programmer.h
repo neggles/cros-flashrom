@@ -811,9 +811,6 @@ typedef int fdtype;
 #define SER_INV_FD	-1
 #endif
 
-/* wpce775x.c */
-int wpce775x_probe_spi_flash(const char *name);
-
 /**
  * Probe the Google Chrome OS EC device
  *

@@ -877,7 +877,6 @@ FEATURE_CFLAGS += -D'CONFIG_INTERNAL=1'
 PROGRAMMER_OBJS += processor_enable.o chipset_enable.o board_enable.o cbtable.o internal.o
 ifeq ($(ARCH), x86)
 PROGRAMMER_OBJS += it87spi.o it85spi.o sb600spi.o amd_imc.o wbsio_spi.o mcp6x_spi.o
-PROGRAMMER_OBJS += wpce775x.o
 PROGRAMMER_OBJS += ichspi.o dmi.o
 ifeq ($(CONFIG_INTERNAL_DMI), yes)
 FEATURE_CFLAGS += -D'CONFIG_INTERNAL_DMI=1'

@@ -44,11 +44,6 @@ int cros_ec_alias_init(void)
 	}
 
 #if defined(__i386__) || defined(__x86_64__)
-/* TODO: wpce775x needs CONFIG_ guards. */
-	if (!wpce775x_probe_spi_flash(NULL)) {
-		msg_cdbg("legacy x86 EC: wpce775x found!\n");
-		return 0;
-	}
 #if CONFIG_MEC1308 == 1
 	if (!mec1308_init()) {
 		msg_cdbg("legacy x86 EC: mec1308 found!\n");
