@@ -455,6 +455,7 @@ int dummy_init(void)
 		free(tmp);
 		return 1;
 	}
+	free(tmp);
 
 	/* Should emulated flash erase to zero (yes/no)? */
 	tmp = extract_programmer_param("erase_to_zero");
@@ -466,11 +467,12 @@ int dummy_init(void)
 			msg_pdbg("Emulated chip will erase to 0xff\n");
 		} else {
 			msg_perr("erase_to_zero can be \"yes\" or \"no\"\n");
+			free(tmp);
 			return 1;
 		}
 	}
-
 	free(tmp);
+
 	flashchip_contents = malloc(data->emu_chip_size);
 	if (!flashchip_contents) {
 		msg_perr("Out of memory!\n");
