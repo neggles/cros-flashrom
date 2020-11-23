@@ -377,7 +377,6 @@ static int lspcon_i2c_spi_write_256(struct flashctx *flash, const uint8_t *buf,
 				unsigned int start, unsigned int len)
 {
 	int ret = 0;
-	unsigned int i;
 	if (start & 0xff)
 		return default_spi_write_256(flash, buf, start, len);
 
@@ -390,7 +389,7 @@ static int lspcon_i2c_spi_write_256(struct flashctx *flash, const uint8_t *buf,
 	ret |= lspcon_i2c_spi_enable_hw_write(fd);
 	ret |= lspcon_i2c_clt2_spi_reset(fd);
 
-	for (i = 0; i < len; i += PAGE_SIZE) {
+	for (unsigned int i = 0; i < len; i += PAGE_SIZE) {
 		ret |= lspcon_i2c_spi_map_page(fd, start + i);
 		ret |= lspcon_i2c_spi_write_page(fd, buf + i, min(len - i, PAGE_SIZE));
 	}
