@@ -337,13 +337,8 @@ static int spi_simple_write_cmd(struct flashctx *const flash, const uint8_t op, 
 	};
 
 	const int result = spi_send_multicommand(flash, cmds);
-	if (result) {
+	if (result)
 		msg_cerr("%s failed during command execution\n", __func__);
-		return result;
-	}
-	/* Wait until the Write-In-Progress bit is cleared.
-	 * This usually takes 1-85 s, so wait in 1 s steps.
-	 */
 
 	const int status = poll_delay ? spi_poll_wip(flash, poll_delay) : 0;
 
