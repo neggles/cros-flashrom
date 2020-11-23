@@ -160,12 +160,6 @@ static int dummy_shutdown(void *data)
 	return 0;
 }
 
-/* Values for the 'size' parameter */
-enum {
-	SIZE_UNKNOWN	= -1,
-	SIZE_AUTO	= -2,
-};
-
 int dummy_init(void)
 {
 	char *bustext = NULL;
@@ -173,12 +167,11 @@ int dummy_init(void)
 	unsigned int i;
 #if EMULATE_SPI_CHIP
 	char *status = NULL;
-	int size = SIZE_UNKNOWN;  /* size for generic chip */
+	int size = -1;  /* size for VARIABLE_SIZE chip device */
 #endif
 #if EMULATE_CHIP
 	struct stat image_stat;
 #endif
-	int image_size = SIZE_UNKNOWN;
 
 	struct emu_data *data = calloc(1, sizeof(struct emu_data));
 	if (!data) {
@@ -352,16 +345,12 @@ int dummy_init(void)
 #if EMULATE_SPI_CHIP
 	tmp = extract_programmer_param("size");
 	if (tmp) {
-		if (!strcmp(tmp, "auto"))
-			size = SIZE_AUTO;
-		else {
-			size = strtol(tmp, NULL, 10);
-			if (size <= 0 || (size % 1024 != 0)) {
-				msg_perr("%s: Chip size is not a multipler of 1024: %s\n",
-						 __func__, tmp);
-				free(tmp);
-				return 1;
-			}
+		size = strtol(tmp, NULL, 10);
+		if (size <= 0 || (size % 1024 != 0)) {
+			msg_perr("%s: Chip size is not a multipler of 1024: %s\n",
+					 __func__, tmp);
+			free(tmp);
+			return 1;
 		}
 		free(tmp);
 	}
@@ -438,25 +427,15 @@ int dummy_init(void)
 		data->emu_jedec_ce_c7_size = data->emu_chip_size;
 		msg_pdbg("Emulating Winbond W25Q128FV SPI flash chip (RDID)\n");
 	}
-	data->emu_persistent_image = extract_programmer_param("image");
-	if (!stat(data->emu_persistent_image, &image_stat))
-		image_size = image_stat.st_size;
 
 	/* The name of variable-size virtual chip. A 4 MiB flash example:
 	 *   flashrom -p dummy:emulate=VARIABLE_SIZE,size=4194304
 	 */
 	if (!strcmp(tmp, "VARIABLE_SIZE")) {
-		if (size == SIZE_UNKNOWN) {
+		if (size == -1) {
 			msg_perr("%s: the size parameter is not given.\n", __func__);
 			free(tmp);
 			return 1;
-		} else if (size == SIZE_AUTO) {
-			if (image_size == SIZE_UNKNOWN) {
-				msg_perr("%s: no image so cannot use automatic size.\n", __func__);
-				free(tmp);
-				return 1;
-			}
-			size = image_size;
 		}
 		data->emu_chip = EMULATE_VARIABLE_SIZE;
 		data->emu_chip_size = size;
@@ -520,11 +499,11 @@ int dummy_init(void)
 	memset(flashchip_contents, data->erase_to_zero ? 0x00 : 0xff, data->emu_chip_size);
 
 	/* Will be freed by shutdown function if necessary. */
+	data->emu_persistent_image = extract_programmer_param("image");
 	if (!data->emu_persistent_image) {
 		/* Nothing else to do. */
 		goto dummy_init_out;
 	}
-
 	/* We will silently (in default verbosity) ignore the file if it does not exist (yet) or the size does
 	 * not match the emulated chip. */
 	if (!stat(data->emu_persistent_image, &image_stat)) {
