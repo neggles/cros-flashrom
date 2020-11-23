@@ -171,8 +171,6 @@ static const struct par_master par_master_internal = {
 		.chip_writen		= fallback_chip_writen,
 };
 
-enum chipbustype target_bus;
-
 int internal_init(void)
 {
 	int ret = 0;
