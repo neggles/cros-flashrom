@@ -351,25 +351,10 @@ int dummy_init(void)
 #if EMULATE_SPI_CHIP
 	tmp = extract_programmer_param("size");
 	if (tmp) {
-		int multiplier = 1;
 		if (!strcmp(tmp, "auto"))
 			size = SIZE_AUTO;
-		else if (strlen(tmp)) {
-			int remove_last_char = 1;
-			switch (tmp[strlen(tmp) - 1]) {
-			case 'k': case 'K':
-				multiplier = 1024;
-				break;
-			case 'm': case 'M':
-				multiplier = 1024 * 1024;
-				break;
-			default:
-				remove_last_char = 0;
-				break;
-			}
-			if (remove_last_char) tmp[strlen(tmp) - 1] = '\0';
-			size = atoi(tmp) * multiplier;
-		}
+		else if (strlen(tmp))
+			size = atoi(tmp);
 		free(tmp);
 	}
 #endif
