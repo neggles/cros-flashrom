@@ -47,7 +47,6 @@ static struct libusb_context *usb_ctx;
 static libusb_device_handle *dediprog_handle;
 static int dediprog_in_endpoint;
 static int dediprog_out_endpoint;
-static int dediprog_firmwareversion = FIRMWARE_VERSION(0, 0, 0);
 
 enum dediprog_devtype {
 	DEV_UNKNOWN		= 0,
@@ -55,8 +54,6 @@ enum dediprog_devtype {
 	DEV_SF200		= 200,
 	DEV_SF600		= 600,
 };
-
-static enum dediprog_devtype dediprog_devicetype;
 
 enum dediprog_leds {
 	LED_INVALID		= -1,
@@ -160,6 +157,9 @@ const struct dev_entry devs_dediprog[] = {
 
 	{0},
 };
+
+static int dediprog_firmwareversion = FIRMWARE_VERSION(0, 0, 0);
+static enum dediprog_devtype dediprog_devicetype = DEV_UNKNOWN;
 
 #if defined(LIBUSB_MAJOR) && defined(LIBUSB_MINOR) && defined(LIBUSB_MICRO) && \
     LIBUSB_MAJOR <= 1 && LIBUSB_MINOR == 0 && LIBUSB_MICRO < 9
@@ -319,7 +319,15 @@ static int dediprog_set_spi_speed(unsigned int spispeed_idx)
 
 static int prepare_rw_cmd(
 		struct flashctx *const flash, uint8_t *data_packet, unsigned int count,
-		uint8_t dedi_spi_cmd, unsigned int *value, unsigned int *idx, unsigned int start, int is_read) {
+		uint8_t dedi_spi_cmd, unsigned int *value, unsigned int *idx, unsigned int start, int is_read)
+{
+	if (count >= 1 << 16) {
+		msg_perr("%s: Unsupported transfer length of %u blocks! "
+			 "Please report a bug at flashrom@flashrom.org\n",
+			 __func__, count);
+		return 1;
+	}
+
 	/* First 5 bytes are common in both generations. */
 	data_packet[0] = count & 0xff;
 	data_packet[1] = (count >> 8) & 0xff;
@@ -423,7 +431,7 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf, unsigned
 		return 1;
 
 	int ret = dediprog_write(CMD_READ, value, idx, data_packet, sizeof(data_packet));
-	if (ret != sizeof(data_packet)) {
+	if (ret != (int)sizeof(data_packet)) {
 		msg_perr("Command Read SPI Bulk failed, %i %s!\n", ret, libusb_error_name(ret));
 		return 1;
 	}
@@ -549,15 +557,15 @@ static int dediprog_spi_bulk_write(struct flashctx *flash, const uint8_t *buf, u
 		return 1;
 	}
 
-	/* No idea if the hardware can handle empty writes, so chicken out. */
-	if (len == 0)
-		return 0;
-
 	if ((start % chunksize) || (len % chunksize)) {
 		msg_perr("%s: Unaligned start=%i, len=%i! Please report a bug "
 			 "at flashrom@flashrom.org\n", __func__, start, len);
 		return 1;
 	}
+
+	/* No idea if the hardware can handle empty writes, so chicken out. */
+	if (len == 0)
+		return 0;
 
 	int command_packet_size;
 	switch (protocol()) {
@@ -579,7 +587,7 @@ static int dediprog_spi_bulk_write(struct flashctx *flash, const uint8_t *buf, u
 	if (prepare_rw_cmd(flash, data_packet, count, dedi_spi_cmd, &value, &idx, start, 0))
 		return 1;
 	int ret = dediprog_write(CMD_WRITE, value, idx, data_packet, sizeof(data_packet));
-	if (ret != sizeof(data_packet)) {
+	if (ret != (int)sizeof(data_packet)) {
 		msg_perr("Command Write SPI Bulk failed, %s!\n", libusb_error_name(ret));
 		return 1;
 	}
@@ -680,7 +688,7 @@ static int dediprog_spi_send_command(const struct flashctx *flash,
 		msg_perr("Invalid readcnt=%i, aborting.\n", readcnt);
 		return 1;
 	}
-	
+
 	unsigned int idx, value;
 	/* New protocol has options and timeout combined as value while the old one used the value field for
 	 * timeout and the index field for options. */
@@ -692,7 +700,7 @@ static int dediprog_spi_send_command(const struct flashctx *flash,
 		value = 0;
 	}
 	ret = dediprog_write(CMD_TRANSCEIVE, value, idx, writearr, writecnt);
-	if (ret != writecnt) {
+	if (ret != (int)writecnt) {
 		msg_perr("Send SPI failed, expected %i, got %i %s!\n",
 			 writecnt, ret, libusb_error_name(ret));
 		return 1;
@@ -719,7 +727,7 @@ static int dediprog_spi_send_command(const struct flashctx *flash,
 	ret = dediprog_read(CMD_TRANSCEIVE, value, idx, readarr, readcnt);
 	*/
 	ret = dediprog_read(CMD_TRANSCEIVE, 0, 0, readarr, readcnt);
-	if (ret != readcnt) {
+	if (ret != (int)readcnt) {
 		msg_perr("Receive SPI failed, expected %i, got %i %s!\n", readcnt, ret, libusb_error_name(ret));
 		return 1;
 	}
@@ -753,7 +761,7 @@ static int dediprog_check_devicestring(void)
 	int sfnum;
 	int fw[3];
 	if (sscanf(buf, "SF%d V:%d.%d.%d ", &sfnum, &fw[0], &fw[1], &fw[2]) != 4 ||
-	    sfnum != dediprog_devicetype) {
+	    sfnum != (int)dediprog_devicetype) {
 		msg_perr("Unexpected firmware version string '%s'\n", buf);
 		return 1;
 	}
@@ -985,6 +993,10 @@ static int dediprog_read_id(void)
  * SPI flash). Only use this command with firmware older than V6.0.0. Newer
  * (including all SF600s) do not support it.
  */
+
+/* This command presumably sets the voltage for the SF100 itself (not the SPI flash).
+ * Only use dediprog_set_voltage on SF100 programmers with firmware older
+ * than V6.0.0. Newer programmers (including all SF600s) do not support it. */
 static int dediprog_set_voltage(void)
 {
 	unsigned char buf[1] = {0};
@@ -1139,8 +1151,6 @@ static int dediprog_open(int index)
 
 static int dediprog_shutdown(void *data)
 {
-	msg_pspew("%s\n", __func__);
-
 	dediprog_devicetype = DEV_UNKNOWN;
 
 	/* URB 28. Command Set SPI Voltage to 0. */
@@ -1157,7 +1167,6 @@ static int dediprog_shutdown(void *data)
 	return 0;
 }
 
-/* URB numbers refer to the first log ever captured. */
 int dediprog_init(void)
 {
 	char *voltage, *id_str, *device, *spispeed, *target_str;
@@ -1168,8 +1177,6 @@ int dediprog_init(void)
 	long usedevice = 0;
 	long target = FLASH_TYPE_APPLICATION_FLASH_1;
 	int i, ret;
-
-	msg_pspew("%s\n", __func__);
 
 	spispeed = extract_programmer_param("spispeed");
 	if (spispeed) {
@@ -1232,7 +1239,7 @@ int dediprog_init(void)
 			free(device);
 			return 1;
 		}
-		if (usedevice < 0 || usedevice > UINT_MAX) {
+		if (usedevice < 0 || usedevice > INT_MAX) {
 			msg_perr("Error: Value for 'device' is out of range.\n");
 			free(device);
 			return 1;
@@ -1336,9 +1343,8 @@ int dediprog_init(void)
 	if (register_shutdown(dediprog_shutdown, NULL))
 		return 1;
 
-	/* Try reading the devicestring. If that fails and the device is old
-	 * (FW < 6.0.0) then we need to try the "set voltage" command and then
-	 * attempt to read the devicestring again. */
+	/* Try reading the devicestring. If that fails and the device is old (FW < 6.0.0, which we can not know)
+	 * then we need to try the "set voltage" command and then attempt to read the devicestring again. */
 	if (dediprog_check_devicestring()) {
 		if (dediprog_set_voltage())
 			return 1;
@@ -1358,11 +1364,10 @@ int dediprog_init(void)
 		break;
 	}
 
-
-	/* Set some LEDs as soon as possible to indicate activity.
+	/* Set all possible LEDs as soon as possible to indicate activity.
 	 * Because knowing the firmware version is required to set the LEDs correctly we need to this after
-	 * dediprog_setup() has queried the device. */
-	dediprog_set_leds(LED_PASS | LED_BUSY);
+	 * dediprog_check_devicestring() has queried the device. */
+	dediprog_set_leds(LED_ALL);
 
 	/* Select target/socket, frequency and VCC. */
 	if (set_target_flash(target) ||
