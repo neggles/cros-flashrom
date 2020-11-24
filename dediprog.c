@@ -56,7 +56,7 @@ enum dediprog_devtype {
 	DEV_SF600		= 600,
 };
 
-enum dediprog_devtype dediprog_devicetype;
+static enum dediprog_devtype dediprog_devicetype;
 
 enum dediprog_leds {
 	LED_INVALID		= -1,
