@@ -142,9 +142,6 @@ void print_status_82802ab(uint8_t status);
 int unlock_28f004s5(struct flashctx *flash);
 int unlock_lh28f008bjt(struct flashctx *flash);
 
-/* ichspi.c */
-int ich_hwseq_write_256(struct flashctx *flash, uint8_t *buf, int start, int len);
-
 /* jedec.c */
 uint8_t oddparity(uint8_t val);
 void toggle_ready_jedec(const struct flashctx *flash, chipaddr dst);
