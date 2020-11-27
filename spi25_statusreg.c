@@ -265,26 +265,6 @@ static void spi_prettyprint_status_register_welwip(uint8_t status)
 		 (status & (1 << 0)) ? "" : "not ");
 }
 
-/* Prettyprint the status register. Common definitions. */
-void spi_prettyprint_status_register_bp3210(uint8_t status, int bp)
-{
-	switch (bp) {
-	/* Fall through. */
-	case 3:
-		msg_cdbg("Chip status register: Bit 5 / Block Protect 3 (BP3) "
-			     "is %sset\n", (status & (1 << 5)) ? "" : "not ");
-	case 2:
-		msg_cdbg("Chip status register: Bit 4 / Block Protect 2 (BP2) "
-			     "is %sset\n", (status & (1 << 4)) ? "" : "not ");
-	case 1:
-		msg_cdbg("Chip status register: Bit 3 / Block Protect 1 (BP1) "
-			     "is %sset\n", (status & (1 << 3)) ? "" : "not ");
-	case 0:
-		msg_cdbg("Chip status register: Bit 2 / Block Protect 0 (BP0) "
-			     "is %sset\n", (status & (1 << 2)) ? "" : "not ");
-	}
-}
-
 /* Common block protection (BP) bits. */
 static void spi_prettyprint_status_register_bp(uint8_t status, int bp)
 {
@@ -672,13 +652,6 @@ int spi_disable_blockprotect_at25df(struct flashctx *flash)
 		return 1;
 	}
 	return 0;
-}
-
-int spi_disable_blockprotect_at25df_sec(struct flashctx *flash)
-{
-	/* FIXME: We should check the security lockdown. */
-	msg_cinfo("Ignoring security lockdown (if present)\n");
-	return spi_disable_blockprotect_at25df(flash);
 }
 
 int spi_disable_blockprotect_at25f(struct flashctx *flash)
