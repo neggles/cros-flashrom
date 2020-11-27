@@ -346,7 +346,6 @@ srcs += 'm29f400bt.c'
 srcs += 'cros_ec.c'
 srcs += 'cros_ec_dev.c'
 srcs += 's25f.c'
-srcs += 'spi4ba.c'
 srcs += 'stm50flw0x0x.c'
 srcs += 'action_descriptor.c'
 ###
