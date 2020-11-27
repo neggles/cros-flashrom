@@ -187,7 +187,7 @@ if config_gfxnvidia
 endif
 if config_raiden_debug_spi
   srcs += 'raiden_debug_spi.c'
-  cargs += '-DCONFIG_RAIDEN=1'
+  cargs += '-DCONFIG_RAIDEN_DEBUG_SPI=1'
 endif
 if config_internal
   srcs += 'board_enable.c'

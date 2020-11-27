@@ -258,6 +258,11 @@ UNSUPPORTED_FEATURES += CONFIG_RAYER_SPI=yes
 else
 override CONFIG_RAYER_SPI = no
 endif
+ifeq ($(CONFIG_RAIDEN_DEBUG_SPI), yes)
+UNSUPPORTED_FEATURES += CONFIG_RAIDEN_DEBUG_SPI=yes
+else
+override CONFIG_RAIDEN_DEBUG_SPI = no
+endif
 ifeq ($(CONFIG_NIC3COM), yes)
 UNSUPPORTED_FEATURES += CONFIG_NIC3COM=yes
 else
@@ -696,6 +701,9 @@ CONFIG_SERPROG ?= yes
 # RayeR SPIPGM hardware support
 CONFIG_RAYER_SPI ?= yes
 
+# ChromiumOS servo DUT debug board hardware support
+CONFIG_RAIDEN_DEBUG_SPI ?= yes
+
 # Always enable 3Com NICs for now.
 CONFIG_NIC3COM ?= yes
 
@@ -760,9 +768,6 @@ CONFIG_OGP_SPI ?= yes
 # Always enable Bus Pirate SPI for now.
 CONFIG_BUSPIRATE_SPI ?= yes
 
-# Raiden Debug SPI-over-USB support.
-CONFIG_RAIDEN_DEBUG_SPI ?= no
-
 # Always enable Dediprog SF100 for now.
 CONFIG_DEDIPROG ?= yes
 
@@ -802,7 +807,7 @@ override CONFIG_DEDIPROG = no
 override CONFIG_DIGILENT_SPI = no
 override CONFIG_DEVELOPERBOX_SPI = no
 override CONFIG_PICKIT2_SPI = no
-override CONFIG_RAIDEN = no
+override CONFIG_RAIDEN_DEBUG_SPI = no
 override CONFIG_STLINKV3_SPI = no
 endif
 ifeq ($(CONFIG_ENABLE_LIBPCI_PROGRAMMERS), no)
