@@ -25,7 +25,7 @@ conf = configuration_data()
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(warning_flags), language : 'c')
 add_project_arguments('-D_DEFAULT_SOURCE', language : 'c')
-add_project_arguments('-D_POSIX_C_SOURCE', language : 'c') # required for fileno
+add_project_arguments('-D_POSIX_C_SOURCE=200809L', language : 'c') # required for fileno, nanosleep, and strndup
 add_project_arguments('-D_BSD_SOURCE', language : 'c') # required for glibc < v2.19
 add_project_arguments('-DFLASHROM_VERSION="' + meson.project_version() + '"', language : 'c')
 
@@ -40,6 +40,7 @@ config_developerbox_spi = get_option('config_developerbox_spi')
 config_digilent_spi = get_option('config_digilent_spi')
 config_drkaiser = get_option('config_drkaiser')
 config_dummy = get_option('config_dummy')
+config_ene_lpc = get_option('config_ene_lpc')
 config_ft2232_spi = get_option('config_ft2232_spi')
 config_gfxnvidia = get_option('config_gfxnvidia')
 config_raiden = get_option('config_raiden')
@@ -47,6 +48,7 @@ config_internal = get_option('config_internal')
 config_it8212 = get_option('config_it8212')
 config_linux_mtd = get_option('config_linux_mtd')
 config_linux_spi = get_option('config_linux_spi')
+config_mec1308 = get_option('config_mec1308')
 config_mstarddc_spi = get_option('config_mstarddc_spi')
 config_nic3com = get_option('config_nic3com')
 config_nicintel_eeprom = get_option('config_nicintel_eeprom')
@@ -202,6 +204,10 @@ if config_internal
     cargs += '-DCONFIG_INTERNAL_DMI=1'
   endif
 endif
+if config_ene_lpc
+  srcs += 'ene_lpc.c'
+  cargs += '-DCONFIG_ENE_LPC=1'
+endif
 if config_it8212
   srcs += 'it8212.c'
   cargs += '-DCONFIG_IT8212=1'
@@ -213,6 +219,10 @@ endif
 if config_linux_spi
   srcs += 'linux_spi.c'
   cargs += '-DCONFIG_LINUX_SPI=1'
+endif
+if config_mec1308
+  srcs += 'mec1308.c'
+  cargs += '-DCONFIG_MEC1308=1'
 endif
 if config_mstarddc_spi
   srcs += 'mstarddc_spi.c'
@@ -321,6 +331,7 @@ endif
 prefix = get_option('prefix')
 sbindir = join_paths(prefix, get_option('sbindir'))
 libdir = join_paths(prefix, get_option('libdir'))
+mandir = join_paths(prefix, get_option('mandir'))
 
 install_headers([
     'libflashrom.h',
@@ -328,19 +339,16 @@ install_headers([
 )
 
 ### CrOS Tree
-srcs += 'ene_lpc.c'
 srcs += 'power.c'
 srcs += 'search.c'
 srcs += 'file.c'
 srcs += 'm29f400bt.c'
-srcs += 'mec1308.c'
 srcs += 'cros_ec.c'
 srcs += 'cros_ec_dev.c'
 srcs += 's25f.c'
 srcs += 'spi4ba.c'
 srcs += 'stm50flw0x0x.c'
 srcs += 'action_descriptor.c'
-srcs += 'writeprotect.c'
 ###
 
 # core modules needed by both the library and the CLI
@@ -371,6 +379,7 @@ srcs += 'stm50.c'
 srcs += 'udelay.c'
 srcs += 'w29ee011.c'
 srcs += 'w39.c'
+srcs += 'writeprotect.c'
 
 mapfile = 'libflashrom.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
@@ -415,6 +424,17 @@ endif
 #  include_directories : include_directories('.'),
 #  dependencies : deps
 #)
+
+conf.set('VERSION', version)
+conf.set('MAN_DATE', run_command('util/getrevision.sh', '--date', 'flashrom.8.tmpl').stdout().strip())
+configure_file(
+  input : 'flashrom.8.tmpl',
+  output : 'flashrom.8',
+  configuration : conf,
+  install: true,
+  install_dir: join_paths(mandir, 'man8'),
+)
+
 
 # we can't just link_with libflashrom as we require all the internal symbols...
 executable(
