@@ -14636,7 +14636,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_regspace2_block_eraser_1,
-		.unlock		= unlock_49lfxxxc,
+		.unlock		= unlock_regspace2_block_eraser_1,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600},
@@ -14702,7 +14702,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_regspace2_block_eraser_1,
-		.unlock		= unlock_49lfxxxc,
+		.unlock		= unlock_regspace2_block_eraser_1,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600},
@@ -14736,7 +14736,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_regspace2_block_eraser_1,
-		.unlock		= unlock_49lfxxxc,
+		.unlock		= unlock_regspace2_block_eraser_1,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600},
@@ -14921,7 +14921,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_regspace2_block_eraser_1,
-		.unlock		= unlock_49lfxxxc,
+		.unlock		= unlock_regspace2_block_eraser_1,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600},
