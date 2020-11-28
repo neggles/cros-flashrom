@@ -282,6 +282,49 @@ static int dediprog_set_leds(int leds)
 	return 0;
 }
 
+static int dediprog_set_spi_flash_voltage_manual(int millivolt)
+{
+	int ret;
+	uint16_t voltage_selector;
+
+	switch (millivolt) {
+	case 0:
+		/* Admittedly this one is an assumption. */
+		voltage_selector = 0x0;
+		break;
+	case 1800:
+		voltage_selector = 0x12;
+		break;
+	case 2500:
+		voltage_selector = 0x11;
+		break;
+	case 3500:
+		voltage_selector = 0x10;
+		break;
+	default:
+		msg_perr("Unknown voltage %i mV! Aborting.\n", millivolt);
+		return 1;
+	}
+	msg_pdbg("Setting SPI voltage to %u.%03u V\n", millivolt / 1000,
+		 millivolt % 1000);
+
+	if (voltage_selector == 0) {
+		/* Wait some time as the original driver does. */
+		programmer_delay(200 * 1000);
+	}
+	ret = dediprog_write(CMD_SET_VCC, voltage_selector, 0, NULL, 0);
+	if (ret != 0x0) {
+		msg_perr("Command Set SPI Voltage 0x%x failed!\n",
+			 voltage_selector);
+		return 1;
+	}
+	if (voltage_selector != 0) {
+		/* Wait some time as the original driver does. */
+		programmer_delay(200 * 1000);
+	}
+	return 0;
+}
+
 struct dediprog_spispeeds {
 	const char *const name;
 	const int speed;
@@ -783,49 +826,6 @@ static int dediprog_check_devicestring(void)
 static int dediprog_supply_voltages[] = {
 	0, 1800, 2500, 3500,
 };
-
-static int dediprog_set_spi_flash_voltage_manual(int millivolt)
-{
-	int ret;
-	uint16_t voltage_selector;
-
-	switch (millivolt) {
-	case 0:
-		/* Admittedly this one is an assumption. */
-		voltage_selector = 0x0;
-		break;
-	case 1800:
-		voltage_selector = 0x12;
-		break;
-	case 2500:
-		voltage_selector = 0x11;
-		break;
-	case 3500:
-		voltage_selector = 0x10;
-		break;
-	default:
-		msg_perr("Unknown voltage %i mV! Aborting.\n", millivolt);
-		return 1;
-	}
-	msg_pdbg("Setting SPI voltage to %u.%03u V\n", millivolt / 1000,
-		 millivolt % 1000);
-
-	if (voltage_selector == 0) {
-		/* Wait some time as the original driver does. */
-		programmer_delay(200 * 1000);
-	}
-	ret = dediprog_write(CMD_SET_VCC, voltage_selector, 0, NULL, 0);
-	if (ret != 0x0) {
-		msg_perr("Command Set SPI Voltage 0x%x failed!\n",
-			 voltage_selector);
-		return 1;
-	}
-	if (voltage_selector != 0) {
-		/* Wait some time as the original driver does. */
-		programmer_delay(200 * 1000);
-	}
-	return 0;
-}
 
 static int compar(const void *_x, const void *_y)
 {
