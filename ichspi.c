@@ -244,7 +244,7 @@ enum ich_access_protection {
 /* ICH SPI configuration lock-down. May be set during chipset enabling. */
 static int ichspi_lock = 0;
 
-enum ich_chipset g_ich_generation = CHIPSET_ICH_UNKNOWN;
+enum ich_chipset ich_generation = CHIPSET_ICH_UNKNOWN;
 static uint32_t ichspi_bbar = 0;
 
 static void *ich_spibar = NULL;
@@ -534,7 +534,7 @@ static int reprogram_opcode_on_the_fly(uint8_t opcode, unsigned int writecnt, un
 	int oppos = 2;	// use original JEDEC_BE_D8 offset
 	curopcodes->opcode[oppos].opcode = opcode;
 	curopcodes->opcode[oppos].spi_type = spi_type;
-	program_opcodes(curopcodes, 0, g_ich_generation);
+	program_opcodes(curopcodes, 0, ich_generation);
 	oppos = find_opcode(curopcodes, opcode);
 	msg_pdbg2("on-the-fly OPCODE (0x%02X) re-programmed, op-pos=%d\n", opcode, oppos);
 	return oppos;
@@ -1097,7 +1097,7 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 	/* max_data_read == max_data_write for all Intel/VIA SPI masters */
 	uint8_t maxlength = flash->mst->spi.max_data_read;
 
-	if (g_ich_generation == CHIPSET_ICH_UNKNOWN) {
+	if (ich_generation == CHIPSET_ICH_UNKNOWN) {
 		msg_perr("%s: unsupported chipset\n", __func__);
 		return -1;
 	}
@@ -1109,7 +1109,7 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 		return SPI_INVALID_LENGTH;
 	}
 
-	switch (g_ich_generation) {
+	switch (ich_generation) {
 	case CHIPSET_ICH7:
 	case CHIPSET_TUNNEL_CREEK:
 	case CHIPSET_CENTERTON:
@@ -1553,7 +1553,7 @@ static uint8_t ich_hwseq_read_status(const struct flashctx *flash)
 	hsfc |= (((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC);
 	hsfc |= HSFSC_FGO; /* start */
 	REGWRITE32(ICH9_REG_HSFS, hsfc);
-	if (ich_hwseq_wait_for_cycle_complete(timeout, len, g_ich_generation)) {
+	if (ich_hwseq_wait_for_cycle_complete(timeout, len, ich_generation)) {
 		msg_perr("Reading Status register failed\n!!");
 		return -1;
 	}
@@ -1586,7 +1586,7 @@ static int ich_hwseq_write_status(const struct flashctx *flash, int status)
 	hsfc |= HSFSC_FGO; /* start */
 	REGWRITE32(ICH9_REG_HSFS, hsfc);
 
-	if (ich_hwseq_wait_for_cycle_complete(timeout, len, g_ich_generation)) {
+	if (ich_hwseq_wait_for_cycle_complete(timeout, len, ich_generation)) {
 		msg_perr("Writing Status register failed\n!!");
 		return -1;
 	}
@@ -1599,7 +1599,7 @@ static int ich_hwseq_probe(struct flashctx *flash)
 	uint32_t erase_size_low, size_low, erase_size_high, size_high;
 	struct block_eraser *eraser;
 
-	if (ich_hwseq_get_flash_id(flash, g_ich_generation) != 1) {
+	if (ich_hwseq_get_flash_id(flash, ich_generation) != 1) {
 		msg_perr("Unable to read flash chip ID\n");
 		return 0;
 	}
@@ -1705,10 +1705,10 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 	hsfc |= (0x3 << HSFC_FCYCLE_OFF); /* set erase operation */
 	hsfc |= HSFC_FGO; /* start */
 	msg_pdbg("HSFC used for block erasing: ");
-	prettyprint_ich9_reg_hsfc(hsfc, g_ich_generation);
+	prettyprint_ich9_reg_hsfc(hsfc, ich_generation);
 	REGWRITE16(ICH9_REG_HSFC, hsfc);
 
-	if (ich_hwseq_wait_for_cycle_complete(timeout, len, g_ich_generation))
+	if (ich_hwseq_wait_for_cycle_complete(timeout, len, ich_generation))
 		return -1;
 
 	return result;
@@ -1759,7 +1759,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 			hsfc |= HSFC_FGO; /* start */
 			REGWRITE16(ICH9_REG_HSFC, hsfc);
 
-			if (ich_hwseq_wait_for_cycle_complete(timeout, block_len, g_ich_generation))
+			if (ich_hwseq_wait_for_cycle_complete(timeout, block_len, ich_generation))
 				return 1;
 			ich_read_data(buf, block_len, ICH9_REG_FDATA0);
 		}
@@ -1807,7 +1807,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		hsfc |= HSFC_FGO; /* start */
 		REGWRITE16(ICH9_REG_HSFC, hsfc);
 
-		if (ich_hwseq_wait_for_cycle_complete(timeout, block_len, g_ich_generation))
+		if (ich_hwseq_wait_for_cycle_complete(timeout, block_len, ich_generation))
 			return -1;
 		addr += block_len;
 		buf += block_len;
@@ -1929,13 +1929,13 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 		 */
 		rwperms = FD_REGION_READ_WRITE;
 		if (i == EMBEDDED_CONTROLLER_REGION &&
-		    g_ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
+		    ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
 			struct ich_descriptors desc = {{ 0 }};
 			/* Region is RW if flash descriptor override is set */
 			freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
 			if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS))
 				rwperms = FD_REGION_READ_WRITE;
-			else if (read_ich_descriptors_via_fdo(g_ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
+			else if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
 				const struct ich_desc_master *const mstr = &desc.master;
 #define BIT(x) (1<<(x))
 				int bios_ec_r = mstr->mstr[i].read  & BIT(16); /* BIOS_EC_r in PCH100+ */
@@ -2085,7 +2085,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 	} ich_spi_mode = ich_auto;
 	size_t num_freg, num_pr, reg_pr0;
 
-	g_ich_generation = ich_gen;
+	ich_generation = ich_gen;
 	ich_spibar = spibar;
 
 	memset(&desc, 0x00, sizeof(struct ich_descriptors));
@@ -2436,7 +2436,7 @@ int via_init_spi(uint32_t mmio_base)
 
 	/* Not sure if it speaks all these bus protocols. */
 	internal_buses_supported &= BUS_LPC | BUS_FWH;
-	g_ich_generation = CHIPSET_ICH7;
+	ich_generation = CHIPSET_ICH7;
 	register_spi_master(&spi_master_via);
 
 	msg_pdbg("0x00: 0x%04x     (SPIS)\n", mmio_readw(ich_spibar + 0));
@@ -2469,8 +2469,8 @@ int via_init_spi(uint32_t mmio_base)
 		ichspi_lock = 1;
 	}
 
-	ich_set_bbar(0, g_ich_generation);
-	ich_init_opcodes(g_ich_generation);
+	ich_set_bbar(0, ich_generation);
+	ich_init_opcodes(ich_generation);
 
 	return 0;
 }

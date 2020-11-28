@@ -703,7 +703,7 @@ enum ich_chipset {
  * device. When running on non-intel platforms default value of
  * CHIPSET_ICH_UNKNOWN is used.
 */
-extern enum ich_chipset g_ich_generation;
+extern enum ich_chipset ich_generation;
 
 int ich_init_spi(void *spibar, enum ich_chipset ich_generation);
 int via_init_spi(uint32_t mmio_base);
