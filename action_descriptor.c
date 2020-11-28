@@ -115,6 +115,7 @@ static void fix_erasers_if_needed(struct flashchip *chip,
 	/* Need to copy no matter what. */
 	*chip = *flash->chip;
 
+#if IS_X86
 	/*
 	 * ich_generation is set to the chipset type when running on an x86
 	 * device, even when flashrom was invoked to program the EC.
@@ -126,6 +127,10 @@ static void fix_erasers_if_needed(struct flashchip *chip,
 		msg_pdbg("%s: kept all erasers\n",  __func__);
 		return;
 	}
+#else
+	msg_pdbg("%s: kept all erasers on non-x86\n",  __func__);
+	return;
+#endif /* !IS_X86 */
 
 	/*
 	 * We are dealing with an Intel controller; different chipsets allow

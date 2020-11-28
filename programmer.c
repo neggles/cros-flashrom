@@ -17,13 +17,6 @@
 #include "flash.h"
 #include "programmer.h"
 
-/*
- * The following two variables are used in the code even if the ich support is
- * not compiled in, this is why they are exported through programmer.h and
- * defined here.
- */
-enum ich_chipset g_ich_generation = CHIPSET_ICH_UNKNOWN;
-
 /* No-op shutdown() for programmers which don't need special handling */
 int noop_shutdown(void)
 {
