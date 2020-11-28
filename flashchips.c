@@ -19062,7 +19062,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_w39v040fb,
-		.unlock		= unlock_w39v040fb,
+		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program */
@@ -19147,7 +19147,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_w39v080fa,
-		.unlock		= unlock_w39v080fa,
+		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program */

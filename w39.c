@@ -18,27 +18,6 @@
 #include "flash.h"
 #include "chipdrivers.h"
 
-static int unlock_w39_fwh_block(struct flashctx *flash, unsigned int offset)
-{
-	chipaddr wrprotect = flash->virtual_registers + offset + 2;
-	uint8_t locking;
-
-	locking = chip_readb(flash, wrprotect);
-	/* Read or write lock present? */
-	if (locking & ((1 << 2) | (1 << 0))) {
-		/* Lockdown active? */
-		if (locking & (1 << 1)) {
-			msg_cerr("Can't unlock block at 0x%08x!\n", offset);
-			return -1;
-		} else {
-			msg_cdbg("Unlocking block at 0x%08x\n", offset);
-			chip_writeb(flash, 0, wrprotect);
-		}
-	}
-
-	return 0;
-}
-
 static uint8_t w39_idmode_readb(struct flashctx *flash, unsigned int offset)
 {
 	chipaddr bios = flash->virtual_memory;
@@ -152,18 +131,6 @@ int printlock_w39l020(struct flashctx *flash)
 	return ret;
 }
 
-static int unlock_w39_fwh(struct flashctx *flash)
-{
-	unsigned int i, total_size = flash->chip->total_size * 1024;
-
-	/* Unlock the complete chip */
-	for (i = 0; i < total_size; i += flash->chip->page_size)
-		if (unlock_w39_fwh_block(flash, i))
-			return -1;
-
-	return 0;
-}
-
 int printlock_w39l040(struct flashctx *flash)
 {
 	uint8_t lock;
@@ -261,26 +228,6 @@ int printlock_w39v080fa_dual(struct flashctx *flash)
 		  "undocumented.\n");
 	/* Better safe than sorry. */
 	return -1;
-}
-
-int unlock_w39v040fb(struct flashctx *flash)
-{
-	if (unlock_w39_fwh(flash))
-		return -1;
-	if (printlock_w39_common(flash, 0x7fff2))
-		return -1;
-
-	return 0;
-}
-
-int unlock_w39v080fa(struct flashctx *flash)
-{
-	if (unlock_w39_fwh(flash))
-		return -1;
-	if (printlock_w39_common(flash, 0xffff2))
-		return -1;
-
-	return 0;
 }
 
 int printlock_at49f(struct flashctx *flash)
