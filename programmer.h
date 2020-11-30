@@ -242,7 +242,7 @@ struct penable {
 	uint16_t vendor_id;
 	uint16_t device_id;
 	enum chipbustype buses;
-	int status; /* OK=0 and NT=1 are defines only. Beware! */
+	const enum test_state status;
 	const char *vendor_name;
 	const char *device_name;
 	int (*doit) (struct pci_dev *dev, const char *name);
@@ -284,7 +284,7 @@ struct board_match {
 	const char *board_name;
 
 	int max_rom_decode_parallel;
-	int status;
+	const enum test_state status;
 	int (*enable) (void); /* May be NULL. */
 };
 
@@ -293,7 +293,7 @@ extern const struct board_match board_matches[];
 struct board_info {
 	const char *vendor;
 	const char *name;
-	const int working;
+	const enum test_state working;
 #ifdef CONFIG_PRINT_WIKI
 	const char *url;
 	const char *note;
