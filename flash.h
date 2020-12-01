@@ -45,8 +45,6 @@ struct flashctx; /* forward declare */
 #define ERROR_OOM	-100
 #define TIMEOUT_ERROR	-101
 
-#define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
-
 /* for verify_it variable in flashrom.c and cli_classic.c */
 enum {
 	VERIFY_OFF = 0,
@@ -113,7 +111,6 @@ enum write_granularity {
 
 /* Feature bits used for non-SPI only */
 #define FEATURE_REGISTERMAP	(1 << 0)
-#define FEATURE_BYTEWRITES	(1 << 1)
 #define FEATURE_LONG_RESET	(0 << 4)
 #define FEATURE_SHORT_RESET	(1 << 4)
 #define FEATURE_EITHER_RESET	FEATURE_LONG_RESET
@@ -277,7 +274,6 @@ struct flashctx {
 		bool verify_after_write;
 		bool verify_whole_chip;
 	} flags;
-
 	/* We cache the state of the extended address register (highest byte
 	 * of a 4BA for 3BA instructions) and the state of the 4BA mode here.
 	 * If possible, we enter 4BA mode early. If that fails, we make use
@@ -286,7 +282,6 @@ struct flashctx {
 	int address_high_byte;
 	bool in_4ba_mode;
 };
-
 
 /* Timing used in probe routines. ZERO is -2 to differentiate between an unset
  * field and zero delay.
@@ -477,8 +472,7 @@ struct spi_command {
 	unsigned char *readarr;
 };
 #define NULL_SPI_CMD { 0, 0, NULL, NULL, }
-int spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
-		const unsigned char *writearr, unsigned char *readarr);
+int spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt, const unsigned char *writearr, unsigned char *readarr);
 int spi_send_multicommand(const struct flashctx *flash, struct spi_command *cmds);
 
 enum chipbustype get_buses_supported(void);
