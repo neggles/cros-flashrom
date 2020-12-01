@@ -479,8 +479,6 @@
 #define SHARP_LH28F008SA	0xA2	/* Sharp chip, Intel Vendor ID */
 #define SHARP_LH28F008SC	0xA6	/* Sharp chip, Intel Vendor ID */
 
-#define INTEL_HWSEQ		0xFFFE	/* dummy ID for hardware sequencing */
-
 #define ISSI_ID			0xD5	/* ISSI Integrated Silicon Solutions, see also PMC. */
 #define ISSI_ID_SPI		0x9D	/* ISSI ID used for SPI flash, see also PMC_ID_NOPREFIX */
 #define ISSI_IS25LP064		0x6017
