@@ -600,7 +600,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 		ret = 0;
 		break;
 	case CHIPSET_APOLLO_LAKE:
-		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + bios_cntl);
+		ret = enable_flash_ich_bios_cntl_memmapped(ich_generation, (void*)dev + 0xdc);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -611,7 +611,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
 	case CHIPSET_C620_SERIES_LEWISBURG:
 	case CHIPSET_300_SERIES_CANNON_POINT:
-		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, bios_cntl);
+		ret = enable_flash_ich_bios_cntl_config_space(dev, ich_generation, 0xdc);
 		if (ret == ERROR_FATAL)
 			return ret;
 
@@ -648,11 +648,10 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	case CHIPSET_300_SERIES_CANNON_POINT:
 	case CHIPSET_APOLLO_LAKE:
 		reg_name = "BIOS_SPI_BC";
-		/* Set BBS (Boot BIOS Straps) field of GCS register. */
 		if (ich_generation == CHIPSET_100_SERIES_SUNRISE_POINT)
-			gcs = pci_read_long(dev, bios_cntl);
+			gcs = pci_read_long(dev, 0xdc);
 		else
-			gcs = mmio_readl((void *)dev + bios_cntl);
+			gcs = mmio_readl((void *)dev + 0xdc);
 		bild = (gcs >> 7) & 1;
 		top_swap = (gcs >> 4) & 1;
 		break;
