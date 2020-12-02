@@ -607,10 +607,9 @@ static enum chipbustype enable_flash_ich_report_gcs(
 		break;
 	default:
 		reg_name = "GCS";
-		/* Set BBS (Boot BIOS Straps) field of GCS register. */
 		gcs = mmio_readl(rcrb + 0x3410);
-		bild = (gcs >> 7) & 1;
-		top_swap = (gcs >> 4) & 1;
+		bild = gcs & 1;
+		top_swap = mmio_readb(rcrb + 0x3414) & 1;
 		break;
 	}
 
