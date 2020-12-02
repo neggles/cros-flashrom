@@ -638,8 +638,7 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	switch (ich_generation) {
 	case CHIPSET_BAYTRAIL:
 		reg_name = "GCS";
-		/* Set BBS (Boot BIOS Straps) field of GCS register. */
-		gcs = mmio_readl(rcrb + bios_cntl);
+		gcs = mmio_readl(rcrb + 0);
 		bild = gcs & 1;
 		top_swap = (gcs & 2) >> 1;
 		break;
