@@ -777,12 +777,6 @@ static int enable_flash_ich_spi(struct pci_dev *dev, enum ich_chipset ich_genera
 	case CHIPSET_CENTERTON:
 		spibar_offset = 0x3020;
 		break;
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_C620_SERIES_LEWISBURG:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-	case CHIPSET_APOLLO_LAKE:
-		spibar_offset = 0x0;
-		break;
 	case CHIPSET_ICH9:
 	default:		/* Future version might behave the same */
 		spibar_offset = 0x3800;
