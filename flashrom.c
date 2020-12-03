@@ -2534,7 +2534,7 @@ static int read_dest_content(struct flashctx *flash, int verify_it,
  * contents.
  */
 int doit(struct flashctx *flash, const char *filename, int read_it,
-	 int write_it, int erase_it, int verify_it, int extract_it,
+	 int write_it, int erase_it, int verify_it,
 	 const char *diff_file)
 {
 	uint8_t *oldcontents;
@@ -2542,11 +2542,6 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 	int ret = 0;
 	unsigned long size = flash->chip->total_size * 1024;
 	struct action_descriptor *descriptor = NULL;
-
-	if (extract_it) {
-		ret = extract_regions(flash);
-		goto out_nofree;
-	}
 
 	if (read_it) {
 		ret = read_flash_to_file(flash, filename);
@@ -2754,7 +2749,7 @@ int do_read(struct flashctx *const flash, const char *const filename)
 	if (prepare_flash_access(flash, true, false, false, false))
 		return 1;
 
-	int ret = doit(flash, filename, true, false, false, false, false, NULL);
+	int ret = doit(flash, filename, true, false, false, false, NULL);
 	finalize_flash_access(flash);
 
 	return ret;
@@ -2765,7 +2760,7 @@ int do_erase(struct flashctx *const flash, const char *diff_file)
 	if (prepare_flash_access(flash, false, false, true, false))
 		return 1;
 
-	int ret = doit(flash, NULL, false, false, true, false, false, diff_file);
+	int ret = doit(flash, NULL, false, false, true, false, diff_file);
 
 	/*
 	 * FIXME: Do we really want the scary warning if erase failed?
@@ -2786,7 +2781,7 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 	if (prepare_flash_access(flash, false, true, false, false))
 		return 1;
 
-	int ret = doit(flash, filename, false, true, false, false, false, diff_file);
+	int ret = doit(flash, filename, false, true, false, false, diff_file);
 	finalize_flash_access(flash);
 
 	return ret;
@@ -2797,7 +2792,7 @@ int do_verify(struct flashctx *const flash, const char *const filename, const ch
 	if (prepare_flash_access(flash, false, false, false, true))
 		return 1;
 
-	int ret = doit(flash, filename, false, false, false, true, false, diff_file);
+	int ret = doit(flash, filename, false, false, false, true, diff_file);
 	finalize_flash_access(flash);
 
 	return ret;
