@@ -899,6 +899,13 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
+	/* mark entries included using -i argument as "included" if they are
+	   found in the master rom_entries list */
+	if (process_include_args() < 0) {
+		ret = 1;
+		goto out_shutdown;
+	}
+
 	fill_flash->flags.force = force;
 	fill_flash->flags.do_diff = do_diff;
 

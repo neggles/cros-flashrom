@@ -2548,13 +2548,6 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 		goto out_nofree;
 	}
 
-	/* mark entries included using -i argument as "included" if they are
-	   found in the master rom_entries list */
-	if (process_include_args() < 0) {
-		ret = 1;
-		goto out_nofree;
-	}
-
 	if (read_it) {
 		ret = read_flash_to_file(flash, filename);
 		goto out_nofree;
