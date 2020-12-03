@@ -2737,8 +2737,6 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 		}
 	}
 
-	finalize_flash_access(flash);
-
 out:
 	if (descriptor)
 		free(descriptor);
@@ -2764,6 +2762,8 @@ int do_read(struct flashctx *const flash, const char *const filename)
 		return 1;
 
 	int ret = doit(flash, filename, true, false, false, false, false, NULL);
+	finalize_flash_access(flash);
+
 	return ret;
 }
 
@@ -2783,6 +2783,7 @@ int do_erase(struct flashctx *const flash, const char *diff_file)
 	 */
 	if (ret)
 		emergency_help_message();
+	finalize_flash_access(flash);
 
 	return ret;
 }
@@ -2793,6 +2794,8 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 		return 1;
 
 	int ret = doit(flash, filename, false, true, false, false, false, diff_file);
+	finalize_flash_access(flash);
+
 	return ret;
 }
 
@@ -2802,6 +2805,8 @@ int do_verify(struct flashctx *const flash, const char *const filename, const ch
 		return 1;
 
 	int ret = doit(flash, filename, false, false, false, true, false, diff_file);
+	finalize_flash_access(flash);
+
 	return ret;
 }
 
@@ -2809,5 +2814,8 @@ int do_extract_it(struct flashctx *const flash)
 {
 	if (prepare_flash_access(flash, false, false, false, false))
 		return 1;
-	return extract_regions(flash);
+	int ret = extract_regions(flash);
+	finalize_flash_access(flash);
+
+	return ret;
 }
