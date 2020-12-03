@@ -385,7 +385,7 @@ void finalize_flash_access(struct flashctx *);
  * 'diff_file' is not - comparison is done against the pre-operation chip
  * contents.
  */
-int doit(struct flashctx *flash, int force, const char *filename, int read_it,
+int doit(struct flashctx *flash, const char *filename, int read_it,
 	 int write_it, int erase_it, int verify_it, int extract_it,
 	 const char *diff_file, int do_diff);
 

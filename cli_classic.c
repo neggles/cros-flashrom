@@ -907,7 +907,7 @@ int main(int argc, char *argv[])
 	 */
 	programmer_delay(100000);
 	if (read_it || write_it || erase_it || verify_it || extract_it) {
-		ret = doit(fill_flash, force, filename,
+		ret = doit(fill_flash, filename,
 		          read_it, write_it, erase_it, verify_it,
 		          extract_it, diff_file, do_diff);
 	}
