@@ -2541,10 +2541,6 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 	unsigned long size = flash->chip->total_size * 1024;
 	struct action_descriptor *descriptor = NULL;
 
-	ret = prepare_flash_access(flash, read_it, write_it, erase_it, verify_it);
-	if (ret)
-		goto out_nofree;
-
 	if (extract_it) {
 		ret = extract_regions(flash);
 		goto out_nofree;
@@ -2762,12 +2758,18 @@ out_nofree:
 
 int do_read(struct flashctx *const flash, const char *const filename)
 {
+	if (prepare_flash_access(flash, true, false, false, false))
+		return 1;
+
 	int ret = doit(flash, filename, true, false, false, false, false, NULL);
 	return ret;
 }
 
 int do_erase(struct flashctx *const flash, const char *diff_file)
 {
+	if (prepare_flash_access(flash, false, false, true, false))
+		return 1;
+
 	int ret = doit(flash, NULL, false, false, true, false, false, diff_file);
 
 	/*
@@ -2785,12 +2787,18 @@ int do_erase(struct flashctx *const flash, const char *diff_file)
 
 int do_write(struct flashctx *const flash, const char *const filename, const char *const referencefile, const char *diff_file)
 {
+	if (prepare_flash_access(flash, false, true, false, false))
+		return 1;
+
 	int ret = doit(flash, filename, false, true, false, false, false, diff_file);
 	return ret;
 }
 
 int do_verify(struct flashctx *const flash, const char *const filename, const char *diff_file)
 {
+	if (prepare_flash_access(flash, false, false, false, true))
+		return 1;
+
 	int ret = doit(flash, filename, false, false, false, true, false, diff_file);
 	return ret;
 }
