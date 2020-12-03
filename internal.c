@@ -14,11 +14,9 @@
  * GNU General Public License for more details.
  */
 
-#include <stdio.h>
 #include <strings.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include "flash.h"
 #include "programmer.h"
 #include "hwaccess.h"
@@ -181,7 +179,7 @@ int internal_init(void)
 #if IS_X86
 	const char *cb_vendor = NULL;
 	const char *cb_model = NULL;
-#endif // if IS_X86
+#endif
 	char *arg;
 
 	arg = extract_programmer_param("boardenable");
@@ -384,10 +382,6 @@ int internal_init(void)
 			 "========================================================================\n");
 	}
 
-	/* Even if chipset init returns an error code, we don't want to abort.
-	 * The error code might have been a warning only.
-	 * Besides that, we don't check the board enable return code either.
-	 */
 	ret = 0;
 
 internal_init_exit:
