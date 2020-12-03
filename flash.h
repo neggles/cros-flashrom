@@ -275,6 +275,7 @@ struct flashctx {
 		bool force_boardmismatch;
 		bool verify_after_write;
 		bool verify_whole_chip;
+		bool do_diff;
 	} flags;
 	/* We cache the state of the extended address register (highest byte
 	 * of a 4BA for 3BA instructions) and the state of the 4BA mode here.
@@ -387,7 +388,7 @@ void finalize_flash_access(struct flashctx *);
  */
 int doit(struct flashctx *flash, const char *filename, int read_it,
 	 int write_it, int erase_it, int verify_it, int extract_it,
-	 const char *diff_file, int do_diff);
+	 const char *diff_file);
 
 #define OK 0
 #define NT 1    /* Not tested */

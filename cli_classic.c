@@ -900,6 +900,7 @@ int main(int argc, char *argv[])
 	}
 
 	fill_flash->flags.force = force;
+	fill_flash->flags.do_diff = do_diff;
 
 	/* FIXME: We should issue an unconditional chip reset here. This can be
 	 * done once we have a .reset function in struct flashchip.
@@ -909,7 +910,7 @@ int main(int argc, char *argv[])
 	if (read_it || write_it || erase_it || verify_it || extract_it) {
 		ret = doit(fill_flash, filename,
 		          read_it, write_it, erase_it, verify_it,
-		          extract_it, diff_file, do_diff);
+		          extract_it, diff_file);
 	}
 
 	msg_ginfo("%s\n", ret ? "FAILED" : "SUCCESS");

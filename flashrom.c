@@ -2504,7 +2504,7 @@ static int read_dest_content(struct flashctx *flash, int verify_it,
  */
 int doit(struct flashctx *flash, const char *filename, int read_it,
 	 int write_it, int erase_it, int verify_it, int extract_it,
-	 const char *diff_file, int do_diff)
+	 const char *diff_file)
 {
 	uint8_t *oldcontents;
 	uint8_t *newcontents;
@@ -2576,7 +2576,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 		}
 	}
 
-	if (do_diff) {
+	if (flash->flags.do_diff) {
 		/*
 		 * Obtain a reference image so that we can check whether
 		 * regions need to be erased and to give better diagnostics in
@@ -2623,7 +2623,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 	}
 
 	descriptor = prepare_action_descriptor(flash, oldcontents,
-					       newcontents, do_diff);
+					       newcontents, flash->flags.do_diff);
 	if (write_it) {
 		// parse the new fmap and disable soft WP if necessary
 		if ((ret = cros_ec_prepare(newcontents, size))) {
@@ -2671,7 +2671,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 			descriptor = prepare_action_descriptor(flash,
 							       oldcontents,
 							       newcontents,
-							       do_diff);
+							       flash->flags.do_diff);
 			// write 2nd pass
 			if (erase_and_write_flash(flash, descriptor)) {
 				msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
