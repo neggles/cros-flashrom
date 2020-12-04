@@ -38,7 +38,6 @@
 #include "action_descriptor.h"
 #include "flash.h"
 #include "flashchips.h"
-#include "layout.h"
 #include "programmer.h"
 #include "spi.h"
 #include "chipdrivers.h"

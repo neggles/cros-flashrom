@@ -42,7 +42,8 @@
 /* Assumes `n` and `a` are at most 64-bit wide (to avoid typeof() operator). */
 #define ALIGN_DOWN(n, a) ((n) & ~((uint64_t)(a) - 1))
 
-struct flashctx; /* forward declare */
+struct flashrom_flashctx;
+#define flashctx flashrom_flashctx /* TODO: Agree on a name and convert all occurences. */
 #define ERROR_PTR ((void*)-1)
 
 /* Error codes */
@@ -261,7 +262,7 @@ struct flashchip {
 typedef int (*chip_restore_fn_cb_t)(struct flashctx *flash, uint8_t status);
 
 /* struct flashctx must always contain struct flashchip at the beginning. */
-struct flashctx {
+struct flashrom_flashctx {
 	struct flashchip *chip;
 	/* FIXME: The memory mappings should be saved in a more structured way. */
 	/* The physical_* fields store the respective addresses in the physical address space of the CPU. */

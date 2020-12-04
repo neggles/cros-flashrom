@@ -60,7 +60,9 @@ struct layout_include_args {
 	struct layout_include_args *next;
 };
 
-struct flashctx;
+struct flashrom_flashctx;
+#define flashctx flashrom_flashctx /* TODO: Agree on a name and convert all occurences. */
+
 /**
  * Extract regions to current directory
  *

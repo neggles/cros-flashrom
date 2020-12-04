@@ -28,7 +28,6 @@
 #include "big_lock.h"
 #include "flash.h"
 #include "flashchips.h"
-#include "layout.h"
 #include "fmap.h"
 #include "power.h"
 #include "programmer.h"

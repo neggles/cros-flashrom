@@ -26,9 +26,9 @@
 #include <sys/stat.h>
 
 #include "flash.h"
-#include "layout.h"
 #include "platform.h"
 #include "programmer.h"
+#include "layout.h"
 
 static struct romentry entries[MAX_ROMLAYOUT];
 static struct flashrom_layout global_layout = { entries, 0 };
