@@ -68,16 +68,15 @@
 
 static int s25f_legacy_software_reset(const struct flashctx *flash)
 {
-	int result;
 	struct spi_command cmds[] = {
 	{
 		.writecnt	= 1,
-		.writearr	= (const unsigned char[]){ CMD_RSTEN },
+		.writearr	= (const uint8_t[]){ CMD_RSTEN },
 		.readcnt	= 0,
 		.readarr	= NULL,
 	}, {
 		.writecnt	= 1,
-		.writearr	= (const unsigned char[]){ 0xf0 },
+		.writearr	= (const uint8_t[]){ 0xf0 },
 		.readcnt	= 0,
 		.readarr	= NULL,
 	}, {
@@ -87,7 +86,7 @@ static int s25f_legacy_software_reset(const struct flashctx *flash)
 		.readarr	= NULL,
 	}};
 
-	result = spi_send_multicommand(flash, cmds);
+	int result = spi_send_multicommand(flash, cmds);
 	if (result) {
 		msg_cerr("%s failed during command execution\n", __func__);
 		return result;
@@ -103,16 +102,15 @@ static int s25f_legacy_software_reset(const struct flashctx *flash)
 /* "Legacy software reset" is disabled by default on S25FS, use this instead. */
 static int s25fs_software_reset(struct flashctx *flash)
 {
-	int result;
 	struct spi_command cmds[] = {
 	{
 		.writecnt	= 1,
-		.writearr	= (const unsigned char[]){ CMD_RSTEN },
+		.writearr	= (const uint8_t[]){ CMD_RSTEN },
 		.readcnt	= 0,
 		.readarr	= NULL,
 	}, {
 		.writecnt	= 1,
-		.writearr	= (const unsigned char[]){ CMD_RST },
+		.writearr	= (const uint8_t[]){ CMD_RST },
 		.readcnt	= 0,
 		.readarr	= NULL,
 	}, {
@@ -122,7 +120,7 @@ static int s25fs_software_reset(struct flashctx *flash)
 		.readarr	= NULL,
 	}};
 
-	result = spi_send_multicommand(flash, cmds);
+	int result = spi_send_multicommand(flash, cmds);
 	if (result) {
 		msg_cerr("%s failed during command execution\n", __func__);
 		return result;
@@ -168,11 +166,10 @@ static int s25f_poll_status(const struct flashctx *flash)
 /* "Read Any Register" instruction only supported on S25FS */
 static int s25fs_read_cr(const struct flashctx *flash, uint32_t addr)
 {
-	int result;
 	uint8_t cfg;
 	/* By default, 8 dummy cycles are necessary for variable-latency
 	   commands such as RDAR (see CR2NV[3:0]). */
-	unsigned char read_cr_cmd[] = {
+	uint8_t read_cr_cmd[] = {
 		CMD_RDAR,
 		(addr >> 16) & 0xff,
 		(addr >> 8) & 0xff,
@@ -181,7 +178,7 @@ static int s25fs_read_cr(const struct flashctx *flash, uint32_t addr)
 		0x00, 0x00, 0x00, 0x00,
 	};
 
-	result = spi_send_command(flash, sizeof(read_cr_cmd), 1, read_cr_cmd, &cfg);
+	int result = spi_send_command(flash, sizeof(read_cr_cmd), 1, read_cr_cmd, &cfg);
 	if (result) {
 		msg_cerr("%s failed during command execution at address 0x%x\n",
 			__func__, addr);
@@ -208,18 +205,17 @@ static int s25f_read_cr1(const struct flashctx *flash)
 
 /* "Write Any Register" instruction only supported on S25FS */
 static int s25fs_write_cr(const struct flashctx *flash,
-				uint32_t addr, uint8_t data)
+			  uint32_t addr, uint8_t data)
 {
-	int result;
 	struct spi_command cmds[] = {
 	{
 		.writecnt	= JEDEC_WREN_OUTSIZE,
-		.writearr	= (const unsigned char[]){ JEDEC_WREN },
+		.writearr	= (const uint8_t[]){ JEDEC_WREN },
 		.readcnt	= 0,
 		.readarr	= NULL,
 	}, {
 		.writecnt	= CMD_WRAR_LEN,
-		.writearr	= (const unsigned char[]){
+		.writearr	= (const uint8_t[]){
 					CMD_WRAR,
 					(addr >> 16) & 0xff,
 					(addr >> 8) & 0xff,
@@ -235,7 +231,7 @@ static int s25fs_write_cr(const struct flashctx *flash,
 		.readarr	= NULL,
 	}};
 
-	result = spi_send_multicommand(flash, cmds);
+	int result = spi_send_multicommand(flash, cmds);
 	if (result) {
 		msg_cerr("%s failed during command execution at address 0x%x\n",
 			__func__, addr);
@@ -359,21 +355,19 @@ int s25f_set_modifier_bits(const struct flashctx *flash,
 }
 
 int s25fs_block_erase_d8(struct flashctx *flash,
-		unsigned int addr, unsigned int blocklen)
+			 uint32_t addr, uint32_t blocklen)
 {
-	unsigned char cfg;
-	int result;
 	static int cr3nv_checked = 0;
 
 	struct spi_command erase_cmds[] = {
 	{
 		.writecnt	= JEDEC_WREN_OUTSIZE,
-		.writearr	= (const unsigned char[]){ JEDEC_WREN },
+		.writearr	= (const uint8_t[]){ JEDEC_WREN },
 		.readcnt	= 0,
 		.readarr	= NULL,
 	}, {
 		.writecnt	= JEDEC_BE_D8_OUTSIZE,
-		.writearr	= (const unsigned char[]){
+		.writearr	= (const uint8_t[]){
 					JEDEC_BE_D8,
 					(addr >> 16) & 0xff,
 					(addr >> 8) & 0xff,
@@ -391,7 +385,7 @@ int s25fs_block_erase_d8(struct flashctx *flash,
 	/* Check if hybrid sector architecture is in use and, if so,
 	 * switch to uniform sectors. */
 	if (!cr3nv_checked) {
-		cfg = s25fs_read_cr(flash, CR3NV_ADDR);
+		uint8_t cfg = s25fs_read_cr(flash, CR3NV_ADDR);
 		if (!(cfg & CR3NV_20H_NV)) {
 			s25fs_write_cr(flash, CR3NV_ADDR, cfg | CR3NV_20H_NV);
 			s25fs_software_reset(flash);
@@ -413,7 +407,7 @@ int s25fs_block_erase_d8(struct flashctx *flash,
 		cr3nv_checked = 1;
 	}
 
-	result = spi_send_multicommand(flash, erase_cmds);
+	int result = spi_send_multicommand(flash, erase_cmds);
 	if (result) {
 		msg_cerr("%s failed during command execution at address 0x%x\n",
 			__func__, addr);
@@ -425,21 +419,19 @@ int s25fs_block_erase_d8(struct flashctx *flash,
 }
 
 int s25fl_block_erase(struct flashctx *flash,
-		      unsigned int addr, unsigned int blocklen)
+		      uint32_t addr, uint32_t blocklen)
 {
-	int result;
-
 	struct spi_command erase_cmds[] = {
 		{
 			.writecnt	= JEDEC_WREN_OUTSIZE,
-			.writearr	= (const unsigned char[]){
+			.writearr	= (const uint8_t[]){
 				JEDEC_WREN
 			},
 			.readcnt	= 0,
 			.readarr	= NULL,
 		}, {
 			.writecnt	= JEDEC_BE_DC_OUTSIZE,
-			.writearr	= (const unsigned char[]){
+			.writearr	= (const uint8_t[]){
 				JEDEC_BE_DC,
 				(addr >> 24) & 0xff,
 				(addr >> 16) & 0xff,
@@ -454,7 +446,7 @@ int s25fl_block_erase(struct flashctx *flash,
 		}
 	};
 
-	result = spi_send_multicommand(flash, erase_cmds);
+	int result = spi_send_multicommand(flash, erase_cmds);
 	if (result) {
 		msg_cerr("%s failed during command execution at address 0x%x\n",
 			__func__, addr);
@@ -468,12 +460,13 @@ int s25fl_block_erase(struct flashctx *flash,
 
 int probe_spi_big_spansion(struct flashctx *flash)
 {
-	static const unsigned char cmd = JEDEC_RDID;
-	unsigned char dev_id[6]; /* We care only about 6 first bytes */
+	uint8_t cmd = JEDEC_RDID;
+	uint8_t dev_id[6]; /* We care only about 6 first bytes */
 
 	if (spi_send_command(flash, sizeof(cmd), sizeof(dev_id), &cmd, dev_id))
 		return 0;
 
+	msg_gdbg("Read id bytes: ");
 	for (size_t i = 0; i < sizeof(dev_id); i++)
 		msg_gdbg(" 0x%02x", dev_id[i]);
 	msg_gdbg(".\n");
