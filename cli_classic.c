@@ -37,6 +37,7 @@
 
 int set_ignore_lock = 0;
 
+#include "libflashrom.h"
 
 static void cli_classic_usage(const char *name)
 {
@@ -221,6 +222,8 @@ int main(int argc, char *argv[])
 	char *wp_mode_opt = NULL;
 	char *wp_region = NULL;
 	struct layout_include_args *include_args = NULL;
+
+	flashrom_set_log_callback((flashrom_log_callback *)&flashrom_print_cb);
 
 	print_version();
 	print_banner();
@@ -898,11 +901,11 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	fill_flash->flags.force = force;
+	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
 	fill_flash->flags.do_diff = do_diff;
 	fill_flash->diff_file = diff_file;
-	fill_flash->flags.verify_after_write = !dont_verify_it;
-	fill_flash->flags.verify_whole_chip = !dont_verify_all;
+	flashrom_flag_set(fill_flash, FLASHROM_FLAG_VERIFY_AFTER_WRITE, !dont_verify_it);
+	flashrom_flag_set(fill_flash, FLASHROM_FLAG_VERIFY_WHOLE_CHIP, !dont_verify_all);
 
 	/* FIXME: We should issue an unconditional chip reset here. This can be
 	 * done once we have a .reset function in struct flashchip.

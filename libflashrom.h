@@ -90,7 +90,8 @@ int flashrom_programmer_shutdown(struct flashrom_programmer *);
 struct flashrom_flashctx;
 int flashrom_flash_probe(struct flashrom_flashctx **, const struct flashrom_programmer *, const char *chip_name);
 size_t flashrom_flash_getsize(const struct flashrom_flashctx *);
-int flashrom_flash_erase(struct flashrom_flashctx *);
+//FIXME(b/162798062): Align with upstreams flashrom.c
+//int flashrom_flash_erase(struct flashrom_flashctx *);
 void flashrom_flash_release(struct flashrom_flashctx *);
 
 /** @ingroup flashrom-flash */
@@ -113,7 +114,8 @@ int flashrom_layout_read_fmap_from_rom(struct flashrom_layout **,
 		struct flashrom_flashctx *, off_t offset, size_t length);
 int flashrom_layout_read_fmap_from_buffer(struct flashrom_layout **layout,
 		struct flashrom_flashctx *, const uint8_t *buf, size_t len);
-int flashrom_layout_include_region(struct flashrom_layout *, const char *name);
+//FIXME(b/162798062): Align with upstreams layout.c
+//int flashrom_layout_include_region(struct flashrom_layout *, const char *name);
 void flashrom_layout_release(struct flashrom_layout *);
 void flashrom_layout_set(struct flashrom_flashctx *, const struct flashrom_layout *);
 

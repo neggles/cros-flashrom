@@ -34,6 +34,7 @@
 #undef max
 #endif
 
+#include "libflashrom.h"
 #include "layout.h"
 
 #define KiB (1024)
@@ -402,14 +403,7 @@ int open_logfile(const char * const filename);
 int close_logfile(void);
 void start_logging(void);
 #endif
-enum flashrom_log_level {
-	FLASHROM_MSG_ERROR       = 0,
-	FLASHROM_MSG_WARN        = 1,
-	FLASHROM_MSG_INFO        = 2,
-	FLASHROM_MSG_DEBUG       = 3,
-	FLASHROM_MSG_DEBUG2      = 4,
-	FLASHROM_MSG_SPEW        = 5,
-};
+int flashrom_print_cb(enum flashrom_log_level level, const char *fmt, va_list ap);
 /* Let gcc and clang check for correct printf-style format strings. */
 int print(enum flashrom_log_level level, const char *fmt, ...)
 #ifdef __MINGW32__
