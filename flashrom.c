@@ -1853,13 +1853,13 @@ static int check_block_eraser(const struct flashctx *flash, int k, int log)
 	return 0;
 }
 
+typedef int (*erasefn_t)(struct flashctx *, unsigned int addr, unsigned int len);
+
 static int erase_and_write_block_helper(struct flashctx *flash,
 					unsigned int start, unsigned int len,
 					uint8_t *curcontents,
 					uint8_t *newcontents,
-					int (*erasefn) (struct flashctx *flash,
-							unsigned int addr,
-							unsigned int len))
+					erasefn_t erasefn)
 {
 	unsigned int starthere = 0, lenhere = 0;
 	int ret = 0, skip = 1, writecount = 0;
@@ -1959,10 +1959,7 @@ static int walk_eraseregions(struct flashctx *flash,
 						  unsigned int len,
 						  uint8_t *param1,
 						  uint8_t *param2,
-						  int (*erasefn) (
-							struct flashctx *flash,
-							unsigned int addr,
-							unsigned int len)),
+						  erasefn_t erasefn),
 			     struct action_descriptor *descriptor)
 {
 	struct processing_unit *pu;
