@@ -1828,6 +1828,31 @@ static int selfcheck_eraseblocks(const struct flashchip *chip)
 	return ret;
 }
 
+static int check_block_eraser(const struct flashctx *flash, int k, int log)
+{
+	struct block_eraser eraser = flash->chip->block_erasers[k];
+
+	if (!eraser.block_erase && !eraser.eraseblocks[0].count) {
+		if (log)
+			msg_cdbg("not defined. ");
+		return 1;
+	}
+	if (!eraser.block_erase && eraser.eraseblocks[0].count) {
+		if (log)
+			msg_cdbg("eraseblock layout is known, but matching "
+				 "block erase function is not implemented. ");
+		return 1;
+	}
+	if (eraser.block_erase && !eraser.eraseblocks[0].count) {
+		if (log)
+			msg_cdbg("block erase function found, but "
+				 "eraseblock layout is not defined. ");
+		return 1;
+	}
+	// TODO: Once erase functions are annotated with allowed buses, check that as well.
+	return 0;
+}
+
 static int erase_and_write_block_helper(struct flashctx *flash,
 					unsigned int start, unsigned int len,
 					uint8_t *curcontents,
@@ -1974,31 +1999,6 @@ static int walk_eraseregions(struct flashctx *flash,
 	}
 	msg_cdbg("\n");
 	return rc;
-}
-
-static int check_block_eraser(const struct flashctx *flash, int k, int log)
-{
-	struct block_eraser eraser = flash->chip->block_erasers[k];
-
-	if (!eraser.block_erase && !eraser.eraseblocks[0].count) {
-		if (log)
-			msg_cdbg("not defined. ");
-		return 1;
-	}
-	if (!eraser.block_erase && eraser.eraseblocks[0].count) {
-		if (log)
-			msg_cdbg("eraseblock layout is known, but matching "
-				 "block erase function is not implemented. ");
-		return 1;
-	}
-	if (eraser.block_erase && !eraser.eraseblocks[0].count) {
-		if (log)
-			msg_cdbg("block erase function found, but "
-				 "eraseblock layout is not defined. ");
-		return 1;
-	}
-	// TODO: Once erase functions are annotated with allowed buses, check that as well.
-	return 0;
 }
 
 int erase_and_write_flash(struct flashctx *flash,
