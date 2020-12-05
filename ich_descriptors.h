@@ -234,14 +234,6 @@ struct ich_desc_master {
 						:3;
 		};
 		/* From Skylake on */
-		/*
-		 * Flash Descriptor Master Access settings for PCH100+
-		 *
-		 * [31:20] Master Region Write Access (regions 11:0)
-		 * [19:8] Master Region Read Access (regions 11:0)
-		 * [7:4] Extended Region Write Access (regions 15:12)
-		 * [3:0] Extended Region Read access (regions 15:12)
-		 */
 		struct {
 			uint32_t ext_read	:4,
 				 ext_write	:4,
