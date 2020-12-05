@@ -1235,4 +1235,53 @@ int read_ich_descriptors_via_fdo(enum ich_chipset cs, void *spibar, struct ich_d
 }
 #endif
 
+/**
+ * @brief Read a layout from the dump of an Intel ICH descriptor.
+ *
+ * @param layout Pointer where to store the layout.
+ * @param dump   The descriptor dump to read from.
+ * @param len    The length of the descriptor dump.
+ *
+ * @return 0 on success,
+ *	   1 if the descriptor couldn't be parsed,
+ *	   2 when out of memory.
+ */
+int layout_from_ich_descriptors(struct ich_layout *const layout, const void *const dump, const size_t len)
+{
+	static const char *const regions[] = {
+		"fd", "bios", "me", "gbe", "pd", "reg5", "bios2", "reg7", "ec", "reg9", "ie",
+		"10gbe", "reg12", "reg13", "reg14", "reg15"
+	};
+
+	struct ich_descriptors desc;
+	enum ich_chipset cs = CHIPSET_ICH_UNKNOWN;
+	int ret = read_ich_descriptors_from_dump(dump, len, &cs, &desc);
+	if (ret) {
+		msg_pdbg("%s():%d, returned with value %d.\n",
+			__func__, __LINE__, ret);
+		return 1;
+	}
+
+	memset(layout, 0x00, sizeof(*layout));
+
+	ssize_t i, j;
+	const ssize_t nr = MIN(ich_number_of_regions(cs, &desc.content), (ssize_t)ARRAY_SIZE(regions));
+	for (i = 0, j = 0; i < nr; ++i) {
+		const chipoff_t base = ICH_FREG_BASE(desc.region.FLREGs[i]);
+		const chipoff_t limit = ICH_FREG_LIMIT(desc.region.FLREGs[i]);
+		if (limit <= base)
+			continue;
+		layout->entries[j].start = base;
+		layout->entries[j].end = limit;
+		layout->entries[j].included = false;
+		layout->entries[j].name = strdup(regions[i]);
+		if (!layout->entries[j].name)
+			return 2;
+		++j;
+	}
+	layout->base.entries = layout->entries;
+	layout->base.num_entries = j;
+	return 0;
+}
+
 #endif /* ICH_DESCRIPTORS_FROM_DUMP_ONLY */
