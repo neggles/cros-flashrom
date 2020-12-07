@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <limits.h>
@@ -49,12 +50,16 @@ int disable_power_management()
 	FILE *lock_file = NULL;
 	const char *path = NULL;
 	int rc = 0;
+	mode_t old_umask;
 
 	msg_pdbg("%s: Disabling power management.\n", __func__);
 
 	path = get_powerd_lock_file_path();
 
-	if (!(lock_file = fopen(path, "w"))) {
+	old_umask = umask(022);
+	lock_file = fopen(path, "w");
+	umask(old_umask);
+	if (!lock_file) {
 		msg_perr("%s: Failed to open %s for writing: %s\n",
 			__func__, path, strerror(errno));
 		return 1;
