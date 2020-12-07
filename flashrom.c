@@ -2434,18 +2434,22 @@ void finalize_flash_access(struct flashctx *const flash)
 	unmap_flash(flash);
 }
 
-/*
- * Function to erase entire flash chip.
- *
- * @flashctx     pointer to the flash context to use
- * @oldcontents  pointer to the buffer including current chip contents, to
- *		 decide which areas do in fact need to be erased
- * @size         the size of the flash chip, in bytes.
- *
- * Returns zero on success or an error code.
+/**
+ * @addtogroup flashrom-flash
+ * @{
  */
-static int erase_chip(struct flashctx *flash, void *oldcontents,
-		      void *newcontents, size_t size)
+
+/**
+ * @brief Erase the specified ROM chip.
+ *
+ * If a layout is set in the given flash context, only included regions
+ * will be erased.
+ *
+ * @param flashctx The context of the flash chip to erase.
+ * @return 0 on success.
+ */
+static int flashrom_flash_erase(struct flashctx *const flashctx,
+				void *oldcontents, void *newcontents, size_t size)
 {
 	/*
 	 * To make sure that the chip is fully erased, let's cheat and create
@@ -2454,7 +2458,7 @@ static int erase_chip(struct flashctx *flash, void *oldcontents,
 	struct action_descriptor *fake_descriptor;
 	int ret = 0;
 
-	fake_descriptor = prepare_action_descriptor(flash, oldcontents,
+	fake_descriptor = prepare_action_descriptor(flashctx, oldcontents,
 						    newcontents, 1);
 	/* FIXME: Do we really want the scary warning if erase failed? After
 	 * all, after erase the chip is either blank or partially blank or it
@@ -2462,7 +2466,7 @@ static int erase_chip(struct flashctx *flash, void *oldcontents,
 	 * wanted erase and reboots afterwards, the user knows very well that
 	 * booting won't work.
 	 */
-	if (erase_and_write_flash(flash, fake_descriptor)) {
+	if (erase_and_write_flash(flashctx, fake_descriptor)) {
 		emergency_help_message();
 		ret = 1;
 	}
@@ -2471,6 +2475,9 @@ static int erase_chip(struct flashctx *flash, void *oldcontents,
 
 	return ret;
 }
+
+/** @} */ /* end flashrom-flash */
+
 
 static int read_dest_content(struct flashctx *flash, int verify_it,
 			     uint8_t *dest, unsigned long size)
@@ -2624,7 +2631,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 	}
 
 	if (erase_it) {
-		erase_chip(flash, oldcontents, newcontents, size);
+		flashrom_flash_erase(flash, oldcontents, newcontents, size);
 		goto verify;
 	}
 
