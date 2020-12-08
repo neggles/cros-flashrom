@@ -2768,10 +2768,14 @@ int do_erase(struct flashctx *const flash, const char *diff_file)
 
 int do_write(struct flashctx *const flash, const char *const filename, const char *const referencefile, const char *diff_file)
 {
-	if (prepare_flash_access(flash, false, true, false, false))
+	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
 		return 1;
 
-	int ret = doit(flash, filename, false, true, false, false, diff_file);
+	int ret = doit(flash, filename, false, true, false,
+		       flash->flags.verify_after_write
+			       ? flash->flags.verify_whole_chip ? VERIFY_FULL : VERIFY_PARTIAL
+			       : 0,
+		       diff_file);
 	finalize_flash_access(flash);
 
 	return ret;
@@ -2782,7 +2786,7 @@ int do_verify(struct flashctx *const flash, const char *const filename, const ch
 	if (prepare_flash_access(flash, false, false, false, true))
 		return 1;
 
-	int ret = doit(flash, filename, false, false, false, true, diff_file);
+	int ret = doit(flash, filename, false, false, false, flash->flags.verify_whole_chip ? VERIFY_FULL : VERIFY_PARTIAL, diff_file);
 	finalize_flash_access(flash);
 
 	return ret;

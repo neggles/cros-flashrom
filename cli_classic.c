@@ -409,6 +409,7 @@ int main(int argc, char *argv[])
 			set_ignore_fmap = 1;
 			break;
 		case OPTION_FAST_VERIFY:
+			dont_verify_all = 1;
 			verify_it = VERIFY_PARTIAL;
 			break;
 		case OPTION_IGNORE_LOCK:
@@ -908,6 +909,8 @@ int main(int argc, char *argv[])
 
 	fill_flash->flags.force = force;
 	fill_flash->flags.do_diff = do_diff;
+	fill_flash->flags.verify_whole_chip = verify_it == VERIFY_FULL;
+	fill_flash->flags.verify_after_write = verify_it;
 
 	/* FIXME: We should issue an unconditional chip reset here. This can be
 	 * done once we have a .reset function in struct flashchip.
