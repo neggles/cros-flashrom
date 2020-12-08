@@ -614,46 +614,6 @@ int spi_disable_blockprotect_at2x_global_unprotect_sec(struct flashctx *flash)
 	return spi_disable_blockprotect_at2x_global_unprotect(flash);
 }
 
-int spi_disable_blockprotect_at25df(struct flashctx *flash)
-{
-	uint8_t status;
-	int result;
-
-	status = spi_read_status_register(flash);
-	/* If block protection is disabled, stop here. */
-	if ((status & (3 << 2)) == 0)
-		return 0;
-
-	msg_cdbg("Some block protection in effect, disabling\n");
-	if (status & (1 << 7)) {
-		msg_cdbg("Need to disable Sector Protection Register Lock\n");
-		if ((status & (1 << 4)) == 0) {
-			msg_cerr("WP# pin is active, disabling "
-				 "write protection is impossible.\n");
-			return 1;
-		}
-		/* All bits except bit 7 (SPRL) are readonly. */
-		result = spi_write_status_register(flash, status & ~(1 << 7));
-		if (result) {
-			msg_cerr("spi_write_status_register failed\n");
-			return result;
-		}
-
-	}
-	/* Global unprotect. Make sure to mask SPRL as well. */
-	result = spi_write_status_register(flash, status & ~0xbc);
-	if (result) {
-		msg_cerr("spi_write_status_register failed\n");
-		return result;
-	}
-	status = spi_read_status_register(flash);
-	if ((status & (3 << 2)) != 0) {
-		msg_cerr("Block protection could not be disabled!\n");
-		return 1;
-	}
-	return 0;
-}
-
 int spi_disable_blockprotect_at25f(struct flashctx *flash)
 {
 	return spi_disable_blockprotect_generic(flash, 0x0C, 1 << 7, 0, 0xFF);
