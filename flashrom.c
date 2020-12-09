@@ -2559,11 +2559,6 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 	unsigned long size = flash->chip->total_size * 1024;
 	struct action_descriptor *descriptor = NULL;
 
-	if (read_it) {
-		ret = read_flash_to_file(flash, filename);
-		goto out_nofree;
-	}
-
 	oldcontents = malloc(size);
 	if (!oldcontents) {
 		msg_gerr("Out of memory!\n");
@@ -2745,7 +2740,6 @@ out:
 
 	free(oldcontents);
 	free(newcontents);
-out_nofree:
 	/*
 	 * programmer_shutdown() call is moved to cli_classic() in chromium os
 	 * tree. This is because some operations, such as write protection,
@@ -2762,7 +2756,8 @@ int do_read(struct flashctx *const flash, const char *const filename)
 	if (prepare_flash_access(flash, true, false, false, false))
 		return 1;
 
-	int ret = doit(flash, filename, true, false, false, false, NULL);
+	const int ret = read_flash_to_file(flash, filename);
+
 	finalize_flash_access(flash);
 
 	return ret;
