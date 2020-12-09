@@ -1578,47 +1578,6 @@ notfound:
 	return chip - flashchips;
 }
 
-static int verify_flash(struct flashctx *flash,
-			struct action_descriptor *descriptor,
-			int verify_it)
-{
-	int ret;
-	unsigned int total_size = flash->chip->total_size * 1024;
-	uint8_t *buf = descriptor->newcontents;
-
-	msg_cinfo("Verifying flash... ");
-
-	if (verify_it == VERIFY_PARTIAL) {
-		struct processing_unit *pu = descriptor->processing_units;
-
-		/* Verify only areas which were written. */
-		while (pu->num_blocks) {
-			ret = verify_range(flash, buf + pu->offset, pu->offset,
-					   pu->block_size * pu->num_blocks);
-			if (ret)
-				break;
-			pu++;
-		}
-	} else {
-		ret = verify_range(flash, buf, 0, total_size);
-	}
-
-	if (ret == ACCESS_DENIED) {
-		msg_gdbg("Could not fully verify due to access error, ");
-		if (access_denied_action == error_ignore) {
-			msg_gdbg("ignoring\n");
-			ret = 0;
-		} else {
-			msg_gdbg("aborting\n");
-		}
-	}
-
-	if (!ret)
-		msg_cinfo("VERIFIED.          \n");
-
-	return ret;
-}
-
 int read_buf_from_file(unsigned char *buf, unsigned long size,
 		       const char *filename)
 {
@@ -2056,6 +2015,47 @@ int erase_and_write_flash(struct flashctx *flash,
 	} else {
 		msg_cdbg("SUCCESS.\n");
 	}
+	return ret;
+}
+
+static int verify_flash(struct flashctx *flash,
+			struct action_descriptor *descriptor,
+			int verify_it)
+{
+	int ret;
+	unsigned int total_size = flash->chip->total_size * 1024;
+	uint8_t *buf = descriptor->newcontents;
+
+	msg_cinfo("Verifying flash... ");
+
+	if (verify_it == VERIFY_PARTIAL) {
+		struct processing_unit *pu = descriptor->processing_units;
+
+		/* Verify only areas which were written. */
+		while (pu->num_blocks) {
+			ret = verify_range(flash, buf + pu->offset, pu->offset,
+					   pu->block_size * pu->num_blocks);
+			if (ret)
+				break;
+			pu++;
+		}
+	} else {
+		ret = verify_range(flash, buf, 0, total_size);
+	}
+
+	if (ret == ACCESS_DENIED) {
+		msg_gdbg("Could not fully verify due to access error, ");
+		if (access_denied_action == error_ignore) {
+			msg_gdbg("ignoring\n");
+			ret = 0;
+		} else {
+			msg_gdbg("aborting\n");
+		}
+	}
+
+	if (!ret)
+		msg_cinfo("VERIFIED.          \n");
+
 	return ret;
 }
 
