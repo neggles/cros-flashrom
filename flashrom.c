@@ -2478,6 +2478,11 @@ static int flashrom_flash_erase(struct flashctx *const flashctx,
 
 /** @} */ /* end flashrom-flash */
 
+/**
+ * @defgroup flashrom-ops Operations
+ * @{
+ */
+
 
 static int read_dest_content(struct flashctx *flash, int verify_it,
 			     uint8_t *dest, unsigned long size)
