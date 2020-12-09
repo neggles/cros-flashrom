@@ -2484,8 +2484,21 @@ static int flashrom_flash_erase(struct flashctx *const flashctx,
  */
 
 
-static int read_dest_content(struct flashctx *flash, int verify_it,
-			     uint8_t *dest, unsigned long size)
+/**
+ * @brief Read the current image from the specified ROM chip.
+ *
+ * If a layout is set in the specified flash context, only included regions
+ * will be read.
+ *
+ * @param flashctx The context of the flash chip.
+ * @param buffer Target buffer to write image to.
+ * @param buffer_len Size of target buffer in bytes.
+ * @return 0 on success,
+ *         2 if buffer_len is too short for the flash chip's contents,
+ *         or 1 on any other failure.
+ */
+int flashrom_image_read(struct flashctx *const flashctx, int verify_it,
+                        void *const buffer, const size_t buffer_len)
 {
 	if (((verify_it == VERIFY_OFF) || (verify_it == VERIFY_PARTIAL))
 			&& get_num_include_args()) {
@@ -2494,10 +2507,10 @@ static int read_dest_content(struct flashctx *flash, int verify_it,
 		 * the entire chip is about to be programmed,
 		 * read only the areas which might change.
 		 */
-		if (handle_partial_read(flash, dest, read_flash, 0) < 0)
+		if (handle_partial_read(flashctx, buffer, read_flash, 0) < 0)
 			return 1;
 	} else {
-		if (read_flash(flash, dest, 0, size))
+		if (read_flash(flashctx, buffer, 0, buffer_len))
 			return 1;
 	}
 	return 0;
@@ -2610,8 +2623,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 			}
 		} else {
 			msg_cdbg("Reading old contents from flash chip... ");
-			ret = read_dest_content(flash, verify_it,
-						oldcontents, size);
+			ret = flashrom_image_read(flash, verify_it, oldcontents, size);
 			if (ret) {
 				msg_cdbg("FAILED.\n");
 				goto out;
@@ -2677,8 +2689,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 		} else if (ret > 0) {
 			// Need 2nd pass. Get the just written content.
 			msg_pdbg("CROS_EC needs 2nd pass.\n");
-			ret = read_dest_content(flash, verify_it,
-						oldcontents, size);
+			ret = flashrom_image_read(flash, verify_it, oldcontents, size);
 			if (ret) {
 				emergency_help_message();
 				goto out;
