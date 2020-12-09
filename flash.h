@@ -392,10 +392,6 @@ int register_chip_restore(chip_restore_fn_cb_t func, struct flashctx *flash, uin
  */
 #define ERROR_FLASHROM_LIMIT -201
 
-/* Operation failed due to access restriction set in programmer or flash chip */
-#define ACCESS_DENIED -7
-extern enum error_action access_denied_action;
-
 /* convenience function for checking return codes */
 extern int ignore_error(int x);
 

@@ -51,13 +51,13 @@ const char *chip_to_probe = NULL;
 static int content_has_changed = 0;
 
 /* error handling stuff */
-enum error_action access_denied_action = error_ignore;
+static enum error_action access_denied_action = error_ignore;
 
 int ignore_error(int err) {
 	int rc = 0;
 
 	switch(err) {
-	case ACCESS_DENIED:
+	case SPI_ACCESS_DENIED:
 		if (access_denied_action == error_ignore)
 			rc = 1;
 		break;
@@ -1882,7 +1882,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		msg_cdbg(" E");
 		ret = erasefn(flash, start, len);
 		if (ret) {
-			if (ret == ACCESS_DENIED)
+			if (ret == SPI_ACCESS_DENIED)
 				msg_cdbg(" DENIED");
 			else
 				msg_cerr(" ERASE_FAILED\n");
@@ -1912,7 +1912,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		ret = write_flash(flash, newcontents + starthere,
 				   start + starthere, lenhere);
 		if (ret) {
-			if (ret == ACCESS_DENIED)
+			if (ret == SPI_ACCESS_DENIED)
 				msg_cdbg(" DENIED");
 			return ret;
 		}
@@ -2040,7 +2040,7 @@ static int verify_flash(struct flashctx *flash,
 		ret = verify_range(flash, buf, 0, total_size);
 	}
 
-	if (ret == ACCESS_DENIED) {
+	if (ret == SPI_ACCESS_DENIED) {
 		msg_gdbg("Could not fully verify due to access error, ");
 		if (access_denied_action == error_ignore) {
 			msg_gdbg("ignoring\n");
