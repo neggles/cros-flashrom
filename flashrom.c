@@ -1718,11 +1718,28 @@ static int check_block_eraser(const struct flashctx *flash, int k, int log)
 }
 
 typedef int (*erasefn_t)(struct flashctx *, unsigned int addr, unsigned int len);
+/**
+ * @private
+ *
+ * For read-erase-write, `curcontents` and `newcontents` shall point
+ * to buffers of the chip's size. Both are supposed to be prefilled
+ * with at least the included layout regions of the current flash
+ * contents (`curcontents`) and the data to be written to the flash
+ * (`newcontents`).
+ *
+ * For erase, `curcontents` and `newcontents` shall be NULL-pointers.
+ *
+ * The `chipoff_t` values are used internally by `walk_by_layout()`.
+ */
+struct walk_info {
+	uint8_t *curcontents;
+	const uint8_t *newcontents;
+	chipoff_t erase_start;
+	chipoff_t erase_len;
+};
 
 static int erase_and_write_block_helper(struct flashctx *flash,
-					unsigned int start, unsigned int len,
-					uint8_t *curcontents,
-					uint8_t *newcontents,
+					struct walk_info *const info,
 					erasefn_t erasefn)
 {
 	unsigned int starthere = 0, lenhere = 0;
@@ -1736,15 +1753,15 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	 * abstraction
 	 */
 
-	curcontents += start;
+	info->curcontents += info->erase_start;
 
-	newcontents += start;
+	info->newcontents += info->erase_start;
 
 	msg_cdbg(":");
-	if (need_erase(curcontents, newcontents, len, gran, 0xff)) {
+	if (need_erase(info->curcontents, info->newcontents, info->erase_len, gran, 0xff)) {
 		content_has_changed |= 1;
 		msg_cdbg(" E");
-		ret = erasefn(flash, start, len);
+		ret = erasefn(flash, info->erase_start, info->erase_len);
 		if (ret) {
 			if (ret == SPI_ACCESS_DENIED)
 				msg_cdbg(" DENIED");
@@ -1754,27 +1771,27 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		}
 
 		if (programmer_table[programmer].paranoid) {
-			if (check_erased_range(flash, start, len)) {
+			if (check_erased_range(flash, info->erase_start, info->erase_len)) {
 				msg_cerr(" ERASE_FAILED\n");
 				return -1;
 			}
 		}
 
 		/* Erase was successful. Adjust curcontents. */
-		memset(curcontents, ERASED_VALUE(flash), len);
+		memset(info->curcontents, ERASED_VALUE(flash), info->erase_len);
 		skip = 0;
 		block_was_erased = 1;
 	}
 	/* get_next_write() sets starthere to a new value after the call. */
-	while ((lenhere = get_next_write(curcontents + starthere,
-					 newcontents + starthere,
-					 len - starthere, &starthere, gran))) {
+	while ((lenhere = get_next_write(info->curcontents + starthere,
+					 info->newcontents + starthere,
+					 info->erase_len - starthere, &starthere, gran))) {
 		content_has_changed |= 1;
 		if (!writecount++)
 			msg_cdbg(" W");
 		/* Needs the partial write function signature. */
-		ret = write_flash(flash, newcontents + starthere,
-				   start + starthere, lenhere);
+		ret = write_flash(flash, (uint8_t *)info->newcontents + starthere,
+				   info->erase_start + starthere, lenhere);
 		if (ret) {
 			if (ret == SPI_ACCESS_DENIED)
 				msg_cdbg(" DENIED");
@@ -1789,8 +1806,8 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		 * any errors.
 		 */
 		if (programmer_table[programmer].paranoid && !block_was_erased) {
-			if (verify_range(flash, newcontents + starthere,
-					start + starthere, lenhere))
+			if (verify_range(flash, info->newcontents + starthere,
+					info->erase_start + starthere, lenhere))
 				return -1;
 		}
 
@@ -1819,10 +1836,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
  */
 static int walk_eraseregions(struct flashctx *flash,
 			     int (*do_something) (struct flashctx *flash,
-						  unsigned int addr,
-						  unsigned int len,
-						  uint8_t *param1,
-						  uint8_t *param2,
+						  struct walk_info *const info,
 						  erasefn_t erasefn),
 			     struct action_descriptor *descriptor)
 {
@@ -1843,10 +1857,13 @@ static int walk_eraseregions(struct flashctx *flash,
 
 			msg_cdbg("0x%06x-0x%06zx", base, base + pu->block_size - 1);
 
-			rc = do_something(flash, base,
-					  pu->block_size,
-					  descriptor->oldcontents,
-					  descriptor->newcontents,
+			struct walk_info info = {
+				.curcontents = descriptor->oldcontents,
+				.newcontents = descriptor->newcontents,
+				.erase_start = base,
+				.erase_len   = pu->block_size,
+			};
+			rc = do_something(flash, &info,
 					  flash->chip->block_erasers[pu->block_eraser_index].block_erase);
 
 			if (rc) {
