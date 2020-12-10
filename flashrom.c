@@ -1739,6 +1739,64 @@ struct walk_info {
 };
 typedef int (*per_blockfn_t)(struct flashctx *, struct walk_info *const, erasefn_t);
 
+/*
+ * Function to process processing units accumulated in the action descriptor.
+ *
+ * @flash         pointer to the flash context to operate on
+ * @per_blockfn   helper function which can erase and program a section of the
+ *                flash chip. It receives the flash context, offset and length
+ *                of the area to erase/program, before and after contents (to
+ *                decide what exactly needs to be erased and or programmed)
+ *                and a pointer to the erase function which can operate on the
+ *                proper granularity.
+ * @descriptor    action descriptor including pointers to before and after
+ *		  contents and an array of processing actions to take.
+ *
+ * Returns zero on success or an error code.
+ */
+static int walk_eraseregions(struct flashctx *flash,
+			     const per_blockfn_t per_blockfn,
+			     struct action_descriptor *descriptor)
+{
+	struct processing_unit *pu;
+	int rc = 0;
+	static int print_comma;
+
+	for (pu = descriptor->processing_units; pu->num_blocks; pu++) {
+		unsigned base = pu->offset;
+		unsigned top = pu->offset + pu->block_size * pu->num_blocks;
+
+		while (base < top) {
+
+			if (print_comma)
+				msg_cdbg(", ");
+			else
+				print_comma = 1;
+
+			msg_cdbg("0x%06x-0x%06zx", base, base + pu->block_size - 1);
+
+			struct walk_info info = {
+				.curcontents = descriptor->oldcontents,
+				.newcontents = descriptor->newcontents,
+				.erase_start = base,
+				.erase_len   = pu->block_size,
+			};
+			rc = per_blockfn(flash, &info,
+					  flash->chip->block_erasers[pu->block_eraser_index].block_erase);
+
+			if (rc) {
+				if (ignore_error(rc))
+					rc = 0;
+				else
+					return rc;
+			}
+			base += pu->block_size;
+		}
+	}
+	msg_cdbg("\n");
+	return rc;
+}
+
 static int erase_and_write_block_helper(struct flashctx *flash,
 					struct walk_info *const info,
 					erasefn_t erasefn)
@@ -1818,64 +1876,6 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	if (skip)
 		msg_cdbg(" SKIP");
 	return ret;
-}
-
-/*
- * Function to process processing units accumulated in the action descriptor.
- *
- * @flash         pointer to the flash context to operate on
- * @per_blockfn   helper function which can erase and program a section of the
- *                flash chip. It receives the flash context, offset and length
- *                of the area to erase/program, before and after contents (to
- *                decide what exactly needs to be erased and or programmed)
- *                and a pointer to the erase function which can operate on the
- *                proper granularity.
- * @descriptor    action descriptor including pointers to before and after
- *		  contents and an array of processing actions to take.
- *
- * Returns zero on success or an error code.
- */
-static int walk_eraseregions(struct flashctx *flash,
-			     const per_blockfn_t per_blockfn,
-			     struct action_descriptor *descriptor)
-{
-	struct processing_unit *pu;
-	int rc = 0;
-	static int print_comma;
-
-	for (pu = descriptor->processing_units; pu->num_blocks; pu++) {
-		unsigned base = pu->offset;
-		unsigned top = pu->offset + pu->block_size * pu->num_blocks;
-
-		while (base < top) {
-
-			if (print_comma)
-				msg_cdbg(", ");
-			else
-				print_comma = 1;
-
-			msg_cdbg("0x%06x-0x%06zx", base, base + pu->block_size - 1);
-
-			struct walk_info info = {
-				.curcontents = descriptor->oldcontents,
-				.newcontents = descriptor->newcontents,
-				.erase_start = base,
-				.erase_len   = pu->block_size,
-			};
-			rc = per_blockfn(flash, &info,
-					  flash->chip->block_erasers[pu->block_eraser_index].block_erase);
-
-			if (rc) {
-				if (ignore_error(rc))
-					rc = 0;
-				else
-					return rc;
-			}
-			base += pu->block_size;
-		}
-	}
-	msg_cdbg("\n");
-	return rc;
 }
 
 int erase_and_write_flash(struct flashctx *flash,
