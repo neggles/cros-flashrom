@@ -1664,10 +1664,7 @@ int read_flash_to_file(struct flashctx *flash, const char *filename)
 
 out_free:
 	free(buf);
-	if (ret)
-		msg_cerr("FAILED.");
-	else
-		msg_cdbg("done.");
+	msg_cinfo("%s.\n", ret ? "FAILED" : "done");
 	return ret;
 }
 
