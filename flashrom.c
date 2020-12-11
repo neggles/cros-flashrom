@@ -1844,7 +1844,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 					erasefn_t erasefn)
 {
 	unsigned int starthere = 0, lenhere = 0;
-	int ret = 0, skip = 1, writecount = 0;
+	int ret = 0, writecount = 0;
 	int block_was_erased = 0;
 	enum write_granularity gran = flash->chip->gran;
 
@@ -1858,6 +1858,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 
 	info->newcontents += info->erase_start;
 
+	bool skipped = true;
 	msg_cdbg(":");
 	if (need_erase(info->curcontents, info->newcontents, info->erase_len, gran, 0xff)) {
 		content_has_changed |= 1;
@@ -1880,7 +1881,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 
 		/* Erase was successful. Adjust curcontents. */
 		memset(info->curcontents, ERASED_VALUE(flash), info->erase_len);
-		skip = 0;
+		skipped = false;
 		block_was_erased = 1;
 	}
 	/* get_next_write() sets starthere to a new value after the call. */
@@ -1913,10 +1914,10 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		}
 
 		starthere += lenhere;
-		skip = 0;
+		skipped = false;
 	}
-	if (skip)
-		msg_cdbg(" SKIP");
+	if (skipped)
+		msg_cdbg("S");
 	return ret;
 }
 
