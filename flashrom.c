@@ -1810,6 +1810,7 @@ static int walk_eraseregions(struct flashctx *flash,
 	for (pu = descriptor->processing_units; pu->num_blocks; pu++) {
 		unsigned base = pu->offset;
 		unsigned top = pu->offset + pu->block_size * pu->num_blocks;
+		struct block_eraser *const eraser = &flash->chip->block_erasers[pu->block_eraser_index];
 
 		while (base < top) {
 
@@ -1826,8 +1827,7 @@ static int walk_eraseregions(struct flashctx *flash,
 				.erase_start = base,
 				.erase_len   = pu->block_size,
 			};
-			rc = per_blockfn(flash, &info,
-					  flash->chip->block_erasers[pu->block_eraser_index].block_erase);
+			rc = per_blockfn(flash, &info, eraser->block_erase);
 
 			if (rc) {
 				if (ignore_error(rc))
