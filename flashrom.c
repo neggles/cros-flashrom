@@ -1445,10 +1445,9 @@ notfound:
 int read_buf_from_file(unsigned char *buf, unsigned long size,
 		       const char *filename)
 {
-	unsigned long numbytes;
-	FILE *image;
-	struct stat image_stat;
+	int ret = 0;
 
+	FILE *image;
 	if (!strncmp(filename, "-", sizeof("-")))
 		image = fdopen(STDIN_FILENO, "rb");
 	else
@@ -1457,35 +1456,36 @@ int read_buf_from_file(unsigned char *buf, unsigned long size,
 		perror(filename);
 		return 1;
 	}
+
+	struct stat image_stat;
 	if (fstat(fileno(image), &image_stat) != 0) {
 		perror(filename);
-		fclose(image);
-		return 1;
+		ret = 1;
+		goto out;
 	}
 	if ((image_stat.st_size != size) &&
 	    (strncmp(filename, "-", sizeof("-")))) {
 		msg_gerr("Error: Image size doesn't match: stat %jd bytes, "
 			 "wanted %ld!\n", (intmax_t)image_stat.st_size, size);
-		fclose(image);
-		return 1;
+		ret = 1;
+		goto out;
 	}
-	numbytes = fread(buf, 1, size, image);
-	if (fclose(image)) {
-		perror(filename);
-		return 1;
-	}
+
+	unsigned long numbytes = fread(buf, 1, size, image);
 	if (numbytes != size) {
 		msg_gerr("Error: Failed to read complete file. Got %ld bytes, "
 			 "wanted %ld!\n", numbytes, size);
-		return 1;
+		ret = 1;
 	}
-	return 0;
+out:
+	(void)fclose(image);
+	return ret;
 }
 
 int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *filename)
 {
-	unsigned long numbytes;
 	FILE *image;
+	int ret = 0;
 
 	if (!filename) {
 		msg_gerr("No filename specified.\n");
@@ -1500,13 +1500,37 @@ int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *
 		return 1;
 	}
 
-	numbytes = fwrite(buf, 1, size, image);
-	fclose(image);
+	unsigned long numbytes = fwrite(buf, 1, size, image);
 	if (numbytes != size) {
 		msg_gerr("Error: file %s could not be written completely.\n", filename);
-		return 1;
+		ret = 1;
+		goto out;
 	}
-	return 0;
+	if (fflush(image)) {
+		msg_gerr("Error: flushing file \"%s\" failed: %s\n", filename, strerror(errno));
+		ret = 1;
+	}
+	// Try to fsync() only regular files and if that function is available at all (e.g. not on MinGW).
+#if defined(_POSIX_FSYNC) && (_POSIX_FSYNC != -1)
+	struct stat image_stat;
+	if (fstat(fileno(image), &image_stat) != 0) {
+		msg_gerr("Error: getting metadata of file \"%s\" failed: %s\n", filename, strerror(errno));
+		ret = 1;
+		goto out;
+	}
+	if (S_ISREG(image_stat.st_mode)) {
+		if (fsync(fileno(image))) {
+			msg_gerr("Error: fsyncing file \"%s\" failed: %s\n", filename, strerror(errno));
+			ret = 1;
+		}
+	}
+#endif
+out:
+	if (fclose(image)) {
+		msg_gerr("Error: closing file \"%s\" failed: %s\n", filename, strerror(errno));
+		ret = 1;
+	}
+	return ret;
 }
 
 /*
