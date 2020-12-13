@@ -1445,6 +1445,10 @@ notfound:
 int read_buf_from_file(unsigned char *buf, unsigned long size,
 		       const char *filename)
 {
+#ifdef __LIBPAYLOAD__
+	msg_gerr("Error: No file I/O support in libpayload\n");
+	return 1;
+#else
 	int ret = 0;
 
 	FILE *image;
@@ -1480,10 +1484,15 @@ int read_buf_from_file(unsigned char *buf, unsigned long size,
 out:
 	(void)fclose(image);
 	return ret;
+#endif
 }
 
 int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *filename)
 {
+#ifdef __LIBPAYLOAD__
+	msg_gerr("Error: No file I/O support in libpayload\n");
+	return 1;
+#else
 	FILE *image;
 	int ret = 0;
 
@@ -1531,6 +1540,7 @@ out:
 		ret = 1;
 	}
 	return ret;
+#endif
 }
 
 /*
