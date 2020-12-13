@@ -1457,20 +1457,20 @@ int read_buf_from_file(unsigned char *buf, unsigned long size,
 	else
 		image = fopen(filename, "rb");
 	if (image == NULL) {
-		perror(filename);
+		msg_gerr("Error: opening file \"%s\" failed: %s\n", filename, strerror(errno));
 		return 1;
 	}
 
 	struct stat image_stat;
 	if (fstat(fileno(image), &image_stat) != 0) {
-		perror(filename);
+		msg_gerr("Error: getting metadata of file \"%s\" failed: %s\n", filename, strerror(errno));
 		ret = 1;
 		goto out;
 	}
 	if ((image_stat.st_size != size) &&
 	    (strncmp(filename, "-", sizeof("-")))) {
-		msg_gerr("Error: Image size doesn't match: stat %jd bytes, "
-			 "wanted %ld!\n", (intmax_t)image_stat.st_size, size);
+		msg_gerr("Error: Image size (%jd B) doesn't match the flash chip's size (%lu B)!\n",
+			 (intmax_t)image_stat.st_size, size);
 		ret = 1;
 		goto out;
 	}
@@ -1505,7 +1505,7 @@ int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *
 	else
 		image = fopen(filename, "wb");
 	if (image == NULL) {
-		perror(filename);
+		msg_gerr("Error: opening file \"%s\" failed: %s\n", filename, strerror(errno));
 		return 1;
 	}
 
