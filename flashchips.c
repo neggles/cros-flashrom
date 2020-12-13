@@ -15885,32 +15885,6 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
-		.vendor		= "Sanyo",
-		.name		= "LF25FW203A",
-		.bustype	= BUS_SPI,
-		.manufacture_id	= SANYO_ID,
-		.model_id	= SANYO_LE25FW203A,
-		.total_size	= 2048,
-		.page_size	= 256,
-		.tested		= TEST_UNTESTED,
-		.probe		= probe_spi_rdid,
-		.probe_timing	= TIMING_ZERO,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {64 * 1024, 32} },
-				.block_erase = spi_block_erase_d8,
-			},	{
-				.eraseblocks = { {2 * 1024 * 1024, 1} },
-				.block_erase = spi_block_erase_c7,
-			}
-		},
-		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_256,
-		.read		= spi_chip_read,
-	},
-
-	{
 		.vendor		= "Sharp",
 		.name		= "LH28F008BJT-BTLZ1",
 		.bustype	= BUS_PARALLEL,
