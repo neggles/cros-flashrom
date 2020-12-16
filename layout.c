@@ -96,6 +96,7 @@ int read_romlayout(const char *name)
 		layout->entries[layout->num_entries].start = strtol(tstr1, (char **)NULL, 16);
 		layout->entries[layout->num_entries].end = strtol(tstr2, (char **)NULL, 16);
 		layout->entries[layout->num_entries].included = 0;
+		layout->entries[layout->num_entries].file = NULL;
 		layout->entries[layout->num_entries].name = strdup(tempname);
 		if (!layout->entries[layout->num_entries].name) {
 			msg_gerr("Error adding layout entry: %s\n", strerror(errno));
@@ -246,6 +247,7 @@ void layout_cleanup(void)
 	struct flashrom_layout *const layout = get_global_layout();
 	for (i = 0; i < layout->num_entries; i++) {
 		free(layout->entries[i].name);
+		free(layout->entries[i].file);
 		layout->entries[i].included = 0;
 	}
 	layout->num_entries = 0;
@@ -300,7 +302,7 @@ static int read_content_from_file(struct romentry *entry, uint8_t *newcontents) 
 	 * content to overwrite. */
 	file = entry->file;
 	len = entry->end - entry->start + 1;
-	if (file[0]) {
+	if (file) {
 		int numbytes;
 		struct stat s;
 
@@ -435,7 +437,7 @@ static int write_content_to_file(struct romentry *entry, uint8_t *buf) {
 	int len = entry->end - entry->start + 1;
 
 	file = entry->file;
-	if (file[0]) {  /* save to file if name is specified. */
+	if (file) {  /* save to file if name is specified. */
 		int numbytes;
 		if ((fp = fopen(file, "wb")) == NULL) {
 			perror(file);
@@ -617,9 +619,8 @@ int flashrom_layout_include_region(struct flashrom_layout *const layout, const c
 	for (i = 0; i < layout->num_entries; ++i) {
 		if (!strcmp(layout->entries[i].name, name)) {
 			layout->entries[i].included = true;
-			snprintf(layout->entries[i].file,
-				 sizeof(layout->entries[i].file),
-				 "%s", file ? file : "");
+			if (file)
+				layout->entries[i].file = strdup(file);
 			return i;
 		}
 	}

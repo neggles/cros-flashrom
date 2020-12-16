@@ -36,7 +36,7 @@ struct romentry {
 	chipoff_t end;
 	unsigned int included;
 	char *name;
-	char file[256];  /* file[0]=='\0' means not specified. */
+	char *file;
 };
 
 struct flashrom_layout {

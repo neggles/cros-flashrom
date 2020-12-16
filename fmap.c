@@ -493,13 +493,10 @@ static int add_fmap_entries_from_buf(const uint8_t *buf)
 		memcpy(layout->entries[layout->num_entries].name, fmap->areas[i].name, name_len);
 
 		layout->entries[layout->num_entries].included = 0;
-		strcpy(layout->entries[layout->num_entries].file, "");
+		layout->entries[layout->num_entries].file = NULL;
 
-		msg_gdbg("added fmap region \"%s\" (file=\"%s\") as %sincluded,"
-			 " start: 0x%08x, end: 0x%08x\n",
+		msg_gdbg("added fmap region \"%s\", start: 0x%08x, end: 0x%08x\n",
 			  layout->entries[layout->num_entries].name,
-			  layout->entries[layout->num_entries].file,
-			  layout->entries[layout->num_entries].included ? "" : "not ",
 			  layout->entries[layout->num_entries].start,
 			  layout->entries[layout->num_entries].end);
 		layout->num_entries++;
