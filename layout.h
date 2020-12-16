@@ -61,11 +61,9 @@ struct flashrom_layout *get_global_layout(void);
  */
 int extract_regions(struct flashctx *flash);
 
-int read_romlayout(const char *name);
 int find_romentry(struct flashrom_layout *const l, char *name);
 int fill_romentry(struct romentry *entry, int n);
 int get_num_include_args(void);
-int register_include_arg(char *name);
 int process_include_args(void);
 int num_include_files(void);
 int included_regions_overlap(void);
@@ -79,7 +77,6 @@ int handle_partial_read(
     *         ==0 means no partition is specified.
     *         < 0 means writing file error. */
 
-int normalize_romentries(const struct flashctx *flash);
 /*
  * In case user specified sections to program (using the -i command line
  * option), prepare new contents such that only the required sections are
@@ -99,6 +96,5 @@ int normalize_romentries(const struct flashctx *flash);
  */
 int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode);
-void layout_cleanup(void);
 
 #endif /* __LAYOUT_H__ */
