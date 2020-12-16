@@ -34,6 +34,8 @@
 #undef max
 #endif
 
+#include "layout.h"
+
 #define KiB (1024)
 #define MiB (1024 * KiB)
 
@@ -271,6 +273,8 @@ struct flashctx {
 	uintptr_t physical_registers;
 	chipaddr virtual_registers;
 	struct registered_master *mst;
+	const struct flashrom_layout *layout;
+	struct single_layout fallback_layout;
 	struct {
 		bool force;
 		bool force_boardmismatch;

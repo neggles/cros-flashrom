@@ -1416,6 +1416,18 @@ notfound:
 	if (!chip || !chip->name)
 		return -1;
 
+	/* Fill fallback layout covering the whole chip. */
+	struct single_layout *const fallback = &flash->fallback_layout;
+	fallback->base.entries		= &fallback->entry;
+	fallback->base.num_entries	= 1;
+	fallback->entry.start		= 0;
+	fallback->entry.end		= flash->chip->total_size * 1024 - 1;
+	fallback->entry.included	= true;
+	fallback->entry.name		= strdup("complete flash");
+	if (!fallback->entry.name) {
+		msg_cerr("Failed to probe chip: %s\n", strerror(errno));
+		return -1;
+	}
 
 	tmp = flashbuses_to_text(chip->bustype);
 	msg_cinfo("%s %s flash chip \"%s\" (%d kB, %s) ", force ? "Assuming" : "Found",

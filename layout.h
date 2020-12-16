@@ -51,8 +51,12 @@ struct single_layout {
 	struct romentry entry;
 };
 
-struct flashrom_layout *get_global_layout(void);
+struct layout_include_args {
+	char *name;
+	struct layout_include_args *next;
+};
 
+struct flashctx;
 /**
  * Extract regions to current directory
  *
@@ -60,6 +64,8 @@ struct flashrom_layout *get_global_layout(void);
  * @return 0 if OK, non-zero on error
  */
 int extract_regions(struct flashctx *flash);
+
+struct flashrom_layout *get_global_layout(void);
 
 int find_romentry(struct flashrom_layout *const l, char *name);
 int fill_romentry(struct romentry *entry, int n);
