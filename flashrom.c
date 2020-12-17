@@ -2690,12 +2690,12 @@ int do_read(struct flashctx *const flash, const char *const filename)
 	return ret;
 }
 
-int do_erase(struct flashctx *const flash, const char *diff_file)
+int do_erase(struct flashctx *const flash)
 {
 	if (prepare_flash_access(flash, false, false, true, false))
 		return 1;
 
-	int ret = doit(flash, NULL, false, false, true, false, diff_file);
+	int ret = doit(flash, NULL, false, false, true, false, flash->diff_file);
 
 	/*
 	 * FIXME: Do we really want the scary warning if erase failed?
@@ -2711,7 +2711,7 @@ int do_erase(struct flashctx *const flash, const char *diff_file)
 	return ret;
 }
 
-int do_write(struct flashctx *const flash, const char *const filename, const char *const referencefile, const char *diff_file)
+int do_write(struct flashctx *const flash, const char *const filename, const char *const referencefile)
 {
 	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
 		return 1;
@@ -2720,18 +2720,18 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 		       flash->flags.verify_after_write
 			       ? flash->flags.verify_whole_chip ? VERIFY_FULL : VERIFY_PARTIAL
 			       : 0,
-		       diff_file);
+		       flash->diff_file);
 	finalize_flash_access(flash);
 
 	return ret;
 }
 
-int do_verify(struct flashctx *const flash, const char *const filename, const char *diff_file)
+int do_verify(struct flashctx *const flash, const char *const filename)
 {
 	if (prepare_flash_access(flash, false, false, false, true))
 		return 1;
 
-	int ret = doit(flash, filename, false, false, false, flash->flags.verify_whole_chip ? VERIFY_FULL : VERIFY_PARTIAL, diff_file);
+	int ret = doit(flash, filename, false, false, false, flash->flags.verify_whole_chip ? VERIFY_FULL : VERIFY_PARTIAL, flash->diff_file);
 	finalize_flash_access(flash);
 
 	return ret;

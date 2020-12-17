@@ -909,6 +909,7 @@ int main(int argc, char *argv[])
 	fill_flash->flags.do_diff = do_diff;
 	fill_flash->flags.verify_whole_chip = verify_it == VERIFY_FULL;
 	fill_flash->flags.verify_after_write = verify_it;
+	fill_flash->diff_file = diff_file;
 
 	/* FIXME: We should issue an unconditional chip reset here. This can be
 	 * done once we have a .reset function in struct flashchip.
@@ -918,11 +919,11 @@ int main(int argc, char *argv[])
 	if (read_it)
 		ret = do_read(fill_flash, filename);
 	else if (erase_it)
-		ret = do_erase(fill_flash, diff_file);
+		ret = do_erase(fill_flash);
 	else if (write_it)
-		ret = do_write(fill_flash, filename, NULL, diff_file);
+		ret = do_write(fill_flash, filename, NULL);
 	else if (verify_it)
-		ret = do_verify(fill_flash, filename, diff_file);
+		ret = do_verify(fill_flash, filename);
 	else if (extract_it)
 		ret = do_extract_it(fill_flash);
 

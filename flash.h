@@ -282,6 +282,7 @@ struct flashctx {
 		bool verify_whole_chip;
 		bool do_diff;
 	} flags;
+	char *diff_file; /* HACK to keep do_*() fn signatures the same. */
 	/* We cache the state of the extended address register (highest byte
 	 * of a 4BA for 3BA instructions) and the state of the 4BA mode here.
 	 * If possible, we enter 4BA mode early. If that fails, we make use
@@ -368,9 +369,9 @@ int prepare_flash_access(struct flashctx *, bool read_it, bool write_it, bool er
 void finalize_flash_access(struct flashctx *);
 
 int do_read(struct flashctx *, const char *filename);
-int do_erase(struct flashctx *, const char *diff_file);
-int do_write(struct flashctx *, const char *const filename, const char *const referencefile, const char *diff_file);
-int do_verify(struct flashctx *, const char *const filename, const char *diff_file);
+int do_erase(struct flashctx *);
+int do_write(struct flashctx *, const char *const filename, const char *const referencefile);
+int do_verify(struct flashctx *, const char *const filename);
 int do_extract_it(struct flashctx *);
 
 /* what to do in case of an error */
