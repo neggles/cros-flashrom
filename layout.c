@@ -13,7 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #include <errno.h>
@@ -40,14 +39,6 @@ static struct flashrom_layout global_layout = { entries, 0 };
  * match this granularity.
  */
 static unsigned int required_erase_size;
-
-/*
- * include_args lists arguments specified at the command line with -i. They
- * must be processed at some point so that desired regions are marked as
- * "included" in the master layout.
- */
-static char *include_args[MAX_ROMLAYOUT];
-static int num_include_args = 0;  /* the number of successfully parsed entries. */
 
 struct flashrom_layout *get_global_layout(void)
 {
@@ -119,21 +110,35 @@ _close_ret:
 }
 #endif
 
-int get_num_include_args(void) {
-  return num_include_args;
-}
-
 /* register an include argument (-i) for later processing */
-int register_include_arg(char *name)
+int register_include_arg(struct layout_include_args **args, char *name)
 {
-	if (num_include_args >= MAX_ROMLAYOUT) {
-		msg_gerr("too many regions included\n");
-		return -1;
+	struct layout_include_args *tmp;
+	if (name == NULL) {
+		msg_gerr("<NULL> is a bad region name.\n");
+		return 1;
 	}
 
-	include_args[num_include_args] = name;
-	num_include_args++;
-	return num_include_args;
+	tmp = *args;
+	while (tmp) {
+		if (!strcmp(tmp->name, name)) {
+			msg_gerr("Duplicate region name: \"%s\".\n", name);
+			return 1;
+		}
+		tmp = tmp->next;
+	}
+
+	tmp = malloc(sizeof(struct layout_include_args));
+	if (tmp == NULL) {
+		msg_gerr("Could not allocate memory");
+		return 1;
+	}
+
+	tmp->name = name;
+	tmp->next = *args;
+	*args = tmp;
+
+	return 0;
 }
 
 int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name, char *file);
@@ -181,70 +186,74 @@ int fill_romentry(struct romentry *entry, int n)
 	return 0;
 }
 
-/*
- * num_include_files - count filenames used with -i args
- *
- * This function is intended to help command syntax parser determine if
- * operations such as read and write require a file as an argument. This can
- * be used with get_num_include_args() to determine if all -i args have
- * filenames.
- *
- * returns number of filenames supplied with -i args
- */
-int num_include_files(void)
+int get_num_include_args(const struct flashrom_layout *const l)
 {
-	int i, count = 0;
+	size_t i;
+	int ret = 0;
 
-	for (i = 0; i < get_num_include_args(); i++) {
-		if (strchr(include_args[i], ':'))
-			count++;
+	if (!l)
+		return -1;
+
+	for (i = 0; i < l->num_entries; i++) {
+		if (l->entries[i].included)
+			ret++;
 	}
 
-	return count;
+	return ret;
 }
 
-/*
- * process_include_args - process -i arguments
- *
- * returns 0 to indicate success, <0 to indicate failure
+/* process -i arguments
+ * returns 0 to indicate success, >0 to indicate failure
  */
-int process_include_args() {
-	int i;
-	struct flashrom_layout *const layout = get_global_layout();
+int process_include_args(struct flashrom_layout *l, const struct layout_include_args *const args)
+{
+	unsigned int found = 0;
+	const struct layout_include_args *tmp;
 
-	for (i = 0; i < num_include_args; i++) {
-		if (include_args[i]) {
-			/* User has specified the area name, but no layout file
-			 * is loaded, and no fmap is stored in BIOS.
-			 * Return error. */
-			if (!layout->num_entries) {
-				msg_gerr("No layout info is available.\n");
-				return -1;
-			}
+	if (args == NULL)
+		return 0;
 
-			if (find_romentry(layout, include_args[i]) < 0) {
-				msg_gerr("Invalid entry specified: %s\n",
-				         include_args[i]);
-				return -1;
-			}
-		} else {
-			break;
-		}
+	/* User has specified an include argument, but no layout is loaded. */
+	if (l->num_entries == 0) {
+		msg_gerr("Region requested (with -i \"%s\"), "
+			 "but no layout data is available.\n",
+			 args->name);
+		return 1;
 	}
 
+	tmp = args;
+	while (tmp) {
+		if (find_romentry(l, tmp->name) < 0) {
+			msg_gerr("Nonexisting region name specified: \"%s\".\n", tmp->name);
+			return 1;
+		}
+		tmp = tmp->next;
+		found++;
+	}
+
+	msg_ginfo("Using region%s:", found > 1 ? "s" : "");
+	tmp = args;
+	while (tmp) {
+		msg_ginfo(" \"%s\"%s", tmp->name, found > 1 ? "," : "");
+		found--;
+		tmp = tmp->next;
+	}
+	msg_ginfo(".\n");
 	return 0;
 }
 
-void layout_cleanup(void)
+void layout_cleanup(struct layout_include_args **args)
 {
-	int i;
-	for (i = 0; i < num_include_args; i++) {
-		free(include_args[i]);
-		include_args[i] = NULL;
-	}
-	num_include_args = 0;
-
 	struct flashrom_layout *const layout = get_global_layout();
+	unsigned int i;
+	struct layout_include_args *tmp;
+
+	while (*args) {
+		tmp = (*args)->next;
+		free(*args);
+		*args = tmp;
+	}
+
 	for (i = 0; i < layout->num_entries; i++) {
 		free(layout->entries[i].name);
 		free(layout->entries[i].file);
@@ -397,7 +406,7 @@ int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 	/* If no regions were specified for inclusion, assume
 	 * that the user wants to write the complete new image.
 	 */
-	if (num_include_args == 0)
+	if (get_num_include_args(get_global_layout()) == 0)
 		return 0;
 
 	/* Non-included romentries are ignored.
@@ -499,7 +508,7 @@ int handle_partial_read(
 	/* If no regions were specified for inclusion, assume
 	 * that the user wants to read the complete image.
 	 */
-	if (num_include_args == 0)
+	if (get_num_include_args(get_global_layout()) == 0)
 		return 0;
 
 	if (set_required_erase_size(flash))

@@ -1,17 +1,21 @@
 /*
  * This file is part of the flashrom project.
  *
- * Copyright (C) 2013 Google Inc.
+ * Copyright (C) 2005-2008 coresystems GmbH
+ * (Written by Stefan Reinauer <stepan@coresystems.de> for coresystems GmbH)
+ * Copyright (C) 2011-2013 Stefan Tauner
+ * Copyright (C) 2016 secunet Security Networks AG
+ * (Written by Nico Huber <nico.huber@secunet.com> for secunet)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; version 2 of the License.
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
  */
 
 #ifndef __LAYOUT_H__
@@ -29,7 +33,7 @@ typedef uint32_t chipsize_t; /* Able to store the number of bytes of any support
 #define PRIxCHIPOFF "06"PRIx32
 #define PRIuCHIPSIZE PRIu32
 
-#define MAX_ROMLAYOUT	64
+#define MAX_ROMLAYOUT	128
 
 struct romentry {
 	chipoff_t start;
@@ -69,9 +73,8 @@ struct flashrom_layout *get_global_layout(void);
 
 int find_romentry(struct flashrom_layout *const l, char *name);
 int fill_romentry(struct romentry *entry, int n);
-int get_num_include_args(void);
-int process_include_args(void);
-int num_include_files(void);
+int get_num_include_args(const struct flashrom_layout *const l);
+int process_include_args(struct flashrom_layout *l, const struct layout_include_args *const args);
 int included_regions_overlap(void);
 int handle_partial_read(
     struct flashctx *flash,

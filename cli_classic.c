@@ -221,6 +221,7 @@ int main(int argc, char *argv[])
 	char *pparam = NULL;
 	char *wp_mode_opt = NULL;
 	char *wp_region = NULL;
+	struct layout_include_args *include_args = NULL;
 
 	print_version();
 	print_banner();
@@ -283,7 +284,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'i':
 			tempstr = strdup(optarg);
-			if (register_include_arg(tempstr) < 0) {
+			if (register_include_arg(&include_args, tempstr)) {
 				free(tempstr);
 				cli_classic_abort_usage(NULL);
 			}
@@ -721,18 +722,17 @@ int main(int argc, char *argv[])
 		}
 
 		if (!filename) {
-			if (!get_num_include_args()) {
-				msg_gerr("Error: No file specified for -%c.\n",
-						op);
+			if (!include_args) {
+				msg_gerr("Error: No file specified for -%c.\n", op);
 				ret = 1;
 				goto out_shutdown;
 			}
 
-			if (num_include_files() != get_num_include_args()) {
-				msg_gerr("Error: One or more -i arguments is "
-					" missing a filename.\n");
-				ret = 1;
-				goto out_shutdown;
+			for (struct layout_include_args *arg = include_args; arg; arg = arg->next) {
+				if (!strchr(arg->name, ':')) {
+					msg_gerr("Error: Missing filename for region \"%s\"\n", arg->name);
+					ret = 1;
+				}
 			}
 		}
 	}
@@ -766,7 +766,7 @@ int main(int argc, char *argv[])
 
 	/* If the user doesn't specify any -i argument, then we can skip the
 	 * fmap parsing to speed up. */
-	if (get_num_include_args() == 0 && !extract_it) {
+	if (!include_args && !extract_it) {
 		msg_gdbg("No -i argument is specified, set ignore_fmap.\n");
 		set_ignore_fmap = 1;
 	}
@@ -900,9 +900,7 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	/* mark entries included using -i argument as "included" if they are
-	   found in the master rom_entries list */
-	if (process_include_args() < 0) {
+	if (process_include_args(get_global_layout(), include_args)) {
 		ret = 1;
 		goto out_shutdown;
 	}
@@ -943,7 +941,7 @@ out:
 		ret |= 1;
 	}
 
-	layout_cleanup();
+	layout_cleanup(&include_args);
 #ifndef STANDALONE
 	free(logfile);
 	ret |= close_logfile();

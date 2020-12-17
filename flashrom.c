@@ -1642,7 +1642,7 @@ int read_flash_to_file(struct flashctx *flash, const char *filename)
 		ret = 1;
 		goto out_free;
 	} else if (ret > 0) {
-		int num_regions = get_num_include_args();
+		int num_regions = get_num_include_args(get_global_layout());
 
 		if (ret != num_regions) {
 			msg_cerr("Requested %d regions, but only read %d\n",
@@ -2424,7 +2424,7 @@ int flashrom_image_read(struct flashctx *const flashctx, int verify_it,
                         void *const buffer, const size_t buffer_len)
 {
 	if (((verify_it == VERIFY_OFF) || (verify_it == VERIFY_PARTIAL))
-			&& get_num_include_args()) {
+			&& get_num_include_args(get_global_layout())) {
 		/*
 		 * If no full verification is required and not
 		 * the entire chip is about to be programmed,
