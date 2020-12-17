@@ -70,6 +70,7 @@ struct flashctx;
 int extract_regions(struct flashctx *flash);
 
 struct flashrom_layout *get_global_layout(void);
+const struct flashrom_layout *get_layout(const struct flashctx *const flashctx);
 
 int find_romentry(struct flashrom_layout *const l, char *name);
 int fill_romentry(struct romentry *entry, int n);

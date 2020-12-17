@@ -45,6 +45,14 @@ struct flashrom_layout *get_global_layout(void)
 	return &global_layout;
 }
 
+const struct flashrom_layout *get_layout(const struct flashctx *const flashctx)
+{
+	if (flashctx->layout && flashctx->layout->num_entries)
+		return flashctx->layout;
+	else
+		return &flashctx->fallback_layout.base;
+}
+
 #ifndef __LIBPAYLOAD__
 int read_romlayout(const char *name)
 {
