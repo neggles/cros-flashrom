@@ -616,6 +616,42 @@ out_free:
 	return ret;
 }
 
+const struct romentry *layout_next_included_region(
+		const struct flashrom_layout *const l, const chipoff_t where)
+{
+	unsigned int i;
+	const struct romentry *lowest = NULL;
+
+	for (i = 0; i < l->num_entries; ++i) {
+		if (!l->entries[i].included)
+			continue;
+		if (l->entries[i].end < where)
+			continue;
+		if (!lowest || lowest->start > l->entries[i].start)
+			lowest = &l->entries[i];
+	}
+
+	return lowest;
+}
+
+const struct romentry *layout_next_included(
+		const struct flashrom_layout *const layout, const struct romentry *iterator)
+{
+	const struct romentry *const end = layout->entries + layout->num_entries;
+
+	if (iterator)
+		++iterator;
+	else
+		iterator = &layout->entries[0];
+
+	for (; iterator < end; ++iterator) {
+		if (!iterator->included)
+			continue;
+		return iterator;
+	}
+	return NULL;
+}
+
 /**
  * @addtogroup flashrom-layout
  * @{
