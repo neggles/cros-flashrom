@@ -755,6 +755,8 @@ int programmer_shutdown(void)
 void *programmer_map_flash_region(const char *descr, uintptr_t phys_addr, size_t len)
 {
 	void *ret = programmer_table[programmer].map_flash_region(descr, phys_addr, len);
+	msg_gspew("%s: mapping %s from 0x%0*" PRIxPTR " to 0x%0*" PRIxPTR "\n",
+		  __func__, descr, PRIxPTR_WIDTH, phys_addr, PRIxPTR_WIDTH, (uintptr_t) ret);
 	return ret;
 }
 
@@ -1430,7 +1432,7 @@ notfound:
 		flash->chip = NULL;
 	}
 
-	if (!chip || !chip->name)
+	if (!flash->chip)
 		return -1;
 
 	/* Fill fallback layout covering the whole chip. */
@@ -1446,7 +1448,7 @@ notfound:
 		return -1;
 	}
 
-	tmp = flashbuses_to_text(chip->bustype);
+	tmp = flashbuses_to_text(flash->chip->bustype);
 	msg_cinfo("%s %s flash chip \"%s\" (%d kB, %s) ", force ? "Assuming" : "Found",
 		  flash->chip->vendor, flash->chip->name, flash->chip->total_size, tmp);
 	free(tmp);
