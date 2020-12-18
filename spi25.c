@@ -667,7 +667,7 @@ int spi_nbyte_read(struct flashctx *flash, unsigned int address, uint8_t *bytes,
 int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start,
 		     unsigned int len, unsigned int chunksize)
 {
-	int ret;
+	int ret, rc = 0;
 	size_t to_read;
 	for (; len; len -= to_read, buf += to_read, start += to_read) {
 		to_read = min(chunksize, len);
@@ -676,10 +676,11 @@ int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start,
 			/* fill this chunk with 0xff bytes and
 			   let caller know about the error */
 			memset(buf, 0xff, to_read);
+			rc = ret;
 		} else if (ret)
 			return ret;
 	}
-	return 0;
+	return rc;
 }
 
 /*
