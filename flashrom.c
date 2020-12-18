@@ -1941,8 +1941,7 @@ int erase_and_write_flash(struct flashctx *flash,
 }
 
 static int verify_flash(struct flashctx *flash,
-			struct action_descriptor *descriptor,
-			int verify_it)
+			struct action_descriptor *descriptor)
 {
 	int ret;
 	unsigned int total_size = flash->chip->total_size * 1024;
@@ -1950,7 +1949,8 @@ static int verify_flash(struct flashctx *flash,
 
 	msg_cinfo("Verifying flash... ");
 
-	if (verify_it == VERIFY_PARTIAL) {
+	const bool verify_all = flash->flags.verify_whole_chip;
+	if (!verify_all) {
 		struct processing_unit *pu = descriptor->processing_units;
 
 		/* Verify only areas which were written. */
@@ -2423,11 +2423,13 @@ static int flashrom_flash_erase(struct flashctx *const flashctx,
  *         2 if buffer_len is too short for the flash chip's contents,
  *         or 1 on any other failure.
  */
-int flashrom_image_read(struct flashctx *const flashctx, int verify_it,
+int flashrom_image_read(struct flashctx *const flashctx,
                         void *const buffer, const size_t buffer_len)
 {
-	if (((verify_it == VERIFY_OFF) || (verify_it == VERIFY_PARTIAL))
-			&& get_num_include_args(get_global_layout())) {
+	const bool verify_all = flashctx->flags.verify_whole_chip;
+	const bool verify = flashctx->flags.verify_after_write;
+
+	if ((!verify || !verify_all) && get_num_include_args(get_global_layout())) {
 		/*
 		 * If no full verification is required and not
 		 * the entire chip is about to be programmed,
@@ -2458,8 +2460,6 @@ int flashrom_image_read(struct flashctx *const flashctx, int verify_it,
  * @read_it       when true, flash contents are read into 'filename'
  * @write_it      when true, flash is programmed with 'filename' contents
  * @erase_it      when true, flash chip is erased
- * @verify_it	  depending on the value verify the full chip, only changed
- *		  areas, or none
  * @extract_it    extract all known flash chip regions into separate files
  * @diff_file	  when deciding what areas to program, use this file's
  *                contents instead of reading the current chip contents
@@ -2476,14 +2476,16 @@ int flashrom_image_read(struct flashctx *const flashctx, int verify_it,
  * contents.
  */
 int doit(struct flashctx *flash, const char *filename, int read_it,
-	 int write_it, int erase_it, int verify_it,
-	 const char *diff_file)
+	 int write_it, int erase_it, const char *diff_file)
 {
 	uint8_t *oldcontents;
 	uint8_t *newcontents;
 	int ret = 0;
 	unsigned long size = flash->chip->total_size * 1024;
 	struct action_descriptor *descriptor = NULL;
+
+	const bool verify_all = flash->flags.verify_whole_chip;
+	const bool verify = flash->flags.verify_after_write;
 
 	oldcontents = malloc(size);
 	if (!oldcontents) {
@@ -2505,7 +2507,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 	 * everything before we can write.
 	 */
 
-	if (write_it || verify_it) {
+	if ((write_it || verify) && !erase_it) {
 		/*
 		 * Note: This must be done before any files specified by -i
 		 * arguments are processed merged into the newcontents since
@@ -2544,7 +2546,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 			}
 		} else {
 			msg_cdbg("Reading old contents from flash chip... ");
-			ret = flashrom_image_read(flash, verify_it, oldcontents, size);
+			ret = flashrom_image_read(flash, oldcontents, size);
 			if (ret) {
 				msg_cdbg("FAILED.\n");
 				goto out;
@@ -2610,7 +2612,7 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 		} else if (ret > 0) {
 			// Need 2nd pass. Get the just written content.
 			msg_pdbg("CROS_EC needs 2nd pass.\n");
-			ret = flashrom_image_read(flash, verify_it, oldcontents, size);
+			ret = flashrom_image_read(flash, oldcontents, size);
 			if (ret) {
 				emergency_help_message();
 				goto out;
@@ -2641,16 +2643,15 @@ int doit(struct flashctx *flash, const char *filename, int read_it,
 	}
 
  verify:
-	if (verify_it) {
-		if ((write_it || erase_it) && !content_has_changed) {
-			msg_gdbg("Nothing was erased or written, skipping "
-				"verification\n");
+	if (verify && !erase_it) {
+		if (write_it && !content_has_changed) {
+			msg_gdbg("Nothing was written, skipping verification\n");
 		} else {
 			/* Work around chips which need some time to calm down. */
-			if (write_it && verify_it != VERIFY_PARTIAL)
+			if (write_it && verify_all)
 				programmer_delay(1000*1000);
 
-			ret = verify_flash(flash, descriptor, verify_it);
+			ret = verify_flash(flash, descriptor);
 
 			/* If we tried to write, and verification now fails, we
 			 * might have an emergency situation.
@@ -2694,7 +2695,7 @@ int do_erase(struct flashctx *const flash)
 	if (prepare_flash_access(flash, false, false, true, false))
 		return 1;
 
-	int ret = doit(flash, NULL, false, false, true, false, flash->diff_file);
+	int ret = doit(flash, NULL, false, false, true, flash->diff_file);
 
 	/*
 	 * FIXME: Do we really want the scary warning if erase failed?
@@ -2715,11 +2716,7 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
 		return 1;
 
-	int ret = doit(flash, filename, false, true, false,
-		       flash->flags.verify_after_write
-			       ? flash->flags.verify_whole_chip ? VERIFY_FULL : VERIFY_PARTIAL
-			       : 0,
-		       flash->diff_file);
+	int ret = doit(flash, filename, false, true, false, flash->diff_file);
 	finalize_flash_access(flash);
 
 	return ret;
@@ -2730,7 +2727,7 @@ int do_verify(struct flashctx *const flash, const char *const filename)
 	if (prepare_flash_access(flash, false, false, false, true))
 		return 1;
 
-	int ret = doit(flash, filename, false, false, false, flash->flags.verify_whole_chip ? VERIFY_FULL : VERIFY_PARTIAL, flash->diff_file);
+	int ret = doit(flash, filename, false, false, false, flash->diff_file);
 	finalize_flash_access(flash);
 
 	return ret;

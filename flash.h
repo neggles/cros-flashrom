@@ -50,13 +50,6 @@ struct flashrom_flashctx;
 #define ERROR_OOM	-100
 #define TIMEOUT_ERROR	-101
 
-/* for verify_it variable in flashrom.c and cli_classic.c */
-enum {
-	VERIFY_OFF = 0,
-	VERIFY_FULL,
-	VERIFY_PARTIAL,
-};
-
 /* TODO: check using code for correct usage of types */
 typedef uintptr_t chipaddr;
 #define PRIxPTR_WIDTH ((int)(sizeof(uintptr_t)*2))
