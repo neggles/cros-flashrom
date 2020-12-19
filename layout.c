@@ -680,4 +680,23 @@ int flashrom_layout_include_region(struct flashrom_layout *const layout, const c
 	return -1;
 }
 
+/**
+ * @brief Free a layout.
+ *
+ * @param layout Layout to free.
+ */
+void flashrom_layout_release(struct flashrom_layout *const layout)
+{
+	unsigned int i;
+
+	if (!layout || layout == get_global_layout())
+		return;
+
+	for (i = 0; i < layout->num_entries; ++i) {
+		free(layout->entries[i].name);
+		free(layout->entries[i].file);
+	}
+	free(layout);
+}
+
 /** @} */ /* end flashrom-layout */
