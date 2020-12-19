@@ -38,7 +38,7 @@ typedef uint32_t chipsize_t; /* Able to store the number of bytes of any support
 struct romentry {
 	chipoff_t start;
 	chipoff_t end;
-	unsigned int included;
+	bool included;
 	char *name;
 	char *file;
 };
