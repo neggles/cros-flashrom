@@ -12,6 +12,7 @@
 #include "chipdrivers.h"
 #include "flash.h"
 #include "layout.h"
+#include "platform.h"
 #include "programmer.h"
 
 

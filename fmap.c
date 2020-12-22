@@ -43,6 +43,7 @@
 #include "flash.h"
 #include "fmap.h"
 #include "layout.h"
+#include "platform.h"
 #include "search.h"
 
 #define ACPI_FMAP_PATH "/sys/devices/platform/chromeos_acpi/FMAP"
