@@ -958,6 +958,11 @@ static int enable_flash_c620(struct pci_dev *const dev, const char *const name)
 	return enable_flash_pch100_or_c620(dev, name, 0x1f, 5, CHIPSET_C620_SERIES_LEWISBURG);
 }
 
+static int enable_flash_pch300(struct pci_dev *const dev, const char *const name)
+{
+	return enable_flash_pch100_or_c620(dev, name, 0x1f, 5, CHIPSET_300_SERIES_CANNON_POINT);
+}
+
 static int enable_flash_apl(struct pci_dev *const dev, const char *const name)
 {
 	return enable_flash_pch100_or_c620(dev, name, 0x0d, 2, CHIPSET_APOLLO_LAKE);
@@ -2019,6 +2024,7 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x9d53, B_S,    NT,  "Intel", "Kaby Lake U Base",		enable_flash_pch100},
 	{0x8086, 0x9d56, B_S,    NT,  "Intel", "Kaby Lake Y Premium",		enable_flash_pch100},
 	{0x8086, 0x9d58, B_S,    NT,  "Intel", "Kaby Lake U Premium",		enable_flash_pch100},
+	{0x8086, 0x9d84, B_S,    DEP, "Intel", "Cannon Lake U Premium",		enable_flash_pch300},
 	{0x8086, 0xa141, B_S,    NT,  "Intel", "Sunrise Point Desktop Sample",	enable_flash_pch100},
 	{0x8086, 0xa142, B_S,    NT,  "Intel", "Sunrise Point Unknown Sample",	enable_flash_pch100},
 	{0x8086, 0xa143, B_S,    DEP, "Intel", "H110",				enable_flash_pch100},
@@ -2070,6 +2076,17 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0xa2c8, B_S,    NT,  "Intel", "B250",				enable_flash_pch100},
 	{0x8086, 0xa2c9, B_S,    NT,  "Intel", "Z370",				enable_flash_pch100},
 	{0x8086, 0xa2d2, B_S,    NT,  "Intel", "X299",				enable_flash_pch100},
+	{0x8086, 0xa303, B_S,    NT,  "Intel", "H310",				enable_flash_pch300},
+	{0x8086, 0xa304, B_S,    NT,  "Intel", "H370",				enable_flash_pch300},
+	{0x8086, 0xa305, B_S,    NT,  "Intel", "Z390",				enable_flash_pch300},
+	{0x8086, 0xa306, B_S,    NT,  "Intel", "Q370",				enable_flash_pch300},
+	{0x8086, 0xa308, B_S,    NT,  "Intel", "B360",				enable_flash_pch300},
+	{0x8086, 0xa309, B_S,    NT,  "Intel", "C246",				enable_flash_pch300},
+	{0x8086, 0xa30a, B_S,    NT,  "Intel", "C242",				enable_flash_pch300},
+	{0x8086, 0xa30c, B_S,    NT,  "Intel", "QM370",				enable_flash_pch300},
+	{0x8086, 0xa30d, B_S,    NT,  "Intel", "HM370",				enable_flash_pch300},
+	{0x8086, 0xa30e, B_S,    DEP, "Intel", "CM246",				enable_flash_pch300},
+	{0x8086, 0x3482, B_S,    DEP, "Intel", "Ice Lake U Premium",		enable_flash_pch300},
 #endif
 	{0},
 };
