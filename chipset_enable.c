@@ -953,6 +953,11 @@ static int enable_flash_pch100(struct pci_dev *const dev, const char *const name
 	return enable_flash_pch100_or_c620(dev, name, 0x1f, 5, CHIPSET_100_SERIES_SUNRISE_POINT);
 }
 
+static int enable_flash_c620(struct pci_dev *const dev, const char *const name)
+{
+	return enable_flash_pch100_or_c620(dev, name, 0x1f, 5, CHIPSET_C620_SERIES_LEWISBURG);
+}
+
 static int enable_flash_apl(struct pci_dev *const dev, const char *const name)
 {
 	return enable_flash_pch100_or_c620(dev, name, 0x0d, 2, CHIPSET_APOLLO_LAKE);
@@ -2033,6 +2038,31 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0xa153, B_S,    NT,  "Intel", "QM175",				enable_flash_pch100},
 	{0x8086, 0xa154, B_S,    NT,  "Intel", "CM238",				enable_flash_pch100},
 	{0x8086, 0xa155, B_S,    NT,  "Intel", "QMU185",			enable_flash_pch100},
+	{0x8086, 0xa1a4, B_S,    DEP, "Intel", "C620 Series Chipset (QS/PRQ)",  enable_flash_c620},
+	{0x8086, 0xa1c0, B_S,    NT,  "Intel", "C620 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c1, B_S,    NT,  "Intel", "C621 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c2, B_S,    NT,  "Intel", "C622 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c3, B_S,    NT,  "Intel", "C624 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c4, B_S,    NT,  "Intel", "C625 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c5, B_S,    NT,  "Intel", "C626 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c6, B_S,    NT,  "Intel", "C627 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c7, B_S,    NT,  "Intel", "C628 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c8, B_S,    NT,  "Intel", "C620 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1c9, B_S,    NT,  "Intel", "C620 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1ca, B_S,    NT,  "Intel", "C629 Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1cb, B_S,    NT,  "Intel", "C621A Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1cc, B_S,    NT,  "Intel", "C627A Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa1cd, B_S,    NT,  "Intel", "C629A Series Chipset (QS/PRQ)",	enable_flash_c620},
+	{0x8086, 0xa240, B_S,    NT,  "Intel", "C620 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa241, B_S,    NT,  "Intel", "C620 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa242, B_S,    NT,  "Intel", "C624 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa243, B_S,    NT,  "Intel", "C627 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa244, B_S,    NT,  "Intel", "C621 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa245, B_S,    NT,  "Intel", "C627 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa246, B_S,    NT,  "Intel", "C628 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa247, B_S,    NT,  "Intel", "C620 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa248, B_S,    NT,  "Intel", "C620 Series Chipset Supersku",	enable_flash_c620},
+	{0x8086, 0xa249, B_S,    NT,  "Intel", "C620 Series Chipset Supersku",	enable_flash_c620},
 	{0x8086, 0xa2c4, B_S,    NT,  "Intel", "H270",				enable_flash_pch100},
 	{0x8086, 0xa2c5, B_S,    NT,  "Intel", "Z270",				enable_flash_pch100},
 	{0x8086, 0xa2c6, B_S,    NT,  "Intel", "Q270",				enable_flash_pch100},
