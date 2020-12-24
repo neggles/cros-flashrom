@@ -2004,7 +2004,6 @@ const struct penable chipset_enables[] = {
 	/*
 	 * TODO(b/173164205): Merged with upstream.
 	 */
-	{0x8086, 0x5af0, B_FS,    OK, "Intel", "Apollolake",			enable_flash_apl},
 	{0x8086, 0x31f0, B_FS,    OK, "Intel", "Geminilake",			enable_flash_apl},
 	{0x8086, 0x9da4, B_FS,    OK, "Intel", "Cannonlake",			enable_flash_pch100},
 	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_pch100},
@@ -2076,6 +2075,7 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0xa2c8, B_S,    NT,  "Intel", "B250",				enable_flash_pch100},
 	{0x8086, 0xa2c9, B_S,    NT,  "Intel", "Z370",				enable_flash_pch100},
 	{0x8086, 0xa2d2, B_S,    NT,  "Intel", "X299",				enable_flash_pch100},
+	{0x8086, 0x5af0, B_FS,   DEP, "Intel", "Apollo Lake",			enable_flash_apl},
 	{0x8086, 0xa303, B_S,    NT,  "Intel", "H310",				enable_flash_pch300},
 	{0x8086, 0xa304, B_S,    NT,  "Intel", "H370",				enable_flash_pch300},
 	{0x8086, 0xa305, B_S,    NT,  "Intel", "Z390",				enable_flash_pch300},
