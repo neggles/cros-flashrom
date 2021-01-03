@@ -373,9 +373,6 @@ int do_write(struct flashctx *, const char *const filename, const char *const re
 int do_verify(struct flashctx *, const char *const filename, const char *diff_file);
 int do_extract_it(struct flashctx *);
 
-#define OK 0
-#define NT 1    /* Not tested */
-
 /* what to do in case of an error */
 enum error_action {
 	error_fail,	/* fail immediately */
