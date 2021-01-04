@@ -182,11 +182,9 @@ int unlock_49lfxxxc(struct flashctx *flash);
 int printlock_sst_fwhub(struct flashctx *flash);
 int unlock_sst_fwhub(struct flashctx *flash);
 
-/* s25fl.c */
+/* s25f.c */
 int probe_spi_big_spansion(struct flashctx *flash);
 int s25fl_block_erase(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-
-/* s25f.c */
 int s25f_get_modifier_bits(const struct flashctx *flash, struct modifier_bits *m);
 int s25f_set_modifier_bits(const struct flashctx *flash, struct modifier_bits *m);
 int s25fs_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
