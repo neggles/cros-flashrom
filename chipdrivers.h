@@ -210,6 +210,8 @@ int probe_w29ee011(struct flashctx *flash);
 
 /* stm50flw0x0x.c */
 int unlock_stm50flw0x0x(struct flashctx *flash);
+/* stm50.c */
+int erase_sector_stm50(struct flashctx *flash, unsigned int block, unsigned int blocksize);
 
 /* en29lv640b.c */
 int probe_en29lv640b(struct flashctx *flash);
