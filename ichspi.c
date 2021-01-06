@@ -2378,6 +2378,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 			num_fd_regions = APL_GLK_NUM_FD_REGIONS;
 			break;
 		case CHIPSET_100_SERIES_SUNRISE_POINT:
+		case CHIPSET_300_SERIES_CANNON_POINT:
 		case CHIPSET_400_SERIES_COMET_POINT:
 			num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
 			break;
