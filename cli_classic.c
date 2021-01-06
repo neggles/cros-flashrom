@@ -126,7 +126,7 @@ static void cli_classic_validate_singleop(int *operation_specified)
 	}
 }
 
-static int check_filename(char *filename, char *type)
+static int check_filename(char *filename, const char *type)
 {
 	if (!filename || (filename[0] == '\0')) {
 		fprintf(stderr, "Error: No %s file specified.\n", type);
