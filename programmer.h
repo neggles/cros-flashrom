@@ -309,7 +309,6 @@ void myusec_delay(unsigned int usecs);
 void myusec_calibrate_delay(void);
 void internal_sleep(unsigned int usecs);
 void internal_delay(unsigned int usecs);
-void internal_sleep(unsigned int usecs);
 
 #if CONFIG_INTERNAL == 1
 /* board_enable.c */
@@ -565,7 +564,6 @@ int pony_spi_init(void);
 
 /* bitbang_spi.c */
 int register_spi_bitbang_master(const struct bitbang_spi_master *master);
-int bitbang_spi_shutdown(const struct bitbang_spi_master *master);
 
 /* buspirate_spi.c */
 #if CONFIG_BUSPIRATE_SPI == 1
