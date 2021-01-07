@@ -367,7 +367,6 @@ extern int superio_count;
 #define SUPERIO_VENDOR_WINBOND	0x2
 #endif
 #if NEED_PCI == 1
-struct pci_filter;
 struct pci_dev *pci_dev_find_vendorclass(uint16_t vendor, uint16_t devclass);
 struct pci_dev *pci_dev_find(uint16_t vendor, uint16_t device);
 struct pci_dev *pci_card_find(uint16_t vendor, uint16_t device,
