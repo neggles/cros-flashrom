@@ -370,7 +370,7 @@ srcs += 'helpers.c'
 srcs += 'ich_descriptors.c'
 srcs += 'jedec.c'
 srcs += 'layout.c'
-#srcs += 'libflashrom.c'
+srcs += 'libflashrom.c'
 srcs += 'opaque.c'
 srcs += 'print.c'
 srcs += 'programmer.c'
@@ -391,23 +391,23 @@ srcs += 'writeprotect.c'
 
 mapfile = 'libflashrom.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
-#flashrom = shared_library(
-#  'flashrom',
-#  sources : [
-#    srcs,
-#  ],
-#  soversion : lt_current,
-#  version : lt_version,
-#  dependencies : [
-#    deps,
-#  ],
-#  c_args : [
-#    cargs,
-#  ],
-#  install : true,
-#  link_args : vflag,
-#  link_depends : mapfile,
-#)
+flashrom = shared_library(
+  'flashrom',
+  sources : [
+    srcs,
+  ],
+  soversion : lt_current,
+  version : lt_version,
+  dependencies : [
+    deps,
+  ],
+  c_args : [
+    cargs,
+  ],
+  install : true,
+  link_args : vflag,
+  link_depends : mapfile,
+)
 
 version = meson.project_version()
 #strip leading characters
@@ -418,20 +418,14 @@ if version.startswith('p')
   version = version.split('p')[1]
 endif
 
-#pkgg = import('pkgconfig')
-#pkgg.generate(
-#  libraries : flashrom,
-#  version : version,
-#  name : 'flashrom',
-#  filebase : 'flashrom',
-#  description : 'library to interact with flashrom',
-#)
-#
-#flashrom_dep = declare_dependency(
-#  link_with : flashrom,
-#  include_directories : include_directories('.'),
-#  dependencies : deps
-#)
+pkgg = import('pkgconfig')
+pkgg.generate(
+  libraries : flashrom,
+  version : version,
+  name : 'flashrom',
+  filebase : 'flashrom',
+  description : 'library to interact with flashrom',
+)
 
 conf.set('VERSION', version)
 conf.set('MAN_DATE', run_command('util/getrevision.sh', '--date', 'flashrom.8.tmpl').stdout().strip())
@@ -459,7 +453,6 @@ executable(
   ],
   c_args : [
     cargs,
-    '-DSTANDALONE',
     '-DCONFIG_DEFAULT_PROGRAMMER=PROGRAMMER_INVALID',
     '-DCONFIG_DEFAULT_PROGRAMMER_ARGS=""',
   ],
