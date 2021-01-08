@@ -863,7 +863,7 @@ static struct voltage_range voltage_ranges[NUM_VOLTAGE_RANGES];
 /* returns number of unique voltage ranges, or <0 to indicate failure */
 static int flash_supported_voltage_ranges(enum chipbustype bus)
 {
-	int i;
+	unsigned i;
 	int unique_ranges = 0;
 
 	/* clear array in case user calls this function multiple times */
@@ -909,14 +909,13 @@ static int flash_supported_voltage_ranges(enum chipbustype bus)
 
 static int dediprog_set_spi_flash_voltage_auto(void)
 {
-	int i;
 	int spi_flash_ranges;
 
 	spi_flash_ranges = flash_supported_voltage_ranges(BUS_SPI);
 	if (spi_flash_ranges < 0)
 		return -1;
 
-	for (i = 0; i < ARRAY_SIZE(dediprog_supply_voltages); i++) {
+	for (unsigned i = 0; i < ARRAY_SIZE(dediprog_supply_voltages); i++) {
 		int j;
 		int v = dediprog_supply_voltages[i];	/* shorthand */
 
