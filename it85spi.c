@@ -255,7 +255,7 @@ static int it85xx_shutdown(void *data)
 static int it85xx_spi_send_command(const struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
 			const unsigned char *writearr, unsigned char *readarr)
 {
-	int i;
+	unsigned i;
 	static int wdt_reset_flag_set = 0;
 
 	if (found_chip->chip_id == ITE_IT8518) {
