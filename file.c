@@ -267,7 +267,7 @@ static int do_fdt_find_spi_nor_flash(const char *prefix,
 		 * For chip-select, look at the "reg" file located in
 		 * the same sub-directory as the "compatible" file.
 		 */
-		for (i = 0; i < pglob.gl_pathc; i++) {
+		for (size_t i = 0; i < pglob.gl_pathc; i++) {
 			char *reg_path;
 
 			if (!find_string(pglob.gl_pathv[i], compat))
