@@ -349,11 +349,13 @@ srcs += 'power.c'
 srcs += 'search.c'
 srcs += 'file.c'
 srcs += 'm29f400bt.c'
+srcs += 'stm50flw0x0x.c'
+srcs += 'action_descriptor.c'
+
 srcs += 'cros_alias.c'
 srcs += 'cros_ec.c'
 srcs += 'cros_ec_dev.c'
-srcs += 'stm50flw0x0x.c'
-srcs += 'action_descriptor.c'
+cargs += '-DCONFIG_CROS_ALIAS=1'
 ###
 
 # core modules needed by both the library and the CLI
