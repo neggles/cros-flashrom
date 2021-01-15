@@ -674,6 +674,8 @@ int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start,
 {
 	int ret, rc = 0;
 	size_t to_read;
+	size_t start_address = start;
+	size_t end_address = len - start;
 	for (; len; len -= to_read, buf += to_read, start += to_read) {
 		to_read = min(chunksize, len);
 		ret = spi_nbyte_read(flash, start, buf, to_read);
@@ -684,6 +686,7 @@ int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start,
 			rc = ret;
 		} else if (ret)
 			return ret;
+		update_progress(flash, FLASHROM_PROGRESS_READ, start - start_address + to_read, end_address);
 	}
 	return rc;
 }
@@ -703,6 +706,8 @@ int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int s
 	 * we're OK for now.
 	 */
 	unsigned int page_size = flash->chip->page_size;
+	size_t start_address = start;
+	size_t end_address = len - start;
 
 	/* Warning: This loop has a very unusual condition and body.
 	 * The loop needs to go through each page with at least one affected
@@ -727,6 +732,7 @@ int spi_write_chunked(struct flashctx *flash, const uint8_t *buf, unsigned int s
 			if (rc)
 				return rc;
 		}
+		update_progress(flash, FLASHROM_PROGRESS_WRITE, start - start_address + lenhere, end_address);
 	}
 
 	return 0;
@@ -746,6 +752,7 @@ int spi_chip_write_1(struct flashctx *flash, const uint8_t *buf, unsigned int st
 	for (i = start; i < start + len; i++) {
 		if (spi_nbyte_program(flash, i, buf + i - start, 1))
 			return 1;
+		update_progress(flash, FLASHROM_PROGRESS_WRITE, i - start, len - start);
 	}
 	return 0;
 }
