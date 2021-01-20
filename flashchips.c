@@ -150,7 +150,7 @@ const struct flashchip flashchips[] = {
 		.name		= "Am29F010A/B",
 		.bustype	= BUS_PARALLEL,
 		.manufacture_id	= AMD_ID,
-		.model_id	= AMD_AM29F010,	/* Same as Am29F010A */
+		.model_id	= AMD_AM29F010,
 		.total_size	= 128,
 		.page_size	= 16 * 1024,
 		.feature_bits	= FEATURE_ADDR_2AA | FEATURE_EITHER_RESET,
@@ -3380,9 +3380,9 @@ const struct flashchip flashchips[] = {
 		.model_id	= ATMEL_AT49LH002,
 		.total_size	= 256,
 		.page_size	= 0, /* unused */
-		.feature_bits	= FEATURE_REGISTERMAP, /* TODO: LPC OK too? */
+		.feature_bits	= FEATURE_REGISTERMAP,
 		.tested		= TEST_UNTESTED,
-		.probe		= probe_82802ab, /* TODO: 0xff cmd not documented? */
+		.probe		= probe_82802ab,
 		.probe_timing	= TIMING_ZERO,
 		.block_erasers	=
 		{
@@ -13160,7 +13160,7 @@ const struct flashchip flashchips[] = {
 		.feature_bits	= FEATURE_REGISTERMAP | FEATURE_EITHER_RESET,
 		.tested		= TEST_OK_PREW,
 		.probe		= probe_jedec,
-		.probe_timing	= TIMING_ZERO,	/* routine is wrapper to probe_jedec (pm49fl00x.c) */
+		.probe_timing	= TIMING_ZERO,
 		.block_erasers	=
 		{
 			{
@@ -15307,7 +15307,7 @@ const struct flashchip flashchips[] = {
 		.feature_bits	= FEATURE_REGISTERMAP,
 		.tested		= TEST_OK_PR,
 		.probe		= probe_82802ab,
-		.probe_timing	= TIMING_IGNORED, /* routine doesn't use probe_timing (sst49lfxxxc.c) */
+		.probe_timing	= TIMING_IGNORED, /* routine doesn't use probe_timing (82802ab.c) */
 		.block_erasers	=
 		{
 			{
@@ -16123,7 +16123,6 @@ const struct flashchip flashchips[] = {
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) and dual I/O (0x3B) supported */
 		.voltage	= {2700, 3600},
-		/* TODO: write-protection */
 	},
 
 	{
@@ -17892,7 +17891,6 @@ const struct flashchip flashchips[] = {
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
 		.voltage	= {1650, 1950}, /* Fast read (0x0B) and multi I/O supported */
-		/* FIXME(dhendrix): Add write-protection support */
 	},
 
 	{
