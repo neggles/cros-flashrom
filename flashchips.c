@@ -8310,7 +8310,7 @@ const struct flashchip flashchips[] = {
 		.name		= "MX25L12805D",
 		.bustype	= BUS_SPI,
 		.manufacture_id	= MACRONIX_ID,
-		.model_id	= MACRONIX_MX25L12805,
+		.model_id	= MACRONIX_MX25L12805D,
 		.total_size	= 16384,
 		.page_size	= 256,
 		/* OTP: 64B total; enter 0xB1, exit 0xC1 */
