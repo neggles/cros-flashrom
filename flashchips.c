@@ -6430,8 +6430,8 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_c7,
 			}
 		},
-		.printlock	= spi_prettyprint_status_register_bp3_srwd,
-		.unlock		= spi_disable_blockprotect,
+		.printlock	= spi_prettyprint_status_register_bp4_srwd,
+		.unlock		= spi_disable_blockprotect_bp4_srwd, /* TODO: 2nd status reg (read with 0x35) */
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {1695, 1950},
@@ -8335,7 +8335,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= spi_prettyprint_status_register_bp3_srwd,
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {2700, 3600},
@@ -8524,7 +8524,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {2700, 3600},
@@ -8560,7 +8560,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {2700, 3600},
@@ -8787,7 +8787,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
@@ -15321,7 +15321,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_regspace2_block_eraser_0,
-		.unlock		= unlock_stm50flw0x0x,
+		.unlock		= unlock_regspace2_block_eraser_0,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program & erase */
@@ -15346,7 +15346,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
-		.unlock		= unlock_stm50flw0x0x,
+		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program & erase */
@@ -15371,7 +15371,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
-		.unlock		= unlock_stm50flw0x0x,
+		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program & erase */
@@ -15396,7 +15396,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = erase_block_82802ab,
 			}
 		},
-		.unlock		= unlock_stm50flw0x0x,
+		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_82802ab,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600}, /* Also has 12V fast program & erase */
@@ -16119,7 +16119,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= spi_prettyprint_status_register_bp3_srwd,
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd, /* #WP pin write-protects SRWP bit. */
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) and dual I/O (0x3B) supported */
 		.voltage	= {2700, 3600},
@@ -19005,7 +19005,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= printlock_w39v040fa,
-		.unlock		= unlock_sst_fwhub,
+		.unlock		= unlock_regspace2_uniform_64k,
 		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {3000, 3600},
