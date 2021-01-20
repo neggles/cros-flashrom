@@ -13401,7 +13401,7 @@ const struct flashchip flashchips[] = {
 		},
 		.printlock	= spi_prettyprint_status_register_sst25vf016,
 		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
+		.write		= spi_aai_write,
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
 	},
@@ -13541,7 +13541,7 @@ const struct flashchip flashchips[] = {
 		},
 		.printlock	= spi_prettyprint_status_register_sst25, /* TODO: check */
 		.unlock		= spi_disable_blockprotect,
-		.write		= spi_aai_write,
+		.write		= spi_chip_write_1, /* AAI supported, but opcode is 0xAF */
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
 	},
@@ -13693,7 +13693,7 @@ const struct flashchip flashchips[] = {
 		},
 		.printlock	= spi_prettyprint_status_register_sst25, /* TODO: check */
 		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_1,
+		.write		= spi_aai_write,
 		.read		= spi_chip_read,
 		.voltage	= {2700, 3600},
 	},
@@ -15046,7 +15046,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = block_erase_chip_m29f400bt,
 			}
 		},
-		.write		= write_m29f400bt,
+		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {4500, 5500},
 	},
@@ -15079,7 +15079,7 @@ const struct flashchip flashchips[] = {
 				.block_erase = block_erase_chip_m29f400bt,
 			}
 		},
-		.write		= write_m29f400bt,
+		.write		= write_jedec_1,
 		.read		= read_memmapped,
 		.voltage	= {4500, 5500},
 	},
