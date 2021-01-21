@@ -1053,7 +1053,7 @@ static int need_erase_gran_bytes(const uint8_t *have, const uint8_t *want, unsig
  * @gran	write granularity (enum, not count)
  * @return      0 if no erase is needed, 1 otherwise
  */
-int need_erase(const uint8_t *have, const uint8_t *want, unsigned int len,
+static int need_erase(const uint8_t *have, const uint8_t *want, unsigned int len,
                enum write_granularity gran, const uint8_t erased_value)
 {
 	int result = 0;
@@ -1601,7 +1601,7 @@ int read_flash(struct flashctx *flash, uint8_t *buf,
  * TODO: Look up regions that are write-protected and avoid attempt to write
  * to them at all.
  */
-int write_flash(struct flashctx *flash, uint8_t *buf,
+static int write_flash(struct flashctx *flash, uint8_t *buf,
 		unsigned int start, unsigned int len)
 {
 	if (!flash || !flash->chip->write)
@@ -1923,7 +1923,7 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 	return ret;
 }
 
-int erase_and_write_flash(struct flashctx *flash,
+static int erase_and_write_flash(struct flashctx *flash,
 			  struct action_descriptor *descriptor)
 {
 	int ret = 1;
@@ -2475,7 +2475,7 @@ int flashrom_image_read(struct flashctx *const flashctx,
  * 'diff_file' is not - comparison is done against the pre-operation chip
  * contents.
  */
-int doit(struct flashctx *flash, const char *filename, int read_it,
+static int doit(struct flashctx *flash, const char *filename, int read_it,
 	 int write_it, int erase_it, const char *diff_file)
 {
 	uint8_t *oldcontents;
