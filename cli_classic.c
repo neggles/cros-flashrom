@@ -933,8 +933,15 @@ out:
 		msg_gerr("Unable to re-enable power management\n");
 		ret |= 1;
 	}
+	for (i = 0; i < chipcount; i++)
+		free(flashes[i].chip);
 
 	layout_cleanup(&include_args);
+	free(layoutfile);
+	free(pparam);
+	/* clean up global variables */
+	free((char *)chip_to_probe); /* Silence! Freeing is not modifying contents. */
+	chip_to_probe = NULL;
 #ifndef STANDALONE
 	free(logfile);
 	ret |= close_logfile();
