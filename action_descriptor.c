@@ -17,6 +17,13 @@
 
 
 /*
+ * This global variable is used to communicate the type of ICH found on the
+ * device. When running on non-intel platforms default value of
+ * CHIPSET_ICH_UNKNOWN is used.
+*/
+extern enum ich_chipset ich_generation;
+
+/*
  * Unfortunate global state.
  */
 static bool dry_run = false;
