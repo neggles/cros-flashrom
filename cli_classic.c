@@ -175,7 +175,6 @@ int main(int argc, char *argv[])
 		OPTION_DO_NOT_DIFF,
 	};
 	int ret = 0;
-	int found_chip = 0;
 
 	static const char optstring[] = "rRwvnNVEfc:l:i:p:o:Lzhbx";
 	static const struct option long_options[] = {
@@ -477,13 +476,10 @@ int main(int argc, char *argv[])
 
 	/* Does a chip with the requested name exist in the flashchips array? */
 	if (chip_to_probe) {
-		for (chip = flashchips; chip && chip->name; chip++) {
-			if (!strcmp(chip->name, chip_to_probe)) {
-				found_chip = 1;
+		for (chip = flashchips; chip && chip->name; chip++)
+			if (!strcmp(chip->name, chip_to_probe))
 				break;
-			}
-		}
-		if (!found_chip) {
+		if (!chip || !chip->name) {
 			msg_cerr("Error: Unknown chip '%s' specified.\n", chip_to_probe);
 			msg_gerr("Run flashrom -L to view the hardware supported in this flashrom version.\n");
 			ret = 1;
