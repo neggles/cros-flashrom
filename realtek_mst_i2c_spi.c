@@ -428,9 +428,13 @@ static int realtek_mst_i2c_spi_shutdown(void *data)
 	int fd = realtek_mst_data->fd;
 	ret |= realtek_mst_i2c_spi_toggle_gpio_88_strap(fd, false);
 	if (realtek_mst_data->reset) {
-		ret |= realtek_mst_i2c_spi_reset_mpu(fd);
-		if (ret != 0)
-			msg_perr("%s: MCU failed to reset on tear-down.\n", __func__);
+		/*
+		 * Return value for reset mpu is not checked since
+		 * the return value is not guaranteed to be 0 on a
+		 * success reset. Currently there is no way to fix
+		 * that. For more details see b:147402710.
+		 */
+		realtek_mst_i2c_spi_reset_mpu(fd);
 	}
 	i2c_close(fd);
 	free(data);
