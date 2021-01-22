@@ -756,6 +756,11 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
+	if (flash_size) {
+		msg_ginfo("%d\n", fill_flash->chip->total_size * 1024);
+		goto out_shutdown;
+	}
+
 	/* If the user doesn't specify any -i argument, then we can skip the
 	 * fmap parsing to speed up. */
 	if (!include_args && !extract_it) {
@@ -865,10 +870,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (flash_size) {
-		msg_ginfo("%d\n", fill_flash->chip->total_size * 1024);
-		goto out_shutdown;
-	}
 
 	if (wp_status) {
 		if (fill_flash->chip->wp && fill_flash->chip->wp->wp_status) {
