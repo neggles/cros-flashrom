@@ -17,6 +17,7 @@
 
 #include "platform.h"
 
+#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -487,7 +488,7 @@ static int dediprog_spi_bulk_read(struct flashctx *flash, uint8_t *buf, unsigned
 
 	/* Allocate bulk transfers. */
 	unsigned int i;
-	for (i = 0; i < min(DEDIPROG_ASYNC_TRANSFERS, count); ++i) {
+	for (i = 0; i < MIN(DEDIPROG_ASYNC_TRANSFERS, count); ++i) {
 		transfers[i] = libusb_alloc_transfer(0);
 		if (!transfers[i]) {
 			msg_perr("Allocating libusb transfer %i failed: %s!\n", i, libusb_error_name(ret));
@@ -673,7 +674,7 @@ static int dediprog_spi_write(struct flashctx *flash, const uint8_t *buf,
 		msg_pdbg("Slow write for partial block from 0x%x, length 0x%x\n",
 			 start, residue);
 		/* No idea about the real limit. Maybe 16 including command and address, maybe more. */
-		ret = spi_write_chunked(flash, (uint8_t *)buf, start, residue, 11);
+		ret = spi_write_chunked(flash, buf, start, residue, 11);
 		if (ret) {
 			dediprog_set_leds(LED_ERROR);
 			return ret;
@@ -692,7 +693,7 @@ static int dediprog_spi_write(struct flashctx *flash, const uint8_t *buf,
 	if (len) {
 		msg_pdbg("Slow write for partial block from 0x%x, length 0x%x\n",
 			 start, len);
-		ret = spi_write_chunked(flash, (uint8_t *)(buf + residue + bulklen),
+		ret = spi_write_chunked(flash, buf + residue + bulklen,
 				        start + residue + bulklen, len, 11);
 		if (ret) {
 			dediprog_set_leds(LED_ERROR);
@@ -723,11 +724,11 @@ static int dediprog_spi_send_command(const struct flashctx *flash,
 	int ret;
 
 	msg_pspew("%s, writecnt=%i, readcnt=%i\n", __func__, writecnt, readcnt);
-	if (writecnt > UINT16_MAX) {
+	if (writecnt > flash->mst->spi.max_data_write) {
 		msg_perr("Invalid writecnt=%i, aborting.\n", writecnt);
 		return 1;
 	}
-	if (readcnt > UINT16_MAX) {
+	if (readcnt > flash->mst->spi.max_data_read) {
 		msg_perr("Invalid readcnt=%i, aborting.\n", readcnt);
 		return 1;
 	}
@@ -1029,6 +1030,32 @@ static int dediprog_standalone_mode(void)
 
 	return 0;
 }
+
+#if 0
+/* Something.
+ * Present in eng_detect_blink.log with firmware 3.1.8
+ * Always preceded by Command Receive Device String
+ */
+static int dediprog_command_b(void)
+{
+	int ret;
+	char buf[0x3];
+
+	ret = usb_control_msg(dediprog_handle, REQTYPE_OTHER_IN, 0x7, 0x0, 0xef00,
+			      buf, 0x3, DEFAULT_TIMEOUT);
+	if (ret < 0) {
+		msg_perr("Command B failed (%s)!\n", libusb_error_name(ret));
+		return 1;
+	}
+	if ((ret != 0x3) || (buf[0] != 0xff) || (buf[1] != 0xff) ||
+	    (buf[2] != 0xff)) {
+		msg_perr("Unexpected response to Command B!\n");
+		return 1;
+	}
+
+	return 0;
+}
+#endif
 
 static int set_target_flash(enum dediprog_target target)
 {
