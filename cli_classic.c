@@ -77,6 +77,7 @@ static void cli_classic_usage(const char *name)
 	       "   -i | --image <name>[:<file>]      only access image <name> "
 	         "from flash layout\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
+	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       " -L | --list-supported              print supported devices\n"
 	       "   -x | --extract                    extract regions to files\n"
 #if CONFIG_PRINT_WIKI == 1
@@ -161,6 +162,7 @@ int main(int argc, char *argv[])
 	enum {
 		/* start after ASCII chars */
 		OPTION_DIFF = 0x0100,
+		OPTION_FLASH_CONTENTS,
 		OPTION_FLASH_NAME,
 		OPTION_FLASH_SIZE,
 		OPTION_WP_STATUS,
@@ -188,6 +190,7 @@ int main(int argc, char *argv[])
 		{"force",		0, NULL, 'f'},
 		{"layout",		1, NULL, 'l'},
 		{"image",		1, NULL, 'i'},
+		{"flash-contents",	1, NULL, OPTION_FLASH_CONTENTS},
 		{"flash-name",		0, NULL, OPTION_FLASH_NAME},
 		{"flash-size",		0, NULL, OPTION_FLASH_SIZE},
 		{"get-size",		0, NULL, OPTION_FLASH_SIZE}, // (deprecated): back compatibility.
@@ -213,6 +216,7 @@ int main(int argc, char *argv[])
 	};
 
 	char *filename = NULL;
+	char *referencefile = NULL;
 	char *layoutfile = NULL;
 	char *diff_file = NULL;
 	char *logfile = NULL;
@@ -288,6 +292,12 @@ int main(int argc, char *argv[])
 				free(tempstr);
 				cli_classic_abort_usage(NULL);
 			}
+			break;
+		case OPTION_FLASH_CONTENTS:
+			if (referencefile)
+				cli_classic_abort_usage("Error: --flash-contents specified more than once."
+							"Aborting.\n");
+			referencefile = strdup(optarg);
 			break;
 		case 'L':
 			cli_classic_validate_singleop(&operation_specified);
@@ -433,6 +443,8 @@ int main(int argc, char *argv[])
 	if (!do_diff && diff_file) {
 		cli_classic_abort_usage("Both --diff and --do-not-diff set, what do you want to do?\n");
 	}
+	if (referencefile && check_filename(referencefile, "reference"))
+		cli_classic_abort_usage(NULL);
 
 #ifndef STANDALONE
 	if (logfile && check_filename(logfile, "log"))
@@ -914,7 +926,7 @@ int main(int argc, char *argv[])
 	else if (erase_it)
 		ret = do_erase(fill_flash);
 	else if (write_it)
-		ret = do_write(fill_flash, filename, NULL);
+		ret = do_write(fill_flash, filename, referencefile);
 	else if (verify_it)
 		ret = do_verify(fill_flash, filename);
 	else if (extract_it)
@@ -938,6 +950,7 @@ out:
 		free(flashes[i].chip);
 
 	layout_cleanup(&include_args);
+	free(referencefile);
 	free(layoutfile);
 	free(pparam);
 	/* clean up global variables */
