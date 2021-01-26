@@ -2745,7 +2745,7 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
 		return 1;
 
-	int ret = doit(flash, filename, true, false, flash->diff_file);
+	int ret = doit(flash, filename, true, false, referencefile);
 	finalize_flash_access(flash);
 
 	return ret;

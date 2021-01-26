@@ -208,7 +208,6 @@ int main(int argc, char *argv[])
 	char *filename = NULL;
 	char *referencefile = NULL;
 	char *layoutfile = NULL;
-	char *diff_file = NULL;
 #ifndef STANDALONE
 	char *logfile = NULL;
 #endif /* !STANDALONE */
@@ -407,7 +406,7 @@ int main(int argc, char *argv[])
 			wp_region = strdup(optarg);
 			break;
 		case OPTION_DIFF:
-			diff_file = strdup(optarg);
+			referencefile = strdup(optarg);
 			break;
 		case OPTION_IGNORE_FMAP:
 			set_ignore_fmap = 1;
@@ -432,7 +431,7 @@ int main(int argc, char *argv[])
 	if (layoutfile && check_filename(layoutfile, "layout"))
 		cli_classic_abort_usage(NULL);
 
-	if (!do_diff && diff_file) {
+	if (!do_diff && referencefile) {
 		cli_classic_abort_usage("Both --diff and --do-not-diff set, what do you want to do?\n");
 	}
 	if (referencefile && check_filename(referencefile, "reference"))
@@ -896,7 +895,7 @@ int main(int argc, char *argv[])
 
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
 	fill_flash->flags.do_diff = do_diff;
-	fill_flash->diff_file = diff_file;
+	fill_flash->diff_file = referencefile;
 #if CONFIG_INTERNAL == 1
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE_BOARDMISMATCH, !!force_boardmismatch);
 #endif
