@@ -41,23 +41,16 @@ int set_ignore_lock = 0;
 
 static void cli_classic_usage(const char *name)
 {
-
-	msg_ginfo("Usage: flashrom [-n] [-V] [-f] [-h|-R|-L|"
+	printf("Usage: %s [-h|-R|-L|"
 #if CONFIG_PRINT_WIKI == 1
 	       "-z|"
 #endif
-	         "-E|-r <file>|-w <file>|-v <file>]\n"
-	       "       [-i <image>[:<file>]] [-c <chipname>]\n"
-	               "[-o <file>] [-l <file>]\n"
-	       "       [-p <programmer>[:<parameters>]]\n\n");
-
-	msg_ginfo("Please note that the command line interface for flashrom has "
-	         "changed between\n"
-	       "0.9.1 and 0.9.2 and will change again before flashrom 1.0.\n"
-	       "Do not use flashrom in scripts or other automated tools "
-	         "without checking\n"
-	       "that your flashrom version won't interpret options in a "
-	         "different way.\n\n");
+	       "\n\t-p <programmername>[:<parameters>] [-c <chipname>]\n"
+	       "\t\t(--flash-name|--flash-size|\n"
+	       "\t\t [-E|(-r|-w|-v) <file>]\n"
+	       "\t\t [(-l <layoutfile>|--ifd| --fmap|--fmap-file <file>) [-i <imagename>[:<file>]]...]\n"
+	       "\t\t [-n] [-N] [-f])]\n"
+	       "\t[-V[V[V]]] [-o <logfile>]\n\n", name);
 
 	printf(" -h | --help                        print this help text\n"
 	       " -R | --version                     print version (release)\n"
