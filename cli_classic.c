@@ -72,10 +72,9 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-list                     list write protect range\n"
 	       "      --wp-status                   show write protect status\n"
 	       "      --wp-range=<start> <len>      set write protect range\n"
-	       "   -i | --image <name>[:<file>]      only access image <name> "
-	         "from flash layout\n"
 	       "      --flash-name                  read out the detected flash name\n"
 	       "      --flash-size                  read out the detected flash size\n"
+	       " -i | --image <name>[:<file>]>      only flash image <name> from flash layout\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       " -L | --list-supported              print supported devices\n"
@@ -84,7 +83,6 @@ static void cli_classic_usage(const char *name)
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
 #endif
 	       " -p | --programmer <name>[:<param>] specify the programmer device. One of\n");
-
 	list_programmers_linebreak(4, 80, 0);
 
 	msg_ginfo("Long-options:\n"
@@ -331,7 +329,7 @@ int main(int argc, char *argv[])
 			cli_classic_validate_singleop(&operation_specified);
 			list_supported_wiki = 1;
 #else
-			cli_classic_abort_usage("Error: Wiki output was not"
+			cli_classic_abort_usage("Error: Wiki output was not "
 					"compiled in. Aborting.\n");
 #endif
 			break;
@@ -368,7 +366,6 @@ int main(int argc, char *argv[])
 					break;
 				}
 			}
-
 			if (prog == PROGRAMMER_INVALID) {
 				fprintf(stderr, "Error: Unknown programmer \"%s\". Valid choices are:\n",
 					optarg);
@@ -434,7 +431,6 @@ int main(int argc, char *argv[])
 
 	if (layoutfile && check_filename(layoutfile, "layout"))
 		cli_classic_abort_usage(NULL);
-
 
 	if (!do_diff && diff_file) {
 		cli_classic_abort_usage("Both --diff and --do-not-diff set, what do you want to do?\n");
@@ -926,7 +922,7 @@ int main(int argc, char *argv[])
 	msg_ginfo("%s\n", ret ? "FAILED" : "SUCCESS");
 
 out_shutdown:
-	programmer_shutdown();  /* must be done after chip_restore() */
+	programmer_shutdown();
 out:
 
 #if USE_BIG_LOCK == 1
