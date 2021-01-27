@@ -659,12 +659,10 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	if (!(read_it | write_it | verify_it | erase_it | flash_name |
-	      flash_size | set_wp_range | set_wp_region | set_wp_enable |
+	if (!(read_it | write_it | verify_it | erase_it | flash_name | flash_size
+	      | set_wp_range | set_wp_region | set_wp_enable |
 	      set_wp_disable | wp_status | wp_list | extract_it)) {
-		msg_gerr("No operations were specified.\n");
-		// FIXME: flash writes stay enabled!
-		ret = 0;
+		msg_ginfo("No operations were specified.\n");
 		goto out_shutdown;
 	}
 
