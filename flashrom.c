@@ -2457,7 +2457,6 @@ int flashrom_image_read(struct flashctx *const flashctx,
  *		  during initialization.
  * @force         when set proceed even if the chip is not known to work
  * @filename      pointer to the name of the file to read from or write to
- * @read_it       when true, flash contents are read into 'filename'
  * @write_it      when true, flash is programmed with 'filename' contents
  * @erase_it      when true, flash chip is erased
  * @extract_it    extract all known flash chip regions into separate files
@@ -2475,7 +2474,7 @@ int flashrom_image_read(struct flashctx *const flashctx,
  * 'diff_file' is not - comparison is done against the pre-operation chip
  * contents.
  */
-static int doit(struct flashctx *flash, const char *filename, int read_it,
+static int doit(struct flashctx *flash, const char *filename,
 	 int write_it, int erase_it, const char *diff_file)
 {
 	uint8_t *oldcontents;
@@ -2695,7 +2694,7 @@ int do_erase(struct flashctx *const flash)
 	if (prepare_flash_access(flash, false, false, true, false))
 		return 1;
 
-	int ret = doit(flash, NULL, false, false, true, flash->diff_file);
+	int ret = doit(flash, NULL, false, true, flash->diff_file);
 
 	/*
 	 * FIXME: Do we really want the scary warning if erase failed?
@@ -2716,7 +2715,7 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
 		return 1;
 
-	int ret = doit(flash, filename, false, true, false, flash->diff_file);
+	int ret = doit(flash, filename, true, false, flash->diff_file);
 	finalize_flash_access(flash);
 
 	return ret;
@@ -2727,7 +2726,7 @@ int do_verify(struct flashctx *const flash, const char *const filename)
 	if (prepare_flash_access(flash, false, false, false, true))
 		return 1;
 
-	int ret = doit(flash, filename, false, false, false, flash->diff_file);
+	int ret = doit(flash, filename, false, false, flash->diff_file);
 	finalize_flash_access(flash);
 
 	return ret;
