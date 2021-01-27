@@ -211,7 +211,9 @@ int main(int argc, char *argv[])
 	char *referencefile = NULL;
 	char *layoutfile = NULL;
 	char *diff_file = NULL;
+#ifndef STANDALONE
 	char *logfile = NULL;
+#endif /* !STANDALONE */
 	char *tempstr = NULL;
 	char *pparam = NULL;
 	struct layout_include_args *include_args = NULL;
