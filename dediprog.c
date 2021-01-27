@@ -908,6 +908,7 @@ static int flash_supported_voltage_ranges(enum chipbustype bus)
 	return unique_ranges;
 }
 
+static struct spi_master spi_master_dediprog;
 static int dediprog_set_spi_flash_voltage_auto(void)
 {
 	int spi_flash_ranges;
@@ -932,9 +933,11 @@ static int dediprog_set_spi_flash_voltage_auto(void)
 				}
 
 				clear_spi_id_cache();
-				// FIXME(quasisec): Passing NULL for the registered_master as we
-				// don't have something sensible in scope at this dispatch site.
-				if (probe_flash(NULL, 0, &dummy, 0) < 0) {
+				struct registered_master rmst = {
+					.buses_supported = BUS_SPI,
+					.spi = spi_master_dediprog,
+				};
+				if (probe_flash(&rmst, 0, &dummy, 0) < 0) {
 					/* No dice, try next voltage supported by Dediprog. */
 					break;
 				}
