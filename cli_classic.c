@@ -74,6 +74,8 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-range=<start> <len>      set write protect range\n"
 	       "   -i | --image <name>[:<file>]      only access image <name> "
 	         "from flash layout\n"
+	       "      --flash-name                  read out the detected flash name\n"
+	       "      --flash-size                  read out the detected flash size\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       " -L | --list-supported              print supported devices\n"
@@ -90,8 +92,6 @@ static void cli_classic_usage(const char *name)
 	       "   --do-not-diff                     do not diff with chip"
 		  " contents (should be used with erased chips only)\n"
 	       "   --fast-verify                     only verify written part\n"
-	       "   --flash-name                      flash vendor and device name\n"
-	       "   --get-size                        get chip size (bytes)\n"
 	       "   --ignore-fmap                     ignore fmap structure\n"
 	       "   --ignore-lock                     do not acquire big lock\n"
 	       );
@@ -295,6 +295,14 @@ int main(int argc, char *argv[])
 			cli_classic_validate_singleop(&operation_specified);
 			list_supported = 1;
 			break;
+		case OPTION_FLASH_NAME:
+			cli_classic_validate_singleop(&operation_specified);
+			flash_name = 1;
+			break;
+		case OPTION_FLASH_SIZE:
+			cli_classic_validate_singleop(&operation_specified);
+			flash_size = 1;
+			break;
 		case OPTION_WP_STATUS:
 			wp_status = 1;
 			break;
@@ -392,18 +400,12 @@ int main(int argc, char *argv[])
 			}
 #endif /* STANDALONE */
 			break;
-		case OPTION_FLASH_SIZE:
-			flash_size = 1;
-			break;
 		case OPTION_DO_NOT_DIFF:
 			do_diff = 0;
 			break;
 		case OPTION_WP_SET_REGION:
 			set_wp_region = 1;
 			wp_region = strdup(optarg);
-			break;
-		case OPTION_FLASH_NAME:
-			flash_name = 1;
 			break;
 		case OPTION_DIFF:
 			diff_file = strdup(optarg);
