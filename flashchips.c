@@ -15046,10 +15046,10 @@ const struct flashchip flashchips[] = {
 					{32 * 1024, 1},
 					{64 * 1024, 7},
 				},
-				.block_erase = block_erase_m29f400bt,
+				.block_erase = erase_sector_jedec,
 			}, {
 				.eraseblocks = { {512 * 1024, 1} },
-				.block_erase = block_erase_chip_m29f400bt,
+				.block_erase = erase_chip_block_jedec,
 			}
 		},
 		.write		= write_jedec_1,
@@ -15079,10 +15079,10 @@ const struct flashchip flashchips[] = {
 					{8 * 1024, 2},
 					{16 * 1024, 1},
 				},
-				.block_erase = block_erase_m29f400bt,
+				.block_erase = erase_sector_jedec,
 			}, {
 				.eraseblocks = { {512 * 1024, 1} },
-				.block_erase = block_erase_chip_m29f400bt,
+				.block_erase = erase_chip_block_jedec,
 			}
 		},
 		.write		= write_jedec_1,
