@@ -160,13 +160,6 @@ int printlock_regspace2_uniform_64k(struct flashctx *flash);
 int printlock_regspace2_block_eraser_0(struct flashctx *flash);
 int printlock_regspace2_block_eraser_1(struct flashctx *flash);
 
-/* m29f400bt.c */
-int probe_m29f400bt(struct flashctx *flash);
-int block_erase_m29f400bt(struct flashctx *flash, unsigned int start, unsigned int len);
-int block_erase_chip_m29f400bt(struct flashctx *flash, unsigned int start, unsigned int len);
-int write_m29f400bt(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
-void protect_m29f400bt(struct flashctx *flash, chipaddr bios);
-
 /* sst28sf040.c */
 int erase_chip_28sf040(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 int erase_sector_28sf040(struct flashctx *flash, unsigned int address, unsigned int sector_size);

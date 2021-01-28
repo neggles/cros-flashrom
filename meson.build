@@ -348,7 +348,6 @@ install_headers([
 srcs += 'power.c'
 srcs += 'search.c'
 srcs += 'file.c'
-srcs += 'm29f400bt.c'
 srcs += 'stm50flw0x0x.c'
 srcs += 'action_descriptor.c'
 
