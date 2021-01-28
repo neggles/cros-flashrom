@@ -16103,12 +16103,12 @@ const struct flashchip flashchips[] = {
 		.name		= "S25FL116K/S25FL216K", /* FIXME: separate them */
 		.bustype	= BUS_SPI,
 		.manufacture_id	= SPANSION_ID,
-		.model_id	= SPANSION_S25FL116K,
+		.model_id	= SPANSION_S25FL216,
 		.total_size	= 2048,
 		.page_size	= 256,
 		/* OTP: 1024B total, 256B reserved; read 0x48; write 0x42, erase 0x44 (S25FL116K only) */
 		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
-		.tested		= TEST_OK_PREW,
+		.tested		= TEST_UNTESTED,
 		.probe		= probe_spi_rdid,
 		.probe_timing	= TIMING_ZERO,
 		.block_erasers	=
@@ -16120,7 +16120,10 @@ const struct flashchip flashchips[] = {
 				.eraseblocks = { {64 * 1024, 32} },
 				.block_erase = spi_block_erase_d8,
 			}, {
-				.eraseblocks = { {2 * 1024 * 1024, 1} },
+				.eraseblocks = { { 2048 * 1024, 1} },
+				.block_erase = spi_block_erase_60,
+			}, {
+				.eraseblocks = { { 2048 * 1024, 1} },
 				.block_erase = spi_block_erase_c7,
 			}
 		},
