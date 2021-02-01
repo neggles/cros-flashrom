@@ -64,7 +64,7 @@ int check_access_opaque(const struct flashctx *flash, unsigned int start, unsign
 {
 	if (flash->mst->opaque.check_access)
 		return flash->mst->opaque.check_access(flash, start, len, rw);
-	return 1;
+	return 0;
 }
 
 int register_opaque_master(const struct opaque_master *mst)
