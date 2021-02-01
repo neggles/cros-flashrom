@@ -972,8 +972,29 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 		/* limit chunksize in order to catch errors early */
 		for (i = 0, chunksize = 0; i < len; i += chunksize) {
 			int tmp;
+			int chk_acc = 0;
 
-			chunksize = min(flash->chip->page_size, len - i);
+			/*
+			 * Let's work in chunks of at least 4096 bytes at a
+			 * time to balance reacting fast but still avoiding the
+			 * overhead of working at a smaller size if page_size is
+			 * something like 256 bytes.
+			 */
+			chunksize = max(flash->chip->page_size, 4096);
+			chunksize = min(chunksize, len - i);
+
+			/*
+			 * If we don't have access to some part of this chunk
+			 * then bring the size back down to page_size.
+			 */
+			if (flash->chip->check_access) {
+				chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
+				if (chk_acc) {
+					chunksize = min(chunksize, flash->chip->page_size);
+					chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
+				}
+			}
+
 			tmp = flash->chip->read(flash, readbuf + i, start + i, chunksize);
 			if (tmp) {
 				ret = tmp;
@@ -987,11 +1008,8 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 			 * Check write access permission and do not compare chunks
 			 * where flashrom does not have write access to the region.
 			 */
-			if (flash->chip->check_access) {
-				tmp = flash->chip->check_access(flash, start + i, chunksize, 0);
-				if (tmp && ignore_error(tmp))
-					continue;
-			}
+			if (chk_acc && ignore_error(chk_acc))
+				continue;
 
 			failcount = compare_range(cmpbuf + i, readbuf + i, start + i, chunksize);
 			if (failcount)
