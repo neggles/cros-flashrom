@@ -771,7 +771,7 @@ struct par_master {
 int register_par_master(const struct par_master *mst, const enum chipbustype buses, void *data);
 struct registered_master {
 	enum chipbustype buses_supported;
-	union {
+	struct {
 		struct par_master par;
 		struct spi_master spi;
 		struct opaque_master opaque;
