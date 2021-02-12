@@ -1926,7 +1926,8 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 		rwperms = FD_REGION_READ_WRITE;
 		if (i == EMBEDDED_CONTROLLER_REGION &&
 		    ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
-			struct ich_descriptors desc = {{ 0 }};
+			struct ich_descriptors desc;
+			memset(&desc, 0, sizeof(desc));
 			/* Region is RW if flash descriptor override is set */
 			freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
 			if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS))
