@@ -273,17 +273,14 @@ void layout_cleanup(struct layout_include_args **args)
 /* returns boolean 1 if regions overlap, 0 otherwise */
 int included_regions_overlap()
 {
-	int i;
 	int overlap_detected = 0;
 	struct flashrom_layout *const layout = get_global_layout();
 
-	for (i = 0; i < layout->num_entries; i++) {
-		int j;
-
+	for (size_t i = 0; i < layout->num_entries; i++) {
 		if (!layout->entries[i].included)
 			continue;
 
-		for (j = 0; j < layout->num_entries; j++) {
+		for (size_t j = 0; j < layout->num_entries; j++) {
 			if (!layout->entries[j].included)
 				continue;
 
@@ -353,14 +350,13 @@ static int read_content_from_file(struct romentry *entry, uint8_t *newcontents) 
 
 static struct romentry *get_next_included_romentry(unsigned int start)
 {
-	int i;
 	unsigned int best_start = UINT_MAX;
 	struct romentry *best_entry = NULL;
 	struct romentry *cur;
 	struct flashrom_layout *const layout = get_global_layout();
 
 	/* First come, first serve for overlapping regions. */
-	for (i = 0; i < layout->num_entries; i++) {
+	for (size_t i = 0; i < layout->num_entries; i++) {
 		cur = &layout->entries[i];
 		if (!cur->included)
 			continue;
@@ -511,7 +507,7 @@ int handle_partial_read(
     int (*read) (struct flashctx *flash, uint8_t *buf,
                  unsigned int start, unsigned int len),
     int write_to_file) {
-	int i, count = 0;
+	int count = 0;
 
 	/* If no regions were specified for inclusion, assume
 	 * that the user wants to read the complete image.
@@ -523,7 +519,7 @@ int handle_partial_read(
 		return -1;
 
 	struct flashrom_layout *const layout = get_global_layout();
-	for (i = 0; i < layout->num_entries; i++) {
+	for (size_t i = 0; i < layout->num_entries; i++) {
 		unsigned int start, len, start_align, len_align;
 
 		if (!layout->entries[i].included)
@@ -542,7 +538,7 @@ int handle_partial_read(
 		if (start_align || len_align) {
 			msg_gdbg("\n%s: Re-aligned partial read due to "
 				"eraseable block size requirement:\n"
-				"\tlayout->entries[%d].start: 0x%06x, len: 0x%06x, "
+				"\tlayout->entries[%zu].start: 0x%06x, len: 0x%06x, "
 				"aligned start: 0x%06x, len: 0x%06x\n",
 				__func__, i, layout->entries[i].start,
 				layout->entries[i].end - layout->entries[i].start + 1,
@@ -569,7 +565,7 @@ int extract_regions(struct flashctx *flash)
 {
 	unsigned long size = flash->chip->total_size * 1024;
 	unsigned char *buf = calloc(size, sizeof(char));
-	int i, ret = 0;
+	int ret = 0;
 
 	if (!buf) {
 		msg_gerr("Memory allocation failed!\n");
@@ -586,7 +582,7 @@ int extract_regions(struct flashctx *flash)
 
 	struct flashrom_layout *const layout = get_global_layout();
 	msg_gdbg("Extracting %zd images\n", layout->num_entries);
-	for (i = 0; !ret && i < layout->num_entries; i++) {
+	for (size_t i = 0; !ret && i < layout->num_entries; i++) {
 		struct romentry *region = &layout->entries[i];
 		char fname[256];
 		char *from, *to;
