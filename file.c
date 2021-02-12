@@ -45,6 +45,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "file.h"
 #include "flash.h"
 
 #define FDT_ROOT	"/proc/device-tree"
@@ -209,7 +210,7 @@ static int do_fdt_find_spi_nor_flash(const char *prefix,
 		char node[PATH_MAX];
 		char pattern[PATH_MAX];
 		char alias[64];
-		int i, fd, len;
+		int fd, len;
 		glob_t pglob;
 
 		/* allow partial match */
@@ -257,10 +258,10 @@ static int do_fdt_find_spi_nor_flash(const char *prefix,
 			 FDT_ROOT, alias);
 
 		msg_pspew("Scanning glob pattern \"%s\"\n", pattern);
-		i = glob(pattern, 0, NULL, &pglob);
-		if (i == GLOB_NOSPACE)
+		int res = glob(pattern, 0, NULL, &pglob);
+		if (res == GLOB_NOSPACE)
 			goto err_out;
-		else if (i != 0)
+		else if (res != 0)
 			continue;
 
 		/*
