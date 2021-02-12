@@ -204,7 +204,7 @@ static size_t fill_sorted_erasers(struct flashctx *flash,
 	/* Iterate over all available erase functions/block sizes. */
 	for (j = k = 0; k < NUM_ERASEFUNCTIONS; k++) {
 		size_t new_block_size;
-		int m, n;
+		size_t m, n;
 
 		/* Make sure there is a function in is slot */
 		if (!chip.block_erasers[k].block_erase)
@@ -221,12 +221,12 @@ static size_t fill_sorted_erasers(struct flashctx *flash,
 		for (n = 0; n < NUM_ERASEREGIONS; n++) {
 			const struct eraseblock *eb =
 				chip.block_erasers[k].eraseblocks + n;
-			int total = eb->size * eb->count;
+			size_t total = eb->size * eb->count;
 
 			if (total >= erase_size)
 				break;
 
-			if (total > fallback.max_total) {
+			if (total > (size_t)fallback.max_total) {
 				fallback.max_total = total;
 				fallback.alt_region = n;
 				fallback.alt_function = k;
@@ -319,9 +319,9 @@ static void clear_all_nested(struct range_map *upper_level_map,
 			     unsigned i)
 {
 	struct range_map *this_level_map = upper_level_map - 1;
-	int range_start;
-	int range_end;
-	int j;
+	size_t range_start;
+	size_t range_end;
+	size_t j;
 
 	range_start = upper_level_map->block_size * block_index;
 	range_end = range_start + upper_level_map->block_size;
@@ -352,7 +352,7 @@ static void fold_range_maps(struct range_map *maps,
 			    size_t num_maps,
 			    size_t chip_size)
 {
-	int block_index;
+	size_t block_index;
 	unsigned i;
 	struct range_map *map;
 
@@ -586,7 +586,7 @@ static void fill_action_descriptor(struct action_descriptor *descriptor,
 	consecutive_blocks = 0;
 	pu_index = 0;  /* Number of initialized processing units. */
 	for (i = 0; i < num_sorted_erasers; i++) {
-		int j;
+		size_t j;
 		struct processing_unit *pu;
 		size_t map_size = chip_size/range_maps[i].block_size;
 
@@ -643,7 +643,7 @@ static void fill_action_descriptor(struct action_descriptor *descriptor,
 static size_t top_section_offset(void)
 {
 	size_t top = 0;
-	int i;
+	size_t i;
 	struct flashrom_layout *const layout = get_global_layout();
 
 	for (i = 0; i < layout->num_entries; i++) {
@@ -658,7 +658,7 @@ static size_t top_section_offset(void)
 	return top;
 }
 
-bool is_dry_run()
+bool is_dry_run(void)
 {
 	return dry_run;
 }

@@ -52,7 +52,7 @@ struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
  * This is useful when one needs to determine if a certain flash erase command
  * supported by the chip is allowed by the Intel controller on the device.
  */
-bool is_dry_run();
+bool is_dry_run(void);
 
 /*
  * A function to test action descriptor implementation, returns number of
