@@ -82,7 +82,7 @@ static char *check_sysfs(void)
 	const char *sysfs_path = NULL;
 	char *devfs_path = NULL;
 	char *p;
-	char *modalias[] = {
+	const char *modalias[] = {
 		"spi:spidev",	/* raw access over SPI bus (newer kernels) */
 		"spidev",	/* raw access over SPI bus (older kernels) */
 		"m25p80",	/* generic MTD device */
