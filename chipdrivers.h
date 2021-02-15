@@ -169,7 +169,6 @@ int protect_28sf040(struct flashctx *flash);
 
 /* sst49lfxxxc.c */
 int erase_sector_49lfxxxc(struct flashctx *flash, unsigned int address, unsigned int sector_size);
-int unlock_49lfxxxc(struct flashctx *flash);
 
 /* sst_fwhub.c */
 int printlock_sst_fwhub(struct flashctx *flash);
