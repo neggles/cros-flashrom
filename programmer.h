@@ -694,7 +694,6 @@ enum ich_chipset {
 	CHIPSET_400_SERIES_COMET_POINT,
 };
 
-
 /* ichspi.c */
 #if CONFIG_INTERNAL == 1
 int ich_init_spi(void *spibar, enum ich_chipset ich_generation);

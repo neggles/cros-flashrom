@@ -111,4 +111,4 @@ int handle_partial_read(
 int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 		      uint8_t *newcontents, int erase_mode);
 
-#endif /* __LAYOUT_H__ */
+#endif /* !__LAYOUT_H__ */
