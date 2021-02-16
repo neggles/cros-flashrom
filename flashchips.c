@@ -8635,7 +8635,7 @@ const struct flashchip flashchips[] = {
 		},
 		/* TODO: security register and SBLK/SBULK; MX25L12835F: configuration register */
 		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) supported */
 		.voltage	= {2700, 3600},
