@@ -8577,18 +8577,27 @@ const struct flashchip flashchips[] = {
 				.eraseblocks = { {4 * 1024, 8192} },
 				.block_erase = spi_block_erase_21,
 			}, {
+				.eraseblocks = { {4 * 1024, 8192} },
+				.block_erase = spi_block_erase_20,
+			}, {
 				.eraseblocks = { {32 * 1024, 1024} },
 				.block_erase = spi_block_erase_5c,
+			}, {
+				.eraseblocks = { {32 * 1024, 1024} },
+				.block_erase = spi_block_erase_52,
 			}, {
 				.eraseblocks = { {64 * 1024, 512} },
 				.block_erase = spi_block_erase_dc,
 			}, {
-				.eraseblocks = { {32768 * 1024, 1} },
+				.eraseblocks = { {64 * 1024, 512} },
+				.block_erase = spi_block_erase_d8,
+			}, {
+				.eraseblocks = { {32 * 1024 * 1024, 1} },
 				.block_erase = spi_block_erase_60,
 			}, {
-				.eraseblocks = { {32768 * 1024, 1} },
+				.eraseblocks = { {32 * 1024 * 1024, 1} },
 				.block_erase = spi_block_erase_c7,
-			},
+			}
 		},
 		/* TODO: security register and SBLK/SBULK; MX25L12835F: configuration register */
 		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
