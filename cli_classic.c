@@ -293,10 +293,6 @@ int main(int argc, char *argv[])
 							"Aborting.\n");
 			referencefile = strdup(optarg);
 			break;
-		case 'L':
-			cli_classic_validate_singleop(&operation_specified);
-			list_supported = 1;
-			break;
 		case OPTION_FLASH_NAME:
 			cli_classic_validate_singleop(&operation_specified);
 			flash_name = 1;
@@ -321,6 +317,10 @@ int main(int argc, char *argv[])
 			break;
 		case OPTION_WP_DISABLE:
 			set_wp_disable = 1;
+			break;
+		case 'L':
+			cli_classic_validate_singleop(&operation_specified);
+			list_supported = 1;
 			break;
 		case 'x':
 			cli_classic_validate_singleop(&operation_specified);
