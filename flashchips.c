@@ -8352,11 +8352,8 @@ const struct flashchip flashchips[] = {
 		.block_erasers	=
 		{
 			{
-				.eraseblocks = { {4 * 1024, 512} },
-				.block_erase = spi_block_erase_20,	/* This erase function has 64k blocksize for eLiteFlash */
-			}, {
-				.eraseblocks = { {64 * 1024, 32} },	/* Not supported in MX25L1605 (eLiteFlash) and MX25L1605D */
-				.block_erase = spi_block_erase_52,
+				.eraseblocks = { {64 * 1024, 32} },
+				.block_erase = spi_block_erase_20,
 			}, {
 				.eraseblocks = { {64 * 1024, 32} },
 				.block_erase = spi_block_erase_d8,
