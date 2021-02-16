@@ -760,7 +760,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (flash_size) {
-		msg_ginfo("%d\n", fill_flash->chip->total_size * 1024);
+		printf("%d\n", fill_flash->chip->total_size * 1024);
 		goto out_shutdown;
 	}
 
