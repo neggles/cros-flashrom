@@ -1711,6 +1711,7 @@ const struct flashchip flashchips[] = {
 		.voltage	= {2700, 3600},
 	},
 
+	/*The AT26DF321 has the same ID as the AT25DF321. */
 	{
 		.vendor		= "Atmel",
 		.name		= "AT25DF321",
@@ -6555,11 +6556,6 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
-		/*
-		 * TODO: There is a GD25Q128B without QPI support which can
-		 * be differentiated using SFDP, but for now we only care
-		 * about the GD25Q128C.
-		 */
 		.vendor		= "GigaDevice",
 		.name		= "GD25Q127C/GD25Q128C",
 		.bustype	= BUS_SPI,
@@ -6594,7 +6590,7 @@ const struct flashchip flashchips[] = {
 		},
 		/* TODO: 2nd status reg (read 0x35, write 0x31) and 3rd status reg (read 0x15, write 0x11) */
 		.printlock	= spi_prettyprint_status_register_bp4_srwd,
-		.unlock		= spi_disable_blockprotect_bp4_srwd, /* TODO: 2nd status reg (read with 0x35) */
+		.unlock		= spi_disable_blockprotect_bp4_srwd,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {2700, 3600},
@@ -9021,8 +9017,6 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
-		/* FIXME: This is an evil twin of the MX25L6405, with the same
-		 * ID bytes but different block erase capabilities */
 		.vendor		= "Macronix",
 		.name		= "MX25L6406E/MX25L6408E",
 		.bustype	= BUS_SPI,
@@ -9059,7 +9053,7 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B), dual I/O read supported */
-		.voltage	= {2700, 3600}, /* 2.35-3.6V for MX25V8005 */
+		.voltage	= {2700, 3600},
 		.wp		= &wp_generic,
 	},
 
@@ -17328,13 +17322,6 @@ const struct flashchip flashchips[] = {
 		.unlock		= spi_disable_blockprotect,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read,
-		/*
-		 * W25Q128FW is a 1.8V chip, however 3.3V variants with the same
-		 * model ID exist. We'll err on the side of caution here. A user
-		 * with a 3.3V chip sharing the model ID will need to either
-		 * specify voltage on the command line or duplicate this struct
-		 * with a different name/voltage and specify it with "-c".
-		 */
 		.voltage	= {1650, 1950},
 		.wp		= &wp_w25q,
 	},
