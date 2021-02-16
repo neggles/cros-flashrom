@@ -67,6 +67,11 @@ static void cli_classic_usage(const char *name)
 	       " -n | --noverify                    don't auto-verify\n"
 	       " -N | --noverify-all                verify included regions only (cf. -i)\n"
 	       " -l | --layout <layoutfile>         read ROM layout from <layoutfile>\n"
+	       "      --wp-disable                  disable write protection\n"
+	       "      --wp-enable                   enable write protection\n"
+	       "      --wp-list                     list write protect range\n"
+	       "      --wp-status                   show write protect status\n"
+	       "      --wp-range=<start> <len>      set write protect range\n"
 	       "   -i | --image <name>[:<file>]      only access image <name> "
 	         "from flash layout\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
@@ -89,12 +94,6 @@ static void cli_classic_usage(const char *name)
 	       "   --get-size                        get chip size (bytes)\n"
 	       "   --ignore-fmap                     ignore fmap structure\n"
 	       "   --ignore-lock                     do not acquire big lock\n"
-	       "   --wp-disable                      disable write protection\n"
-	       "   --wp-enable                       enable write protection\n"
-	       "   --wp-list                         list write protection ranges\n"
-	       "   --wp-range <start> <length>       set write protect range\n"
-	       "   --wp-region <region>              set write protect range by region name\n"
-	       "   --wp-status                       show write protect status\n"
 	       );
 
 	printf(".\n\nYou can specify one of -h, -R, -L, "
@@ -145,11 +144,11 @@ int main(int argc, char *argv[])
 	int list_supported_wiki = 0;
 #endif
 	int flash_name = 0, flash_size = 0;
+	int set_wp_enable = 0, set_wp_disable = 0, wp_status = 0;
+	int set_wp_range = 0, set_wp_region = 0, wp_list = 0;
 	int read_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
 	int extract_it = 0, do_diff = 1;
-	int set_wp_range = 0, set_wp_region = 0, set_wp_enable = 0,
-	    set_wp_disable = 0, wp_status = 0, wp_list = 0;
 	int set_ignore_fmap = 0;
 	enum programmer prog = PROGRAMMER_INVALID;
 	enum {
@@ -187,6 +186,12 @@ int main(int argc, char *argv[])
 		{"flash-name",		0, NULL, OPTION_FLASH_NAME},
 		{"flash-size",		0, NULL, OPTION_FLASH_SIZE},
 		{"get-size",		0, NULL, OPTION_FLASH_SIZE}, // (deprecated): back compatibility.
+		{"wp-status", 		0, 0, OPTION_WP_STATUS},
+		{"wp-range", 		0, 0, OPTION_WP_SET_RANGE},
+		{"wp-region",		1, 0, OPTION_WP_SET_REGION},
+		{"wp-enable", 		optional_argument, 0, OPTION_WP_ENABLE},
+		{"wp-disable", 		0, 0, OPTION_WP_DISABLE},
+		{"wp-list", 		0, 0, OPTION_WP_LIST},
 		{"list-supported",	0, NULL, 'L'},
 		{"list-supported-wiki",	0, NULL, 'z'},
 		{"extract", 		0, 0, 'x'},
@@ -196,12 +201,6 @@ int main(int argc, char *argv[])
 		{"output",		1, NULL, 'o'},
 		{"diff", 		1, 0, OPTION_DIFF},
 		{"do-not-diff",		0, 0, OPTION_DO_NOT_DIFF},
-		{"wp-status", 		0, 0, OPTION_WP_STATUS},
-		{"wp-range", 		0, 0, OPTION_WP_SET_RANGE},
-		{"wp-region",		1, 0, OPTION_WP_SET_REGION},
-		{"wp-enable", 		optional_argument, 0, OPTION_WP_ENABLE},
-		{"wp-disable", 		0, 0, OPTION_WP_DISABLE},
-		{"wp-list", 		0, 0, OPTION_WP_LIST},
 		{"ignore-fmap", 	0, 0, OPTION_IGNORE_FMAP},
 		{"fast-verify",		0, 0, OPTION_FAST_VERIFY},
 		{"ignore-lock",		0, 0, OPTION_IGNORE_LOCK},
@@ -215,9 +214,9 @@ int main(int argc, char *argv[])
 	char *logfile = NULL;
 	char *tempstr = NULL;
 	char *pparam = NULL;
+	struct layout_include_args *include_args = NULL;
 	char *wp_mode_opt = NULL;
 	char *wp_region = NULL;
-	struct layout_include_args *include_args = NULL;
 
 	flashrom_set_log_callback((flashrom_log_callback *)&flashrom_print_cb);
 
@@ -295,6 +294,23 @@ int main(int argc, char *argv[])
 		case 'L':
 			cli_classic_validate_singleop(&operation_specified);
 			list_supported = 1;
+			break;
+		case OPTION_WP_STATUS:
+			wp_status = 1;
+			break;
+		case OPTION_WP_LIST:
+			wp_list = 1;
+			break;
+		case OPTION_WP_SET_RANGE:
+			set_wp_range = 1;
+			break;
+		case OPTION_WP_ENABLE:
+			set_wp_enable = 1;
+			if (optarg)
+				wp_mode_opt = strdup(optarg);
+			break;
+		case OPTION_WP_DISABLE:
+			set_wp_disable = 1;
 			break;
 		case 'x':
 			cli_classic_validate_singleop(&operation_specified);
@@ -382,26 +398,9 @@ int main(int argc, char *argv[])
 		case OPTION_DO_NOT_DIFF:
 			do_diff = 0;
 			break;
-		case OPTION_WP_STATUS:
-			wp_status = 1;
-			break;
-		case OPTION_WP_LIST:
-			wp_list = 1;
-			break;
-		case OPTION_WP_SET_RANGE:
-			set_wp_range = 1;
-			break;
 		case OPTION_WP_SET_REGION:
 			set_wp_region = 1;
 			wp_region = strdup(optarg);
-			break;
-		case OPTION_WP_ENABLE:
-			set_wp_enable = 1;
-			if (optarg)
-				wp_mode_opt = strdup(optarg);
-			break;
-		case OPTION_WP_DISABLE:
-			set_wp_disable = 1;
 			break;
 		case OPTION_FLASH_NAME:
 			flash_name = 1;
@@ -666,12 +665,6 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	if (set_wp_enable && set_wp_disable) {
-		msg_ginfo("Error: --wp-enable and --wp-disable are mutually exclusive\n");
-		ret = 1;
-		goto out_shutdown;
-	}
-
 	/*
 	 * Common rules for -r/-w/-v syntax parsing:
 	 * - If no filename is specified at all, quit.
@@ -736,13 +729,20 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* Note: set_wp_disable should be done before setting the range */
-	if (set_wp_disable) {
-		if (fill_flash->chip->wp && fill_flash->chip->wp->disable) {
-			ret |= fill_flash->chip->wp->disable(fill_flash);
-		} else {
-			msg_gerr("Error: write protect is not supported "
-			       "on this flash chip.\n");
+	if (set_wp_enable && set_wp_disable) {
+		msg_ginfo("Error: --wp-enable and --wp-disable are mutually exclusive\n");
+		ret = 1;
+		goto out_shutdown;
+	}
+	if (set_wp_range && set_wp_region) {
+		msg_gerr("Error: Cannot use both --wp-range and --wp-region simultaneously.\n");
+		ret = 1;
+		goto out_shutdown;
+	}
+
+	if (set_wp_range || set_wp_region) {
+		if (!fill_flash->chip->wp || !fill_flash->chip->wp->set_range) {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 			goto out_shutdown;
 		}
@@ -782,17 +782,22 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	if (set_wp_range || set_wp_region) {
-		if (set_wp_range && set_wp_region) {
-			msg_gerr("Error: Cannot use both --wp-range and "
-				"--wp-region simultaneously.\n");
+	if (wp_status) {
+		if (fill_flash->chip->wp && fill_flash->chip->wp->wp_status) {
+			ret |= fill_flash->chip->wp->wp_status(fill_flash);
+		} else {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
-			goto out_shutdown;
 		}
+		goto out_shutdown;
+	}
 
-		if (!fill_flash->chip->wp || !fill_flash->chip->wp->set_range) {
-			msg_gerr("Error: write protect is not supported "
-			       "on this flash chip.\n");
+	/* Note: set_wp_disable should be done before setting the range */
+	if (set_wp_disable) {
+		if (fill_flash->chip->wp && fill_flash->chip->wp->disable) {
+			ret |= fill_flash->chip->wp->disable(fill_flash);
+		} else {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 			goto out_shutdown;
 		}
@@ -873,24 +878,12 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
-	if (wp_status) {
-		if (fill_flash->chip->wp && fill_flash->chip->wp->wp_status) {
-			ret |= fill_flash->chip->wp->wp_status(fill_flash);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-		}
-		goto out_shutdown;
-	}
-
 	if (wp_list) {
 		msg_ginfo("Valid write protection ranges:\n");
 		if (fill_flash->chip->wp && fill_flash->chip->wp->list_ranges) {
 			ret |= fill_flash->chip->wp->list_ranges(fill_flash);
 		} else {
-			msg_gerr("Error: write protect is not supported "
-			       "on this flash chip.\n");
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 		}
 		goto out_shutdown;
