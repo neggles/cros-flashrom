@@ -4350,46 +4350,6 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
-		/* Note: EN25Q16 is an evil twin which shares the model ID
-		   but has different write protection capabilities */
-		.vendor		= "Eon",
-		.name		= "EN25D16",
-		.bustype	= BUS_SPI,
-		.manufacture_id	= EON_ID_NOPREFIX,
-		.model_id	= EON_EN25D16,
-		.total_size	= 2048,
-		.page_size	= 256,
-		/* OTP: D16 512B/Q16 128B total; enter 0x3A */
-		.feature_bits	= FEATURE_WRSR_WREN | FEATURE_OTP,
-		.tested		= TEST_UNTESTED,
-		.probe		= probe_spi_rdid,
-		.probe_timing	= TIMING_ZERO,
-		.block_erasers	=
-		{
-			{
-				.eraseblocks = { {4 * 1024, 512} },
-				.block_erase = spi_block_erase_20,
-			}, {
-				.eraseblocks = { {64 * 1024, 32} },
-				.block_erase = spi_block_erase_d8,
-			}, {
-				.eraseblocks = { {64 * 1024, 32} },
-				.block_erase = spi_block_erase_52,
-			}, {
-				.eraseblocks = { {2 * 1024 * 1024, 1} },
-				.block_erase = spi_block_erase_60,
-			}, {
-				.eraseblocks = { {2 * 1024 * 1024, 1} },
-				.block_erase = spi_block_erase_c7,
-			}
-		},
-		.unlock		= spi_disable_blockprotect,
-		.write		= spi_chip_write_256,
-		.read		= spi_chip_read,
-		.voltage	= {2700, 3600},
-	},
-
-	{
 		.vendor		= "Eon",
 		.name		= "EN25F05",
 		.bustype	= BUS_SPI,
