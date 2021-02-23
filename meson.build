@@ -348,7 +348,6 @@ install_headers([
 srcs += 'power.c'
 srcs += 'search.c'
 srcs += 'file.c'
-srcs += 'stm50flw0x0x.c'
 srcs += 'action_descriptor.c'
 
 srcs += 'cros_alias.c'
