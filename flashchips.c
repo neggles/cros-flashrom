@@ -9003,10 +9003,10 @@ const struct flashchip flashchips[] = {
 				.block_erase = spi_block_erase_20,
 			}, {
 				.eraseblocks = { {64 * 1024, 128} },
-				.block_erase = spi_block_erase_d8,
+				.block_erase = spi_block_erase_52,
 			}, {
 				.eraseblocks = { {64 * 1024, 128} },
-				.block_erase = spi_block_erase_52,
+				.block_erase = spi_block_erase_d8,
 			}, {
 				.eraseblocks = { {8 * 1024 * 1024, 1} },
 				.block_erase = spi_block_erase_60,
@@ -9016,7 +9016,7 @@ const struct flashchip flashchips[] = {
 			}
 		},
 		.printlock	= spi_prettyprint_status_register_bp3_srwd,
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
 		.write		= spi_chip_write_256,
 		.read		= spi_chip_read, /* Fast read (0x0B), dual I/O read supported */
 		.voltage	= {2700, 3600},
