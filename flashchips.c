@@ -8623,10 +8623,10 @@ const struct flashchip flashchips[] = {
 		.block_erasers	=
 		{
 			{
-				.eraseblocks = { {4 * 1024, 1024} },
+				.eraseblocks = { {64 * 1024, 64} },
 				.block_erase = spi_block_erase_20,
 			}, {
-				.eraseblocks = { {4 * 1024, 1024} },
+				.eraseblocks = { {64 * 1024, 64} },
 				.block_erase = spi_block_erase_d8,
 			}, {
 				.eraseblocks = { {4 * 1024 * 1024, 1} },
