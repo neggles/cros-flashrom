@@ -9284,16 +9284,16 @@ const struct flashchip flashchips[] = {
 				.eraseblocks = { {64 * 1024, 256} },
 				.block_erase = spi_block_erase_d8,
 			}, {
-				.eraseblocks = { {8 * 1024 * 2048, 1} },
+				.eraseblocks = { {16 * 1024 * 1024, 1} },
 				.block_erase = spi_block_erase_60,
 			}, {
-				.eraseblocks = { {8 * 1024 * 2048, 1} },
+				.eraseblocks = { {16 * 1024 * 1024, 1} },
 				.block_erase = spi_block_erase_c7,
 			}
 		},
 		/* TODO: security register */
 		.printlock	= spi_prettyprint_status_register_bp3_srwd, /* bit6 is quad enable */
-		.unlock		= spi_disable_blockprotect,
+		.unlock		= spi_disable_blockprotect_bp3_srwd,
 		.write		= spi_chip_write_256, /* Multi I/O supported */
 		.read		= spi_chip_read, /* Fast read (0x0B) and multi I/O supported */
 		.voltage	= {1650, 2000},
