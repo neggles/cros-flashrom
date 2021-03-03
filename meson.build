@@ -482,6 +482,10 @@ flashrom_test_dep = declare_dependency(
     'cli_output.c',
     'flashrom.c',
   ],
+  compile_args : [
+    '-includestdlib.h',
+    '-includeunittest_env.h',
+  ],
   dependencies : [
     deps,
   ],
