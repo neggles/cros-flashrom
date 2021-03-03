@@ -2015,7 +2015,6 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x31f0, B_FS,    OK, "Intel", "Geminilake",			enable_flash_apl},
 	{0x8086, 0x9da4, B_FS,    OK, "Intel", "Cannonlake",			enable_flash_pch100},
 	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_pch100},
-	{0x8086, 0x02a4, B_FS,    OK, "Intel", "Cometlake",			enable_flash_pch100},
 	{0x8086, 0x4da4, B_FS,    OK, "Intel", "Jasperlake",			enable_flash_pch100},
 	{0x8086, 0xa0a4, B_FS,    OK, "Intel", "Tigerlake",			enable_flash_pch100},
 	{0x8086, 0x7aa4, B_FS,     OK, "Intel", "Alderlake-S",			enable_flash_pch100},
