@@ -2771,3 +2771,10 @@ int do_extract_it(struct flashctx *const flash)
 
 	return ret;
 }
+
+int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, const size_t buffer_len, const void *refbuffer) {
+	return 0;
+}
+int flashrom_image_verify(struct flashctx *const flashctx, const void *const buffer, const size_t buffer_len) {
+	return 0;
+}
