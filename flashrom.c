@@ -2576,125 +2576,118 @@ _finalize_ret:
 	return ret;
 }
 
-/* This function signature is horrible. We need to design a better interface,
- * but right now it allows us to split off the CLI code.
- * Besides that, the function itself is a textbook example of abysmal code flow.
+/**
+ * @brief Write the specified image to the ROM chip.
  *
+ * If a layout is set in the specified flash context, only erase blocks
+ * containing included regions will be touched.
  *
- * The main processing function of flashrom utility; it is invoked once
- * command line parameters are processed and verified, and the type of the
- * flash chip the programmer operates on has been determined.
- *
- * @flashctx	  pointer to the flash context matching the chip detected
- *		  during initialization.
- * @buffer        pointer to the buffer to read from
- * @write_it      when true, flash is programmed with 'buffer' contents
- * @refbuffer	  when deciding what areas to program, use this buffer
- *                contents instead of reading the current chip contents
- *
- * If 'refbuffer' is not set - comparison is done against flash->diff_file
- * contents and if that is also unset comparison is done against the
- * pre-operation chip contents.
+ * @param flashctx The context of the flash chip.
+ * @param buffer Source buffer to read image from (may be altered for full verification).
+ * @param buffer_len Size of source buffer in bytes.
+ * @param refbuffer If given, assume flash chip contains same data as `refbuffer`.
+ * @return 0 on success,
+ *         4 if buffer_len doesn't match the size of the flash chip,
+ *         or 1 on any other failure.
  */
-static int doit(struct flashctx *flashctx, const void *const buffer,
-	 int write_it, const void *const refbuffer)
+int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, const size_t buffer_len,
+			 const void *const refbuffer)
 {
-	uint8_t *oldcontents;
-	uint8_t *newcontents;
-	int ret = 0;
 	const size_t flash_size = flashctx->chip->total_size * 1024;
-	struct action_descriptor *descriptor = NULL;
-
 	const bool verify_all = flashctx->flags.verify_whole_chip;
 	const bool verify = flashctx->flags.verify_after_write;
 
-	oldcontents = malloc(flash_size);
-	if (!oldcontents) {
+	if (buffer_len != flash_size)
+		return 4;
+
+	int ret = 1;
+
+	struct action_descriptor *descriptor = NULL;
+	uint8_t *oldcontents = malloc(flash_size);
+	uint8_t *newcontents = malloc(flash_size);
+	if (!oldcontents || !newcontents) {
 		msg_gerr("Out of memory!\n");
-		exit(1);
+		goto _free_ret;
 	}
-	newcontents = malloc(flash_size);
-	if (!newcontents) {
-		msg_gerr("Out of memory!\n");
-		exit(1);
-	}
+
+	if (prepare_flash_access(flashctx, false, true, false, verify))
+		goto _free_ret;
 
 	if (setup_contents(flashctx, oldcontents, newcontents, false, buffer, refbuffer))
 		goto _finalize_ret;
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
 					       flashctx->flags.do_diff);
-	if (write_it) {
-		// parse the new fmap and disable soft WP if necessary
-		if ((ret = cros_ec_prepare(newcontents, flash_size))) {
-			msg_cerr("CROS_EC prepare failed, ret=%d.\n", ret);
-			goto _finalize_ret;
-		}
 
-		if (erase_and_write_flash(flashctx, descriptor)) {
-			msg_cerr("Uh oh. Erase/write failed. Checking if anything changed.\n");
-			msg_cinfo("Reading current flash chip contents... ");
-			if (!read_flash(flashctx, newcontents, 0, flash_size)) {
-				msg_cinfo("done.\n");
-				if (!memcmp(oldcontents, newcontents, flash_size)) {
-					nonfatal_help_message();
-					ret = 1;
-					goto _finalize_ret;
-				}
-				msg_cerr("Apparently at least some data has changed.\n");
-			} else
-				msg_cerr("Can't even read anymore!\n");
-			emergency_help_message();
-			ret = 1;
-			goto _finalize_ret;
-		}
+	// parse the new fmap and disable soft WP if necessary
+	if ((ret = cros_ec_prepare(newcontents, flash_size))) {
+		msg_cerr("CROS_EC prepare failed, ret=%d.\n", ret);
+		goto _finalize_ret;
+	}
 
-		ret = cros_ec_need_2nd_pass();
-		if (ret < 0) {
-			// Jump failed
-			msg_cerr("cros_ec_need_2nd_pass() failed. Stop.\n");
-			emergency_help_message();
-			ret = 1;
-			goto _finalize_ret;
-		} else if (ret > 0) {
-			// Need 2nd pass. Get the just written content.
-			msg_pdbg("CROS_EC needs 2nd pass.\n");
-			ret = read_dest_content(flashctx, oldcontents, flash_size);
-			if (ret) {
-				emergency_help_message();
-				goto _finalize_ret;
-			}
-
-			/* Get a new descriptor. */
-			free(descriptor);
-			descriptor = prepare_action_descriptor(flashctx,
-							       oldcontents,
-							       newcontents,
-							       flashctx->flags.do_diff);
-			// write 2nd pass
-			if (erase_and_write_flash(flashctx, descriptor)) {
-				msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
-				emergency_help_message();
+	if (erase_and_write_flash(flashctx, descriptor)) {
+		msg_cerr("Uh oh. Erase/write failed. Checking if anything changed.\n");
+		msg_cinfo("Reading current flash chip contents... ");
+		if (!read_flash(flashctx, newcontents, 0, flash_size)) {
+			msg_cinfo("done.\n");
+			if (!memcmp(oldcontents, newcontents, flash_size)) {
+				nonfatal_help_message();
 				ret = 1;
 				goto _finalize_ret;
 			}
-			ret = 0;
+			msg_cerr("Apparently at least some data has changed.\n");
+		} else
+			msg_cerr("Can't even read anymore!\n");
+		emergency_help_message();
+		ret = 1;
+		goto _finalize_ret;
+	}
+
+	ret = cros_ec_need_2nd_pass();
+	if (ret < 0) {
+		// Jump failed
+		msg_cerr("cros_ec_need_2nd_pass() failed. Stop.\n");
+		emergency_help_message();
+		ret = 1;
+		goto _finalize_ret;
+	} else if (ret > 0) {
+		// Need 2nd pass. Get the just written content.
+		msg_pdbg("CROS_EC needs 2nd pass.\n");
+		ret = read_dest_content(flashctx, oldcontents, flash_size);
+		if (ret) {
+			emergency_help_message();
+			goto _finalize_ret;
 		}
 
-		if (cros_ec_finish() < 0) {
-			msg_cerr("cros_ec_finish() failed. Stop.\n");
+		/* Get a new descriptor. */
+		free(descriptor);
+		descriptor = prepare_action_descriptor(flashctx,
+						       oldcontents,
+						       newcontents,
+						       flashctx->flags.do_diff);
+		// write 2nd pass
+		if (erase_and_write_flash(flashctx, descriptor)) {
+			msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
 			emergency_help_message();
 			ret = 1;
 			goto _finalize_ret;
 		}
+		ret = 0;
+	}
+
+	if (cros_ec_finish() < 0) {
+		msg_cerr("cros_ec_finish() failed. Stop.\n");
+		emergency_help_message();
+		ret = 1;
+		goto _finalize_ret;
 	}
 
 	if (verify) {
-		if (write_it && !content_has_changed) {
+		if (!content_has_changed) {
 			msg_gdbg("Nothing was written, skipping verification\n");
 		} else {
 			/* Work around chips which need some time to calm down. */
-			if (write_it && verify_all)
+			if (verify_all)
 				programmer_delay(1000*1000);
 
 			ret = verify_flash(flashctx, descriptor);
@@ -2702,23 +2695,18 @@ static int doit(struct flashctx *flashctx, const void *const buffer,
 			/* If we tried to write, and verification now fails, we
 			 * might have an emergency situation.
 			 */
-			if (ret && write_it)
+			if (ret)
 				emergency_help_message();
 		}
 	}
 
 _finalize_ret:
+	finalize_flash_access(flashctx);
+_free_ret:
 	if (descriptor)
 		free(descriptor);
-
 	free(oldcontents);
 	free(newcontents);
-	/*
-	 * programmer_shutdown() call is moved to cli_classic() in chromium os
-	 * tree. This is because some operations, such as write protection,
-	 * requires programmer_shutdown() but does not call doit().
-	 */
-//	programmer_shutdown();
 	return ret;
 }
 
@@ -2836,10 +2824,7 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 			goto _free_ret;
 	}
 
-	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
-		goto _free_ret;
-	ret = doit(flash, newcontents, true, refcontents);
-	finalize_flash_access(flash);
+	ret = flashrom_image_write(flash, newcontents, flash_size, refcontents);
 
 _free_ret:
 	free(refcontents);
@@ -2884,8 +2869,4 @@ int do_extract_it(struct flashctx *const flash)
 	finalize_flash_access(flash);
 
 	return ret;
-}
-
-int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, const size_t buffer_len, const void *refbuffer) {
-	return 0;
 }
