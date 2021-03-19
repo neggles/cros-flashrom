@@ -2485,27 +2485,21 @@ int flashrom_image_read(struct flashctx *const flashctx,
  *
  * @flash	  pointer to the flash context matching the chip detected
  *		  during initialization.
- * @force         when set proceed even if the chip is not known to work
- * @filename      pointer to the name of the file to read from or write to
- * @write_it      when true, flash is programmed with 'filename' contents
+ * @buffer        pointer to the buffer to read from
+ * @write_it      when true, flash is programmed with 'buffer' contents
  * @erase_it      when true, flash chip is erased
- * @extract_it    extract all known flash chip regions into separate files
- * @diff_file	  when deciding what areas to program, use this file's
+ * @diff_buffer	  when deciding what areas to program, use this buffer
  *                contents instead of reading the current chip contents
- * @do_diff	  when true - compare result of the operation with either the
- *		  original chip contents for 'diff_file' contents, is present.
- *		  When false - do not diff, consider the chip erased before
- *		  operation starts.
  *
- * Only one of 'read_it', 'write_it', and 'erase_it' is expected to be set,
+ * Only one of 'write_it', and 'erase_it' is expected to be set,
  * but this is not enforced.
  *
- * 'do_diff' must be set if 'diff_file' is set. If 'do_diff' is set, but
- * 'diff_file' is not - comparison is done against the pre-operation chip
- * contents.
+ * If 'diff_buffer' is not set - comparison is done against flash->diff_file
+ * contents and if that is also unset comparison is done against the
+ * pre-operation chip contents.
  */
-static int doit(struct flashctx *flash, const char *filename,
-	 int write_it, int erase_it, const char *diff_file)
+static int doit(struct flashctx *flash, const void *const buffer,
+	 int write_it, int erase_it, const void *const diff_buffer)
 {
 	uint8_t *oldcontents;
 	uint8_t *newcontents;
@@ -2528,36 +2522,17 @@ static int doit(struct flashctx *flash, const char *filename,
 		msg_gerr("Out of memory!\n");
 		exit(1);
 	}
-	/* Assume best case: All blocks are erased. */
-	memset(newcontents, ERASED_VALUE(flash), size);
+	if (buffer) {
+		memcpy(newcontents, buffer, size);
+	} else {
+		/* Assume best case: All blocks are erased. */
+		memset(newcontents, ERASED_VALUE(flash), size);
+	}
 	/* Side effect of the assumptions above: Default write action is erase
 	 * because newcontents looks like a completely erased chip, and
 	 * oldcontents being completely unerased means we have to erase
 	 * everything before we can write.
 	 */
-
-	if ((write_it || verify) && !erase_it) {
-		/*
-		 * Note: This must be done before any files specified by -i
-		 * arguments are processed merged into the newcontents since
-		 * -i files take priority. See http://crbug.com/263495.
-		 */
-		if (filename) {
-			if (read_buf_from_file(newcontents, size, filename)) {
-				ret = 1;
-				goto out;
-			}
-		} else {
-			/* Content will be read from -i args, so they must
-			 * not overlap. */
-			if (included_regions_overlap()) {
-				msg_gerr("Error: Included regions must "
-						"not overlap.\n");
-				ret = 1;
-				goto out;
-			}
-		}
-	}
 
 	if (flash->flags.do_diff) {
 		/*
@@ -2566,9 +2541,11 @@ static int doit(struct flashctx *flash, const char *filename,
 		 * case write fails. If --fast-verify is used then only the
 		 * regions which are included using -i will be read.
 		 */
-		if (diff_file) {
+		if (diff_buffer) {
+			memcpy(oldcontents, diff_buffer, size);
+		} else if (flash->diff_file) {
 			msg_cdbg("Reading old contents from file... ");
-			if (read_buf_from_file(oldcontents, size, diff_file)) {
+			if (read_buf_from_file(oldcontents, size, flash->diff_file)) {
 				ret = 1;
 				msg_cdbg("FAILED.\n");
 				goto out;
@@ -2724,7 +2701,7 @@ int do_erase(struct flashctx *const flash)
 	if (prepare_flash_access(flash, false, false, true, false))
 		return 1;
 
-	int ret = doit(flash, NULL, false, true, flash->diff_file);
+	int ret = doit(flash, NULL, false, true, NULL);
 
 	/*
 	 * FIXME: Do we really want the scary warning if erase failed?
@@ -2742,23 +2719,74 @@ int do_erase(struct flashctx *const flash)
 
 int do_write(struct flashctx *const flash, const char *const filename, const char *const referencefile)
 {
-	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
-		return 1;
+	const size_t flash_size = flash->chip->total_size * 1024;
+	int ret = 1;
 
-	int ret = doit(flash, filename, true, false, referencefile);
+	uint8_t *const newcontents = filename ? malloc(flash_size) : NULL;
+	uint8_t *const refcontents = referencefile ? malloc(flash_size) : NULL;
+
+	if ((filename && !newcontents) || (referencefile && !refcontents)) {
+		msg_gerr("Out of memory!\n");
+		goto _free_ret;
+	}
+
+	if (filename) {
+		if (read_buf_from_file(newcontents, flash_size, filename))
+			goto _free_ret;
+	} else {
+		/* Content will be read from -i args, so they must not overlap. */
+		if (included_regions_overlap()) {
+			msg_gerr("Error: Included regions must not overlap.\n");
+			goto _free_ret;
+		}
+	}
+
+	if (referencefile) {
+		if (read_buf_from_file(refcontents, flash_size, referencefile))
+			goto _free_ret;
+	}
+
+	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
+		goto _free_ret;
+	ret = doit(flash, newcontents, true, false, refcontents);
 	finalize_flash_access(flash);
 
+_free_ret:
+	free(refcontents);
+	free(newcontents);
 	return ret;
 }
 
 int do_verify(struct flashctx *const flash, const char *const filename)
 {
-	if (prepare_flash_access(flash, false, false, false, true))
-		return 1;
+	const size_t flash_size = flash->chip->total_size * 1024;
+	int ret = 1;
 
-	int ret = doit(flash, filename, false, false, flash->diff_file);
+	uint8_t *const newcontents = filename ? malloc(flash_size) : NULL;
+	if (filename && !newcontents) {
+		msg_gerr("Out of memory!\n");
+		goto _free_ret;
+	}
+
+	if (filename) {
+		if (read_buf_from_file(newcontents, flash_size, filename))
+			goto _free_ret;
+	} else {
+		/* Content will be read from -i args, so they must not overlap. */
+		if (included_regions_overlap()) {
+			msg_gerr("Error: Included regions must not overlap.\n");
+			goto _free_ret;
+		}
+	}
+
+	if (prepare_flash_access(flash, false, false, false, true))
+		goto _free_ret;
+
+	ret = doit(flash, newcontents, false, false, NULL);
 	finalize_flash_access(flash);
 
+_free_ret:
+	free(newcontents);
 	return ret;
 }
 
