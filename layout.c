@@ -149,7 +149,29 @@ int register_include_arg(struct layout_include_args **args, char *name)
 	return 0;
 }
 
-int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name, char *file);
+/**
+ * @brief Mark given region as included.
+ *
+ * @param layout The layout to alter.
+ * @param name   The name of the region to include.
+ * @param file   The filename of the region to include.
+ *
+ * @return i on success,
+ *         -1 if the given name can't be found.
+ */
+static int flashrom_layout_include_region_file(struct flashrom_layout *const layout, const char *name, char *file)
+{
+	size_t i;
+	for (i = 0; i < layout->num_entries; ++i) {
+		if (!strcmp(layout->entries[i].name, name)) {
+			layout->entries[i].included = true;
+			if (file)
+				layout->entries[i].file = strdup(file);
+			return i;
+		}
+	}
+	return -1;
+}
 
 /* returns -1 if an entry is not found, i if found. */
 int find_romentry(struct flashrom_layout *const l, char *name)
@@ -174,7 +196,7 @@ int find_romentry(struct flashrom_layout *const l, char *name)
 	         name, file ? file : "<not specified>");
 
 	msg_gspew("Looking for region \"%s\"... ", name);
-	ret = flashrom_layout_include_region(l, name, file);
+	ret = flashrom_layout_include_region_file(l, name, file);
 	if (ret < 0) {
 		msg_gspew("not found.\n");
 		return -1;
@@ -659,21 +681,15 @@ const struct romentry *layout_next_included(
  * @param layout The layout to alter.
  * @param name   The name of the region to include.
  *
- * @return i on success,
- *         -1 if the given name can't be found.
+ * @return 0 on success,
+ *         1 if the given name can't be found.
  */
-int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name, char *file)
+int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name)
 {
-	size_t i;
-	for (i = 0; i < layout->num_entries; ++i) {
-		if (!strcmp(layout->entries[i].name, name)) {
-			layout->entries[i].included = true;
-			if (file)
-				layout->entries[i].file = strdup(file);
-			return i;
-		}
-	}
-	return -1;
+	int ret = flashrom_layout_include_region_file(layout, name, NULL);
+	if (ret < 0)
+		return 1;
+	return 0;
 }
 
 /**

@@ -114,8 +114,7 @@ int flashrom_layout_read_fmap_from_rom(struct flashrom_layout **,
 		struct flashrom_flashctx *, off_t offset, size_t length);
 int flashrom_layout_read_fmap_from_buffer(struct flashrom_layout **layout,
 		struct flashrom_flashctx *, const uint8_t *buf, size_t len);
-//FIXME(b/162798062): Align with upstreams layout.c
-//int flashrom_layout_include_region(struct flashrom_layout *, const char *name);
+int flashrom_layout_include_region(struct flashrom_layout *, const char *name);
 void flashrom_layout_release(struct flashrom_layout *);
 void flashrom_layout_set(struct flashrom_flashctx *, const struct flashrom_layout *);
 
