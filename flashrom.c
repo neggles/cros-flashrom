@@ -2390,6 +2390,73 @@ void finalize_flash_access(struct flashctx *const flash)
 	unmap_flash(flash);
 }
 
+static int setup_contents(struct flashctx *flash, void *old_buffer,
+			  void *new_buffer, int erase_it,
+			  const void *const buffer,
+			  const void *const diff_buffer)
+{
+	uint8_t *oldcontents = old_buffer;
+	uint8_t *newcontents = new_buffer;
+	int ret = 0;
+	unsigned long size = flash->chip->total_size * 1024;
+
+	/* Assume worst case: All blocks are not erased. */
+	memset(oldcontents, UNERASED_VALUE(flash), size);
+	if (buffer) {
+		memcpy(newcontents, buffer, size);
+	} else {
+		/* Assume best case: All blocks are erased. */
+		memset(newcontents, ERASED_VALUE(flash), size);
+	}
+	/* Side effect of the assumptions above: Default write action is erase
+	 * because newcontents looks like a completely erased chip, and
+	 * oldcontents being completely unerased means we have to erase
+	 * everything before we can write.
+	 */
+
+	if (flash->flags.do_diff) {
+		/*
+		 * Obtain a reference image so that we can check whether
+		 * regions need to be erased and to give better diagnostics in
+		 * case write fails. If --fast-verify is used then only the
+		 * regions which are included using -i will be read.
+		 */
+		if (diff_buffer) {
+			memcpy(oldcontents, diff_buffer, size);
+		} else if (flash->diff_file) {
+			msg_cdbg("Reading old contents from file... ");
+			if (read_buf_from_file(oldcontents, size, flash->diff_file)) {
+				msg_cdbg("FAILED.\n");
+				return 1;
+			}
+		} else {
+			msg_cdbg("Reading old contents from flash chip... ");
+			ret = flashrom_image_read(flash, oldcontents, size);
+			if (ret) {
+				msg_cdbg("FAILED.\n");
+				return ret;
+			}
+		}
+		msg_cdbg("done.\n");
+	} else if (!erase_it) {
+		msg_pinfo("No diff performed, considering the chip erased.\n");
+		memset(oldcontents, ERASED_VALUE(flash), size);
+	}
+
+	/*
+	 * Note: This must be done after reading the file specified for the
+	 * -w/-v argument, if any, so that files specified using -i end up
+	 * in the "newcontents" buffer before being written.
+	 * See http://crbug.com/263495.
+	 */
+	if (build_new_image(flash, oldcontents, newcontents, erase_it)) {
+		msg_cerr("Error handling ROM entries.\n");
+		return 1;
+	}
+
+	return ret;
+}
+
 /**
  * @addtogroup flashrom-flash
  * @{
@@ -2515,66 +2582,14 @@ static int doit(struct flashctx *flash, const void *const buffer,
 		msg_gerr("Out of memory!\n");
 		exit(1);
 	}
-	/* Assume worst case: All blocks are not erased. */
-	memset(oldcontents, UNERASED_VALUE(flash), size);
 	newcontents = malloc(size);
 	if (!newcontents) {
 		msg_gerr("Out of memory!\n");
 		exit(1);
 	}
-	if (buffer) {
-		memcpy(newcontents, buffer, size);
-	} else {
-		/* Assume best case: All blocks are erased. */
-		memset(newcontents, ERASED_VALUE(flash), size);
-	}
-	/* Side effect of the assumptions above: Default write action is erase
-	 * because newcontents looks like a completely erased chip, and
-	 * oldcontents being completely unerased means we have to erase
-	 * everything before we can write.
-	 */
 
-	if (flash->flags.do_diff) {
-		/*
-		 * Obtain a reference image so that we can check whether
-		 * regions need to be erased and to give better diagnostics in
-		 * case write fails. If --fast-verify is used then only the
-		 * regions which are included using -i will be read.
-		 */
-		if (diff_buffer) {
-			memcpy(oldcontents, diff_buffer, size);
-		} else if (flash->diff_file) {
-			msg_cdbg("Reading old contents from file... ");
-			if (read_buf_from_file(oldcontents, size, flash->diff_file)) {
-				ret = 1;
-				msg_cdbg("FAILED.\n");
-				goto out;
-			}
-		} else {
-			msg_cdbg("Reading old contents from flash chip... ");
-			ret = flashrom_image_read(flash, oldcontents, size);
-			if (ret) {
-				msg_cdbg("FAILED.\n");
-				goto out;
-			}
-		}
-		msg_cdbg("done.\n");
-	} else if (!erase_it) {
-		msg_pinfo("No diff performed, considering the chip erased.\n");
-		memset(oldcontents, ERASED_VALUE(flash), size);
-	}
-
-	/*
-	 * Note: This must be done after reading the file specified for the
-	 * -w/-v argument, if any, so that files specified using -i end up
-	 * in the "newcontents" buffer before being written.
-	 * See http://crbug.com/263495.
-	 */
-	if (build_new_image(flash, oldcontents, newcontents, erase_it)) {
-		ret = 1;
-		msg_cerr("Error handling ROM entries.\n");
+	if (setup_contents(flash, oldcontents, newcontents, erase_it, buffer, diff_buffer))
 		goto out;
-	}
 
 	if (erase_it) {
 		flashrom_flash_erase(flash, oldcontents, newcontents, size);
