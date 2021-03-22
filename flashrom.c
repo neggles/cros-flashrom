@@ -2492,31 +2492,39 @@ static int setup_contents(struct flashctx *flash, void *old_buffer,
  * @param flashctx The context of the flash chip to erase.
  * @return 0 on success.
  */
-static int flashrom_flash_erase(struct flashctx *const flashctx,
-				void *oldcontents, void *newcontents, size_t size)
+int flashrom_flash_erase(struct flashctx *const flashctx)
 {
-	/*
-	 * To make sure that the chip is fully erased, let's cheat and create
-	 * a descriptor where the new contents are all erased.
-	 */
-	struct action_descriptor *fake_descriptor;
-	int ret = 0;
+	const size_t flash_size = flashctx->chip->total_size * 1024;
 
-	fake_descriptor = prepare_action_descriptor(flashctx, oldcontents,
-						    newcontents, 1);
-	/* FIXME: Do we really want the scary warning if erase failed? After
-	 * all, after erase the chip is either blank or partially blank or it
-	 * has the old contents. A blank chip won't boot, so if the user
-	 * wanted erase and reboots afterwards, the user knows very well that
-	 * booting won't work.
-	 */
-	if (erase_and_write_flash(flashctx, fake_descriptor)) {
-		emergency_help_message();
-		ret = 1;
+	int ret = 1;
+
+	struct action_descriptor *descriptor = NULL;
+	uint8_t *oldcontents = malloc(flash_size);
+	uint8_t *newcontents = malloc(flash_size);
+	if (!oldcontents || !newcontents) {
+		msg_gerr("Out of memory!\n");
+		goto _free_ret;
 	}
 
-	free(fake_descriptor);
+	if (prepare_flash_access(flashctx, false, false, true, false))
+		goto _free_ret;
 
+	if (setup_contents(flashctx, oldcontents, newcontents, true, NULL, NULL))
+		goto _finalize_ret;
+
+	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents, true);
+
+	if (!erase_and_write_flash(flashctx, descriptor)) {
+		ret = 0;
+	}
+
+_finalize_ret:
+	finalize_flash_access(flashctx);
+_free_ret:
+	if (descriptor)
+		free(descriptor);
+	free(oldcontents);
+	free(newcontents);
 	return ret;
 }
 
@@ -2581,19 +2589,15 @@ _finalize_ret:
  *		  during initialization.
  * @buffer        pointer to the buffer to read from
  * @write_it      when true, flash is programmed with 'buffer' contents
- * @erase_it      when true, flash chip is erased
  * @refbuffer	  when deciding what areas to program, use this buffer
  *                contents instead of reading the current chip contents
- *
- * Only one of 'write_it', and 'erase_it' is expected to be set,
- * but this is not enforced.
  *
  * If 'refbuffer' is not set - comparison is done against flash->diff_file
  * contents and if that is also unset comparison is done against the
  * pre-operation chip contents.
  */
 static int doit(struct flashctx *flashctx, const void *const buffer,
-	 int write_it, int erase_it, const void *const refbuffer)
+	 int write_it, const void *const refbuffer)
 {
 	uint8_t *oldcontents;
 	uint8_t *newcontents;
@@ -2615,13 +2619,8 @@ static int doit(struct flashctx *flashctx, const void *const buffer,
 		exit(1);
 	}
 
-	if (setup_contents(flashctx, oldcontents, newcontents, erase_it, buffer, refbuffer))
+	if (setup_contents(flashctx, oldcontents, newcontents, false, buffer, refbuffer))
 		goto _finalize_ret;
-
-	if (erase_it) {
-		flashrom_flash_erase(flashctx, oldcontents, newcontents, flash_size);
-		goto verify;
-	}
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
 					       flashctx->flags.do_diff);
@@ -2690,8 +2689,7 @@ static int doit(struct flashctx *flashctx, const void *const buffer,
 		}
 	}
 
- verify:
-	if (verify && !erase_it) {
+	if (verify) {
 		if (write_it && !content_has_changed) {
 			msg_gdbg("Nothing was written, skipping verification\n");
 		} else {
@@ -2794,10 +2792,7 @@ int do_read(struct flashctx *const flash, const char *const filename)
 
 int do_erase(struct flashctx *const flash)
 {
-	if (prepare_flash_access(flash, false, false, true, false))
-		return 1;
-
-	int ret = doit(flash, NULL, false, true, NULL);
+	const int ret = flashrom_flash_erase(flash);
 
 	/*
 	 * FIXME: Do we really want the scary warning if erase failed?
@@ -2808,7 +2803,6 @@ int do_erase(struct flashctx *const flash)
 	 */
 	if (ret)
 		emergency_help_message();
-	finalize_flash_access(flash);
 
 	return ret;
 }
@@ -2844,7 +2838,7 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 
 	if (prepare_flash_access(flash, false, true, false, flash->flags.verify_after_write))
 		goto _free_ret;
-	ret = doit(flash, newcontents, true, false, refcontents);
+	ret = doit(flash, newcontents, true, refcontents);
 	finalize_flash_access(flash);
 
 _free_ret:

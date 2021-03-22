@@ -90,8 +90,7 @@ int flashrom_programmer_shutdown(struct flashrom_programmer *);
 struct flashrom_flashctx;
 int flashrom_flash_probe(struct flashrom_flashctx **, const struct flashrom_programmer *, const char *chip_name);
 size_t flashrom_flash_getsize(const struct flashrom_flashctx *);
-//FIXME(b/162798062): Align with upstreams flashrom.c
-//int flashrom_flash_erase(struct flashrom_flashctx *);
+int flashrom_flash_erase(struct flashrom_flashctx *);
 void flashrom_flash_release(struct flashrom_flashctx *);
 
 /** @ingroup flashrom-flash */
