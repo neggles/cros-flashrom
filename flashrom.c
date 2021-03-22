@@ -2697,6 +2697,60 @@ out:
 	return ret;
 }
 
+/**
+ * @brief Verify the ROM chip's contents with the specified image.
+ *
+ * If a layout is set in the specified flash context, only included regions
+ * will be verified.
+ *
+ * @param flashctx The context of the flash chip.
+ * @param buffer Source buffer to verify with.
+ * @param buffer_len Size of source buffer in bytes.
+ * @return 0 on success,
+ *         2 if buffer_len doesn't match the size of the flash chip,
+ *         or 1 on any other failure.
+ */
+int flashrom_image_verify(struct flashctx *const flashctx, const void *const buffer, const size_t buffer_len)
+{
+	const size_t flash_size = flashctx->chip->total_size * 1024;
+
+	if (buffer_len != flash_size)
+		return 2;
+
+	int ret = 1;
+
+	struct action_descriptor *descriptor = NULL;
+	uint8_t *oldcontents = malloc(flash_size);
+	uint8_t *newcontents = malloc(flash_size);
+	if (!oldcontents || !newcontents) {
+		msg_gerr("Out of memory!\n");
+		goto _free_ret;
+	}
+
+	if (prepare_flash_access(flashctx, false, false, false, true))
+		goto _free_ret;
+
+	if (setup_contents(flashctx, oldcontents, newcontents, false, buffer, NULL))
+		goto _finalize_ret;
+
+	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
+					       flashctx->flags.do_diff);
+
+	msg_cinfo("Verifying flash... ");
+	ret = verify_flash(flashctx, descriptor);
+	if (!ret)
+		msg_cinfo("VERIFIED.\n");
+
+_finalize_ret:
+	finalize_flash_access(flashctx);
+_free_ret:
+	if (descriptor)
+		free(descriptor);
+	free(oldcontents);
+	free(newcontents);
+	return ret;
+}
+
 /** @} */ /* end flashrom-ops */
 
 int do_read(struct flashctx *const flash, const char *const filename)
@@ -2794,11 +2848,7 @@ int do_verify(struct flashctx *const flash, const char *const filename)
 		}
 	}
 
-	if (prepare_flash_access(flash, false, false, false, true))
-		goto _free_ret;
-
-	ret = doit(flash, newcontents, false, false, NULL);
-	finalize_flash_access(flash);
+	ret = flashrom_image_verify(flash, newcontents, flash_size);
 
 _free_ret:
 	free(newcontents);
@@ -2816,8 +2866,5 @@ int do_extract_it(struct flashctx *const flash)
 }
 
 int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, const size_t buffer_len, const void *refbuffer) {
-	return 0;
-}
-int flashrom_image_verify(struct flashctx *const flashctx, const void *const buffer, const size_t buffer_len) {
 	return 0;
 }
