@@ -1686,6 +1686,27 @@ out_free:
 	return ret;
 }
 
+static int read_dest_content(struct flashctx *const flashctx,
+			     void *const buffer, const size_t buffer_len)
+{
+	const bool verify_all = flashctx->flags.verify_whole_chip;
+	const bool verify = flashctx->flags.verify_after_write;
+
+	if ((!verify || !verify_all) && get_num_include_args(get_global_layout())) {
+		/*
+		 * If no full verification is required and not
+		 * the entire chip is about to be programmed,
+		 * read only the areas which might change.
+		 */
+		if (handle_partial_read(flashctx, buffer, read_flash, 0) < 0)
+			return 1;
+	} else {
+		if (read_flash(flashctx, buffer, 0, buffer_len))
+			return 1;
+	}
+	return 0;
+}
+
 /* Even if an error is found, the function will keep going and check the rest. */
 static int selfcheck_eraseblocks(const struct flashchip *chip)
 {
@@ -2431,7 +2452,7 @@ static int setup_contents(struct flashctx *flash, void *old_buffer,
 			}
 		} else {
 			msg_cdbg("Reading old contents from flash chip... ");
-			ret = flashrom_image_read(flash, oldcontents, size);
+			ret = read_dest_content(flash, oldcontents, size);
 			if (ret) {
 				msg_cdbg("FAILED.\n");
 				return ret;
@@ -2523,21 +2544,6 @@ static int flashrom_flash_erase(struct flashctx *const flashctx,
 int flashrom_image_read(struct flashctx *const flashctx,
                         void *const buffer, const size_t buffer_len)
 {
-	const bool verify_all = flashctx->flags.verify_whole_chip;
-	const bool verify = flashctx->flags.verify_after_write;
-
-	if ((!verify || !verify_all) && get_num_include_args(get_global_layout())) {
-		/*
-		 * If no full verification is required and not
-		 * the entire chip is about to be programmed,
-		 * read only the areas which might change.
-		 */
-		if (handle_partial_read(flashctx, buffer, read_flash, 0) < 0)
-			return 1;
-	} else {
-		if (read_flash(flashctx, buffer, 0, buffer_len))
-			return 1;
-	}
 	return 0;
 }
 
@@ -2633,7 +2639,7 @@ static int doit(struct flashctx *flash, const void *const buffer,
 		} else if (ret > 0) {
 			// Need 2nd pass. Get the just written content.
 			msg_pdbg("CROS_EC needs 2nd pass.\n");
-			ret = flashrom_image_read(flash, oldcontents, size);
+			ret = read_dest_content(flash, oldcontents, size);
 			if (ret) {
 				emergency_help_message();
 				goto out;
