@@ -2544,7 +2544,28 @@ static int flashrom_flash_erase(struct flashctx *const flashctx,
 int flashrom_image_read(struct flashctx *const flashctx,
                         void *const buffer, const size_t buffer_len)
 {
-	return 0;
+	const size_t flash_size = flashctx->chip->total_size * 1024;
+
+	if (flash_size > buffer_len)
+		return 2;
+
+	if (prepare_flash_access(flashctx, true, false, false, false))
+		return 1;
+
+	msg_cinfo("Reading flash... ");
+
+	int ret = 1;
+	if (read_dest_content(flashctx, buffer, buffer_len)) {
+		msg_cerr("Read operation failed!\n");
+		msg_cinfo("FAILED.\n");
+		goto _finalize_ret;
+	}
+	msg_cinfo("done.\n");
+	ret = 0;
+
+_finalize_ret:
+	finalize_flash_access(flashctx);
+	return ret;
 }
 
 /* This function signature is horrible. We need to design a better interface,
