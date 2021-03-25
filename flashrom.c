@@ -2577,77 +2577,77 @@ _finalize_ret:
  * command line parameters are processed and verified, and the type of the
  * flash chip the programmer operates on has been determined.
  *
- * @flash	  pointer to the flash context matching the chip detected
+ * @flashctx	  pointer to the flash context matching the chip detected
  *		  during initialization.
  * @buffer        pointer to the buffer to read from
  * @write_it      when true, flash is programmed with 'buffer' contents
  * @erase_it      when true, flash chip is erased
- * @diff_buffer	  when deciding what areas to program, use this buffer
+ * @refbuffer	  when deciding what areas to program, use this buffer
  *                contents instead of reading the current chip contents
  *
  * Only one of 'write_it', and 'erase_it' is expected to be set,
  * but this is not enforced.
  *
- * If 'diff_buffer' is not set - comparison is done against flash->diff_file
+ * If 'refbuffer' is not set - comparison is done against flash->diff_file
  * contents and if that is also unset comparison is done against the
  * pre-operation chip contents.
  */
-static int doit(struct flashctx *flash, const void *const buffer,
-	 int write_it, int erase_it, const void *const diff_buffer)
+static int doit(struct flashctx *flashctx, const void *const buffer,
+	 int write_it, int erase_it, const void *const refbuffer)
 {
 	uint8_t *oldcontents;
 	uint8_t *newcontents;
 	int ret = 0;
-	unsigned long size = flash->chip->total_size * 1024;
+	const size_t flash_size = flashctx->chip->total_size * 1024;
 	struct action_descriptor *descriptor = NULL;
 
-	const bool verify_all = flash->flags.verify_whole_chip;
-	const bool verify = flash->flags.verify_after_write;
+	const bool verify_all = flashctx->flags.verify_whole_chip;
+	const bool verify = flashctx->flags.verify_after_write;
 
-	oldcontents = malloc(size);
+	oldcontents = malloc(flash_size);
 	if (!oldcontents) {
 		msg_gerr("Out of memory!\n");
 		exit(1);
 	}
-	newcontents = malloc(size);
+	newcontents = malloc(flash_size);
 	if (!newcontents) {
 		msg_gerr("Out of memory!\n");
 		exit(1);
 	}
 
-	if (setup_contents(flash, oldcontents, newcontents, erase_it, buffer, diff_buffer))
-		goto out;
+	if (setup_contents(flashctx, oldcontents, newcontents, erase_it, buffer, refbuffer))
+		goto _finalize_ret;
 
 	if (erase_it) {
-		flashrom_flash_erase(flash, oldcontents, newcontents, size);
+		flashrom_flash_erase(flashctx, oldcontents, newcontents, flash_size);
 		goto verify;
 	}
 
-	descriptor = prepare_action_descriptor(flash, oldcontents,
-					       newcontents, flash->flags.do_diff);
+	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
+					       flashctx->flags.do_diff);
 	if (write_it) {
 		// parse the new fmap and disable soft WP if necessary
-		if ((ret = cros_ec_prepare(newcontents, size))) {
+		if ((ret = cros_ec_prepare(newcontents, flash_size))) {
 			msg_cerr("CROS_EC prepare failed, ret=%d.\n", ret);
-			goto out;
+			goto _finalize_ret;
 		}
 
-		if (erase_and_write_flash(flash, descriptor)) {
+		if (erase_and_write_flash(flashctx, descriptor)) {
 			msg_cerr("Uh oh. Erase/write failed. Checking if anything changed.\n");
 			msg_cinfo("Reading current flash chip contents... ");
-			if (!read_flash(flash, newcontents, 0, size)) {
+			if (!read_flash(flashctx, newcontents, 0, flash_size)) {
 				msg_cinfo("done.\n");
-				if (!memcmp(oldcontents, newcontents, size)) {
+				if (!memcmp(oldcontents, newcontents, flash_size)) {
 					nonfatal_help_message();
 					ret = 1;
-					goto out;
+					goto _finalize_ret;
 				}
 				msg_cerr("Apparently at least some data has changed.\n");
 			} else
 				msg_cerr("Can't even read anymore!\n");
 			emergency_help_message();
 			ret = 1;
-			goto out;
+			goto _finalize_ret;
 		}
 
 		ret = cros_ec_need_2nd_pass();
@@ -2656,28 +2656,28 @@ static int doit(struct flashctx *flash, const void *const buffer,
 			msg_cerr("cros_ec_need_2nd_pass() failed. Stop.\n");
 			emergency_help_message();
 			ret = 1;
-			goto out;
+			goto _finalize_ret;
 		} else if (ret > 0) {
 			// Need 2nd pass. Get the just written content.
 			msg_pdbg("CROS_EC needs 2nd pass.\n");
-			ret = read_dest_content(flash, oldcontents, size);
+			ret = read_dest_content(flashctx, oldcontents, flash_size);
 			if (ret) {
 				emergency_help_message();
-				goto out;
+				goto _finalize_ret;
 			}
 
 			/* Get a new descriptor. */
 			free(descriptor);
-			descriptor = prepare_action_descriptor(flash,
+			descriptor = prepare_action_descriptor(flashctx,
 							       oldcontents,
 							       newcontents,
-							       flash->flags.do_diff);
+							       flashctx->flags.do_diff);
 			// write 2nd pass
-			if (erase_and_write_flash(flash, descriptor)) {
+			if (erase_and_write_flash(flashctx, descriptor)) {
 				msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
 				emergency_help_message();
 				ret = 1;
-				goto out;
+				goto _finalize_ret;
 			}
 			ret = 0;
 		}
@@ -2686,7 +2686,7 @@ static int doit(struct flashctx *flash, const void *const buffer,
 			msg_cerr("cros_ec_finish() failed. Stop.\n");
 			emergency_help_message();
 			ret = 1;
-			goto out;
+			goto _finalize_ret;
 		}
 	}
 
@@ -2699,7 +2699,7 @@ static int doit(struct flashctx *flash, const void *const buffer,
 			if (write_it && verify_all)
 				programmer_delay(1000*1000);
 
-			ret = verify_flash(flash, descriptor);
+			ret = verify_flash(flashctx, descriptor);
 
 			/* If we tried to write, and verification now fails, we
 			 * might have an emergency situation.
@@ -2709,7 +2709,7 @@ static int doit(struct flashctx *flash, const void *const buffer,
 		}
 	}
 
-out:
+_finalize_ret:
 	if (descriptor)
 		free(descriptor);
 
