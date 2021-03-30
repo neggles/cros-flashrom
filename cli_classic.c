@@ -739,8 +739,9 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
+	struct wp *wp = get_wp_for_flashchip(fill_flash->chip);
 	if (set_wp_range || set_wp_region) {
-		if (!fill_flash->chip->wp || !fill_flash->chip->wp->set_range) {
+		if (!wp || !wp->set_range) {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 			goto out_shutdown;
@@ -782,8 +783,8 @@ int main(int argc, char *argv[])
 	}
 
 	if (wp_status) {
-		if (fill_flash->chip->wp && fill_flash->chip->wp->wp_status) {
-			ret |= fill_flash->chip->wp->wp_status(fill_flash);
+		if (wp && wp->wp_status) {
+			ret |= wp->wp_status(fill_flash);
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
@@ -793,8 +794,8 @@ int main(int argc, char *argv[])
 
 	/* Note: set_wp_disable should be done before setting the range */
 	if (set_wp_disable) {
-		if (fill_flash->chip->wp && fill_flash->chip->wp->disable) {
-			ret |= fill_flash->chip->wp->disable(fill_flash);
+		if (wp && wp->disable) {
+			ret |= wp->disable(fill_flash);
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
@@ -828,7 +829,7 @@ int main(int argc, char *argv[])
 			goto out_shutdown;
 		}
 
-		ret |= fill_flash->chip->wp->set_range(fill_flash, start, len);
+		ret |= wp->set_range(fill_flash, start, len);
 	}
 
 	if (set_wp_region && wp_region) {
@@ -849,7 +850,7 @@ int main(int argc, char *argv[])
 			goto out_shutdown;
 		}
 
-		ret |= fill_flash->chip->wp->set_range(fill_flash,
+		ret |= wp->set_range(fill_flash,
 				entry.start, entry.end - entry.start + 1);
 		free(wp_region);
 	}
@@ -868,8 +869,8 @@ int main(int argc, char *argv[])
 			goto out_shutdown;
 		}
 
-		if (fill_flash->chip->wp && fill_flash->chip->wp->enable) {
-			ret |= fill_flash->chip->wp->enable(fill_flash, wp_mode);
+		if (wp && wp->enable) {
+			ret |= wp->enable(fill_flash, wp_mode);
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
@@ -879,8 +880,8 @@ int main(int argc, char *argv[])
 
 	if (wp_list) {
 		msg_ginfo("Valid write protection ranges:\n");
-		if (fill_flash->chip->wp && fill_flash->chip->wp->list_ranges) {
-			ret |= fill_flash->chip->wp->list_ranges(fill_flash);
+		if (wp && wp->list_ranges) {
+			ret |= wp->list_ranges(fill_flash);
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
