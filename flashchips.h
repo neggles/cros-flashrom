@@ -158,7 +158,6 @@
 #define ATMEL_AT26DF081A	0x4501
 #define ATMEL_AT26DF161		0x4600
 #define ATMEL_AT26DF161A	0x4601
-#define ATMEL_AT26DF321		0x4700	/* Same as 25DF321 */
 #define ATMEL_AT26F004		0x0400
 #define ATMEL_AT29LV512		0x3D
 #define ATMEL_AT29LV010A	0x35	/* Same as AT29BV010A, the latter works down to 2.7V */
@@ -198,9 +197,7 @@
 #define ATMEL_AT49BV512		0x03	/* Same as AT49F512 */
 #define ATMEL_AT49F001N		0x05	/* Same as AT49F001 */
 #define ATMEL_AT49F001NT	0x04	/* Same as AT49F001T */
-#define ATMEL_AT49F020		0x0B
 #define ATMEL_AT49F002N		0x07	/* for AT49F002(N)  */
-#define ATMEL_AT49F002NT		0x08	/* for AT49F002(N)T */
 #define ATMEL_AT49LH002		0xE9
 #define ATMEL_AT49LH00B4	0xED
 #define ATMEL_AT49LH004		0xEE
@@ -278,12 +275,6 @@
 #define EON_EN25P64		0x16
 #define EON_EN25B64T		0x46
 #define EON_EN25B64B		0x36
-#define EON_EN25Q40		0x3013
-#define EON_EN25Q80		0x3014
-#define EON_EN25D16		0x3015	/* Same as Q16 */
-#define EON_EN25Q32		0x3016
-#define EON_EN25Q64		0x3017
-#define EON_EN25Q128		0x3018
 #define EON_EN25F05		0x3110
 #define EON_EN25F10		0x3111
 #define EON_EN25F20		0x3112
@@ -316,7 +307,6 @@
 #define EON_EN29F010		0x20
 #define EON_EN29F040A		0x7F04
 #define EON_EN29LV010		0x7F6E
-#define EON_EN29LV040A		0x7F4F	/* EN29LV040(A) */
 #define EON_EN29LV040		0x4F	/* Same as EN29LV040A */
 #define EON_EN29LV640B		0xCB
 #define EON_EN29LV640T		0xC9
@@ -910,7 +900,6 @@
 #define ST_N25Q032__1E		0xBB16	/* N25Q032, 1.8V, (uniform sectors expected) */
 #define ST_N25Q064__3E		0xBA17	/* N25Q064, 3.0V, (uniform sectors expected) */
 #define ST_N25Q064__1E		0xBB17	/* N25Q064, 1.8V, (uniform sectors expected) */
-#define ST_N25Q512__3E		0xBA20	/* N25Q512, 3.0V, (uniform sectors expected) */
 #define ST_N25Q128__3E		0xBA18	/* N25Q128/MT25QL128, 3.0V, (uniform sectors expected) */
 #define ST_N25Q128__1E		0xBB18	/* N25Q128/MT25QU128, 1.8V, (uniform sectors expected) */
 #define ST_N25Q256__3E		0xBA19	/* N25Q256/MT25QL256, 3.0V, (uniform sectors expected) */
