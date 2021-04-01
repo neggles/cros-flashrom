@@ -19546,6 +19546,21 @@ const struct flashchip flashchips[] = {
 	},
 
 	{
+		.vendor		= "Winbond",
+		.name		= "unknown Winbond (ex Nexcom) SPI chip",
+		.bustype	= BUS_SPI,
+		.manufacture_id	= WINBOND_NEX_ID,
+		.model_id	= GENERIC_DEVICE_ID,
+		.total_size	= 0,
+		.page_size	= 256,
+		.tested		= TEST_BAD_PREW,
+		.probe		= probe_spi_rdid,
+		.probe_timing	= TIMING_ZERO,
+		.write		= NULL,
+		.read		= NULL,
+	},
+
+	{
 		.vendor		= "Generic",
 		.name		= "Variable Size SPI chip",
 		.bustype	= BUS_SPI,
