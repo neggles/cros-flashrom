@@ -206,11 +206,10 @@ int find_romentry(struct flashrom_layout *const l, char *name)
 }
 
 
-int fill_romentry(struct romentry *entry, int n)
+int fill_romentry(struct flashrom_layout *const layout, struct romentry *entry, int n)
 {
 	if (!entry)
 		return 1;
-	struct flashrom_layout *const layout = get_global_layout();
 
 	memcpy(entry, &layout->entries[n], sizeof(*entry));
 	return 0;
@@ -293,10 +292,9 @@ void layout_cleanup(struct layout_include_args **args)
 }
 
 /* returns boolean 1 if regions overlap, 0 otherwise */
-int included_regions_overlap()
+int included_regions_overlap(const struct flashrom_layout *const layout)
 {
 	int overlap_detected = 0;
-	struct flashrom_layout *const layout = get_global_layout();
 
 	for (size_t i = 0; i < layout->num_entries; i++) {
 		if (!layout->entries[i].included)
@@ -370,12 +368,12 @@ static int read_content_from_file(struct romentry *entry, uint8_t *newcontents) 
 	return 0;
 }
 
-static struct romentry *get_next_included_romentry(unsigned int start)
+static struct romentry *get_next_included_romentry(const struct flashrom_layout *layout,
+						   unsigned int start)
 {
 	unsigned int best_start = UINT_MAX;
 	struct romentry *best_entry = NULL;
 	struct romentry *cur;
-	struct flashrom_layout *const layout = get_global_layout();
 
 	/* First come, first serve for overlapping regions. */
 	for (size_t i = 0; i < layout->num_entries; i++) {
@@ -428,18 +426,19 @@ int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 	unsigned int start = 0;
 	struct romentry *entry;
 	unsigned int size = flash->chip->total_size * 1024;
+	const struct flashrom_layout *const layout = get_layout(flash);
 
 	/* If no regions were specified for inclusion, assume
 	 * that the user wants to write the complete new image.
 	 */
-	if (get_num_include_args(get_global_layout()) == 0)
+	if (get_num_include_args(layout) == 0)
 		return 0;
 
 	/* Non-included romentries are ignored.
 	 * The union of all included romentries is used from the new image.
 	 */
 	while (start < size) {
-		entry = get_next_included_romentry(start);
+		entry = get_next_included_romentry(layout, start);
 		/* No more romentries for remaining region? */
 		if (!entry) {
 			memcpy(newcontents + start, oldcontents + start,
@@ -530,17 +529,17 @@ int handle_partial_read(
                  unsigned int start, unsigned int len),
     int write_to_file) {
 	int count = 0;
+	const struct flashrom_layout *const layout = get_layout(flash);
 
 	/* If no regions were specified for inclusion, assume
 	 * that the user wants to read the complete image.
 	 */
-	if (get_num_include_args(get_global_layout()) == 0)
+	if (get_num_include_args(layout) == 0)
 		return 0;
 
 	if (set_required_erase_size(flash))
 		return -1;
 
-	struct flashrom_layout *const layout = get_global_layout();
 	for (size_t i = 0; i < layout->num_entries; i++) {
 		unsigned int start, len, start_align, len_align;
 
@@ -602,7 +601,7 @@ int extract_regions(struct flashctx *flash)
 		goto out_free;
 	}
 
-	struct flashrom_layout *const layout = get_global_layout();
+	const struct flashrom_layout *const layout = get_layout(flash);
 	msg_gdbg("Extracting %zd images\n", layout->num_entries);
 	for (size_t i = 0; !ret && i < layout->num_entries; i++) {
 		struct romentry *region = &layout->entries[i];

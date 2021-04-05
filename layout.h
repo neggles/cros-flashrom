@@ -75,12 +75,12 @@ struct flashrom_layout *get_global_layout(void);
 const struct flashrom_layout *get_layout(const struct flashctx *const flashctx);
 
 int find_romentry(struct flashrom_layout *const l, char *name);
-int fill_romentry(struct romentry *entry, int n);
+int fill_romentry(struct flashrom_layout *const l, struct romentry *entry, int n);
 int get_num_include_args(const struct flashrom_layout *const l);
 int process_include_args(struct flashrom_layout *l, const struct layout_include_args *const args);
 const struct romentry *layout_next_included_region(const struct flashrom_layout *, chipoff_t);
 const struct romentry *layout_next_included(const struct flashrom_layout *, const struct romentry *);
-int included_regions_overlap(void);
+int included_regions_overlap(const struct flashrom_layout *const layout);
 int handle_partial_read(
     struct flashctx *flash,
     uint8_t *buf,

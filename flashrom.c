@@ -1659,7 +1659,7 @@ int read_flash_to_file(struct flashctx *flash, const char *filename)
 		ret = 1;
 		goto out_free;
 	} else if (ret > 0) {
-		int num_regions = get_num_include_args(get_global_layout());
+		int num_regions = get_num_include_args(get_layout(flash));
 
 		if (ret != num_regions) {
 			msg_cerr("Requested %d regions, but only read %d\n",
@@ -1692,7 +1692,7 @@ static int read_dest_content(struct flashctx *const flashctx,
 	const bool verify_all = flashctx->flags.verify_whole_chip;
 	const bool verify = flashctx->flags.verify_after_write;
 
-	if ((!verify || !verify_all) && get_num_include_args(get_global_layout())) {
+	if ((!verify || !verify_all) && get_num_include_args(get_layout(flashctx))) {
 		/*
 		 * If no full verification is required and not
 		 * the entire chip is about to be programmed,
@@ -2347,7 +2347,7 @@ int prepare_flash_access(struct flashctx *const flash,
 		return 1;
 	}
 
-	if (normalize_romentries(flash)) {
+	if (flash->layout == get_global_layout() && normalize_romentries(flash)) {
 		msg_cerr("Requested regions can not be handled. Aborting.\n");
 		return 1;
 	}
@@ -2813,7 +2813,7 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 			goto _free_ret;
 	} else {
 		/* Content will be read from -i args, so they must not overlap. */
-		if (included_regions_overlap()) {
+		if (included_regions_overlap(get_layout(flash))) {
 			msg_gerr("Error: Included regions must not overlap.\n");
 			goto _free_ret;
 		}
@@ -2848,7 +2848,7 @@ int do_verify(struct flashctx *const flash, const char *const filename)
 			goto _free_ret;
 	} else {
 		/* Content will be read from -i args, so they must not overlap. */
-		if (included_regions_overlap()) {
+		if (included_regions_overlap(get_layout(flash))) {
 			msg_gerr("Error: Included regions must not overlap.\n");
 			goto _free_ret;
 		}

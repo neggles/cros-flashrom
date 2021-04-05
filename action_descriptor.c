@@ -640,11 +640,10 @@ static void fill_action_descriptor(struct action_descriptor *descriptor,
  * In case layout is used, return the largest offset of the end of all
  * included sections. If layout is not used, return zero.
  */
-static size_t top_section_offset(void)
+static size_t top_section_offset(const struct flashrom_layout *layout)
 {
 	size_t top = 0;
 	size_t i;
-	struct flashrom_layout *const layout = get_global_layout();
 
 	for (i = 0; i < layout->num_entries; i++) {
 
@@ -700,7 +699,7 @@ struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 		 * program - use the highest offset of the highest section as
 		 * the limit.
 		 */
-		block_size = top_section_offset();
+		block_size = top_section_offset(get_layout(flash));
 
 		if (!block_size)
 			/* User did not specify any sections. */

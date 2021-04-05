@@ -845,7 +845,7 @@ int main(int argc, char *argv[])
 			goto out_shutdown;
 		}
 
-		if (fill_romentry(&entry, n)) {
+		if (fill_romentry(layout, &entry, n)) {
 			ret = 1;
 			goto out_shutdown;
 		}
@@ -894,6 +894,7 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
+	flashrom_layout_set(fill_flash, get_global_layout());
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
 	fill_flash->flags.do_diff = do_diff;
 	fill_flash->diff_file = referencefile;
