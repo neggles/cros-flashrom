@@ -275,7 +275,7 @@ struct flashrom_flashctx {
 		bool force_boardmismatch;
 		bool verify_after_write;
 		bool verify_whole_chip;
-		bool do_diff;
+		bool do_not_diff;
 	} flags;
 	char *diff_file; /* HACK to keep do_*() fn signatures the same. */
 	/* We cache the state of the extended address register (highest byte

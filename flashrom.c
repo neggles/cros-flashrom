@@ -2435,7 +2435,7 @@ static int setup_contents(struct flashctx *flash, void *old_buffer,
 	 * everything before we can write.
 	 */
 
-	if (flash->flags.do_diff) {
+	if (!flash->flags.do_not_diff) {
 		/*
 		 * Obtain a reference image so that we can check whether
 		 * regions need to be erased and to give better diagnostics in
@@ -2617,7 +2617,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		goto _finalize_ret;
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
-					       flashctx->flags.do_diff);
+					       !flashctx->flags.do_not_diff);
 
 	// parse the new fmap and disable soft WP if necessary
 	if ((ret = cros_ec_prepare(newcontents, flash_size))) {
@@ -2664,7 +2664,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		descriptor = prepare_action_descriptor(flashctx,
 						       oldcontents,
 						       newcontents,
-						       flashctx->flags.do_diff);
+						       !flashctx->flags.do_not_diff);
 		// write 2nd pass
 		if (erase_and_write_flash(flashctx, descriptor)) {
 			msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
@@ -2747,7 +2747,7 @@ int flashrom_image_verify(struct flashctx *const flashctx, const void *const buf
 		goto _finalize_ret;
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
-					       flashctx->flags.do_diff);
+					       !flashctx->flags.do_not_diff);
 
 	msg_cinfo("Verifying flash... ");
 	ret = verify_flash(flashctx, descriptor);
