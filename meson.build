@@ -355,6 +355,10 @@ srcs += 'cros_alias.c'
 srcs += 'cros_ec.c'
 srcs += 'cros_ec_dev.c'
 cargs += '-DCONFIG_CROS_ALIAS=1'
+
+srcs += 'big_lock.c'
+srcs += 'file_lock.c'
+cargs += '-DUSE_BIG_LOCK=1'
 ###
 
 # core modules needed by both the library and the CLI
