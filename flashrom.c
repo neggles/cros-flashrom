@@ -2012,6 +2012,43 @@ static int verify_flash(struct flashctx *flash,
 	return ret;
 }
 
+/**
+ * @brief Compares the included layout regions with content from a buffer.
+ *
+ * If there is no layout set in the given flash context, the whole chip's
+ * contents will be compared.
+ *
+ * @param flashctx    Flash context to be used.
+ * @param curcontents A buffer of full chip size to read current chip contents into.
+ * @param newcontents The new image to compare to.
+ * @return 0 on success,
+ *	   1 if reading failed,
+ *	   3 if the contents don't match.
+ */
+static int verify_by_layout(struct flashctx *const flashctx,
+			    void *const curcontents, const uint8_t *const newcontents)
+{
+	const struct flashrom_layout *const layout = get_layout(flashctx);
+	const struct romentry *entry = NULL;
+	int required_erase_size = get_required_erase_size(flashctx);
+
+	while ((entry = layout_next_included(layout, entry))) {
+		const chipoff_t region_start	= entry->start;
+		const chipsize_t region_len	= entry->end - entry->start + 1;
+		unsigned int rounded_start, rounded_len;
+
+		if (round_to_erasable_block_boundary(required_erase_size, entry,
+						     &rounded_start, &rounded_len))
+			return 1;
+		if (read_flash(flashctx, curcontents + rounded_start, rounded_start, rounded_len))
+			return 1;
+		if (compare_range(newcontents + region_start, curcontents + region_start,
+				  region_start, region_len))
+			return 3;
+	}
+	return 0;
+}
+
 static void nonfatal_help_message(void)
 {
 	msg_gerr("Good, writing to the flash chip apparently didn't do anything.\n");
@@ -2699,6 +2736,7 @@ _free_ret:
  * @param buffer Source buffer to verify with.
  * @param buffer_len Size of source buffer in bytes.
  * @return 0 on success,
+ *         3 if the chip's contents don't match,
  *         2 if buffer_len doesn't match the size of the flash chip,
  *         or 1 on any other failure.
  */
@@ -2711,10 +2749,9 @@ int flashrom_image_verify(struct flashctx *const flashctx, const void *const buf
 
 	int ret = 1;
 
-	struct action_descriptor *descriptor = NULL;
-	uint8_t *oldcontents = malloc(flash_size);
-	uint8_t *newcontents = malloc(flash_size);
-	if (!oldcontents || !newcontents) {
+	uint8_t *const newcontents = malloc(flash_size);
+	uint8_t *const curcontents = malloc(flash_size);
+	if (!curcontents || !newcontents) {
 		msg_gerr("Out of memory!\n");
 		goto _free_ret;
 	}
@@ -2722,32 +2759,24 @@ int flashrom_image_verify(struct flashctx *const flashctx, const void *const buf
 	if (prepare_flash_access(flashctx, false, false, false, true))
 		goto _free_ret;
 
-	if (setup_oldcontents(flashctx, oldcontents, false, NULL))
-		goto _finalize_ret;
-
 	if (buffer) {
 		memcpy(newcontents, buffer, flash_size);
 	} else {
 		memset(newcontents, ERASED_VALUE(flashctx), flash_size);
 	}
 
-	if (build_new_image(flashctx, oldcontents, newcontents, false))
+	if (build_new_image(flashctx, curcontents, newcontents, false))
 		goto _finalize_ret;
 
-	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
-					       !flashctx->flags.do_not_diff);
-
 	msg_cinfo("Verifying flash... ");
-	ret = verify_flash(flashctx, descriptor);
+	ret = verify_by_layout(flashctx, curcontents, newcontents);
 	if (!ret)
 		msg_cinfo("VERIFIED.\n");
 
 _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
-	if (descriptor)
-		free(descriptor);
-	free(oldcontents);
+	free(curcontents);
 	free(newcontents);
 	return ret;
 }
