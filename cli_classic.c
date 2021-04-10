@@ -897,7 +897,6 @@ int main(int argc, char *argv[])
 	flashrom_layout_set(fill_flash, get_global_layout());
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
 	fill_flash->flags.do_not_diff = !do_diff;
-	fill_flash->diff_file = referencefile;
 #if CONFIG_INTERNAL == 1
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE_BOARDMISMATCH, !!force_boardmismatch);
 #endif

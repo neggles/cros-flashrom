@@ -2444,12 +2444,6 @@ static int setup_contents(struct flashctx *flash, void *old_buffer,
 		 */
 		if (diff_buffer) {
 			memcpy(oldcontents, diff_buffer, size);
-		} else if (flash->diff_file) {
-			msg_cdbg("Reading old contents from file... ");
-			if (read_buf_from_file(oldcontents, size, flash->diff_file)) {
-				msg_cdbg("FAILED.\n");
-				return 1;
-			}
 		} else {
 			msg_cdbg("Reading old contents from flash chip... ");
 			ret = read_dest_content(flash, oldcontents, size);

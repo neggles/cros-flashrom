@@ -277,7 +277,6 @@ struct flashrom_flashctx {
 		bool verify_whole_chip;
 		bool do_not_diff;
 	} flags;
-	char *diff_file; /* HACK to keep do_*() fn signatures the same. */
 	/* We cache the state of the extended address register (highest byte
 	 * of a 4BA for 3BA instructions) and the state of the 4BA mode here.
 	 * If possible, we enter 4BA mode early. If that fails, we make use
