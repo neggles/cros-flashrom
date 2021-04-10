@@ -33,13 +33,6 @@
 static struct romentry entries[MAX_ROMLAYOUT];
 static struct flashrom_layout global_layout = { entries, 0 };
 
-/*
- * This variable is set to the lowest erase granularity; it is used when
- * deciding if the layout map needs to be adjusted such that erase boundaries
- * match this granularity.
- */
-static unsigned int required_erase_size;
-
 struct flashrom_layout *get_global_layout(void)
 {
 	return &global_layout;
@@ -468,32 +461,43 @@ int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 	return 0;
 }
 
-static int write_content_to_file(struct romentry *entry, uint8_t *buf) {
-	char *file;
-	FILE *fp;
-	int len = entry->end - entry->start + 1;
+/*  Reads flash content specified with -i argument into *buf. */
+int write_content_to_image_files(struct flashctx *flashctx, uint8_t *buf) {
+	const struct flashrom_layout *const layout = get_layout(flashctx);
+	const struct romentry *entry = NULL;
 
-	file = entry->file;
-	if (file) {  /* save to file if name is specified. */
-		int numbytes;
-		if ((fp = fopen(file, "wb")) == NULL) {
-			perror(file);
-			return -1;
-		}
-		numbytes = fwrite(buf + entry->start, 1, len, fp);
-		fclose(fp);
-		if (numbytes != len) {
-			perror(file);
-			return -1;
+	while ((entry = layout_next_included(layout, entry))) {
+		char *file;
+		FILE *fp;
+		int len = entry->end - entry->start + 1;
+
+		file = entry->file;
+		if (file) {  /* save to file if name is specified. */
+			int numbytes;
+			if ((fp = fopen(file, "wb")) == NULL) {
+				perror(file);
+				return -1;
+			}
+			numbytes = fwrite(buf + entry->start, 1, len, fp);
+			fclose(fp);
+			if (numbytes != len) {
+				perror(file);
+				return -1;
+			}
 		}
 	}
 	return 0;
 }
 
-/* sets required_erase_size, returns 0 if successful */
-static int set_required_erase_size(struct flashctx *flash)
+/*
+ * Gets the lowest erase granularity; it is used when
+ * deciding if the layout map needs to be adjusted such that erase boundaries
+ * match this granularity. Returns -1 if unsuccessful.
+ */
+int get_required_erase_size(struct flashctx *flash)
 {
 	int i, erase_size_found = 0;
+	unsigned int required_erase_size;
 
 	/*
 	 * Find eraseable block size for read alignment.
@@ -521,69 +525,39 @@ static int set_required_erase_size(struct flashctx *flash)
 		return -1;
 	}
 
+	return required_erase_size;
+}
+
+int round_to_erasable_block_boundary(const int required_erase_size,
+				     const struct romentry *entry,
+				     chipoff_t *rounded_start,
+				     chipsize_t* rounded_len) {
+	unsigned int start_align, len_align;
+
+	if (required_erase_size < 0)
+		return 1;
+
+	/* round down to nearest eraseable block boundary */
+	start_align = entry->start % required_erase_size;
+	*rounded_start = entry->start - start_align;
+
+	/* round up to nearest eraseable block boundary */
+	*rounded_len = entry->end - *rounded_start + 1;
+	len_align = *rounded_len % required_erase_size;
+	if (len_align)
+		*rounded_len = *rounded_len + required_erase_size - len_align;
+
+	if (start_align || len_align) {
+		msg_gdbg("\n%s: Re-aligned partial read due to eraseable "
+			 "block size requirement:\n\tstart: 0x%06x, "
+			 "len: 0x%06x, aligned start: 0x%06x, len: 0x%06x\n",
+			 __func__, entry->start, entry->end - entry->start + 1,
+			 *rounded_start, *rounded_len);
+	}
+
 	return 0;
 }
 
-/*  Reads flash content specified with -i argument into *buf. */
-int handle_partial_read(
-    struct flashctx *flash,
-    uint8_t *buf,
-    int (*read) (struct flashctx *flash, uint8_t *buf,
-                 unsigned int start, unsigned int len),
-    int write_to_file) {
-	int count = 0;
-	const struct flashrom_layout *const layout = get_layout(flash);
-
-	/* If no regions were specified for inclusion, assume
-	 * that the user wants to read the complete image.
-	 */
-	if (get_num_include_args(layout) == 0)
-		return 0;
-
-	if (set_required_erase_size(flash))
-		return -1;
-
-	for (size_t i = 0; i < layout->num_entries; i++) {
-		unsigned int start, len, start_align, len_align;
-
-		if (!layout->entries[i].included)
-			continue;
-
-		/* round down to nearest eraseable block boundary */
-		start_align = layout->entries[i].start % required_erase_size;
-		start = layout->entries[i].start - start_align;
-
-		/* round up to nearest eraseable block boundary */
-		len = layout->entries[i].end - start + 1;
-		len_align = len % required_erase_size;
-		if (len_align)
-			len = len + required_erase_size - len_align;
-
-		if (start_align || len_align) {
-			msg_gdbg("\n%s: Re-aligned partial read due to "
-				"eraseable block size requirement:\n"
-				"\tlayout->entries[%zu].start: 0x%06x, len: 0x%06x, "
-				"aligned start: 0x%06x, len: 0x%06x\n",
-				__func__, i, layout->entries[i].start,
-				layout->entries[i].end - layout->entries[i].start + 1,
-				start, len);
-		}
-
-		if (read(flash, buf + start, start, len)) {
-			msg_perr("flash partial read failed.");
-			return -1;
-		}
-
-		/* If file is specified, write this partition to file. */
-		if (write_to_file) {
-			if (write_content_to_file(&layout->entries[i], buf) < 0)
-				return -1;
-		}
-
-		count++;
-	}
-	return count;
-}
 
 int extract_regions(struct flashctx *flash)
 {

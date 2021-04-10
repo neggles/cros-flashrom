@@ -81,15 +81,12 @@ int process_include_args(struct flashrom_layout *l, const struct layout_include_
 const struct romentry *layout_next_included_region(const struct flashrom_layout *, chipoff_t);
 const struct romentry *layout_next_included(const struct flashrom_layout *, const struct romentry *);
 int included_regions_overlap(const struct flashrom_layout *const layout);
-int handle_partial_read(
-    struct flashctx *flash,
-    uint8_t *buf,
-    int (*read) (struct flashctx *flash, uint8_t *buf,
-                 unsigned int start, unsigned int len),
-    int write_to_file);
-    /* RETURN: the number of partitions that have beenpartial read.
-    *         ==0 means no partition is specified.
-    *         < 0 means writing file error. */
+int write_content_to_image_files(struct flashrom_flashctx *flashctx, uint8_t *buf);
+int get_required_erase_size(struct flashrom_flashctx *flash);
+int round_to_erasable_block_boundary(const int required_erase_size,
+				     const struct romentry *entry,
+				     chipoff_t *rounded_start,
+				     chipsize_t* rounded_len);
 
 /*
  * In case user specified sections to program (using the -i command line

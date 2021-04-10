@@ -1628,6 +1628,7 @@ static int write_flash(struct flashctx *flash, uint8_t *buf,
 	return flash->chip->write(flash, buf, start, len);
 }
 
+static int read_by_layout(struct flashctx *, uint8_t *);
 int read_flash_to_file(struct flashctx *flash, const char *filename)
 {
 	unsigned long size = flash->chip->total_size * 1024;
@@ -1650,31 +1651,15 @@ int read_flash_to_file(struct flashctx *flash, const char *filename)
 		ret = 1;
 		goto out_free;
 	}
-
-	/* First try to handle partial read case, rather than read the whole
-	 * flash, which is slow. */
-	ret = handle_partial_read(flash, buf, read_flash, 1);
-	if (ret < 0) {
-		msg_cerr("Partial read operation failed!\n");
+	if (read_by_layout(flash, buf)) {
+		msg_cerr("Read operation failed!\n");
 		ret = 1;
 		goto out_free;
-	} else if (ret > 0) {
-		int num_regions = get_num_include_args(get_layout(flash));
+	}
 
-		if (ret != num_regions) {
-			msg_cerr("Requested %d regions, but only read %d\n",
-					num_regions, ret);
-			ret = 1;
-			goto out_free;
-		}
-
-		ret = 0;
-	} else {
-		if (read_flash(flash, buf, 0, size)) {
-			msg_cerr("Read operation failed!\n");
-			ret = 1;
-			goto out_free;
-		}
+	if (write_content_to_image_files(flash, buf) < 0) {
+		ret = 1;
+		goto out_free;
 	}
 
 	if (filename)
@@ -1684,27 +1669,6 @@ out_free:
 	free(buf);
 	msg_cinfo("%s.\n", ret ? "FAILED" : "done");
 	return ret;
-}
-
-static int read_dest_content(struct flashctx *const flashctx,
-			     void *const buffer, const size_t buffer_len)
-{
-	const bool verify_all = flashctx->flags.verify_whole_chip;
-	const bool verify = flashctx->flags.verify_after_write;
-
-	if ((!verify || !verify_all) && get_num_include_args(get_layout(flashctx))) {
-		/*
-		 * If no full verification is required and not
-		 * the entire chip is about to be programmed,
-		 * read only the areas which might change.
-		 */
-		if (handle_partial_read(flashctx, buffer, read_flash, 0) < 0)
-			return 1;
-	} else {
-		if (read_flash(flashctx, buffer, 0, buffer_len))
-			return 1;
-	}
-	return 0;
 }
 
 /* Even if an error is found, the function will keep going and check the rest. */
@@ -1795,6 +1759,36 @@ static int check_block_eraser(const struct flashctx *flash, int k, int log)
 		return 1;
 	}
 	// TODO: Once erase functions are annotated with allowed buses, check that as well.
+	return 0;
+}
+
+/**
+ * @brief Reads the included layout regions into a buffer.
+ *
+ * If there is no layout set in the given flash context, the whole chip will
+ * be read.
+ *
+ * @param flashctx Flash context to be used.
+ * @param buffer   Buffer of full chip size to read into.
+ * @return 0 on success,
+ *	   1 if any read fails.
+ */
+static int read_by_layout(struct flashctx *const flashctx, uint8_t *const buffer)
+{
+	const struct flashrom_layout *const layout = get_layout(flashctx);
+	const struct romentry *entry = NULL;
+	int required_erase_size = get_required_erase_size(flashctx);
+
+	while ((entry = layout_next_included(layout, entry))) {
+		unsigned int rounded_start, rounded_len;
+
+		if (round_to_erasable_block_boundary(required_erase_size, entry,
+						     &rounded_start, &rounded_len))
+			return 1;
+		if (read_flash(flashctx, buffer + rounded_start, rounded_start,
+			       rounded_len))
+			return 1;
+	}
 	return 0;
 }
 
@@ -2415,6 +2409,8 @@ static int setup_oldcontents(struct flashctx *flashctx, void *oldcontents,
 			     int erase_it, const void *const refcontents)
 {
 	const size_t flash_size = flashctx->chip->total_size * 1024;
+	const bool verify_all = flashctx->flags.verify_whole_chip;
+	const bool verify = flashctx->flags.verify_after_write;
 
 	memset(oldcontents, UNERASED_VALUE(flashctx), flash_size);
 	if (!flashctx->flags.do_not_diff) {
@@ -2429,9 +2425,16 @@ static int setup_oldcontents(struct flashctx *flashctx, void *oldcontents,
 			memcpy(oldcontents, refcontents, flash_size);
 		} else {
 			msg_cinfo("Reading old flash chip contents... ");
-			if (read_dest_content(flashctx, oldcontents, flash_size)) {
-				msg_cinfo("FAILED.\n");
-				return 1;
+			if (verify && verify_all) {
+				if (read_flash(flashctx, oldcontents, 0, flash_size)) {
+					msg_cinfo("FAILED.\n");
+					return 1;
+				}
+			} else {
+				if (read_by_layout(flashctx, oldcontents)) {
+					msg_cinfo("FAILED.\n");
+					return 1;
+				}
 			}
 			msg_cinfo("done.\n");
 		}
@@ -2504,7 +2507,6 @@ _free_ret:
  * @{
  */
 
-
 /**
  * @brief Read the current image from the specified ROM chip.
  *
@@ -2518,8 +2520,7 @@ _free_ret:
  *         2 if buffer_len is too short for the flash chip's contents,
  *         or 1 on any other failure.
  */
-int flashrom_image_read(struct flashctx *const flashctx,
-                        void *const buffer, const size_t buffer_len)
+int flashrom_image_read(struct flashctx *const flashctx, void *const buffer, const size_t buffer_len)
 {
 	const size_t flash_size = flashctx->chip->total_size * 1024;
 
@@ -2532,7 +2533,7 @@ int flashrom_image_read(struct flashctx *const flashctx,
 	msg_cinfo("Reading flash... ");
 
 	int ret = 1;
-	if (read_dest_content(flashctx, buffer, buffer_len)) {
+	if (read_by_layout(flashctx, buffer)) {
 		msg_cerr("Read operation failed!\n");
 		msg_cinfo("FAILED.\n");
 		goto _finalize_ret;
@@ -2631,7 +2632,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	} else if (ret > 0) {
 		// Need 2nd pass. Get the just written content.
 		msg_pdbg("CROS_EC needs 2nd pass.\n");
-		ret = read_dest_content(flashctx, oldcontents, flash_size);
+		ret = setup_oldcontents(flashctx, oldcontents, false, NULL);
 		if (ret) {
 			emergency_help_message();
 			goto _finalize_ret;
