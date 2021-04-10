@@ -453,8 +453,10 @@ int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 
 		if (!erase_mode) {
 			/* For included region, copy from file if specified. */
-			if (read_content_from_file(entry, newcontents) < 0)
+			if (read_content_from_file(entry, newcontents) < 0) {
+				msg_cerr("Error handling ROM entries.\n");
 				return -1;
+			}
 		}
 
 		/* Skip to location after current romentry. */
@@ -465,6 +467,7 @@ int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
 	}
 	return 0;
 }
+
 static int write_content_to_file(struct romentry *entry, uint8_t *buf) {
 	char *file;
 	FILE *fp;

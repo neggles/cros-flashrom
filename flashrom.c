@@ -2411,65 +2411,36 @@ void finalize_flash_access(struct flashctx *const flash)
 	unmap_flash(flash);
 }
 
-static int setup_contents(struct flashctx *flash, void *old_buffer,
-			  void *new_buffer, int erase_it,
-			  const void *const buffer,
-			  const void *const diff_buffer)
+static int setup_oldcontents(struct flashctx *flashctx, void *oldcontents,
+			     int erase_it, const void *const refcontents)
 {
-	uint8_t *oldcontents = old_buffer;
-	uint8_t *newcontents = new_buffer;
-	int ret = 0;
-	unsigned long size = flash->chip->total_size * 1024;
+	const size_t flash_size = flashctx->chip->total_size * 1024;
 
-	/* Assume worst case: All blocks are not erased. */
-	memset(oldcontents, UNERASED_VALUE(flash), size);
-	if (buffer) {
-		memcpy(newcontents, buffer, size);
-	} else {
-		/* Assume best case: All blocks are erased. */
-		memset(newcontents, ERASED_VALUE(flash), size);
-	}
-	/* Side effect of the assumptions above: Default write action is erase
-	 * because newcontents looks like a completely erased chip, and
-	 * oldcontents being completely unerased means we have to erase
-	 * everything before we can write.
-	 */
-
-	if (!flash->flags.do_not_diff) {
+	memset(oldcontents, UNERASED_VALUE(flashctx), flash_size);
+	if (!flashctx->flags.do_not_diff) {
 		/*
 		 * Obtain a reference image so that we can check whether
 		 * regions need to be erased and to give better diagnostics in
 		 * case write fails. If --fast-verify is used then only the
 		 * regions which are included using -i will be read.
 		 */
-		if (diff_buffer) {
-			memcpy(oldcontents, diff_buffer, size);
+		if (refcontents) {
+			msg_cinfo("Assuming old flash chip contents as ref-file...\n");
+			memcpy(oldcontents, refcontents, flash_size);
 		} else {
-			msg_cdbg("Reading old contents from flash chip... ");
-			ret = read_dest_content(flash, oldcontents, size);
-			if (ret) {
-				msg_cdbg("FAILED.\n");
-				return ret;
+			msg_cinfo("Reading old flash chip contents... ");
+			if (read_dest_content(flashctx, oldcontents, flash_size)) {
+				msg_cinfo("FAILED.\n");
+				return 1;
 			}
+			msg_cinfo("done.\n");
 		}
-		msg_cdbg("done.\n");
 	} else if (!erase_it) {
 		msg_pinfo("No diff performed, considering the chip erased.\n");
-		memset(oldcontents, ERASED_VALUE(flash), size);
+		memset(oldcontents, ERASED_VALUE(flashctx), flash_size);
 	}
 
-	/*
-	 * Note: This must be done after reading the file specified for the
-	 * -w/-v argument, if any, so that files specified using -i end up
-	 * in the "newcontents" buffer before being written.
-	 * See http://crbug.com/263495.
-	 */
-	if (build_new_image(flash, oldcontents, newcontents, erase_it)) {
-		msg_cerr("Error handling ROM entries.\n");
-		return 1;
-	}
-
-	return ret;
+	return 0;
 }
 
 /**
@@ -2503,7 +2474,11 @@ int flashrom_flash_erase(struct flashctx *const flashctx)
 	if (prepare_flash_access(flashctx, false, false, true, false))
 		goto _free_ret;
 
-	if (setup_contents(flashctx, oldcontents, newcontents, true, NULL, NULL))
+	if (setup_oldcontents(flashctx, oldcontents, true, NULL))
+		goto _finalize_ret;
+
+	memset(newcontents, ERASED_VALUE(flashctx), flash_size);
+	if (build_new_image(flashctx, oldcontents, newcontents, true))
 		goto _finalize_ret;
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents, true);
@@ -2607,7 +2582,16 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	if (prepare_flash_access(flashctx, false, true, false, verify))
 		goto _free_ret;
 
-	if (setup_contents(flashctx, oldcontents, newcontents, false, buffer, refbuffer))
+	if (setup_oldcontents(flashctx, oldcontents, false, refbuffer))
+		goto _finalize_ret;
+
+	if (buffer) {
+		memcpy(newcontents, buffer, flash_size);
+	} else {
+		memset(newcontents, ERASED_VALUE(flashctx), flash_size);
+	}
+
+	if (build_new_image(flashctx, oldcontents, newcontents, false))
 		goto _finalize_ret;
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
@@ -2737,7 +2721,16 @@ int flashrom_image_verify(struct flashctx *const flashctx, const void *const buf
 	if (prepare_flash_access(flashctx, false, false, false, true))
 		goto _free_ret;
 
-	if (setup_contents(flashctx, oldcontents, newcontents, false, buffer, NULL))
+	if (setup_oldcontents(flashctx, oldcontents, false, NULL))
+		goto _finalize_ret;
+
+	if (buffer) {
+		memcpy(newcontents, buffer, flash_size);
+	} else {
+		memset(newcontents, ERASED_VALUE(flashctx), flash_size);
+	}
+
+	if (build_new_image(flashctx, oldcontents, newcontents, false))
 		goto _finalize_ret;
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
