@@ -76,36 +76,14 @@ const struct flashrom_layout *get_layout(const struct flashctx *const flashctx);
 
 int find_romentry(struct flashrom_layout *const l, char *name);
 int fill_romentry(struct flashrom_layout *const l, struct romentry *entry, int n);
-int get_num_include_args(const struct flashrom_layout *const l);
 int process_include_args(struct flashrom_layout *l, const struct layout_include_args *const args);
 const struct romentry *layout_next_included_region(const struct flashrom_layout *, chipoff_t);
 const struct romentry *layout_next_included(const struct flashrom_layout *, const struct romentry *);
 int included_regions_overlap(const struct flashrom_layout *const layout);
-int write_content_to_image_files(struct flashrom_flashctx *flashctx, uint8_t *buf);
 int get_required_erase_size(struct flashrom_flashctx *flash);
 int round_to_erasable_block_boundary(const int required_erase_size,
 				     const struct romentry *entry,
 				     chipoff_t *rounded_start,
 				     chipsize_t* rounded_len);
-
-/*
- * In case user specified sections to program (using the -i command line
- * option), prepare new contents such that only the required sections are
- * re-programmed.
- *
- * If no -i command line option was used - do nothing.
- *
- * All areas outside of sections included in -i command line options are set
- * to the same value as old contents (modulo lowest erase block size). This
- * would make sure that those areas remain unchanged.
- *
- * If flashrom was invoked for writing the chip, fill the sections to be
- * written from the user provided image file.
- *
- * If flashrom was invoked for erasing - leave the sections in question
- * untouched, they have been set to flash erase value already.
- */
-int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
-		      uint8_t *newcontents, int erase_mode);
 
 #endif /* !__LAYOUT_H__ */

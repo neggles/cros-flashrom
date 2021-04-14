@@ -16,17 +16,11 @@
  */
 
 #include <errno.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <limits.h>
-#include <errno.h>
-#include <sys/stat.h>
-
 #include "flash.h"
-#include "platform.h"
 #include "programmer.h"
 #include "layout.h"
 
@@ -208,22 +202,6 @@ int fill_romentry(struct flashrom_layout *const layout, struct romentry *entry, 
 	return 0;
 }
 
-int get_num_include_args(const struct flashrom_layout *const l)
-{
-	size_t i;
-	int ret = 0;
-
-	if (!l)
-		return -1;
-
-	for (i = 0; i < l->num_entries; i++) {
-		if (l->entries[i].included)
-			ret++;
-	}
-
-	return ret;
-}
-
 /* process -i arguments
  * returns 0 to indicate success, >0 to indicate failure
  */
@@ -320,74 +298,6 @@ out:
 	return overlap_detected;
 }
 
-static int read_content_from_file(struct romentry *entry, uint8_t *newcontents) {
-	char *file;
-	FILE *fp;
-	int len;
-
-	/* If file name is specified for this partition, read file
-	 * content to overwrite. */
-	file = entry->file;
-	len = entry->end - entry->start + 1;
-	if (file) {
-		int numbytes;
-		struct stat s;
-
-		if (stat(file, &s) < 0) {
-			msg_gerr("Cannot stat file %s: %s.\n",
-					file, strerror(errno));
-			return -1;
-		}
-
-		if (s.st_size > len) {
-			msg_gerr("File %s is %d bytes, region %s is %d bytes.\n"
-				 , file, (int)s.st_size,
-				 entry->name, len);
-			return -1;
-		}
-
-		if ((fp = fopen(file, "rb")) == NULL) {
-			perror(file);
-			return -1;
-		}
-		numbytes = fread(newcontents + entry->start,
-		                 1, s.st_size, fp);
-		fclose(fp);
-		if (numbytes == -1) {
-			perror(file);
-			return -1;
-		}
-	}
-	return 0;
-}
-
-static struct romentry *get_next_included_romentry(const struct flashrom_layout *layout,
-						   unsigned int start)
-{
-	unsigned int best_start = UINT_MAX;
-	struct romentry *best_entry = NULL;
-	struct romentry *cur;
-
-	/* First come, first serve for overlapping regions. */
-	for (size_t i = 0; i < layout->num_entries; i++) {
-		cur = &layout->entries[i];
-		if (!cur->included)
-			continue;
-		/* Already past the current entry? */
-		if (start > cur->end)
-			continue;
-		/* Inside the current entry? */
-		if (start >= cur->start)
-			return cur;
-		/* Entry begins after start. */
-		if (best_start > cur->start) {
-			best_start = cur->start;
-			best_entry = cur;
-		}
-	}
-	return best_entry;
-}
-
 /* Validate and - if needed - normalize layout entries. */
 int normalize_romentries(const struct flashctx *flash)
 {
@@ -411,82 +321,6 @@ int normalize_romentries(const struct flashctx *flash)
 	}
 
 	return ret;
-}
-
-int build_new_image(const struct flashctx *flash, uint8_t *oldcontents,
-		      uint8_t *newcontents, int erase_mode)
-{
-	unsigned int start = 0;
-	struct romentry *entry;
-	unsigned int size = flash->chip->total_size * 1024;
-	const struct flashrom_layout *const layout = get_layout(flash);
-
-	/* If no regions were specified for inclusion, assume
-	 * that the user wants to write the complete new image.
-	 */
-	if (get_num_include_args(layout) == 0)
-		return 0;
-
-	/* Non-included romentries are ignored.
-	 * The union of all included romentries is used from the new image.
-	 */
-	while (start < size) {
-		entry = get_next_included_romentry(layout, start);
-		/* No more romentries for remaining region? */
-		if (!entry) {
-			memcpy(newcontents + start, oldcontents + start,
-			       size - start);
-			break;
-		}
-
-		/* For non-included region, copy from old content. */
-		if (entry->start > start)
-			memcpy(newcontents + start, oldcontents + start,
-			       entry->start - start);
-
-		if (!erase_mode) {
-			/* For included region, copy from file if specified. */
-			if (read_content_from_file(entry, newcontents) < 0) {
-				msg_cerr("Error handling ROM entries.\n");
-				return -1;
-			}
-		}
-
-		/* Skip to location after current romentry. */
-		start = entry->end + 1;
-		/* Catch overflow. */
-		if (!start)
-			break;
-	}
-	return 0;
-}
-
-/*  Reads flash content specified with -i argument into *buf. */
-int write_content_to_image_files(struct flashctx *flashctx, uint8_t *buf) {
-	const struct flashrom_layout *const layout = get_layout(flashctx);
-	const struct romentry *entry = NULL;
-
-	while ((entry = layout_next_included(layout, entry))) {
-		char *file;
-		FILE *fp;
-		int len = entry->end - entry->start + 1;
-
-		file = entry->file;
-		if (file) {  /* save to file if name is specified. */
-			int numbytes;
-			if ((fp = fopen(file, "wb")) == NULL) {
-				perror(file);
-				return -1;
-			}
-			numbytes = fwrite(buf + entry->start, 1, len, fp);
-			fclose(fp);
-			if (numbytes != len) {
-				perror(file);
-				return -1;
-			}
-		}
-	}
-	return 0;
 }
 
 /*

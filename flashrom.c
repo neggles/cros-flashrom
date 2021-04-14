@@ -1498,7 +1498,7 @@ int read_buf_from_file(unsigned char *buf, unsigned long size,
 	}
 	if ((image_stat.st_size != (__off_t)size) &&
 	    (strncmp(filename, "-", sizeof("-")))) {
-		msg_gerr("Error: Image size (%jd B) doesn't match the flash chip's size (%lu B)!\n",
+		msg_gerr("Error: Image size (%jd B) doesn't match the expected size (%lu B)!\n",
 			 (intmax_t)image_stat.st_size, size);
 		ret = 1;
 		goto out;
@@ -1516,6 +1516,51 @@ out:
 #endif
 }
 
+/**
+ * @brief Reads content to buffer from one or more files.
+ *
+ * Reads content to supplied buffer from files. If a filename is specified for
+ * individual regions using the partial read syntax ('-i <region>[:<filename>]')
+ * then this will read file data into the corresponding region in the
+ * supplied buffer.
+ *
+ * @param flashctx Flash context to be used.
+ * @param buf      Chip-sized buffer to write data to
+ * @return 0 on success
+ */
+static int read_buf_from_include_args(const struct flashctx *const flash,
+				      unsigned char *buf)
+{
+	const struct flashrom_layout *const layout = get_layout(flash);
+	const struct romentry *entry = NULL;
+
+	/*
+	 * Content will be read from -i args, so they must not overlap since
+	 * we need to know exactly what content to write to the ROM.
+	 */
+	if (included_regions_overlap(layout)) {
+		msg_gerr("Error: Included regions must not overlap.\n");
+		return 1;
+	}
+
+	while ((entry = layout_next_included(layout, entry))) {
+		if (!entry->file)
+			continue;
+		if (read_buf_from_file(buf + entry->start,
+				       entry->end - entry->start + 1, entry->file))
+			return 1;
+	}
+	return 0;
+}
+
+/**
+ * @brief Writes passed data buffer into a file
+ *
+ * @param buf      Buffer with data to write
+ * @param size     Size of buffer
+ * @param filename File path to write to
+ * @return 0 on success
+ */
 int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *filename)
 {
 #ifdef __LIBPAYLOAD__
@@ -1569,6 +1614,40 @@ out:
 		ret = 1;
 	}
 	return ret;
+#endif
+}
+
+/**
+ * @brief Writes content from buffer to one or more files.
+ *
+ * Writes content from supplied buffer to files. If a filename is specified for
+ * individual regions using the partial read syntax ('-i <region>[:<filename>]')
+ * then this will write files using data from the corresponding region in the
+ * supplied buffer.
+ *
+ * @param flashctx Flash context to be used.
+ * @param buf      Chip-sized buffer to read data from
+ * @return 0 on success
+ */
+static int write_buf_to_include_args(const struct flashctx *const flash,
+				     unsigned char *buf)
+{
+#ifdef __LIBPAYLOAD__
+	msg_gerr("Error: No file I/O support in libpayload\n");
+	return 1;
+#else
+	const struct flashrom_layout *const layout = get_layout(flash);
+	const struct romentry *entry = NULL;
+
+	while ((entry = layout_next_included(layout, entry))) {
+		if (!entry->file)
+			continue;
+		if (write_buf_to_file(buf + entry->start,
+				      entry->end - entry->start + 1, entry->file))
+			return 1;
+	}
+
+	return 0;
 #endif
 }
 
@@ -1656,15 +1735,13 @@ int read_flash_to_file(struct flashctx *flash, const char *filename)
 		ret = 1;
 		goto out_free;
 	}
-
-	if (write_content_to_image_files(flash, buf) < 0) {
+	if (write_buf_to_include_args(flash, buf)) {
 		ret = 1;
 		goto out_free;
 	}
 
 	if (filename)
 		ret = write_buf_to_file(buf, size, filename);
-
 out_free:
 	free(buf);
 	msg_cinfo("%s.\n", ret ? "FAILED" : "done");
@@ -2488,6 +2565,8 @@ static int setup_oldcontents(struct flashctx *flashctx, void *oldcontents,
  * @{
  */
 
+static void combine_image_by_layout(const struct flashctx *const flashctx,
+				    uint8_t *const newcontents, const uint8_t *const oldcontents);
 /**
  * @brief Erase the specified ROM chip.
  *
@@ -2518,8 +2597,7 @@ int flashrom_flash_erase(struct flashctx *const flashctx)
 		goto _finalize_ret;
 
 	memset(newcontents, ERASED_VALUE(flashctx), flash_size);
-	if (build_new_image(flashctx, oldcontents, newcontents, true))
-		goto _finalize_ret;
+	combine_image_by_layout(flashctx, newcontents, oldcontents);
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents, true);
 
@@ -2583,6 +2661,29 @@ _finalize_ret:
 	return ret;
 }
 
+static void combine_image_by_layout(const struct flashctx *const flashctx,
+				    uint8_t *const newcontents, const uint8_t *const oldcontents)
+{
+	const struct flashrom_layout *const layout = get_layout(flashctx);
+	const struct romentry *included;
+	chipoff_t start = 0;
+
+	while ((included = layout_next_included_region(layout, start))) {
+		if (included->start > start) {
+			/* copy everything up to the start of this included region */
+			memcpy(newcontents + start, oldcontents + start, included->start - start);
+		}
+		/* skip this included region */
+		start = included->end + 1;
+		if (start == 0)
+			return;
+	}
+
+	/* copy the rest of the chip */
+	const chipsize_t copy_len = flashctx->chip->total_size * 1024 - start;
+	memcpy(newcontents + start, oldcontents + start, copy_len);
+}
+
 /**
  * @brief Write the specified image to the ROM chip.
  *
@@ -2623,14 +2724,8 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	if (setup_oldcontents(flashctx, oldcontents, false, refbuffer))
 		goto _finalize_ret;
 
-	if (buffer) {
-		memcpy(newcontents, buffer, flash_size);
-	} else {
-		memset(newcontents, ERASED_VALUE(flashctx), flash_size);
-	}
-
-	if (build_new_image(flashctx, oldcontents, newcontents, false))
-		goto _finalize_ret;
+	memcpy(newcontents, buffer, flash_size);
+	combine_image_by_layout(flashctx, newcontents, oldcontents);
 
 	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
 					       !flashctx->flags.do_not_diff);
@@ -2747,37 +2842,26 @@ int flashrom_image_verify(struct flashctx *const flashctx, const void *const buf
 	if (buffer_len != flash_size)
 		return 2;
 
-	int ret = 1;
-
-	uint8_t *const newcontents = malloc(flash_size);
+	const uint8_t *const newcontents = buffer;
 	uint8_t *const curcontents = malloc(flash_size);
-	if (!curcontents || !newcontents) {
+	if (!curcontents) {
 		msg_gerr("Out of memory!\n");
-		goto _free_ret;
+		return 1;
 	}
+
+	int ret = 1;
 
 	if (prepare_flash_access(flashctx, false, false, false, true))
 		goto _free_ret;
-
-	if (buffer) {
-		memcpy(newcontents, buffer, flash_size);
-	} else {
-		memset(newcontents, ERASED_VALUE(flashctx), flash_size);
-	}
-
-	if (build_new_image(flashctx, curcontents, newcontents, false))
-		goto _finalize_ret;
 
 	msg_cinfo("Verifying flash... ");
 	ret = verify_by_layout(flashctx, curcontents, newcontents);
 	if (!ret)
 		msg_cinfo("VERIFIED.\n");
 
-_finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
 	free(curcontents);
-	free(newcontents);
 	return ret;
 }
 
@@ -2817,24 +2901,25 @@ int do_write(struct flashctx *const flash, const char *const filename, const cha
 	const size_t flash_size = flash->chip->total_size * 1024;
 	int ret = 1;
 
-	uint8_t *const newcontents = filename ? malloc(flash_size) : NULL;
+	uint8_t *const newcontents = malloc(flash_size);
 	uint8_t *const refcontents = referencefile ? malloc(flash_size) : NULL;
 
-	if ((filename && !newcontents) || (referencefile && !refcontents)) {
+	if (!newcontents || (referencefile && !refcontents)) {
 		msg_gerr("Out of memory!\n");
 		goto _free_ret;
 	}
 
+	/* Read '-w' argument first... */
 	if (filename) {
 		if (read_buf_from_file(newcontents, flash_size, filename))
 			goto _free_ret;
-	} else {
-		/* Content will be read from -i args, so they must not overlap. */
-		if (included_regions_overlap(get_layout(flash))) {
-			msg_gerr("Error: Included regions must not overlap.\n");
-			goto _free_ret;
-		}
 	}
+	/*
+	 * ... then update newcontents with contents from files provided to '-i'
+	 * args if needed.
+	 */
+	if (read_buf_from_include_args(flash, newcontents))
+		goto _free_ret;
 
 	if (referencefile) {
 		if (read_buf_from_file(refcontents, flash_size, referencefile))
@@ -2854,22 +2939,23 @@ int do_verify(struct flashctx *const flash, const char *const filename)
 	const size_t flash_size = flash->chip->total_size * 1024;
 	int ret = 1;
 
-	uint8_t *const newcontents = filename ? malloc(flash_size) : NULL;
-	if (filename && !newcontents) {
+	uint8_t *const newcontents = malloc(flash_size);
+	if (!newcontents) {
 		msg_gerr("Out of memory!\n");
 		goto _free_ret;
 	}
 
+	/* Read '-v' argument first... */
 	if (filename) {
 		if (read_buf_from_file(newcontents, flash_size, filename))
 			goto _free_ret;
-	} else {
-		/* Content will be read from -i args, so they must not overlap. */
-		if (included_regions_overlap(get_layout(flash))) {
-			msg_gerr("Error: Included regions must not overlap.\n");
-			goto _free_ret;
-		}
 	}
+	/*
+	 * ... then update newcontents with contents from files provided to '-i'
+	 * args if needed.
+	 */
+	if (read_buf_from_include_args(flash, newcontents))
+		goto _free_ret;
 
 	ret = flashrom_image_verify(flash, newcontents, flash_size);
 
