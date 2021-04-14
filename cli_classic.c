@@ -164,6 +164,23 @@ static int parse_wp_range(unsigned int *start, unsigned int *len)
 	return 0;
 }
 
+static char *get_optional_filename(char *argv[])
+{
+	char *filename = NULL;
+
+	/* filename was supplied in optarg (i.e. -rfilename) */
+	if (optarg != NULL)
+		filename = strdup(optarg);
+	/* filename is on optind if it is not another flag (i.e. -r filename)
+	 * - is treated as stdin, so we still strdup in this case
+	 */
+	else if (optarg == NULL && argv[optind] != NULL &&
+		 (argv[optind][0] != '-' || argv[optind][1] == '\0'))
+		filename = strdup(argv[optind++]);
+
+	return filename;
+}
+
 static int flashrom_layout_read_fmap_from_file(struct flashrom_layout **layout,
 					       struct flashrom_flashctx *flashctx, const char *fmapfile)
 {
@@ -228,12 +245,12 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	unsigned int wp_start = 0, wp_len = 0;
 
-	static const char optstring[] = "rRwvnNVEfc:l:i:p:Lzho:x";
+	static const char optstring[] = "r::Rw::v::nNVEfc:l:i:p:Lzho:x";
 	static const struct option long_options[] = {
-		{"read",		0, NULL, 'r'},
-		{"write",		0, NULL, 'w'},
+		{"read",		2, NULL, 'r'},
+		{"write",		2, NULL, 'w'},
 		{"erase",		0, NULL, 'E'},
-		{"verify",		0, NULL, 'v'},
+		{"verify",		2, NULL, 'v'},
 		{"noverify",		0, NULL, 'n'},
 		{"noverify-all",	0, NULL, 'N'},
 		{"extract",		0, NULL, 'x'},
@@ -305,10 +322,12 @@ int main(int argc, char *argv[])
 		switch (opt) {
 		case 'r':
 			cli_classic_validate_singleop(&operation_specified);
+			filename = get_optional_filename(argv);
 			read_it = 1;
 			break;
 		case 'w':
 			cli_classic_validate_singleop(&operation_specified);
+			filename = get_optional_filename(argv);
 			write_it = 1;
 			break;
 		case 'v':
@@ -317,6 +336,7 @@ int main(int argc, char *argv[])
 			if (dont_verify_it) {
 				cli_classic_abort_usage("--verify and --noverify are mutually exclusive. Aborting.\n");
 			}
+			filename = get_optional_filename(argv);
 			verify_it = 1;
 			break;
 		case 'n':
@@ -523,15 +543,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
-#if 0
 	if (optind < argc)
 		cli_classic_abort_usage("Error: Extra parameter found.\n");
-#endif
-	if ((read_it | write_it | verify_it) && argv[optind]) {
-		filename = argv[optind];
-		if (check_filename(filename, "image"))
-			cli_classic_abort_usage(NULL);
-	}
+	if (filename && check_filename(filename, "image"))
+		cli_classic_abort_usage(NULL);
 	if (layoutfile && check_filename(layoutfile, "layout"))
 		cli_classic_abort_usage(NULL);
 	if (fmapfile && check_filename(fmapfile, "fmap"))
@@ -989,6 +1004,7 @@ out:
 		free(flashes[i].chip);
 
 	layout_cleanup(&include_args);
+	free(filename);
 	free(fmapfile);
 	free(referencefile);
 	free(layoutfile);
