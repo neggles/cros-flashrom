@@ -47,15 +47,14 @@ static void cli_classic_usage(const char *name)
 #endif
 	       "\n\t-p <programmername>[:<parameters>] [-c <chipname>]\n"
 	       "\t\t(--flash-name|--flash-size|\n"
-	       "\t\t [-E|-x|(-r|-w|-v) [<file|->])]\n"
+	       "\t\t [-E|-x|(-r|-w|-v) [<file>]]\n"
 	       "\t\t [(-l <layoutfile>|--ifd) [-i <region>[:<file>]]...]\n"
 	       "\t\t [-n] [-N] [-f])]\n"
 	       "\t[-V[V[V]]] [-o <logfile>]\n\n", name);
 
 	printf(" -h | --help                        print this help text\n"
 	       " -R | --version                     print version (release)\n"
-	       " -r | --read [<file|->]             read flash and save to <file>\n"
-	       "                                    or write on the standard output\n"
+	       " -r | --read [<file>]               read flash and save to <file>\n"
 	       " -w | --write [<file|->]            write <file> or the content provided\n"
 	       "                                    on the standard input to flash\n"
 	       " -v | --verify [<file|->]           verify flash against <file>\n"
@@ -119,7 +118,7 @@ static int check_filename(char *filename, const char *type)
 		return 1;
 	}
 	/* Not an error, but maybe the user intended to specify a CLI option instead of a file name. */
-	if (filename[0] == '-')
+	if (filename[0] == '-' && filename[1] != '\0')
 		fprintf(stderr, "Warning: Supplied %s file name starts with -\n", type);
 	return 0;
 }
@@ -442,6 +441,11 @@ int main(int argc, char *argv[])
 	if (optind < argc)
 		cli_classic_abort_usage("Error: Extra parameter found.\n");
 #endif
+	if ((read_it | write_it | verify_it) && argv[optind]) {
+		filename = argv[optind];
+		if (check_filename(filename, "image"))
+			cli_classic_abort_usage(NULL);
+	}
 	if (layoutfile && check_filename(layoutfile, "layout"))
 		cli_classic_abort_usage(NULL);
 	if (referencefile && check_filename(referencefile, "reference"))
@@ -454,10 +458,6 @@ int main(int argc, char *argv[])
 		cli_classic_abort_usage(NULL);
 #endif /* !STANDALONE */
 
-	if (read_it || write_it || verify_it) {
-		if (argv[optind])
-			filename = argv[optind];
-	}
 #if CONFIG_PRINT_WIKI == 1
 	if (list_supported_wiki) {
 		print_supported_wiki();

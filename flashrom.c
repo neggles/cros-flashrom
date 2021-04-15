@@ -1482,8 +1482,8 @@ int read_buf_from_file(unsigned char *buf, unsigned long size,
 	int ret = 0;
 
 	FILE *image;
-	if (!strncmp(filename, "-", sizeof("-")))
-		image = fdopen(STDIN_FILENO, "rb");
+	if (!strcmp(filename, "-"))
+		image = fdopen(fileno(stdin), "rb");
 	else
 		image = fopen(filename, "rb");
 	if (image == NULL) {
@@ -1497,8 +1497,7 @@ int read_buf_from_file(unsigned char *buf, unsigned long size,
 		ret = 1;
 		goto out;
 	}
-	if ((image_stat.st_size != (__off_t)size) &&
-	    (strncmp(filename, "-", sizeof("-")))) {
+	if ((image_stat.st_size != (intmax_t)size) && strcmp(filename, "-")) {
 		msg_gerr("Error: Image size (%jd B) doesn't match the expected size (%lu B)!\n",
 			 (intmax_t)image_stat.st_size, size);
 		ret = 1;
@@ -1575,11 +1574,7 @@ int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *
 		msg_gerr("No filename specified.\n");
 		return 1;
 	}
-	if (!strncmp(filename, "-", sizeof("-")))
-		image = fdopen(STDOUT_FILENO, "wb");
-	else
-		image = fopen(filename, "wb");
-	if (image == NULL) {
+	if ((image = fopen(filename, "wb")) == NULL) {
 		msg_gerr("Error: opening file \"%s\" failed: %s\n", filename, strerror(errno));
 		return 1;
 	}
