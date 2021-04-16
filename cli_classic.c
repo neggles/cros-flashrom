@@ -66,6 +66,7 @@ static void cli_classic_usage(const char *name)
 	       " -f | --force                       force specific operations (see man page)\n"
 	       " -n | --noverify                    don't auto-verify\n"
 	       " -N | --noverify-all                verify included regions only (cf. -i)\n"
+	       " -x | --extract                     extract regions to files\n"
 	       " -l | --layout <layoutfile>         read ROM layout from <layoutfile>\n"
 	       "      --wp-disable                  disable write protection\n"
 	       "      --wp-enable                   enable write protection\n"
@@ -79,7 +80,6 @@ static void cli_classic_usage(const char *name)
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       " -L | --list-supported              print supported devices\n"
-	       "   -x | --extract                    extract regions to files\n"
 #if CONFIG_PRINT_WIKI == 1
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
 #endif
@@ -145,9 +145,9 @@ int main(int argc, char *argv[])
 	int flash_name = 0, flash_size = 0;
 	int set_wp_enable = 0, set_wp_disable = 0, wp_status = 0;
 	int set_wp_range = 0, set_wp_region = 0, wp_list = 0;
-	int read_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
+	int read_it = 0, extract_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
-	int extract_it = 0, do_diff = 1;
+	int do_diff = 1;
 	int set_ignore_fmap = 0;
 	enum programmer prog = PROGRAMMER_INVALID;
 	enum {
@@ -177,6 +177,7 @@ int main(int argc, char *argv[])
 		{"erase",		0, NULL, 'E'},
 		{"verify",		0, NULL, 'v'},
 		{"noverify",		0, NULL, 'n'},
+		{"extract",		0, NULL, 'x'},
 		{"chip",		1, NULL, 'c'},
 		{"verbose",		0, NULL, 'V'},
 		{"force",		0, NULL, 'f'},
@@ -194,7 +195,6 @@ int main(int argc, char *argv[])
 		{"wp-list", 		0, 0, OPTION_WP_LIST},
 		{"list-supported",	0, NULL, 'L'},
 		{"list-supported-wiki",	0, NULL, 'z'},
-		{"extract", 		0, 0, 'x'},
 		{"programmer",		1, NULL, 'p'},
 		{"help",		0, NULL, 'h'},
 		{"version",		0, NULL, 'R'},
@@ -259,6 +259,10 @@ int main(int argc, char *argv[])
 		case 'N':
 			dont_verify_all = 1;
 			break;
+		case 'x':
+			cli_classic_validate_singleop(&operation_specified);
+			extract_it = 1;
+			break;
 		case 'c':
 			chip_to_probe = strdup(optarg);
 			break;
@@ -317,10 +321,6 @@ int main(int argc, char *argv[])
 		case 'L':
 			cli_classic_validate_singleop(&operation_specified);
 			list_supported = 1;
-			break;
-		case 'x':
-			cli_classic_validate_singleop(&operation_specified);
-			extract_it = 1;
 			break;
 		case 'z':
 #if CONFIG_PRINT_WIKI == 1
@@ -898,14 +898,14 @@ int main(int argc, char *argv[])
 	programmer_delay(100000);
 	if (read_it)
 		ret = do_read(fill_flash, filename);
+	else if (extract_it)
+		ret = do_extract(fill_flash);
 	else if (erase_it)
 		ret = do_erase(fill_flash);
 	else if (write_it)
 		ret = do_write(fill_flash, filename, referencefile);
 	else if (verify_it)
 		ret = do_verify(fill_flash, filename);
-	else if (extract_it)
-		ret = do_extract_it(fill_flash);
 
 	msg_ginfo("%s\n", ret ? "FAILED" : "SUCCESS");
 

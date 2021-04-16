@@ -61,15 +61,6 @@ struct layout_include_args {
 	struct layout_include_args *next;
 };
 
-
-/**
- * Extract regions to current directory
- *
- * @flash: Information about flash chip to access
- * @return 0 if OK, non-zero on error
- */
-int extract_regions(struct flashrom_flashctx *flash);
-
 struct flashrom_layout *get_global_layout(void);
 struct flashrom_flashctx;
 const struct flashrom_layout *get_layout(const struct flashrom_flashctx *const flashctx);
@@ -85,5 +76,6 @@ int round_to_erasable_block_boundary(const int required_erase_size,
 				     const struct romentry *entry,
 				     chipoff_t *rounded_start,
 				     chipsize_t* rounded_len);
+void prepare_layout_for_extraction(struct flashrom_flashctx *flash);
 
 #endif /* !__LAYOUT_H__ */

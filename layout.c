@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -391,56 +392,22 @@ int round_to_erasable_block_boundary(const int required_erase_size,
 	return 0;
 }
 
-
-int extract_regions(struct flashctx *flash)
+void prepare_layout_for_extraction(struct flashctx *flash)
 {
-	unsigned long size = flash->chip->total_size * 1024;
-	unsigned char *buf = calloc(size, sizeof(char));
-	int ret = 0;
+	const struct flashrom_layout *const l = get_layout(flash);
+	unsigned int i, j;
 
-	if (!buf) {
-		msg_gerr("Memory allocation failed!\n");
-		msg_cinfo("FAILED.\n");
-		return 1;
-	}
+	for (i = 0; i < l->num_entries; ++i) {
+		l->entries[i].included = true;
 
-	msg_cinfo("Reading flash... ");
-	if (read_flash(flash, buf, 0, size)) {
-		msg_cerr("Read operation failed!\n");
-		ret = 1;
-		goto out_free;
-	}
+		if (!l->entries[i].file)
+			l->entries[i].file = strdup(l->entries[i].name);
 
-	const struct flashrom_layout *const layout = get_layout(flash);
-	msg_gdbg("Extracting %zd images\n", layout->num_entries);
-	for (size_t i = 0; !ret && i < layout->num_entries; i++) {
-		struct romentry *region = &layout->entries[i];
-		char fname[256];
-		char *from, *to;
-		unsigned long region_size;
-
-		for (to = fname, from = region->name; *from; from++, to++) {
-			if (*from == ' ')
-				*to = '_';
-			else
-				*to = *from;
+		for (j = 0; l->entries[i].file[j]; j++) {
+			if (isspace(l->entries[i].file[j]))
+				l->entries[i].file[j] = '_';
 		}
-		*to = '\0';
-
-		msg_gdbg("dumping region %s to %s\n", region->name,
-			fname);
-		region_size = region->end - region->start + 1;
-		ret = write_buf_to_file(buf + region->start, region_size,
-					fname);
 	}
-
-out_free:
-	free(buf);
-	if (ret)
-		msg_cerr("FAILED.");
-	else
-		msg_cdbg("done.");
-	return ret;
 }
 
 const struct romentry *layout_next_included_region(

@@ -2879,6 +2879,12 @@ int do_read(struct flashctx *const flash, const char *const filename)
 	return ret;
 }
 
+int do_extract(struct flashctx *const flash)
+{
+	prepare_layout_for_extraction(flash);
+	return do_read(flash, NULL);
+}
+
 int do_erase(struct flashctx *const flash)
 {
 	const int ret = flashrom_flash_erase(flash);
@@ -2961,15 +2967,5 @@ int do_verify(struct flashctx *const flash, const char *const filename)
 
 _free_ret:
 	free(newcontents);
-	return ret;
-}
-
-int do_extract_it(struct flashctx *const flash)
-{
-	if (prepare_flash_access(flash, false, false, false, false))
-		return 1;
-	int ret = extract_regions(flash);
-	finalize_flash_access(flash);
-
 	return ret;
 }
