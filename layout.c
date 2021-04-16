@@ -32,7 +32,7 @@ struct flashrom_layout *get_global_layout(void)
 	return &global_layout;
 }
 
-const struct flashrom_layout *get_layout(const struct flashrom_flashctx *const flashctx)
+const struct flashrom_layout *get_layout(const struct flashctx *const flashctx)
 {
 	if (flashctx->layout && flashctx->layout->num_entries)
 		return flashctx->layout;
@@ -52,7 +52,7 @@ int read_romlayout(const char *name)
 	romlayout = fopen(name, "r");
 
 	if (!romlayout) {
-		msg_gerr("ERROR: Could not open layout file (%s).\n",
+		msg_gerr("ERROR: Could not open ROM layout (%s).\n",
 			name);
 		return -1;
 	}
@@ -81,7 +81,7 @@ int read_romlayout(const char *name)
 		}
 		layout->entries[layout->num_entries].start = strtol(tstr1, (char **)NULL, 16);
 		layout->entries[layout->num_entries].end = strtol(tstr2, (char **)NULL, 16);
-		layout->entries[layout->num_entries].included = false;
+		layout->entries[layout->num_entries].included = 0;
 		layout->entries[layout->num_entries].file = NULL;
 		layout->entries[layout->num_entries].name = strdup(tempname);
 		if (!layout->entries[layout->num_entries].name) {
@@ -106,25 +106,12 @@ _close_ret:
 #endif
 
 /* register an include argument (-i) for later processing */
-int register_include_arg(struct layout_include_args **args, char *include)
+int register_include_arg(struct layout_include_args **args, char *name)
 {
 	struct layout_include_args *tmp;
-	char *has_colon;
-	char *name;
-	char *file;
-
-	if (include == NULL) {
+	if (name == NULL) {
 		msg_gerr("<NULL> is a bad region name.\n");
 		return 1;
-	}
-
-	/* -i <image>[:<file>] */
-	has_colon = strchr(include, ':');
-	name = strtok(include, ":");
-	file = strtok(NULL, "");
-	if (has_colon && file == NULL) {
-		msg_gerr("Missing filename parameter in %s\n", include);
-		return -1;
 	}
 
 	tmp = *args;
@@ -142,44 +129,67 @@ int register_include_arg(struct layout_include_args **args, char *include)
 		return 1;
 	}
 
-	tmp->name = strdup(name);
-	if (file)
-		tmp->file = strdup(file);
+	tmp->name = name;
 	tmp->next = *args;
 	*args = tmp;
 
 	return 0;
 }
 
-/* returns 0 to indicate success, 1 to indicate failure */
-static int include_region(struct flashrom_layout *const l, const char *name,
-			  const char *file)
+/**
+ * @brief Mark given region as included.
+ *
+ * @param layout The layout to alter.
+ * @param name   The name of the region to include.
+ * @param file   The filename of the region to include.
+ *
+ * @return i on success,
+ *         -1 if the given name can't be found.
+ */
+static int flashrom_layout_include_region_file(struct flashrom_layout *const layout, const char *name, char *file)
 {
 	size_t i;
-	for (i = 0; i < l->num_entries; ++i) {
-		if (!strcmp(l->entries[i].name, name)) {
-			l->entries[i].included = true;
+	for (i = 0; i < layout->num_entries; ++i) {
+		if (!strcmp(layout->entries[i].name, name)) {
+			layout->entries[i].included = true;
 			if (file)
-				l->entries[i].file = strdup(file);
-			return 0;
+				layout->entries[i].file = strdup(file);
+			return i;
 		}
 	}
-	return 1;
+	return -1;
 }
 
-/* returns -1 if an entry is not found, 0 if found. */
-int find_romentry(struct flashrom_layout *const l, char *name, char *file)
+/* returns -1 if an entry is not found, i if found. */
+int find_romentry(struct flashrom_layout *const l, char *name)
 {
+	int ret;
+	char *file = NULL;
+	char *has_colon;
+
 	if (l->num_entries == 0)
 		return -1;
 
+	/* -i <image>[:<file>] */
+	has_colon = strchr(name, ':');
+	if (strtok(name, ":")) {
+		file = strtok(NULL, "");
+		if (has_colon && file == NULL) {
+			msg_gerr("Missing filename parameter in %s\n", name);
+			return -1;
+		}
+	}
+	msg_gdbg("Looking for \"%s\" (file=\"%s\")... ",
+	         name, file ? file : "<not specified>");
+
 	msg_gspew("Looking for region \"%s\"... ", name);
-	if (include_region(l, name, file)) {
+	ret = flashrom_layout_include_region_file(l, name, file);
+	if (ret < 0) {
 		msg_gspew("not found.\n");
 		return -1;
 	}
 	msg_gspew("found.\n");
-	return 0;
+	return ret;
 }
 
 
@@ -213,9 +223,8 @@ int process_include_args(struct flashrom_layout *l, const struct layout_include_
 
 	tmp = args;
 	while (tmp) {
-		if (find_romentry(l, tmp->name, tmp->file) < 0) {
-			msg_gerr("Invalid region specified: \"%s\".\n",
-				 tmp->name);
+		if (find_romentry(l, tmp->name) < 0) {
+			msg_gerr("Nonexisting region name specified: \"%s\".\n", tmp->name);
 			return 1;
 		}
 		tmp = tmp->next;
@@ -233,41 +242,6 @@ int process_include_args(struct flashrom_layout *l, const struct layout_include_
 	return 0;
 }
 
-/* returns boolean 1 if any regions overlap, 0 otherwise */
-int included_regions_overlap(const struct flashrom_layout *const l)
-{
-	size_t i;
-	int overlap_detected = 0;
-
-	for (i = 0; i < l->num_entries; i++) {
-		size_t j;
-
-		if (!l->entries[i].included)
-			continue;
-
-		for (j = i + 1; j < l->num_entries; j++) {
-			if (!l->entries[j].included)
-				continue;
-
-			if (l->entries[i].start > l->entries[j].end)
-				continue;
-
-			if (l->entries[i].end < l->entries[j].start)
-				continue;
-
-			msg_gdbg("Regions %s [0x%08x-0x%08x] and "
-				"%s [0x%08x-0x%08x] overlap\n",
-				l->entries[i].name, l->entries[i].start,
-				l->entries[i].end, l->entries[j].name,
-				l->entries[j].start, l->entries[j].end);
-			overlap_detected = 1;
-			goto out;
-		}
-	}
-out:
-	return overlap_detected;
-}
-
 void layout_cleanup(struct layout_include_args **args)
 {
 	struct flashrom_layout *const layout = get_global_layout();
@@ -276,8 +250,6 @@ void layout_cleanup(struct layout_include_args **args)
 
 	while (*args) {
 		tmp = (*args)->next;
-		free((*args)->name);
-		free((*args)->file);
 		free(*args);
 		*args = tmp;
 	}
@@ -285,9 +257,45 @@ void layout_cleanup(struct layout_include_args **args)
 	for (i = 0; i < layout->num_entries; i++) {
 		free(layout->entries[i].name);
 		free(layout->entries[i].file);
-		layout->entries[i].included = false;
+		layout->entries[i].included = 0;
 	}
 	layout->num_entries = 0;
+}
+
+/* returns boolean 1 if regions overlap, 0 otherwise */
+int included_regions_overlap(const struct flashrom_layout *const layout)
+{
+	int overlap_detected = 0;
+
+	for (size_t i = 0; i < layout->num_entries; i++) {
+		if (!layout->entries[i].included)
+			continue;
+
+		for (size_t j = 0; j < layout->num_entries; j++) {
+			if (!layout->entries[j].included)
+				continue;
+
+			if (i == j)
+				continue;
+
+			if (layout->entries[i].start > layout->entries[j].end)
+				continue;
+
+			if (layout->entries[i].end < layout->entries[j].start)
+				continue;
+
+			msg_gdbg("Regions %s [0x%08x-0x%08x] and "
+				"%s [0x%08x-0x%08x] overlap\n",
+				layout->entries[i].name, layout->entries[i].start,
+				layout->entries[i].end, layout->entries[j].name,
+				layout->entries[j].start, layout->entries[j].end);
+			overlap_detected = 1;
+			goto out;
+		}
+
+	}
+out:
+	return overlap_detected;
 }
 
 /* Validate and - if needed - normalize layout entries. */
@@ -488,7 +496,10 @@ const struct romentry *layout_next_included(
  */
 int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name)
 {
-	return include_region(layout, name, NULL);
+	int ret = flashrom_layout_include_region_file(layout, name, NULL);
+	if (ret < 0)
+		return 1;
+	return 0;
 }
 
 /**
