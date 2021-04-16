@@ -57,11 +57,10 @@ struct single_layout {
 
 struct layout_include_args {
 	char *name;
+	char *file;
 	struct layout_include_args *next;
 };
 
-struct flashrom_flashctx;
-#define flashctx flashrom_flashctx /* TODO: Agree on a name and convert all occurences. */
 
 /**
  * Extract regions to current directory
@@ -69,17 +68,18 @@ struct flashrom_flashctx;
  * @flash: Information about flash chip to access
  * @return 0 if OK, non-zero on error
  */
-int extract_regions(struct flashctx *flash);
+int extract_regions(struct flashrom_flashctx *flash);
 
 struct flashrom_layout *get_global_layout(void);
-const struct flashrom_layout *get_layout(const struct flashctx *const flashctx);
+struct flashrom_flashctx;
+const struct flashrom_layout *get_layout(const struct flashrom_flashctx *const flashctx);
 
-int find_romentry(struct flashrom_layout *const l, char *name);
-int fill_romentry(struct flashrom_layout *const l, struct romentry *entry, int n);
+int get_region_range(struct flashrom_layout *const l, const char *name,
+		     unsigned int *start, unsigned int *len);
 int process_include_args(struct flashrom_layout *l, const struct layout_include_args *const args);
 const struct romentry *layout_next_included_region(const struct flashrom_layout *, chipoff_t);
 const struct romentry *layout_next_included(const struct flashrom_layout *, const struct romentry *);
-int included_regions_overlap(const struct flashrom_layout *const layout);
+int included_regions_overlap(const struct flashrom_layout *const flashrom_layout);
 int get_required_erase_size(struct flashrom_flashctx *flash);
 int round_to_erasable_block_boundary(const int required_erase_size,
 				     const struct romentry *entry,

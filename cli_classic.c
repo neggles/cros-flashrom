@@ -48,7 +48,7 @@ static void cli_classic_usage(const char *name)
 	       "\n\t-p <programmername>[:<parameters>] [-c <chipname>]\n"
 	       "\t\t(--flash-name|--flash-size|\n"
 	       "\t\t [-E|(-r|-w|-v) <file>]\n"
-	       "\t\t [(-l <layoutfile>|--ifd| --fmap|--fmap-file <file>) [-i <imagename>[:<file>]]...]\n"
+	       "\t\t [(-l <layoutfile>|--ifd| --fmap|--fmap-file <file>) [-i <region>[:<file>]]...]\n"
 	       "\t\t [-n] [-N] [-f])]\n"
 	       "\t[-V[V[V]]] [-o <logfile>]\n\n", name);
 
@@ -74,7 +74,8 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-range=<start> <len>      set write protect range\n"
 	       "      --flash-name                  read out the detected flash name\n"
 	       "      --flash-size                  read out the detected flash size\n"
-	       " -i | --image <name>[:<file>]>      only flash image <name> from flash layout\n"
+	       " -i | --image <region>[:<file>]     only read/write image <region> from layout\n"
+	       "                                    (optionally with data from <file>)\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       " -L | --list-supported              print supported devices\n"
@@ -167,6 +168,7 @@ int main(int argc, char *argv[])
 		OPTION_DO_NOT_DIFF,
 	};
 	int ret = 0;
+	unsigned int wp_start = 0, wp_len = 0;
 
 	static const char optstring[] = "rRwvnNVEfc:l:i:p:o:Lzhbx";
 	static const struct option long_options[] = {
@@ -278,11 +280,8 @@ int main(int argc, char *argv[])
 			layoutfile = strdup(optarg);
 			break;
 		case 'i':
-			tempstr = strdup(optarg);
-			if (register_include_arg(&include_args, tempstr)) {
-				free(tempstr);
+			if (register_include_arg(&include_args, optarg))
 				cli_classic_abort_usage(NULL);
-			}
 			break;
 		case OPTION_FLASH_CONTENTS:
 			if (referencefile)
@@ -833,25 +832,14 @@ int main(int argc, char *argv[])
 	}
 
 	if (set_wp_region && wp_region) {
-		int n;
-		struct romentry entry;
-
 		struct flashrom_layout *const layout = get_global_layout();
-		n = find_romentry(layout, wp_region);
-		if (n < 0) {
-			msg_gerr("Error: Unable to find region \"%s\"\n",
-					wp_region);
+
+		if (get_region_range(layout, wp_region, &wp_start, &wp_len)) {
 			ret = 1;
 			goto out_shutdown;
 		}
 
-		if (fill_romentry(layout, &entry, n)) {
-			ret = 1;
-			goto out_shutdown;
-		}
-
-		ret |= wp->set_range(fill_flash,
-				entry.start, entry.end - entry.start + 1);
+		ret |= wp->set_range(fill_flash, wp_start, wp_len);
 		free(wp_region);
 	}
 

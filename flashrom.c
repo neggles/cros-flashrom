@@ -1539,7 +1539,7 @@ static int read_buf_from_include_args(const struct flashctx *const flash,
 	 * we need to know exactly what content to write to the ROM.
 	 */
 	if (included_regions_overlap(layout)) {
-		msg_gerr("Error: Included regions must not overlap.\n");
+		msg_gerr("Error: Included regions must not overlap when writing.\n");
 		return 1;
 	}
 
