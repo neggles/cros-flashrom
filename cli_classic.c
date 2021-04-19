@@ -76,6 +76,7 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-range=<start> <len>      set write protect range\n"
 	       "      --flash-name                  read out the detected flash name\n"
 	       "      --flash-size                  read out the detected flash size\n"
+	       "      --ifd                         read layout from an Intel Firmware Descriptor\n"
 	       " -i | --image <region>[:<file>]     only read/write image <region> from layout\n"
 	       "                                    (optionally with data from <file>)\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
@@ -151,7 +152,7 @@ int main(int argc, char *argv[])
 	struct flashctx *fill_flash;
 	const char *name;
 	int namelen, opt, i, j;
-	int startchip = -1, chipcount = 0, option_index = 0, force = 0;
+	int startchip = -1, chipcount = 0, option_index = 0, force = 0, ifd = 0;
 #if CONFIG_PRINT_WIKI == 1
 	int list_supported_wiki = 0;
 #endif
@@ -162,10 +163,10 @@ int main(int argc, char *argv[])
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
 	int do_diff = 1;
 	int set_ignore_fmap = 0;
+	struct flashrom_layout *layout = NULL;
 	enum programmer prog = PROGRAMMER_INVALID;
 	enum {
-		/* start after ASCII chars */
-		OPTION_DIFF = 0x0100,
+		OPTION_IFD = 0x0100,
 		OPTION_FLASH_CONTENTS,
 		OPTION_FLASH_NAME,
 		OPTION_FLASH_SIZE,
@@ -175,6 +176,7 @@ int main(int argc, char *argv[])
 		OPTION_WP_ENABLE,
 		OPTION_WP_DISABLE,
 		OPTION_WP_LIST,
+		OPTION_DIFF,
 		OPTION_IGNORE_FMAP,
 		OPTION_FAST_VERIFY,
 		OPTION_IGNORE_LOCK,
@@ -195,6 +197,7 @@ int main(int argc, char *argv[])
 		{"verbose",		0, NULL, 'V'},
 		{"force",		0, NULL, 'f'},
 		{"layout",		1, NULL, 'l'},
+		{"ifd",			0, NULL, OPTION_IFD},
 		{"image",		1, NULL, 'i'},
 		{"flash-contents",	1, NULL, OPTION_FLASH_CONTENTS},
 		{"flash-name",		0, NULL, OPTION_FLASH_NAME},
@@ -303,7 +306,14 @@ int main(int argc, char *argv[])
 		case 'l':
 			if (layoutfile)
 				cli_classic_abort_usage("Error: --layout specified more than once. Aborting.\n");
+			if (ifd)
+				cli_classic_abort_usage("Error: --layout and --ifd both specified. Aborting.\n");
 			layoutfile = strdup(optarg);
+			break;
+		case OPTION_IFD:
+			if (layoutfile)
+				cli_classic_abort_usage("Error: --layout and --ifd both specified. Aborting.\n");
+			ifd = 1;
 			break;
 		case 'i':
 			if (register_include_arg(&include_args, optarg))
@@ -498,6 +508,17 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
+	/* If the user doesn't specify any -i argument, then we can skip the
+	 * fmap parsing to speed up. */
+	if (!include_args && !extract_it) {
+		msg_gdbg("No -i argument is specified, set ignore_fmap.\n");
+		set_ignore_fmap = 1;
+	}
+
+	if (!ifd && set_ignore_fmap && process_include_args(get_global_layout(), include_args)) {
+		ret = 1;
+		goto out;
+	}
 	/* Does a chip with the requested name exist in the flashchips array? */
 	if (chip_to_probe) {
 		for (chip = flashchips; chip && chip->name; chip++)
@@ -785,23 +806,21 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	/* If the user doesn't specify any -i argument, then we can skip the
-	 * fmap parsing to speed up. */
-	if (!include_args && !extract_it) {
-		msg_gdbg("No -i argument is specified, set ignore_fmap.\n");
-		set_ignore_fmap = 1;
-	}
-
-	/*
-	 * Add entries for regions specified in flashmap, unless the user
-	 * explicitly requested not to look for fmap, or provided a layout
-	 * file.
-	 */
-	if (!set_ignore_fmap && !layoutfile &&
-	    get_fmap_entries(filename, fill_flash) < 0) {
+	if (layoutfile) {
+		layout = get_global_layout();
+	} else if (ifd && (flashrom_layout_read_from_ifd(&layout, fill_flash, NULL, 0) ||
+			   process_include_args(layout, include_args))) {
 		ret = 1;
 		goto out_shutdown;
+	} else if (!ifd && !set_ignore_fmap) {
+		if (get_fmap_entries(filename, fill_flash) < 0 ||
+		    process_include_args(get_global_layout(), include_args)) {
+			ret = 1;
+			goto out_shutdown;
+		}
+		layout = get_global_layout();
 	}
+	flashrom_layout_set(fill_flash, layout);
 
 	if (wp_status) {
 		if (wp && wp->wp_status) {
@@ -810,7 +829,7 @@ int main(int argc, char *argv[])
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 		}
-		goto out_shutdown;
+		goto out_release;
 	}
 
 	/* Note: set_wp_disable should be done before setting the range */
@@ -820,7 +839,7 @@ int main(int argc, char *argv[])
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
-			goto out_shutdown;
+			goto out_release;
 		}
 	}
 
@@ -832,7 +851,7 @@ int main(int argc, char *argv[])
 		if ((argc - optind) != 2) {
 			msg_gerr("Error: invalid number of arguments\n");
 			ret = 1;
-			goto out_shutdown;
+			goto out_release;
 		}
 
 		/* FIXME: add some error checking */
@@ -840,27 +859,24 @@ int main(int argc, char *argv[])
 		if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
 			msg_gerr("Error: value \"%s\" invalid\n", argv[optind]);
 			ret = 1;
-			goto out_shutdown;
+			goto out_release;
 		}
 
 		len = strtoul(argv[optind + 1], &endptr, 0);
 		if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
 			msg_gerr("Error: value \"%s\" invalid\n", argv[optind + 1]);
 			ret = 1;
-			goto out_shutdown;
+			goto out_release;
 		}
 
 		ret |= wp->set_range(fill_flash, start, len);
 	}
 
 	if (set_wp_region && wp_region) {
-		struct flashrom_layout *const layout = get_global_layout();
-
 		if (get_region_range(layout, wp_region, &wp_start, &wp_len)) {
 			ret = 1;
-			goto out_shutdown;
+			goto out_release;
 		}
-
 		ret |= wp->set_range(fill_flash, wp_start, wp_len);
 		free(wp_region);
 	}
@@ -876,7 +892,7 @@ int main(int argc, char *argv[])
 		if (wp_mode == WP_MODE_UNKNOWN) {
 			msg_gerr("Error: Invalid WP mode: \"%s\"\n", wp_mode_opt);
 			ret = 1;
-			goto out_shutdown;
+			goto out_release;
 		}
 
 		if (wp && wp->enable) {
@@ -884,7 +900,7 @@ int main(int argc, char *argv[])
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
-			goto out_shutdown;
+			goto out_release;
 		}
 	}
 
@@ -896,15 +912,9 @@ int main(int argc, char *argv[])
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
 		}
-		goto out_shutdown;
+		goto out_release;
 	}
 
-	if (process_include_args(get_global_layout(), include_args)) {
-		ret = 1;
-		goto out_shutdown;
-	}
-
-	flashrom_layout_set(fill_flash, get_global_layout());
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
 	fill_flash->flags.do_not_diff = !do_diff;
 #if CONFIG_INTERNAL == 1
@@ -931,6 +941,8 @@ int main(int argc, char *argv[])
 
 	msg_ginfo("%s\n", ret ? "FAILED" : "SUCCESS");
 
+out_release:
+	flashrom_layout_release(layout);
 out_shutdown:
 	programmer_shutdown();
 out:
