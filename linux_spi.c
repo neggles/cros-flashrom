@@ -75,10 +75,8 @@ static int linux_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsig
 
 static int linux_spi_shutdown(void *data)
 {
-	struct linux_spi_data *spi_data = (struct linux_spi_data *) data;
-	if (spi_data->fd != -1)
-		close(spi_data->fd);
-
+	struct linux_spi_data *spi_data = data;
+	close(spi_data->fd);
 	free(spi_data);
 	return 0;
 }
@@ -202,7 +200,8 @@ static char *linux_spi_probe(void)
 }
 
 /* Read max buffer size from sysfs, or use page size as fallback. */
-static size_t get_max_kernel_buf_size() {
+static size_t get_max_kernel_buf_size()
+{
 	size_t result = 0;
 	FILE *fp;
 	fp = fopen(BUF_SIZE_FROM_SYSFS, "r");
@@ -249,10 +248,9 @@ int linux_spi_init(void)
 	/* SPI mode 0 (beware this also includes: MSB first, CS active low and others */
 	const uint8_t mode = SPI_MODE_0;
 	const uint8_t bits = 8;
-	int fd = -1;
+	int fd;
 	size_t max_kernel_buf_size;
 	struct linux_spi_data *spi_data;
-	int ret = 0;
 
 	p = extract_programmer_param("spispeed");
 	if (p && strlen(p)) {
@@ -291,7 +289,6 @@ int linux_spi_init(void)
 	if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed_hz) == -1) {
 		msg_perr("%s: failed to set speed to %"PRIu32"Hz: %s\n",
 			 __func__, speed_hz, strerror(errno));
-		ret = 1;
 		goto init_err;
 	}
 	msg_pdbg("Using %"PRIu32"kHz clock\n", speed_hz / 1000);
@@ -299,14 +296,12 @@ int linux_spi_init(void)
 	if (ioctl(fd, SPI_IOC_WR_MODE, &mode) == -1) {
 		msg_perr("%s: failed to set SPI mode to 0x%02x: %s\n",
 			 __func__, mode, strerror(errno));
-		ret = 1;
 		goto init_err;
 	}
 
 	if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits) == -1) {
 		msg_perr("%s: failed to set the number of bits per SPI word to %u: %s\n",
 			 __func__, bits == 0 ? 8 : bits, strerror(errno));
-		ret = 1;
 		goto init_err;
 	}
 
@@ -316,7 +311,6 @@ int linux_spi_init(void)
 	spi_data = calloc(1, sizeof(*spi_data));
 	if (!spi_data) {
 		msg_perr("Unable to allocated space for SPI master data\n");
-		ret = SPI_GENERIC_ERROR;
 		goto init_err;
 	}
 	spi_data->fd = fd;
@@ -325,18 +319,14 @@ int linux_spi_init(void)
 
 	if (register_shutdown(linux_spi_shutdown, spi_data)) {
 		free(spi_data);
-		ret = 1;
 		goto init_err;
 	}
 	register_spi_master(&spi_master_linux);
 	return 0;
 
 init_err:
-	if (fd != -1) {
-		close(fd);
-		fd = -1;
-	}
-	return ret;
+	close(fd);
+	return 1;
 }
 
 #endif // CONFIG_LINUX_SPI == 1
