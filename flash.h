@@ -348,7 +348,6 @@ void unmap_flash(struct flashctx *flash);
 int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int erase_flash(struct flashctx *flash);
 int probe_flash(struct registered_master *mst, int startchip, struct flashctx *fill_flash, int force);
-int read_flash(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int read_flash_to_file(struct flashctx *flash, const char *filename);
 char *extract_param(const char *const *haystack, const char *needle, const char *delim);
 int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len);
@@ -361,7 +360,6 @@ int read_buf_from_file(unsigned char *buf, unsigned long size, const char *filen
 int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *filename);
 int prepare_flash_access(struct flashctx *, bool read_it, bool write_it, bool erase_it, bool verify_it);
 void finalize_flash_access(struct flashctx *);
-
 int do_read(struct flashctx *, const char *filename);
 int do_extract(struct flashctx *);
 int do_erase(struct flashctx *);

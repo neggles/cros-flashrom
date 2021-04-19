@@ -1653,8 +1653,8 @@ static int write_buf_to_include_args(const struct flashctx *const flash,
  * This wrapper simplifies most cases when the flash chip needs to be read
  * since policy decisions such as non-fatal error handling is centralized.
  */
-int read_flash(struct flashctx *flash, uint8_t *buf,
-		unsigned int start, unsigned int len)
+static int read_flash(struct flashctx *flash, uint8_t *buf,
+		      unsigned int start, unsigned int len)
 {
 	int ret;
 

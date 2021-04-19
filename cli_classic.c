@@ -161,6 +161,31 @@ static int parse_wp_range(unsigned int *start, unsigned int *len, char *arg)
 	return 0;
 }
 
+static int flashrom_layout_read_fmap_from_file(struct flashrom_layout **layout,
+					       struct flashrom_flashctx *flashctx, const char *fmapfile)
+{
+	int ret = 1;
+	struct stat s;
+	if (stat(fmapfile, &s) != 0) {
+		return ret;
+	}
+
+	size_t fmapfile_size = s.st_size;
+	uint8_t *fmapfile_buffer = malloc(fmapfile_size);
+	if (!fmapfile_buffer) {
+		return ret;
+	}
+
+	if (read_buf_from_file(fmapfile_buffer, fmapfile_size, fmapfile)) {
+		goto out;
+	}
+
+	ret = flashrom_layout_read_fmap_from_buffer(layout, flashctx, fmapfile_buffer, fmapfile_size);
+out:
+	free(fmapfile_buffer);
+	return ret;
+}
+
 int main(int argc, char *argv[])
 {
 	const struct flashchip *chip = NULL;
@@ -799,13 +824,13 @@ int main(int argc, char *argv[])
 			   process_include_args(layout, include_args))) {
 		ret = 1;
 		goto out_shutdown;
-	} else if (!ifd && !set_ignore_fmap) {
-		if (get_fmap_entries(filename, fill_flash) < 0 ||
-		    process_include_args(get_global_layout(), include_args)) {
-			ret = 1;
-			goto out_shutdown;
-		}
-		layout = get_global_layout();
+	} else if (!ifd && !set_ignore_fmap &&
+		   ((flashrom_layout_read_fmap_from_file(&layout, fill_flash, filename) &&
+		     flashrom_layout_read_fmap_from_rom(&layout, fill_flash, 0,
+							fill_flash->chip->total_size * 1024)) ||
+		    process_include_args(layout, include_args))) {
+		ret = 1;
+		goto out_shutdown;
 	}
 	flashrom_layout_set(fill_flash, layout);
 
