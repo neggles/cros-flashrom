@@ -17,15 +17,14 @@
  * GNU General Public License for more details.
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <errno.h>
 #include "big_lock.h"
 #include "flash.h"
 #include "flashchips.h"
@@ -48,25 +47,26 @@ static void cli_classic_usage(const char *name)
 #endif
 	       "\n\t-p <programmername>[:<parameters>] [-c <chipname>]\n"
 	       "\t\t(--flash-name|--flash-size|\n"
-	       "\t\t [-E|(-r|-w|-v) <file>]\n"
-	       "\t\t [(-l <layoutfile>|--ifd| --fmap|--fmap-file <file>) [-i <region>[:<file>]]...]\n"
+	       "\t\t [-E|-x|(-r|-w|-v) [<file|->])]\n"
+	       "\t\t [(-l <layoutfile>|--ifd) [-i <region>[:<file>]]...]\n"
 	       "\t\t [-n] [-N] [-f])]\n"
 	       "\t[-V[V[V]]] [-o <logfile>]\n\n", name);
 
 	printf(" -h | --help                        print this help text\n"
 	       " -R | --version                     print version (release)\n"
-	       "   -r | --read <file|->              read flash and save to "
-	         "<file> or write on the standard output\n"
-	       "   -w | --write <file|->             write <file> or "
-	         "the content provided on the standard input to flash\n"
-	       "   -v | --verify <file|->            verify flash against "
-	         "<file> or the content provided on the standard input\n"
+	       " -r | --read [<file|->]             read flash and save to <file>\n"
+	       "                                    or write on the standard output\n"
+	       " -w | --write [<file|->]            write <file> or the content provided\n"
+	       "                                    on the standard input to flash\n"
+	       " -v | --verify [<file|->]           verify flash against <file>\n"
+	       "                                    or the content provided on the standard input\n"
 	       " -E | --erase                       erase flash memory\n"
 	       " -V | --verbose                     more verbose output\n"
 	       " -c | --chip <chipname>             probe only for specified flash chip\n"
 	       " -f | --force                       force specific operations (see man page)\n"
 	       " -n | --noverify                    don't auto-verify\n"
 	       " -N | --noverify-all                verify included regions only (cf. -i)\n"
+	       "      --fast-verify                 DEPRECATED: use --noverify-all\n"
 	       " -x | --extract                     extract regions to files\n"
 	       " -l | --layout <layoutfile>         read ROM layout from <layoutfile>\n"
 	       "      --wp-disable                  disable write protection\n"
@@ -76,27 +76,22 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-range=<start> <len>      set write protect range\n"
 	       "      --flash-name                  read out the detected flash name\n"
 	       "      --flash-size                  read out the detected flash size\n"
+	       "      --ignore-fmap                 ignore fmap structure\n"
 	       "      --ifd                         read layout from an Intel Firmware Descriptor\n"
 	       " -i | --image <region>[:<file>]     only read/write image <region> from layout\n"
 	       "                                    (optionally with data from <file>)\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
+	       "      --diff <ref-file>             DEPRECATED: use --flash-contents\n"
+	       "      --do-not-diff                 do not diff with chip contents\n"
+	       "                                    (should be used with erased chips only)\n"
+	       "      --ignore-lock                 do not acquire big lock\n"
 	       " -L | --list-supported              print supported devices\n"
 #if CONFIG_PRINT_WIKI == 1
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
 #endif
 	       " -p | --programmer <name>[:<param>] specify the programmer device. One of\n");
 	list_programmers_linebreak(4, 80, 0);
-
-	msg_ginfo("Long-options:\n"
-	       "   --diff <file>                     diff from file instead of ROM\n"
-	       "   --do-not-diff                     do not diff with chip"
-		  " contents (should be used with erased chips only)\n"
-	       "   --fast-verify                     only verify written part\n"
-	       "   --ignore-fmap                     ignore fmap structure\n"
-	       "   --ignore-lock                     do not acquire big lock\n"
-	       );
-
 	printf(".\n\nYou can specify one of -h, -R, -L, "
 #if CONFIG_PRINT_WIKI == 1
 	         "-z, "
@@ -161,7 +156,7 @@ int main(int argc, char *argv[])
 	int set_wp_range = 0, set_wp_region = 0, wp_list = 0;
 	int read_it = 0, extract_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
-	int do_diff = 1;
+	int do_not_diff = 0;
 	int set_ignore_fmap = 0;
 	struct flashrom_layout *layout = NULL;
 	enum programmer prog = PROGRAMMER_INVALID;
@@ -177,21 +172,22 @@ int main(int argc, char *argv[])
 		OPTION_WP_DISABLE,
 		OPTION_WP_LIST,
 		OPTION_DIFF,
+		OPTION_DO_NOT_DIFF,
 		OPTION_IGNORE_FMAP,
 		OPTION_FAST_VERIFY,
 		OPTION_IGNORE_LOCK,
-		OPTION_DO_NOT_DIFF,
 	};
 	int ret = 0;
 	unsigned int wp_start = 0, wp_len = 0;
 
-	static const char optstring[] = "rRwvnNVEfc:l:i:p:o:Lzhbx";
+	static const char optstring[] = "rRwvnNVEfc:l:i:p:Lzho:x";
 	static const struct option long_options[] = {
 		{"read",		0, NULL, 'r'},
 		{"write",		0, NULL, 'w'},
 		{"erase",		0, NULL, 'E'},
 		{"verify",		0, NULL, 'v'},
 		{"noverify",		0, NULL, 'n'},
+		{"noverify-all",	0, NULL, 'N'},
 		{"extract",		0, NULL, 'x'},
 		{"chip",		1, NULL, 'c'},
 		{"verbose",		0, NULL, 'V'},
@@ -281,6 +277,8 @@ int main(int argc, char *argv[])
 			}
 			dont_verify_it = 1;
 			break;
+		case OPTION_FAST_VERIFY:
+			// DEPRECATED
 		case 'N':
 			dont_verify_all = 1;
 			break;
@@ -319,10 +317,15 @@ int main(int argc, char *argv[])
 			if (register_include_arg(&include_args, optarg))
 				cli_classic_abort_usage(NULL);
 			break;
+		case OPTION_DIFF:
+			// DEPRECATED
 		case OPTION_FLASH_CONTENTS:
 			if (referencefile)
 				cli_classic_abort_usage("Error: --flash-contents specified more than once."
 							"Aborting.\n");
+			if (do_not_diff)
+				cli_classic_abort_usage("Error: --flash-contents and --do-not-diff both "
+							"specified. Aborting.\n");
 			referencefile = strdup(optarg);
 			break;
 		case OPTION_FLASH_NAME:
@@ -430,20 +433,17 @@ int main(int argc, char *argv[])
 #endif /* STANDALONE */
 			break;
 		case OPTION_DO_NOT_DIFF:
-			do_diff = 0;
+			if (referencefile)
+				cli_classic_abort_usage("Error: --flash-contents and --do-not-diff both "
+							"specified. Aborting.\n");
+			do_not_diff = 1;
 			break;
 		case OPTION_WP_SET_REGION:
 			set_wp_region = 1;
 			wp_region = strdup(optarg);
 			break;
-		case OPTION_DIFF:
-			referencefile = strdup(optarg);
-			break;
 		case OPTION_IGNORE_FMAP:
 			set_ignore_fmap = 1;
-			break;
-		case OPTION_FAST_VERIFY:
-			dont_verify_all = 1;
 			break;
 		case OPTION_IGNORE_LOCK:
 			set_ignore_lock = 1;
@@ -458,13 +458,8 @@ int main(int argc, char *argv[])
 	if (optind < argc)
 		cli_classic_abort_usage("Error: Extra parameter found.\n");
 #endif
-
 	if (layoutfile && check_filename(layoutfile, "layout"))
 		cli_classic_abort_usage(NULL);
-
-	if (!do_diff && referencefile) {
-		cli_classic_abort_usage("Both --diff and --do-not-diff set, what do you want to do?\n");
-	}
 	if (referencefile && check_filename(referencefile, "reference"))
 		cli_classic_abort_usage(NULL);
 
@@ -901,7 +896,7 @@ int main(int argc, char *argv[])
 	}
 
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
-	fill_flash->flags.do_not_diff = !do_diff;
+	fill_flash->flags.do_not_diff = do_not_diff;
 #if CONFIG_INTERNAL == 1
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE_BOARDMISMATCH, !!force_boardmismatch);
 #endif
