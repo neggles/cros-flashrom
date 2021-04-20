@@ -2039,42 +2039,6 @@ static int erase_and_write_flash(struct flashctx *flash,
 	return ret;
 }
 
-static int verify_flash(struct flashctx *flash,
-			struct action_descriptor *descriptor)
-{
-	int ret;
-	unsigned int total_size = flash->chip->total_size * 1024;
-	uint8_t *buf = descriptor->newcontents;
-
-	const bool verify_all = flash->flags.verify_whole_chip;
-	if (!verify_all) {
-		struct processing_unit *pu = descriptor->processing_units;
-
-		/* Verify only areas which were written. */
-		while (pu->num_blocks) {
-			ret = verify_range(flash, buf + pu->offset, pu->offset,
-					   pu->block_size * pu->num_blocks);
-			if (ret)
-				break;
-			pu++;
-		}
-	} else {
-		ret = verify_range(flash, buf, 0, total_size);
-	}
-
-	if (ret) {
-		msg_gdbg("Could not fully verify due to error, ");
-		if (ignore_error(ret)) {
-			msg_gdbg("ignoring\n");
-			ret = 0;
-		} else {
-			msg_gdbg("aborting\n");
-		}
-	}
-
-	return ret;
-}
-
 /**
  * @brief Compares the included layout regions with content from a buffer.
  *
@@ -2093,23 +2057,32 @@ static int verify_by_layout(struct flashctx *const flashctx,
 {
 	const struct flashrom_layout *const layout = get_layout(flashctx);
 	const struct romentry *entry = NULL;
-	int required_erase_size = get_required_erase_size(flashctx);
+	int ret = 0;
 
 	while ((entry = layout_next_included(layout, entry))) {
 		const chipoff_t region_start	= entry->start;
 		const chipsize_t region_len	= entry->end - entry->start + 1;
-		unsigned int rounded_start, rounded_len;
 
-		if (round_to_erasable_block_boundary(required_erase_size, entry,
-						     &rounded_start, &rounded_len))
-			return 1;
-		if (read_flash(flashctx, curcontents + rounded_start, rounded_start, rounded_len))
-			return 1;
+		if ((ret = flashctx->chip->read(flashctx, curcontents + region_start,
+					   region_start, region_len)))
+			break;
 		if (compare_range(newcontents + region_start, curcontents + region_start,
 				  region_start, region_len))
 			return 3;
 	}
-	return 0;
+
+	if (ret) {
+		msg_gdbg("Could not fully verify due to error, ");
+		if (ignore_error(ret)) {
+			msg_gdbg("ignoring\n");
+			ret = 0;
+		} else {
+			msg_gdbg("aborting\n");
+			ret = 1;
+		}
+	}
+
+	return ret;
 }
 
 static void nonfatal_help_message(void)
@@ -2681,6 +2654,7 @@ static void combine_image_by_layout(const struct flashctx *const flashctx,
  * @param refbuffer If given, assume flash chip contains same data as `refbuffer`.
  * @return 0 on success,
  *         4 if buffer_len doesn't match the size of the flash chip,
+ *         3 if write was tried but nothing has changed,
  *         2 if write failed and flash contents changed,
  *         or 1 on any other failure.
  */
@@ -2782,13 +2756,18 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 
 	/* Verify only if we actually changed something. */
 	if (verify && !all_skipped) {
+		const struct flashrom_layout *const layout_bak = flashctx->layout;
+
 		msg_cinfo("Verifying flash... ");
 
 		/* Work around chips which need some time to calm down. */
 		programmer_delay(1000*1000);
 
-		ret = verify_flash(flashctx, descriptor);
-
+		if (verify_all) {
+			flashctx->layout = NULL;
+		}
+		ret = verify_by_layout(flashctx, oldcontents, newcontents);
+		flashctx->layout = layout_bak;
 		/* If we tried to write, and verification now fails, we
 		   might have an emergency situation. */
 		if (ret)
