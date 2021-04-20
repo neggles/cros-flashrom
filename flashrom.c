@@ -45,10 +45,6 @@
 const char flashrom_version[] = FLASHROM_VERSION;
 const char *chip_to_probe = NULL;
 
-/* Set if any erase/write operation is to be done. This will be used to
- * decide if final verification is needed. */
-static int content_has_changed = 0;
-
 /* error handling stuff */
 static enum error_action access_denied_action = error_ignore;
 
@@ -626,6 +622,9 @@ static struct shutdown_func_data {
  * programmer init.
  */
 static int may_register_shutdown = 0;
+
+/* Did we change something or was every erase/write skipped (if any)? */
+static bool all_skipped = true;
 
 static int check_block_eraser(const struct flashctx *flash, int k, int log);
 
@@ -1700,8 +1699,8 @@ int read_flash(struct flashctx *flash, uint8_t *buf,
  * TODO: Look up regions that are write-protected and avoid attempt to write
  * to them at all.
  */
-static int write_flash(struct flashctx *flash, uint8_t *buf,
-		unsigned int start, unsigned int len)
+static int write_flash(struct flashctx *flash, const uint8_t *buf,
+		       unsigned int start, unsigned int len)
 {
 	if (!flash || !flash->chip->write)
 		return -1;
@@ -1963,7 +1962,7 @@ static int erase_and_write_block_helper(struct flashctx *const flash,
 	bool skipped = true;
 	msg_cdbg(":");
 	if (need_erase(info->curcontents, info->newcontents, erase_len, gran, 0xff)) {
-		content_has_changed |= 1;
+		all_skipped = false;
 		msg_cdbg(" E");
 		ret = erasefn(flash, info->erase_start, erase_len);
 		if (ret) {
@@ -1990,7 +1989,7 @@ static int erase_and_write_block_helper(struct flashctx *const flash,
 	while ((lenhere = get_next_write(info->curcontents + starthere,
 					 info->newcontents + starthere,
 					 erase_len - starthere, &starthere, gran))) {
-		content_has_changed |= 1;
+		all_skipped = false;
 		if (!writecount++)
 			msg_cdbg(" W");
 		/* Needs the partial write function signature. */
@@ -2595,8 +2594,7 @@ int flashrom_flash_erase(struct flashctx *const flashctx)
 _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
-	if (descriptor)
-		free(descriptor);
+	free(descriptor);
 	free(oldcontents);
 	free(newcontents);
 	return ret;
@@ -2686,7 +2684,7 @@ static void combine_image_by_layout(const struct flashctx *const flashctx,
  *         or 1 on any other failure.
  */
 int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, const size_t buffer_len,
-			 const void *const refbuffer)
+                         const void *const refbuffer)
 {
 	const size_t flash_size = flashctx->chip->total_size * 1024;
 	const bool verify_all = flashctx->flags.verify_whole_chip;
@@ -2781,7 +2779,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	}
 
 	/* Verify only if we actually changed something. */
-	if (verify && content_has_changed) {
+	if (verify && !all_skipped) {
 		msg_cinfo("Verifying flash... ");
 
 		/* Work around chips which need some time to calm down. */
@@ -2800,8 +2798,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
-	if (descriptor)
-		free(descriptor);
+	free(descriptor);
 	free(oldcontents);
 	free(newcontents);
 	return ret;
