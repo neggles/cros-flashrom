@@ -2057,8 +2057,6 @@ static int verify_flash(struct flashctx *flash,
 	unsigned int total_size = flash->chip->total_size * 1024;
 	uint8_t *buf = descriptor->newcontents;
 
-	msg_cinfo("Verifying flash... ");
-
 	const bool verify_all = flash->flags.verify_whole_chip;
 	if (!verify_all) {
 		struct processing_unit *pu = descriptor->processing_units;
@@ -2075,18 +2073,15 @@ static int verify_flash(struct flashctx *flash,
 		ret = verify_range(flash, buf, 0, total_size);
 	}
 
-	if (ret == SPI_ACCESS_DENIED) {
-		msg_gdbg("Could not fully verify due to access error, ");
-		if (access_denied_action == error_ignore) {
+	if (ret) {
+		msg_gdbg("Could not fully verify due to error, ");
+		if (ignore_error(ret)) {
 			msg_gdbg("ignoring\n");
 			ret = 0;
 		} else {
 			msg_gdbg("aborting\n");
 		}
 	}
-
-	if (!ret)
-		msg_cinfo("VERIFIED.          \n");
 
 	return ret;
 }
@@ -2795,22 +2790,21 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		goto _finalize_ret;
 	}
 
-	if (verify) {
-		if (!content_has_changed) {
-			msg_gdbg("Nothing was written, skipping verification\n");
-		} else {
-			/* Work around chips which need some time to calm down. */
-			if (verify_all)
-				programmer_delay(1000*1000);
+	/* Verify only if we actually changed something. */
+	if (verify && content_has_changed) {
+		msg_cinfo("Verifying flash... ");
 
-			ret = verify_flash(flashctx, descriptor);
+		/* Work around chips which need some time to calm down. */
+		programmer_delay(1000*1000);
 
-			/* If we tried to write, and verification now fails, we
-			 * might have an emergency situation.
-			 */
-			if (ret)
-				emergency_help_message();
-		}
+		ret = verify_flash(flashctx, descriptor);
+
+		/* If we tried to write, and verification now fails, we
+		   might have an emergency situation. */
+		if (ret)
+			emergency_help_message();
+		else
+			msg_cinfo("VERIFIED.\n");
 	}
 
 _finalize_ret:
