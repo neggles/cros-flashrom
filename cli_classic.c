@@ -135,6 +135,32 @@ static bool check_file(FILE *file)
 	return true;
 }
 
+static int parse_wp_range(unsigned int *start, unsigned int *len, char *arg)
+{
+	char *endptr = NULL, *token = NULL;
+
+	if (!arg) {
+		msg_gerr("Error: No wp-range values provided\n");
+		return -1;
+	}
+
+	token = strtok(arg, ",");
+	if (!token) {
+		msg_gerr("Error: Invalid wp-range argument format\n");
+		return -1;
+	}
+	*start = strtoul(token, &endptr, 0);
+
+	token = strtok(NULL, ",");
+	if (!token) {
+		msg_gerr("Error: Invalid wp-range argument format\n");
+		return -1;
+	}
+	*len = strtoul(token, &endptr, 0);
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	const struct flashchip *chip = NULL;
@@ -806,31 +832,35 @@ int main(int argc, char *argv[])
 
 	/* Note: set_wp_range must happen before set_wp_enable */
 	if (set_wp_range) {
-		unsigned int start, len;
+		unsigned int wp_start, wp_len;
 		char *endptr = NULL;
 
-		if ((argc - optind) != 2) {
+		if ((argc - optind) == 1) {
+			if (parse_wp_range(&wp_start, &wp_len, argv[optind]) < 0) {
+				ret = 1;
+				goto out_release;
+			}
+		} else if ((argc - optind) == 2) {
+			/* FIXME: add some error checking */
+			wp_start = strtoul(argv[optind], &endptr, 0);
+			if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
+				msg_gerr("Error: value \"%s\" invalid\n", argv[optind]);
+				ret = 1;
+				goto out_release;
+			}
+
+			wp_len = strtoul(argv[optind + 1], &endptr, 0);
+			if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
+				msg_gerr("Error: value \"%s\" invalid\n", argv[optind + 1]);
+				ret = 1;
+				goto out_release;
+			}
+		} else {
 			msg_gerr("Error: invalid number of arguments\n");
 			ret = 1;
 			goto out_release;
 		}
-
-		/* FIXME: add some error checking */
-		start = strtoul(argv[optind], &endptr, 0);
-		if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
-			msg_gerr("Error: value \"%s\" invalid\n", argv[optind]);
-			ret = 1;
-			goto out_release;
-		}
-
-		len = strtoul(argv[optind + 1], &endptr, 0);
-		if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
-			msg_gerr("Error: value \"%s\" invalid\n", argv[optind + 1]);
-			ret = 1;
-			goto out_release;
-		}
-
-		ret |= wp->set_range(fill_flash, start, len);
+		ret |= wp->set_range(fill_flash, wp_start, wp_len);
 	}
 
 	if (set_wp_region && wp_region) {
