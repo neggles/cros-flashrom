@@ -2478,14 +2478,14 @@ void finalize_flash_access(struct flashctx *const flash)
 	unmap_flash(flash);
 }
 
-static int setup_oldcontents(struct flashctx *flashctx, void *oldcontents,
+static int setup_curcontents(struct flashctx *flashctx, void *curcontents,
 			     int erase_it, const void *const refcontents)
 {
 	const size_t flash_size = flashctx->chip->total_size * 1024;
 	const bool verify_all = flashctx->flags.verify_whole_chip;
 	const bool verify = flashctx->flags.verify_after_write;
 
-	memset(oldcontents, UNERASED_VALUE(flashctx), flash_size);
+	memset(curcontents, UNERASED_VALUE(flashctx), flash_size);
 	if (!flashctx->flags.do_not_diff) {
 		/*
 		 * Obtain a reference image so that we can check whether
@@ -2495,16 +2495,16 @@ static int setup_oldcontents(struct flashctx *flashctx, void *oldcontents,
 		 */
 		if (refcontents) {
 			msg_cinfo("Assuming old flash chip contents as ref-file...\n");
-			memcpy(oldcontents, refcontents, flash_size);
+			memcpy(curcontents, refcontents, flash_size);
 		} else {
 			msg_cinfo("Reading old flash chip contents... ");
 			if (verify && verify_all) {
-				if (read_flash(flashctx, oldcontents, 0, flash_size)) {
+				if (read_flash(flashctx, curcontents, 0, flash_size)) {
 					msg_cinfo("FAILED.\n");
 					return 1;
 				}
 			} else {
-				if (read_by_layout(flashctx, oldcontents)) {
+				if (read_by_layout(flashctx, curcontents)) {
 					msg_cinfo("FAILED.\n");
 					return 1;
 				}
@@ -2513,7 +2513,7 @@ static int setup_oldcontents(struct flashctx *flashctx, void *oldcontents,
 		}
 	} else if (!erase_it) {
 		msg_pinfo("No diff performed, considering the chip erased.\n");
-		memset(oldcontents, ERASED_VALUE(flashctx), flash_size);
+		memset(curcontents, ERASED_VALUE(flashctx), flash_size);
 	}
 
 	return 0;
@@ -2542,9 +2542,9 @@ int flashrom_flash_erase(struct flashctx *const flashctx)
 	int ret = 1;
 
 	struct action_descriptor *descriptor = NULL;
-	uint8_t *oldcontents = malloc(flash_size);
+	uint8_t *curcontents = malloc(flash_size);
 	uint8_t *newcontents = malloc(flash_size);
-	if (!oldcontents || !newcontents) {
+	if (!curcontents || !newcontents) {
 		msg_gerr("Out of memory!\n");
 		goto _free_ret;
 	}
@@ -2552,13 +2552,13 @@ int flashrom_flash_erase(struct flashctx *const flashctx)
 	if (prepare_flash_access(flashctx, false, false, true, false))
 		goto _free_ret;
 
-	if (setup_oldcontents(flashctx, oldcontents, true, NULL))
+	if (setup_curcontents(flashctx, curcontents, true, NULL))
 		goto _finalize_ret;
 
 	memset(newcontents, ERASED_VALUE(flashctx), flash_size);
-	combine_image_by_layout(flashctx, newcontents, oldcontents);
+	combine_image_by_layout(flashctx, newcontents, curcontents);
 
-	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents, true);
+	descriptor = prepare_action_descriptor(flashctx, curcontents, newcontents, true);
 
 	if (!erase_and_write_flash(flashctx, descriptor)) {
 		ret = 0;
@@ -2568,7 +2568,7 @@ _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
 	free(descriptor);
-	free(oldcontents);
+	free(curcontents);
 	free(newcontents);
 	return ret;
 }
@@ -2672,9 +2672,9 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	int tmp = 0;
 
 	struct action_descriptor *descriptor = NULL;
-	uint8_t *oldcontents = malloc(flash_size);
+	uint8_t *curcontents = malloc(flash_size);
 	uint8_t *newcontents = malloc(flash_size);
-	if (!oldcontents || !newcontents) {
+	if (!curcontents || !newcontents) {
 		msg_gerr("Out of memory!\n");
 		goto _free_ret;
 	}
@@ -2682,13 +2682,13 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	if (prepare_flash_access(flashctx, false, true, false, verify))
 		goto _free_ret;
 
-	if (setup_oldcontents(flashctx, oldcontents, false, refbuffer))
+	if (setup_curcontents(flashctx, curcontents, false, refbuffer))
 		goto _finalize_ret;
 
 	memcpy(newcontents, buffer, flash_size);
-	combine_image_by_layout(flashctx, newcontents, oldcontents);
+	combine_image_by_layout(flashctx, newcontents, curcontents);
 
-	descriptor = prepare_action_descriptor(flashctx, oldcontents, newcontents,
+	descriptor = prepare_action_descriptor(flashctx, curcontents, newcontents,
 					       !flashctx->flags.do_not_diff);
 
 	// parse the new fmap and disable soft WP if necessary
@@ -2705,7 +2705,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 			msg_cinfo("Reading current flash chip contents... ");
 			if (!read_flash(flashctx, newcontents, 0, flash_size)) {
 				msg_cinfo("done.\n");
-				if (!memcmp(oldcontents, newcontents, flash_size)) {
+				if (!memcmp(curcontents, newcontents, flash_size)) {
 					nonfatal_help_message();
 					goto _finalize_ret;
 				}
@@ -2728,7 +2728,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	} else if (tmp > 0) {
 		// Need 2nd pass. Get the just written content.
 		msg_pdbg("CROS_EC needs 2nd pass.\n");
-		if (setup_oldcontents(flashctx, oldcontents, false, NULL)) {
+		if (setup_curcontents(flashctx, curcontents, false, NULL)) {
 			emergency_help_message();
 			goto _finalize_ret;
 		}
@@ -2736,7 +2736,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		/* Get a new descriptor. */
 		free(descriptor);
 		descriptor = prepare_action_descriptor(flashctx,
-						       oldcontents,
+						       curcontents,
 						       newcontents,
 						       !flashctx->flags.do_not_diff);
 		// write 2nd pass
@@ -2766,7 +2766,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		if (verify_all) {
 			flashctx->layout = NULL;
 		}
-		ret = verify_by_layout(flashctx, oldcontents, newcontents);
+		ret = verify_by_layout(flashctx, curcontents, newcontents);
 		flashctx->layout = layout_bak;
 		/* If we tried to write, and verification now fails, we
 		   might have an emergency situation. */
@@ -2782,7 +2782,7 @@ _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
 	free(descriptor);
-	free(oldcontents);
+	free(curcontents);
 	free(newcontents);
 	return ret;
 }
