@@ -1708,7 +1708,7 @@ static int write_flash(struct flashctx *flash, const uint8_t *buf,
 	return flash->chip->write(flash, buf, start, len);
 }
 
-static int read_by_layout(struct flashctx *, uint8_t *);
+static int read_by_layout(struct flashctx *, uint8_t *, bool);
 int read_flash_to_file(struct flashctx *flash, const char *filename)
 {
 	unsigned long size = flash->chip->total_size * 1024;
@@ -1731,7 +1731,7 @@ int read_flash_to_file(struct flashctx *flash, const char *filename)
 		ret = 1;
 		goto out_free;
 	}
-	if (read_by_layout(flash, buf)) {
+	if (read_by_layout(flash, buf, false)) {
 		msg_cerr("Read operation failed!\n");
 		ret = 1;
 		goto out_free;
@@ -1851,20 +1851,22 @@ static int check_block_eraser(const struct flashctx *flash, int k, int log)
  * @return 0 on success,
  *	   1 if any read fails.
  */
-static int read_by_layout(struct flashctx *const flashctx, uint8_t *const buffer)
+static int read_by_layout(struct flashctx *const flashctx, uint8_t *const buffer,
+			  bool align_to_erasable_block_boundary)
 {
 	const struct flashrom_layout *const layout = get_layout(flashctx);
 	const struct romentry *entry = NULL;
 	int required_erase_size = get_required_erase_size(flashctx);
 
 	while ((entry = layout_next_included(layout, entry))) {
-		unsigned int rounded_start, rounded_len;
+		chipoff_t region_start	= entry->start;
+		chipsize_t region_len	= entry->end - entry->start + 1;
 
-		if (round_to_erasable_block_boundary(required_erase_size, entry,
-						     &rounded_start, &rounded_len))
+		if (align_to_erasable_block_boundary &&
+		    round_to_erasable_block_boundary(required_erase_size, entry,
+						     &region_start, &region_len))
 			return 1;
-		if (read_flash(flashctx, buffer + rounded_start, rounded_start,
-			       rounded_len))
+		if (read_flash(flashctx, buffer + region_start, region_start, region_len))
 			return 1;
 	}
 	return 0;
@@ -2504,7 +2506,8 @@ static int setup_curcontents(struct flashctx *flashctx, void *curcontents,
 					return 1;
 				}
 			} else {
-				if (read_by_layout(flashctx, curcontents)) {
+				/* WARNING: See FIXME on get_required_erase_size() */
+				if (read_by_layout(flashctx, curcontents, true)) {
 					msg_cinfo("FAILED.\n");
 					return 1;
 				}
@@ -2606,7 +2609,7 @@ int flashrom_image_read(struct flashctx *const flashctx, void *const buffer, con
 	msg_cinfo("Reading flash... ");
 
 	int ret = 1;
-	if (read_by_layout(flashctx, buffer)) {
+	if (read_by_layout(flashctx, buffer, false)) {
 		msg_cerr("Read operation failed!\n");
 		msg_cinfo("FAILED.\n");
 		goto _finalize_ret;
