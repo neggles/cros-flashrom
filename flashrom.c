@@ -1889,9 +1889,9 @@ struct walk_info {
 	uint8_t *curcontents;
 	const uint8_t *newcontents;
 	chipoff_t erase_start;
-	chipoff_t erase_len;
+	chipoff_t erase_end;
 };
-typedef int (*per_blockfn_t)(struct flashctx *, struct walk_info *const, erasefn_t);
+typedef int (*per_blockfn_t)(struct flashctx *, const struct walk_info *, erasefn_t);
 
 /*
  * Function to process processing units accumulated in the action descriptor.
@@ -1931,10 +1931,10 @@ static int walk_eraseregions(struct flashctx *flash,
 			msg_cdbg("0x%06x-0x%06zx", base, base + pu->block_size - 1);
 
 			struct walk_info info = {
-				.curcontents = descriptor->oldcontents,
-				.newcontents = descriptor->newcontents,
+				.curcontents = descriptor->oldcontents + base,
+				.newcontents = descriptor->newcontents + base,
 				.erase_start = base,
-				.erase_len   = pu->block_size,
+				.erase_end   = base + pu->block_size - 1,
 			};
 			rc = per_blockfn(flash, &info, eraser->block_erase);
 
@@ -1951,31 +1951,21 @@ static int walk_eraseregions(struct flashctx *flash,
 	return rc;
 }
 
-static int erase_and_write_block_helper(struct flashctx *flash,
-					struct walk_info *const info,
-					erasefn_t erasefn)
+static int erase_and_write_block_helper(struct flashctx *const flash,
+					const struct walk_info *const info,
+					const erasefn_t erasefn)
 {
+	const unsigned int erase_len = info->erase_end + 1 - info->erase_start;
 	unsigned int starthere = 0, lenhere = 0;
 	int ret = 0, writecount = 0;
 	int block_was_erased = 0;
 	enum write_granularity gran = flash->chip->gran;
-
-	/*
-	 * curcontents and newcontents are opaque to walk_eraseregions, and
-	 * need to be adjusted here to keep the impression of proper
-	 * abstraction
-	 */
-
-	info->curcontents += info->erase_start;
-
-	info->newcontents += info->erase_start;
-
 	bool skipped = true;
 	msg_cdbg(":");
-	if (need_erase(info->curcontents, info->newcontents, info->erase_len, gran, 0xff)) {
+	if (need_erase(info->curcontents, info->newcontents, erase_len, gran, 0xff)) {
 		content_has_changed |= 1;
 		msg_cdbg(" E");
-		ret = erasefn(flash, info->erase_start, info->erase_len);
+		ret = erasefn(flash, info->erase_start, erase_len);
 		if (ret) {
 			if (ret == SPI_ACCESS_DENIED)
 				msg_cdbg(" DENIED");
@@ -1985,21 +1975,21 @@ static int erase_and_write_block_helper(struct flashctx *flash,
 		}
 
 		if (programmer_table[programmer].paranoid) {
-			if (check_erased_range(flash, info->erase_start, info->erase_len)) {
+			if (check_erased_range(flash, info->erase_start, erase_len)) {
 				msg_cerr(" ERASE_FAILED\n");
 				return -1;
 			}
 		}
 
 		/* Erase was successful. Adjust curcontents. */
-		memset(info->curcontents, ERASED_VALUE(flash), info->erase_len);
+		memset(info->curcontents, ERASED_VALUE(flash), erase_len);
 		skipped = false;
 		block_was_erased = 1;
 	}
 	/* get_next_write() sets starthere to a new value after the call. */
 	while ((lenhere = get_next_write(info->curcontents + starthere,
 					 info->newcontents + starthere,
-					 info->erase_len - starthere, &starthere, gran))) {
+					 erase_len - starthere, &starthere, gran))) {
 		content_has_changed |= 1;
 		if (!writecount++)
 			msg_cdbg(" W");
