@@ -2681,6 +2681,7 @@ static void combine_image_by_layout(const struct flashctx *const flashctx,
  * @param refbuffer If given, assume flash chip contains same data as `refbuffer`.
  * @return 0 on success,
  *         4 if buffer_len doesn't match the size of the flash chip,
+ *         2 if write failed and flash contents changed,
  *         or 1 on any other failure.
  */
 int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, const size_t buffer_len,
@@ -2694,6 +2695,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		return 4;
 
 	int ret = 1;
+	int tmp = 0;
 
 	struct action_descriptor *descriptor = NULL;
 	uint8_t *oldcontents = malloc(flash_size);
@@ -2716,41 +2718,43 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 					       !flashctx->flags.do_not_diff);
 
 	// parse the new fmap and disable soft WP if necessary
-	if ((ret = cros_ec_prepare(newcontents, flash_size))) {
-		msg_cerr("CROS_EC prepare failed, ret=%d.\n", ret);
+	if ((tmp = cros_ec_prepare(newcontents, flash_size))) {
+		msg_cerr("CROS_EC prepare failed, ret=%d.\n", tmp);
 		goto _finalize_ret;
 	}
 
 	if (erase_and_write_flash(flashctx, descriptor)) {
-		msg_cerr("Uh oh. Erase/write failed. Checking if anything changed.\n");
-		msg_cinfo("Reading current flash chip contents... ");
-		if (!read_flash(flashctx, newcontents, 0, flash_size)) {
-			msg_cinfo("done.\n");
-			if (!memcmp(oldcontents, newcontents, flash_size)) {
-				nonfatal_help_message();
-				ret = 1;
-				goto _finalize_ret;
-			}
-			msg_cerr("Apparently at least some data has changed.\n");
-		} else
-			msg_cerr("Can't even read anymore!\n");
+		msg_cerr("Uh oh. Erase/write failed. ");
+		ret = 2;
+		if (verify_all) {
+			msg_cerr("Checking if anything has changed.\n");
+			msg_cinfo("Reading current flash chip contents... ");
+			if (!read_flash(flashctx, newcontents, 0, flash_size)) {
+				msg_cinfo("done.\n");
+				if (!memcmp(oldcontents, newcontents, flash_size)) {
+					nonfatal_help_message();
+					goto _finalize_ret;
+				}
+				msg_cerr("Apparently at least some data has changed.\n");
+			} else
+				msg_cerr("Can't even read anymore!\n");
+		} else {
+			msg_cerr("\n");
+		}
 		emergency_help_message();
-		ret = 1;
 		goto _finalize_ret;
 	}
 
-	ret = cros_ec_need_2nd_pass();
-	if (ret < 0) {
+	tmp = cros_ec_need_2nd_pass();
+	if (tmp < 0) {
 		// Jump failed
 		msg_cerr("cros_ec_need_2nd_pass() failed. Stop.\n");
 		emergency_help_message();
-		ret = 1;
 		goto _finalize_ret;
-	} else if (ret > 0) {
+	} else if (tmp > 0) {
 		// Need 2nd pass. Get the just written content.
 		msg_pdbg("CROS_EC needs 2nd pass.\n");
-		ret = setup_oldcontents(flashctx, oldcontents, false, NULL);
-		if (ret) {
+		if (setup_oldcontents(flashctx, oldcontents, false, NULL)) {
 			emergency_help_message();
 			goto _finalize_ret;
 		}
@@ -2764,17 +2768,15 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		// write 2nd pass
 		if (erase_and_write_flash(flashctx, descriptor)) {
 			msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
+			ret = 2;
 			emergency_help_message();
-			ret = 1;
 			goto _finalize_ret;
 		}
-		ret = 0;
 	}
 
 	if (cros_ec_finish() < 0) {
 		msg_cerr("cros_ec_finish() failed. Stop.\n");
 		emergency_help_message();
-		ret = 1;
 		goto _finalize_ret;
 	}
 
@@ -2793,6 +2795,8 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 			emergency_help_message();
 		else
 			msg_cinfo("VERIFIED.\n");
+	} else {
+		ret = 0;
 	}
 
 _finalize_ret:
