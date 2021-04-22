@@ -2674,7 +2674,10 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	struct action_descriptor *descriptor = NULL;
 	uint8_t *curcontents = malloc(flash_size);
 	uint8_t *newcontents = malloc(flash_size);
-	if (!curcontents || !newcontents) {
+	uint8_t *oldcontents = NULL;
+	if (verify_all)
+		oldcontents = malloc(flash_size);
+	if (!curcontents || !newcontents || (verify_all && !oldcontents)) {
 		msg_gerr("Out of memory!\n");
 		goto _free_ret;
 	}
@@ -2684,6 +2687,8 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 
 	if (setup_curcontents(flashctx, curcontents, false, refbuffer))
 		goto _finalize_ret;
+	if (oldcontents)
+		memcpy(oldcontents, curcontents, flash_size);
 
 	memcpy(newcontents, buffer, flash_size);
 	combine_image_by_layout(flashctx, newcontents, curcontents);
@@ -2703,9 +2708,9 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		if (verify_all) {
 			msg_cerr("Checking if anything has changed.\n");
 			msg_cinfo("Reading current flash chip contents... ");
-			if (!read_flash(flashctx, newcontents, 0, flash_size)) {
+			if (!read_flash(flashctx, curcontents, 0, flash_size)) {
 				msg_cinfo("done.\n");
-				if (!memcmp(curcontents, newcontents, flash_size)) {
+				if (!memcmp(oldcontents, curcontents, flash_size)) {
 					nonfatal_help_message();
 					goto _finalize_ret;
 				}
@@ -2782,6 +2787,7 @@ _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
 	free(descriptor);
+	free(oldcontents);
 	free(curcontents);
 	free(newcontents);
 	return ret;
