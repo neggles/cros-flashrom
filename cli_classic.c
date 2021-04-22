@@ -739,33 +739,18 @@ int main(int argc, char *argv[])
 	 *   considered ambiguous. Note: This is checked later since it requires
 	 *   processing the layout/fmap first.
 	 */
-	if (read_it || write_it || verify_it) {
-		char op;
-
-		if (read_it)
-			op = 'r';
-		else if (write_it)
-			op = 'w';
-		else if (verify_it)
-			op = 'v';
-		else {
-			msg_gerr("Error: Unknown file operation\n");
+	if ((read_it | write_it | verify_it) && !filename) {
+		struct layout_include_args *arg;
+		if (!include_args) {
+			msg_gerr("Error: No image file specified.\n");
 			ret = 1;
 			goto out_shutdown;
 		}
 
-		if (!filename) {
-			if (!include_args) {
-				msg_gerr("Error: No file specified for -%c.\n", op);
+		for (arg = include_args; arg; arg = arg->next) {
+			if (check_filename(arg->file, "region")) {
 				ret = 1;
 				goto out_shutdown;
-			}
-
-			for (struct layout_include_args *arg = include_args; arg; arg = arg->next) {
-				if (!strchr(arg->name, ':')) {
-					msg_gerr("Error: Missing filename for region \"%s\"\n", arg->name);
-					ret = 1;
-				}
 			}
 		}
 	}
