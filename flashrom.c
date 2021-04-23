@@ -2485,22 +2485,23 @@ static int setup_curcontents(struct flashctx *flashctx, void *curcontents,
 {
 	const size_t flash_size = flashctx->chip->total_size * 1024;
 	const bool verify_all = flashctx->flags.verify_whole_chip;
-	const bool verify = flashctx->flags.verify_after_write;
 
 	memset(curcontents, UNERASED_VALUE(flashctx), flash_size);
 	if (!flashctx->flags.do_not_diff) {
-		/*
-		 * Obtain a reference image so that we can check whether
-		 * regions need to be erased and to give better diagnostics in
-		 * case write fails. If --fast-verify is used then only the
-		 * regions which are included using -i will be read.
-		 */
+		/* If given, assume flash chip contains same data as `refcontents`. */
 		if (refcontents) {
 			msg_cinfo("Assuming old flash chip contents as ref-file...\n");
 			memcpy(curcontents, refcontents, flash_size);
 		} else {
+			/*
+			 * Read the whole chip to be able to check whether regions need to be
+			 * erased and to give better diagnostics in case write fails.
+			 * The alternative is to read only the regions which are to be
+			 * preserved, but in that case we might perform unneeded erase which
+			 * takes time as well.
+			 */
 			msg_cinfo("Reading old flash chip contents... ");
-			if (verify && verify_all) {
+			if (verify_all) {
 				if (read_flash(flashctx, curcontents, 0, flash_size)) {
 					msg_cinfo("FAILED.\n");
 					return 1;
@@ -2518,7 +2519,6 @@ static int setup_curcontents(struct flashctx *flashctx, void *curcontents,
 		msg_pinfo("No diff performed, considering the chip erased.\n");
 		memset(curcontents, ERASED_VALUE(flashctx), flash_size);
 	}
-
 	return 0;
 }
 
