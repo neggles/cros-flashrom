@@ -23,7 +23,7 @@
 #include "hwaccess.h"
 
 int is_laptop = 0;
-int laptop_ok = 1;
+int laptop_ok = 0;
 
 int force_boardenable = 0;
 int force_boardmismatch = 0;
@@ -327,7 +327,7 @@ int internal_init(void)
 	 * this isn't a laptop. Board-enables may override this,
 	 * non-legacy buses (SPI and opaque atm) are probed anyway.
 	 */
-	if (force_laptop || (not_a_laptop && (is_laptop == 2)))
+	if (is_laptop && !(laptop_ok || force_laptop || (not_a_laptop && is_laptop == 2)))
 		internal_buses_supported = BUS_NONE;
 
 	/* try to enable it. Failure IS an option, since not all motherboards

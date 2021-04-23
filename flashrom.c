@@ -2742,6 +2742,18 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		goto _free_ret;
 	}
 
+#if CONFIG_INTERNAL == 1
+	if (programmer == PROGRAMMER_INTERNAL && cb_check_image(newcontents, flash_size) < 0) {
+		if (flashctx->flags.force_boardmismatch) {
+			msg_pinfo("Proceeding anyway because user forced us to.\n");
+		} else {
+			msg_perr("Aborting. You can override this with "
+				 "-p internal:boardmismatch=force.\n");
+			goto _free_ret;
+		}
+	}
+#endif
+
 	if (prepare_flash_access(flashctx, false, true, false, verify))
 		goto _free_ret;
 
