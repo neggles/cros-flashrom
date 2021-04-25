@@ -2025,9 +2025,12 @@ static int erase_and_write_block_helper(struct flashctx *const flash,
 }
 
 static int erase_and_write_flash(struct flashctx *flash,
-			  struct action_descriptor *descriptor)
+				 void *const curcontents, void *const newcontents)
 {
 	int ret = 1;
+	struct action_descriptor *descriptor =
+		prepare_action_descriptor(flash, curcontents, newcontents,
+					  !flash->flags.do_not_diff);
 
 	msg_cinfo("Erasing and writing flash chip... ");
 
@@ -2038,6 +2041,8 @@ static int erase_and_write_flash(struct flashctx *flash,
 	} else {
 		msg_cdbg("SUCCESS.\n");
 	}
+
+	free(descriptor);
 	return ret;
 }
 
@@ -2544,7 +2549,6 @@ int flashrom_flash_erase(struct flashctx *const flashctx)
 
 	int ret = 1;
 
-	struct action_descriptor *descriptor = NULL;
 	uint8_t *curcontents = malloc(flash_size);
 	uint8_t *newcontents = malloc(flash_size);
 	if (!curcontents || !newcontents) {
@@ -2561,16 +2565,11 @@ int flashrom_flash_erase(struct flashctx *const flashctx)
 	memset(newcontents, ERASED_VALUE(flashctx), flash_size);
 	combine_image_by_layout(flashctx, newcontents, curcontents);
 
-	descriptor = prepare_action_descriptor(flashctx, curcontents, newcontents, true);
-
-	if (!erase_and_write_flash(flashctx, descriptor)) {
-		ret = 0;
-	}
+	ret = erase_and_write_flash(flashctx, curcontents, newcontents);
 
 _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
-	free(descriptor);
 	free(curcontents);
 	free(newcontents);
 	return ret;
@@ -2674,7 +2673,6 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	int ret = 1;
 	int tmp = 0;
 
-	struct action_descriptor *descriptor = NULL;
 	uint8_t *curcontents = malloc(flash_size);
 	uint8_t *newcontents = malloc(flash_size);
 	uint8_t *oldcontents = NULL;
@@ -2696,16 +2694,13 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	memcpy(newcontents, buffer, flash_size);
 	combine_image_by_layout(flashctx, newcontents, curcontents);
 
-	descriptor = prepare_action_descriptor(flashctx, curcontents, newcontents,
-					       !flashctx->flags.do_not_diff);
-
 	// parse the new fmap and disable soft WP if necessary
 	if ((tmp = cros_ec_prepare(newcontents, flash_size))) {
 		msg_cerr("CROS_EC prepare failed, ret=%d.\n", tmp);
 		goto _finalize_ret;
 	}
 
-	if (erase_and_write_flash(flashctx, descriptor)) {
+	if (erase_and_write_flash(flashctx, curcontents, newcontents)) {
 		msg_cerr("Uh oh. Erase/write failed. ");
 		ret = 2;
 		if (verify_all) {
@@ -2741,14 +2736,8 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 			goto _finalize_ret;
 		}
 
-		/* Get a new descriptor. */
-		free(descriptor);
-		descriptor = prepare_action_descriptor(flashctx,
-						       curcontents,
-						       newcontents,
-						       !flashctx->flags.do_not_diff);
 		// write 2nd pass
-		if (erase_and_write_flash(flashctx, descriptor)) {
+		if (erase_and_write_flash(flashctx, curcontents, newcontents)) {
 			msg_cerr("Uh oh. CROS_EC 2nd pass failed.\n");
 			ret = 2;
 			emergency_help_message();
@@ -2789,7 +2778,6 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 _finalize_ret:
 	finalize_flash_access(flashctx);
 _free_ret:
-	free(descriptor);
 	free(oldcontents);
 	free(curcontents);
 	free(newcontents);
