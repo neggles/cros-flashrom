@@ -48,7 +48,7 @@ static void cli_classic_usage(const char *name)
 	       "\n\t-p <programmername>[:<parameters>] [-c <chipname>]\n"
 	       "\t\t(--flash-name|--flash-size|\n"
 	       "\t\t [-E|-x|(-r|-w|-v) [<file>]]\n"
-	       "\t\t [(-l <layoutfile>|--ifd) [-i <region>[:<file>]]...]\n"
+	       "\t\t [(-l <layoutfile>|--ifd|--fmap|--fmap-file <fmapfile>) [-i <region>[:<file>]]...]\n"
 	       "\t\t [-n] [-N] [-f])]\n"
 	       "\t[-V[V[V]]] [-o <logfile>]\n\n", name);
 
@@ -74,6 +74,8 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-range=<start> <len>      set write protect range\n"
 	       "      --flash-name                  read out the detected flash name\n"
 	       "      --flash-size                  read out the detected flash size\n"
+	       "      --fmap                        read ROM layout from fmap embedded in ROM\n"
+	       "      --fmap-file <fmapfile>        read ROM layout from fmap in <fmapfile>\n"
 	       "      --ifd                         read layout from an Intel Firmware Descriptor\n"
 	       " -i | --image <region>[:<file>]     only read/write image <region> from layout\n"
 	       "                                    (optionally with data from <file>)\n"
@@ -194,7 +196,7 @@ int main(int argc, char *argv[])
 	struct flashctx *fill_flash;
 	const char *name;
 	int namelen, opt, i, j;
-	int startchip = -1, chipcount = 0, option_index = 0, force = 0, ifd = 0;
+	int startchip = -1, chipcount = 0, option_index = 0, force = 0, ifd = 0, fmap = 0;
 #if CONFIG_PRINT_WIKI == 1
 	int list_supported_wiki = 0;
 #endif
@@ -204,11 +206,12 @@ int main(int argc, char *argv[])
 	int read_it = 0, extract_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
 	int do_not_diff = 0;
-	int set_ignore_fmap = 0;
 	struct flashrom_layout *layout = NULL;
 	enum programmer prog = PROGRAMMER_INVALID;
 	enum {
 		OPTION_IFD = 0x0100,
+		OPTION_FMAP,
+		OPTION_FMAP_FILE,
 		OPTION_FLASH_CONTENTS,
 		OPTION_FLASH_NAME,
 		OPTION_FLASH_SIZE,
@@ -238,6 +241,8 @@ int main(int argc, char *argv[])
 		{"force",		0, NULL, 'f'},
 		{"layout",		1, NULL, 'l'},
 		{"ifd",			0, NULL, OPTION_IFD},
+		{"fmap",		0, NULL, OPTION_FMAP},
+		{"fmap-file",		1, NULL, OPTION_FMAP_FILE},
 		{"image",		1, NULL, 'i'},
 		{"flash-contents",	1, NULL, OPTION_FLASH_CONTENTS},
 		{"flash-name",		0, NULL, OPTION_FLASH_NAME},
@@ -263,6 +268,7 @@ int main(int argc, char *argv[])
 	char *filename = NULL;
 	char *referencefile = NULL;
 	char *layoutfile = NULL;
+	char *fmapfile = NULL;
 #ifndef STANDALONE
 	char *logfile = NULL;
 #endif /* !STANDALONE */
@@ -345,12 +351,37 @@ int main(int argc, char *argv[])
 				cli_classic_abort_usage("Error: --layout specified more than once. Aborting.\n");
 			if (ifd)
 				cli_classic_abort_usage("Error: --layout and --ifd both specified. Aborting.\n");
+			if (fmap)
+				cli_classic_abort_usage("Error: --layout and --fmap-file both specified. Aborting.\n");
 			layoutfile = strdup(optarg);
 			break;
 		case OPTION_IFD:
 			if (layoutfile)
 				cli_classic_abort_usage("Error: --layout and --ifd both specified. Aborting.\n");
+			if (fmap)
+				cli_classic_abort_usage("Error: --fmap-file and --ifd both specified. Aborting.\n");
 			ifd = 1;
+			break;
+		case OPTION_FMAP_FILE:
+			if (fmap)
+				cli_classic_abort_usage("Error: --fmap or --fmap-file specified "
+					"more than once. Aborting.\n");
+			if (ifd)
+				cli_classic_abort_usage("Error: --fmap-file and --ifd both specified. Aborting.\n");
+			if (layoutfile)
+				cli_classic_abort_usage("Error: --fmap-file and --layout both specified. Aborting.\n");
+			fmapfile = strdup(optarg);
+			fmap = 1;
+			break;
+		case OPTION_FMAP:
+			if (fmap)
+				cli_classic_abort_usage("Error: --fmap or --fmap-file specified "
+					"more than once. Aborting.\n");
+			if (ifd)
+				cli_classic_abort_usage("Error: --fmap and --ifd both specified. Aborting.\n");
+			if (layoutfile)
+				cli_classic_abort_usage("Error: --layout and --fmap both specified. Aborting.\n");
+			fmap = 1;
 			break;
 		case 'i':
 			if (register_include_arg(&include_args, optarg))
@@ -499,6 +530,8 @@ int main(int argc, char *argv[])
 	}
 	if (layoutfile && check_filename(layoutfile, "layout"))
 		cli_classic_abort_usage(NULL);
+	if (fmapfile && check_filename(fmapfile, "fmap"))
+		cli_classic_abort_usage(NULL);
 	if (referencefile && check_filename(referencefile, "reference"))
 		cli_classic_abort_usage(NULL);
 
@@ -538,14 +571,14 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
-	/* If the user doesn't specify any -i argument, then we can skip the
-	 * fmap parsing to speed up. */
-	if (!include_args && !extract_it) {
-		msg_gdbg("No -i argument is specified, set ignore_fmap.\n");
-		set_ignore_fmap = 1;
+	/* If the user specifies a -i argument and no layout, then we do fmap
+	 * parsing. */
+	if ((include_args || extract_it) && !layoutfile && !ifd) {
+		msg_gdbg("-i argument specified, set fmap.\n");
+		fmap = 1;
 	}
 
-	if (!ifd && set_ignore_fmap && process_include_args(get_global_layout(), include_args)) {
+	if (!ifd && !fmap && process_include_args(get_global_layout(), include_args)) {
 		ret = 1;
 		goto out;
 	}
@@ -824,7 +857,12 @@ int main(int argc, char *argv[])
 			   process_include_args(layout, include_args))) {
 		ret = 1;
 		goto out_shutdown;
-	} else if (!ifd && !set_ignore_fmap &&
+	} else if (fmap && fmapfile &&
+		   (flashrom_layout_read_fmap_from_file(&layout, fill_flash, fmapfile) ||
+		    process_include_args(layout, include_args))) {
+		ret = 1;
+		goto out_shutdown;
+	} else if (!ifd && fmap &&
 		   ((flashrom_layout_read_fmap_from_file(&layout, fill_flash, filename) &&
 		     flashrom_layout_read_fmap_from_rom(&layout, fill_flash, 0,
 							fill_flash->chip->total_size * 1024)) ||
@@ -975,6 +1013,7 @@ out:
 		free(flashes[i].chip);
 
 	layout_cleanup(&include_args);
+	free(fmapfile);
 	free(referencefile);
 	free(layoutfile);
 	free(pparam);
