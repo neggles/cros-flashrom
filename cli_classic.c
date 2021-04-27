@@ -66,7 +66,6 @@ static void cli_classic_usage(const char *name)
 	       " -f | --force                       force specific operations (see man page)\n"
 	       " -n | --noverify                    don't auto-verify\n"
 	       " -N | --noverify-all                verify included regions only (cf. -i)\n"
-	       "      --fast-verify                 DEPRECATED: use --noverify-all\n"
 	       " -x | --extract                     extract regions to files\n"
 	       " -l | --layout <layoutfile>         read ROM layout from <layoutfile>\n"
 	       "      --wp-disable                  disable write protection\n"
@@ -76,13 +75,11 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-range=<start> <len>      set write protect range\n"
 	       "      --flash-name                  read out the detected flash name\n"
 	       "      --flash-size                  read out the detected flash size\n"
-	       "      --ignore-fmap                 ignore fmap structure\n"
 	       "      --ifd                         read layout from an Intel Firmware Descriptor\n"
 	       " -i | --image <region>[:<file>]     only read/write image <region> from layout\n"
 	       "                                    (optionally with data from <file>)\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
-	       "      --diff <ref-file>             DEPRECATED: use --flash-contents\n"
 	       "      --do-not-diff                 do not diff with chip contents\n"
 	       "                                    (should be used with erased chips only)\n"
 	       "      --ignore-lock                 do not acquire big lock\n"
@@ -171,10 +168,7 @@ int main(int argc, char *argv[])
 		OPTION_WP_ENABLE,
 		OPTION_WP_DISABLE,
 		OPTION_WP_LIST,
-		OPTION_DIFF,
 		OPTION_DO_NOT_DIFF,
-		OPTION_IGNORE_FMAP,
-		OPTION_FAST_VERIFY,
 		OPTION_IGNORE_LOCK,
 	};
 	int ret = 0;
@@ -211,10 +205,7 @@ int main(int argc, char *argv[])
 		{"help",		0, NULL, 'h'},
 		{"version",		0, NULL, 'R'},
 		{"output",		1, NULL, 'o'},
-		{"diff", 		1, 0, OPTION_DIFF},
 		{"do-not-diff",		0, 0, OPTION_DO_NOT_DIFF},
-		{"ignore-fmap", 	0, 0, OPTION_IGNORE_FMAP},
-		{"fast-verify",		0, 0, OPTION_FAST_VERIFY},
 		{"ignore-lock",		0, 0, OPTION_IGNORE_LOCK},
 		{NULL,			0, NULL, 0},
 	};
@@ -277,8 +268,6 @@ int main(int argc, char *argv[])
 			}
 			dont_verify_it = 1;
 			break;
-		case OPTION_FAST_VERIFY:
-			// DEPRECATED
 		case 'N':
 			dont_verify_all = 1;
 			break;
@@ -317,8 +306,6 @@ int main(int argc, char *argv[])
 			if (register_include_arg(&include_args, optarg))
 				cli_classic_abort_usage(NULL);
 			break;
-		case OPTION_DIFF:
-			// DEPRECATED
 		case OPTION_FLASH_CONTENTS:
 			if (referencefile)
 				cli_classic_abort_usage("Error: --flash-contents specified more than once."
@@ -441,9 +428,6 @@ int main(int argc, char *argv[])
 		case OPTION_WP_SET_REGION:
 			set_wp_region = 1;
 			wp_region = strdup(optarg);
-			break;
-		case OPTION_IGNORE_FMAP:
-			set_ignore_fmap = 1;
 			break;
 		case OPTION_IGNORE_LOCK:
 			set_ignore_lock = 1;
