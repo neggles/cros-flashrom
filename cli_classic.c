@@ -704,10 +704,7 @@ int main(int argc, char *argv[])
 	 *
 	 * Rules for writing and verifying:
 	 * - If files are specified for both -w/-v and -i args, -i files take
-	 *   priority. (Note: We determined this was the most useful syntax for
-	 *   chromium.org's flashrom after some discussion. Upstream may wish
-	 *   to quit in this case due to ambiguity).
-	 *   See: http://crbug.com/263495.
+	 *   priority.
 	 * - If file is specified for -w/-v and no files are specified with -i
 	 *   args, then the file is to be used for writing/verifying the entire
 	 *   ROM.

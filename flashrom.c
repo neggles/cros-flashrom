@@ -1633,10 +1633,6 @@ out:
 static int write_buf_to_include_args(const struct flashctx *const flash,
 				     unsigned char *buf)
 {
-#ifdef __LIBPAYLOAD__
-	msg_gerr("Error: No file I/O support in libpayload\n");
-	return 1;
-#else
 	const struct flashrom_layout *const layout = get_layout(flash);
 	const struct romentry *entry = NULL;
 
@@ -1649,7 +1645,6 @@ static int write_buf_to_include_args(const struct flashctx *const flash,
 	}
 
 	return 0;
-#endif
 }
 
 /*
