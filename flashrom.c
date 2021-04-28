@@ -1840,6 +1840,75 @@ static int check_block_eraser(const struct flashctx *flash, int k, int log)
 	return 0;
 }
 
+/*
+ * Gets the lowest erase granularity; it is used when
+ * deciding if the layout map needs to be adjusted such that erase boundaries
+ * match this granularity. Returns -1 if unsuccessful.
+ */
+static int get_required_erase_size(struct flashctx *flash)
+{
+	int i, erase_size_found = 0;
+	unsigned int required_erase_size;
+
+	/*
+	 * Find eraseable block size for read alignment.
+	 * FIXME: This assumes the smallest block erase size is useable
+	 * by erase_and_write_flash().
+	 */
+	required_erase_size = ~0;
+	for (i = 0; i < NUM_ERASEFUNCTIONS; i++) {
+		struct block_eraser eraser = flash->chip->block_erasers[i];
+		int j;
+
+		for (j = 0; j < NUM_ERASEREGIONS; j++) {
+			unsigned int size = eraser.eraseblocks[j].size;
+
+			if (size && (size < required_erase_size)) {
+				required_erase_size = size;
+				erase_size_found = 1;
+			}
+		}
+	}
+
+	/* likely an error in flashchips[] */
+	if (!erase_size_found) {
+		msg_cerr("%s: No usable erase size found.\n", __func__);
+		return -1;
+	}
+
+	return required_erase_size;
+}
+
+static int round_to_erasable_block_boundary(const int required_erase_size,
+					    const struct romentry *entry,
+					    chipoff_t *rounded_start,
+					    chipsize_t* rounded_len) {
+	unsigned int start_align, len_align;
+
+	if (required_erase_size < 0)
+		return 1;
+
+	/* round down to nearest eraseable block boundary */
+	start_align = entry->start % required_erase_size;
+	*rounded_start = entry->start - start_align;
+
+	/* round up to nearest eraseable block boundary */
+	*rounded_len = entry->end - *rounded_start + 1;
+	len_align = *rounded_len % required_erase_size;
+	if (len_align)
+		*rounded_len = *rounded_len + required_erase_size - len_align;
+
+	if (start_align || len_align) {
+		msg_gdbg("\n%s: Re-aligned partial read due to eraseable "
+			 "block size requirement:\n\tstart: 0x%06x, "
+			 "len: 0x%06x, aligned start: 0x%06x, len: 0x%06x\n",
+			 __func__, entry->start, entry->end - entry->start + 1,
+			 *rounded_start, *rounded_len);
+	}
+
+	return 0;
+}
+
 /**
  * @brief Reads the included layout regions into a buffer.
  *
