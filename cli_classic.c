@@ -71,7 +71,8 @@ static void cli_classic_usage(const char *name)
 	       "      --wp-enable                   enable write protection\n"
 	       "      --wp-list                     list write protect range\n"
 	       "      --wp-status                   show write protect status\n"
-	       "      --wp-range=<start> <len>      set write protect range\n"
+	       "      --wp-range=<start>,<len>      set write protect range\n"
+	       "      --wp-region <region>          set write protect region\n"
 	       "      --flash-name                  read out the detected flash name\n"
 	       "      --flash-size                  read out the detected flash size\n"
 	       "      --fmap                        read ROM layout from fmap embedded in ROM\n"
@@ -137,16 +138,16 @@ static bool check_file(FILE *file)
 	return true;
 }
 
-static int parse_wp_range(unsigned int *start, unsigned int *len, char *arg)
+static int parse_wp_range(unsigned int *start, unsigned int *len)
 {
 	char *endptr = NULL, *token = NULL;
 
-	if (!arg) {
+	if (!optarg) {
 		msg_gerr("Error: No wp-range values provided\n");
 		return -1;
 	}
 
-	token = strtok(arg, ",");
+	token = strtok(optarg, ",");
 	if (!token) {
 		msg_gerr("Error: Invalid wp-range argument format\n");
 		return -1;
@@ -249,7 +250,7 @@ int main(int argc, char *argv[])
 		{"flash-size",		0, NULL, OPTION_FLASH_SIZE},
 		{"get-size",		0, NULL, OPTION_FLASH_SIZE}, // (deprecated): back compatibility.
 		{"wp-status", 		0, 0, OPTION_WP_STATUS},
-		{"wp-range", 		0, 0, OPTION_WP_SET_RANGE},
+		{"wp-range", 		required_argument, NULL, OPTION_WP_SET_RANGE},
 		{"wp-region",		1, 0, OPTION_WP_SET_REGION},
 		{"wp-enable", 		optional_argument, 0, OPTION_WP_ENABLE},
 		{"wp-disable", 		0, 0, OPTION_WP_DISABLE},
@@ -411,6 +412,9 @@ int main(int argc, char *argv[])
 			wp_list = 1;
 			break;
 		case OPTION_WP_SET_RANGE:
+			if (parse_wp_range(&wp_start, &wp_len) < 0)
+				cli_classic_abort_usage("Incorrect wp-range arguments provided.\n");
+
 			set_wp_range = 1;
 			break;
 		case OPTION_WP_ENABLE:
@@ -895,34 +899,6 @@ int main(int argc, char *argv[])
 
 	/* Note: set_wp_range must happen before set_wp_enable */
 	if (set_wp_range) {
-		unsigned int wp_start, wp_len;
-		char *endptr = NULL;
-
-		if ((argc - optind) == 1) {
-			if (parse_wp_range(&wp_start, &wp_len, argv[optind]) < 0) {
-				ret = 1;
-				goto out_release;
-			}
-		} else if ((argc - optind) == 2) {
-			/* FIXME: add some error checking */
-			wp_start = strtoul(argv[optind], &endptr, 0);
-			if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
-				msg_gerr("Error: value \"%s\" invalid\n", argv[optind]);
-				ret = 1;
-				goto out_release;
-			}
-
-			wp_len = strtoul(argv[optind + 1], &endptr, 0);
-			if (errno == ERANGE || errno == EINVAL || *endptr != '\0') {
-				msg_gerr("Error: value \"%s\" invalid\n", argv[optind + 1]);
-				ret = 1;
-				goto out_release;
-			}
-		} else {
-			msg_gerr("Error: invalid number of arguments\n");
-			ret = 1;
-			goto out_release;
-		}
 		ret |= wp->set_range(fill_flash, wp_start, wp_len);
 	}
 
