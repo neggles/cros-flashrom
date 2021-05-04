@@ -575,3 +575,13 @@ int cros_ec_probe_dev(void)
 
 	return 0;
 }
+
+const struct programmer_entry programmer_google_ec = {
+	.name			= "google_ec",
+	.type			= OTHER,
+	.devs.note		= "Google EC.\n",
+	.init			= cros_ec_probe_dev,
+	.map_flash_region	= fallback_map,
+	.unmap_flash_region	= fallback_unmap,
+	.delay			= internal_delay,
+};

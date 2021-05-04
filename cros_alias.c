@@ -32,7 +32,7 @@ int programming_ec(void)
 	return ec_alias_path;
 }
 
-int cros_ec_alias_init(void)
+static int cros_ec_alias_init(void)
 {
 	/* User called '-p ec' and so toggle ec-alias path detection on. */
 	ec_alias_path = 1;
@@ -63,8 +63,42 @@ int cros_ec_alias_init(void)
 #endif /* !__i386__ || __x86_64__ */
 }
 
-int cros_host_alias_init(void)
+static int cros_host_alias_init(void)
 {
 	msg_pdbg("%s(): Redirecting dispatch -> internal_init().\n", __func__);
 	return internal_init();
 }
+
+const struct programmer_entry programmer_google_ec_alias = {
+	.name			= "ec",
+	.type			= OTHER,
+	.devs.note		= "Google EC alias mechanism.\n",
+	.init			= cros_ec_alias_init,
+	.map_flash_region	= physmap, /* TODO(b/171934191) */
+	.unmap_flash_region	= physunmap, /* TODO(b/171934191) */
+	.delay			= internal_delay,
+
+	/*
+	 * "ec" implies in-system programming on a live system, so
+	 * handle with paranoia to catch errors early. If something goes
+	 * wrong then hopefully the system will still be recoverable.
+	 */
+	.paranoid		= 1,
+};
+
+const struct programmer_entry programmer_google_host_alias = {
+	.name			= "host",
+	.type			= OTHER,
+	.devs.note		= "Google host alias mechanism.\n",
+	.init			= cros_host_alias_init,
+	.map_flash_region	= physmap,
+	.unmap_flash_region	= physunmap,
+	.delay			= internal_delay,
+
+	/*
+	 * "Internal" implies in-system programming on a live system, so
+	 * handle with paranoia to catch errors early. If something goes
+	 * wrong then hopefully the system will still be recoverable.
+	 */
+	.paranoid		= 1,
+};
