@@ -172,25 +172,9 @@ static char *check_sysfs(void)
 	return devfs_path;
 }
 
-static char *check_fdt(void)
-{
-	unsigned int bus, cs;
-
-	char *devfs_path = calloc(1, DEVFS_PATH_LEN);
-	if (fdt_find_spi_nor_flash(&bus, &cs) < 0)
-		return NULL;
-
-	snprintf(devfs_path, DEVFS_PATH_LEN, "/dev/spidev%u.%u", bus, cs);
-	return devfs_path;
-}
-
 static char *linux_spi_probe(void)
 {
 	char *ret;
-
-	ret = check_fdt();
-	if (ret)
-		return ret;
 
 	ret = check_sysfs();
 	if (ret)
