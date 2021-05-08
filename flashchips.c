@@ -19570,9 +19570,6 @@ const struct flashchip flashchips[] = {
 		.block_erasers	=
 		{
 			{
-				.eraseblocks = { {4 * 1024, 16} },
-				.block_erase = spi_block_erase_20,
-			}, {
 				.eraseblocks = { {64 * 1024, 1} },
 				.block_erase = spi_block_erase_c7,
 			}
