@@ -1176,7 +1176,7 @@ struct wp *get_wp_for_flashchip(const struct flashchip *chip) {
 		case WINBOND_NEX_W25Q16_V:
 		case WINBOND_NEX_W25Q32_V:
 		case WINBOND_NEX_W25Q32_W:
-		case WINBOND_NEX_W25Q32JW:
+		case WINBOND_NEX_W25Q32JW_M:
 		case WINBOND_NEX_W25Q64_V:
                 case WINBOND_NEX_W25Q64_W:
 		// W25Q64JW does not have a range table entry, but the flashchip
@@ -2099,7 +2099,7 @@ static int range_table(const struct flashctx *flash,
 			break;
 		case WINBOND_NEX_W25Q32_V:
 		case WINBOND_NEX_W25Q32_W:
-		case WINBOND_NEX_W25Q32JW:
+		case WINBOND_NEX_W25Q32JW_M:
 			*descrs = w25q32_ranges;
 			*num_entries = ARRAY_SIZE(w25q32_ranges);
 			break;
