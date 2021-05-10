@@ -29,6 +29,7 @@
 #include "spi.h"
 #include "ich_descriptors.h"
 #include "action_descriptor.h"
+#include "chipdrivers.h"
 
 /* Apollo Lake */
 #define APL_REG_FREG12		0xe0	/* 32 Bytes Flash Region 12 */
@@ -1466,6 +1467,9 @@ static const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model
 	return NULL;
 }
 
+static uint8_t ich_hwseq_read_status(const struct flashctx *flash);
+static int ich_hwseq_write_status(const struct flashctx *flash, int status);
+
 static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_gen)
 {
 	uint32_t hsfsc, data, mfg_id, model_id;
@@ -1514,6 +1518,12 @@ static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_g
 		flash->chip->page_size = entry->page_size;
 		flash->chip->feature_bits = entry->feature_bits;
 		flash->chip->tested = entry->tested;
+
+		/* Access to status register and access checking*/
+		flash->chip->check_access = ich_hwseq_check_access,
+		flash->chip->read_status = ich_hwseq_read_status,
+		flash->chip->write_status = ich_hwseq_write_status,
+		flash->chip->unlock = &spi_disable_blockprotect;
 	}
 
 	return 1;
@@ -2054,9 +2064,6 @@ static struct opaque_master opaque_master_ich_hwseq = {
 	.read = ich_hwseq_read,
 	.write = ich_hwseq_write,
 	.erase = ich_hwseq_block_erase,
-	.check_access = ich_hwseq_check_access,
-	.read_status = ich_hwseq_read_status,
-	.write_status = ich_hwseq_write_status,
 };
 
 int ich_init_spi(void *spibar, enum ich_chipset ich_gen)

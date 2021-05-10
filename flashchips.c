@@ -19419,10 +19419,6 @@ const struct flashchip flashchips[] = {
 		},
 		.write		= write_opaque,
 		.read		= read_opaque,
-		.read_status	= read_status_opaque,
-		.write_status	= write_status_opaque,
-		.check_access	= check_access_opaque,
-		.unlock	= &spi_disable_blockprotect,
 	},
 
 	{
