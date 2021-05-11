@@ -339,7 +339,7 @@ static int it85xx_spi_send_command(const struct flashctx *flash, unsigned int wr
 	return 0;
 }
 
-static struct spi_master spi_master_it8518 = {
+static const struct spi_master spi_master_it8518 = {
 	.max_data_read = 256,
 	.max_data_write = 256,
 	.command = it85xx_spi_send_command,
@@ -348,7 +348,7 @@ static struct spi_master spi_master_it8518 = {
 	.write_256 = default_spi_write_256,
 };
 
-static struct spi_master spi_master_it85xx = {
+static const struct spi_master spi_master_it85xx = {
 	.max_data_read = 1,
 	.max_data_write = 1,
 	.command = it85xx_spi_send_command,
@@ -441,8 +441,6 @@ int it8518_spi_init(struct superio s)
 		return SPI_GENERIC_ERROR;
 	}
 
-	spi_master_it8518.data = data;
-
 	if (check_params())
 		return 1;
 
@@ -475,7 +473,7 @@ int it8518_spi_init(struct superio s)
 		/* Set this as SPI controller and add FWH | LPC to
 		 * supported buses. */
 		internal_buses_supported |= BUS_LPC | BUS_FWH;
-		register_spi_master(&spi_master_it8518, NULL);
+		register_spi_master(&spi_master_it8518, data);
 	}
 	return ret;
 }
@@ -489,8 +487,6 @@ int it85xx_spi_init(struct superio s)
 		msg_perr("Unable to allocate space for extra SPI master data.\n");
 		return SPI_GENERIC_ERROR;
 	}
-
-	spi_master_it85xx.data = data;
 
 	if (check_params())
 		return 1;
@@ -518,7 +514,7 @@ int it85xx_spi_init(struct superio s)
 		/* Set this as SPI controller and add FWH | LPC to
 		 * supported buses. */
 		internal_buses_supported |= BUS_LPC | BUS_FWH;
-		register_spi_master(&spi_master_it85xx, NULL);
+		register_spi_master(&spi_master_it85xx, data);
 	}
 
 	return ret;
