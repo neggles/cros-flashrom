@@ -1032,7 +1032,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 	if (failcount) {
 		msg_cerr(" failed byte count from 0x%08x-0x%08x: 0x%x\n",
 			 start, start + len - 1, failcount);
-		ret = -1;
+		ret = 3;
 	}
 
 out_free:
@@ -2129,13 +2129,13 @@ static int verify_by_layout(struct flashctx *const flashctx,
 		const chipoff_t region_start	= entry->start;
 		const chipsize_t region_len	= entry->end - entry->start + 1;
 
-		if ((ret = flashctx->chip->read(flashctx, curcontents + region_start,
-					   region_start, region_len)))
+		if ((ret = verify_range(flashctx, newcontents + region_start,
+					region_start, region_len)))
 			break;
-		if (compare_range(newcontents + region_start, curcontents + region_start,
-				  region_start, region_len))
-			return 3;
 	}
+
+	if (ret == 3)
+		return ret;
 
 	if (ret) {
 		msg_gdbg("Could not fully verify due to error, ");
