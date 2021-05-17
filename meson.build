@@ -472,7 +472,8 @@ executable(
 # unit-test framework
 cmocka_dep = dependency(
   'cmocka',
-  fallback: ['cmocka', 'cmocka_dep']
+  fallback: ['cmocka', 'cmocka_dep'],
+  required: false
 )
 flashrom_test_dep = declare_dependency(
   include_directories : include_directories('.'),
@@ -491,4 +492,6 @@ flashrom_test_dep = declare_dependency(
   ],
 )
 
-subdir('tests')
+if cmocka_dep.found()
+  subdir('tests')
+endif
