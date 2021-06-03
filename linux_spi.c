@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
+#include "file.h"
 #include "flash.h"
 #include "chipdrivers.h"
 #include "programmer.h"
@@ -43,6 +44,12 @@
  * Raspberry Pi
  * HummingBoard
  */
+
+#define MODALIAS_FILE		"modalias"
+#define LINUX_SPI_SYSFS_ROOT	"/sys/bus/spi/devices"
+
+/* At least big enough to fit /dev/spidevX.Y */
+#define DEVFS_PATH_LEN 32
 
 #define BUF_SIZE_FROM_SYSFS	"/sys/module/spidev/parameters/bufsiz"
 
@@ -124,6 +131,58 @@ static const struct spi_master spi_master_linux = {
 	.write_aai	= default_spi_write_aai,
 };
 
+static char *check_sysfs(void)
+{
+	unsigned i;
+	const char *sysfs_path = NULL;
+	char *devfs_path = NULL;
+	char *p;
+	const char *modalias[] = {
+		"spi:spidev",	/* raw access over SPI bus (newer kernels) */
+		"spidev",	/* raw access over SPI bus (older kernels) */
+		"m25p80",	/* generic MTD device */
+	};
+
+	for (i = 0; i < ARRAY_SIZE(modalias); i++) {
+		int major, minor;
+
+		/* Path should look like: /sys/blah/spiX.Y/modalias */
+		sysfs_path = scanft(LINUX_SPI_SYSFS_ROOT,
+				MODALIAS_FILE, modalias[i], 1);
+		if (!sysfs_path)
+			continue;
+
+		p = (char *)sysfs_path + strlen(LINUX_SPI_SYSFS_ROOT);
+		if (p[0] == '/')
+			p++;
+
+		if (sscanf(p, "spi%u.%u", &major, &minor) == 2) {
+			msg_pdbg("Found SPI device %s on spi%u.%u\n",
+				modalias[i], major, minor);
+			devfs_path = calloc(1, DEVFS_PATH_LEN);
+			snprintf(devfs_path, DEVFS_PATH_LEN, "/dev/spidev%u.%u", major, minor);
+			free((void *)sysfs_path);
+			break;
+		}
+		free((void *)sysfs_path);
+	}
+
+	if (i == ARRAY_SIZE(modalias))
+		return NULL;
+	return devfs_path;
+}
+
+static char *linux_spi_probe(void)
+{
+	char *ret;
+
+	ret = check_sysfs();
+	if (ret)
+		return ret;
+
+	return NULL;
+}
+
 /* Read max buffer size from sysfs, or use page size as fallback. */
 static size_t get_max_kernel_buf_size()
 {
@@ -193,8 +252,10 @@ int linux_spi_init(void)
 	free(p);
 
 	dev = extract_programmer_param("dev");
+	if (!dev)
+		dev = linux_spi_probe();
 	if (!dev || !strlen(dev)) {
-		msg_perr("No SPI device given. Use flashrom -p "
+		msg_perr("No SPI device found. Use flashrom -p "
 			 "linux_spi:dev=/dev/spidevX.Y\n");
 		free(dev);
 		return 1;

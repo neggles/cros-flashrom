@@ -347,6 +347,7 @@ install_headers([
 
 ### CrOS Tree
 srcs += 'power.c'
+srcs += 'file.c'
 srcs += 'action_descriptor.c'
 
 srcs += 'cros_alias.c'
