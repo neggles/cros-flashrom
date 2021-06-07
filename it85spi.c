@@ -435,7 +435,7 @@ int it8518_spi_init(struct superio s)
 {
 	int ret;
 
-	struct it85spi_data *data = calloc(1, sizeof(struct it85spi_data));
+	struct it85spi_data *data = calloc(1, sizeof(*data));
 	if (!data) {
 		msg_perr("Unable to allocate space for extra SPI master data.\n");
 		return SPI_GENERIC_ERROR;
