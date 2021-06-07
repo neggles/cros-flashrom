@@ -70,36 +70,19 @@ struct status_register_layout {
 	int srp_pos;	/* position of status register protect enable bit */
 };
 
-static struct status_register_layout gd25q32_sr1 = {
-	/* TODO: map second status register */
+/* Used by GD25Q32 and GD25Q123 */
+static struct status_register_layout gd25q_sr1 = {
 	.bp0_pos = 2, .bp_bits = 5, .srp_pos = 7
 };
 
-static struct status_register_layout gd25q128_sr1 = {
-	/* TODO: map second and third status registers */
-	.bp0_pos = 2, .bp_bits = 5, .srp_pos = 7
-};
-
-static struct status_register_layout mx25l6406e_sr1 = {
+/* Used by MX25L6406E, MX25L6495F, and MX25L25635F */
+static struct status_register_layout mx25l_sr1 = {
 	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
 };
-
-static struct status_register_layout mx25l6495f_sr1 = {
-	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
-};
-
-static struct status_register_layout mx25l25635f_sr1 = {
-	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
-};
-
-static struct status_register_layout s25fs128s_sr1 = {
+/* Used by S25FS128S, S25FS128S, S25FL256S, and S25FL256S */
+static struct status_register_layout s25f_sr1 = {
 	.bp0_pos = 2, .bp_bits = 3, .srp_pos = 7
 };
-
-static struct status_register_layout s25fl256s_sr1 = {
-	.bp0_pos = 2, .bp_bits = 3, .srp_pos = 7
-};
-
 
 #define MX25U12835E_TB	(1 << 3)
 
@@ -1993,23 +1976,17 @@ static int get_sr1_layout(
 		switch(flash->chip->model_id) {
 
 		case GIGADEVICE_GD25Q32:
-			*sr1 = gd25q32_sr1;
-			return 0;
 		case GIGADEVICE_GD25LQ128CD:
-			*sr1 = gd25q128_sr1;
+			*sr1 = gd25q_sr1;
 			return 0;
 		}
 		break;
 	case MACRONIX_ID:
 		switch (flash->chip->model_id) {
 		case MACRONIX_MX25L6405:
-			*sr1 = mx25l6406e_sr1;
-			return 0;
 		case MACRONIX_MX25L6495F:
-			*sr1 = mx25l6495f_sr1;
-			return 0;
 		case MACRONIX_MX25L25635F:
-			*sr1 = mx25l25635f_sr1;
+			*sr1 = mx25l_sr1;
 			return 0;
 		}
 		break;
@@ -2017,11 +1994,9 @@ static int get_sr1_layout(
 		switch (flash->chip->model_id) {
 		case SPANSION_S25FS128S_L:
 		case SPANSION_S25FS128S_S:
-			*sr1 = s25fs128s_sr1;
-			return 0;
 		case SPANSION_S25FL256S_UL:
 		case SPANSION_S25FL256S_US:
-			*sr1 = s25fl256s_sr1;
+			*sr1 = s25f_sr1;
 			return 0;
 		}
 		break;
