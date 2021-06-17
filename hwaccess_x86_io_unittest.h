@@ -38,7 +38,10 @@
 #define INL(p) test_inl(p)
 
 #include <stdint.h>
+// FIXME(b/190335277): Temporarily disable tests on unused code paths.
+#if 0
 #include <sys/io.h>
+#endif
 
 /* All functions below are mocked in unit tests. */
 

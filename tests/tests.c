@@ -165,8 +165,11 @@ int main(void)
 
 	const struct CMUnitTest init_shutdown_tests[] = {
 		cmocka_unit_test(dummy_init_and_shutdown_test_success),
+// FIXME(b/190335277): Temporarily disable tests on unused code paths.
+#if 0
 		cmocka_unit_test(mec1308_init_and_shutdown_test_success),
 		cmocka_unit_test(ene_lpc_init_and_shutdown_test_success),
+#endif
 		cmocka_unit_test(linux_spi_init_and_shutdown_test_success),
 	};
 	ret |= cmocka_run_group_tests_name("init_shutdown.c tests", init_shutdown_tests, NULL, NULL);
