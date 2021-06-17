@@ -110,6 +110,8 @@ extern const struct programmer_entry programmer_mec1308;
 extern const struct programmer_entry programmer_serprog;
 extern const struct programmer_entry programmer_lspcon_i2c_spi;
 extern const struct programmer_entry programmer_realtek_mst_i2c_spi;
+extern const struct programmer_entry programmer_google_ec_alias;
+extern const struct programmer_entry programmer_google_host_alias;
 
 int programmer_init(const struct programmer_entry *prog, const char *param);
 int programmer_shutdown(void);
@@ -576,12 +578,5 @@ struct libusb_device_handle *usb_dev_get_by_vid_pid_serial(
 		struct libusb_context *usb_ctx, uint16_t vid, uint16_t pid, const char *serialno);
 struct libusb_device_handle *usb_dev_get_by_vid_pid_number(
 		struct libusb_context *usb_ctx, uint16_t vid, uint16_t pid, unsigned int num);
-
-
-/* cros_alias.c */
-#if CONFIG_CROS_ALIAS == 1
-extern const struct programmer_entry programmer_google_ec_alias;
-extern const struct programmer_entry programmer_google_host_alias;
-#endif
 
 #endif				/* !__PROGRAMMER_H__ */
