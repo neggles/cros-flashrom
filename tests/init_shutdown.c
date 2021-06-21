@@ -34,7 +34,11 @@ static void run_lifecycle(void **state, const struct programmer_entry *prog, con
 
 void dummy_init_and_shutdown_test_success(void **state)
 {
+#if CONFIG_DUMMY == 1
 	run_lifecycle(state, &programmer_dummy, "bus=parallel+lpc+fwh+spi");
+#else
+	skip();
+#endif
 }
 
 // FIXME(b/190335277): Temporarily disable tests on unused code paths.
@@ -64,6 +68,7 @@ unsigned char mec1308_inb(void *state, unsigned short port)
 
 void mec1308_init_and_shutdown_test_success(void **state)
 {
+#if CONFIG_MEC1308 == 1
 	struct mec1308_io_state mec1308_io_state = { 0 };
 	const struct io_mock mec1308_io = {
 		.state		= &mec1308_io_state,
@@ -77,6 +82,9 @@ void mec1308_init_and_shutdown_test_success(void **state)
 	run_lifecycle(state, &programmer_mec1308, "");
 
 	io_mock_register(NULL);
+#else
+	skip();
+#endif
 }
 
 struct ene_lpc_io_state {
@@ -120,6 +128,7 @@ unsigned char ene_lpc_inb_kb932(void *state, unsigned short port)
 
 void ene_lpc_init_and_shutdown_test_success(void **state)
 {
+#if CONFIG_ENE_LPC == 1
 	/*
 	 * Current implementation tests for chip ENE_KB932.
 	 * Another chip which is not tested here is ENE_KB94X.
@@ -136,6 +145,9 @@ void ene_lpc_init_and_shutdown_test_success(void **state)
 	run_lifecycle(state, &programmer_ene_lpc, "");
 
 	io_mock_register(NULL);
+#else
+	skip();
+#endif
 }
 #endif
 
@@ -147,5 +159,9 @@ void linux_spi_init_and_shutdown_test_success(void **state)
 	 * and the fallback to getpagesize(). This test does the latter (fallback to
 	 * getpagesize).
 	 */
+#if CONFIG_LINUX_SPI == 1
 	run_lifecycle(state, &programmer_linux_spi, "dev=/dev/null");
+#else
+	skip();
+#endif
 }
