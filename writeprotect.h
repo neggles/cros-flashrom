@@ -57,4 +57,9 @@ struct modifier_bits {
 	int tb;		/* value of top/bottom select bit */
 };
 
+/* wp_statusreg.c */
+uint8_t w25q_read_status_register_2(const struct flashctx *flash);
+uint8_t mx25l_read_config_register(const struct flashctx *flash);
+int w25q_write_status_register_WREN(const struct flashctx *flash, uint8_t s1, uint8_t s2);
+
 #endif /* !__WRITEPROTECT_H__ */

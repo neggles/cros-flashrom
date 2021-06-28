@@ -1278,53 +1278,6 @@ struct wp *get_wp_for_flashchip(const struct flashchip *chip) {
 	return NULL;
 }
 
-/* FIXME: Move to spi25.c if it's a JEDEC standard opcode */
-static uint8_t w25q_read_status_register_2(const struct flashctx *flash)
-{
-	static const unsigned char cmd[JEDEC_RDSR_OUTSIZE] = { 0x35 };
-	unsigned char readarr[2];
-	int ret;
-
-	if (flash->chip->read_status) {
-		msg_cdbg("RDSR2 failed! cmd=0x35 unimpl for opaque chips\n");
-		return 0;
-	}
-
-	/* Read Status Register */
-	ret = spi_send_command(flash, sizeof(cmd), sizeof(readarr), cmd, readarr);
-	if (ret) {
-		/*
-		 * FIXME: make this a benign failure for now in case we are
-		 * unable to execute the opcode
-		 */
-		msg_cdbg("RDSR2 failed!\n");
-		readarr[0] = 0x00;
-	}
-
-	return readarr[0];
-}
-
-/* FIXME: Move to spi25.c if it's a JEDEC standard opcode */
-static uint8_t mx25l_read_config_register(const struct flashctx *flash)
-{
-	static const unsigned char cmd[JEDEC_RDSR_OUTSIZE] = { 0x15 };
-	unsigned char readarr[2];	/* leave room for dummy byte */
-	int ret;
-
-	if (flash->chip->read_status) {
-		msg_cdbg("RDCR failed! cmd=0x15 unimpl for opaque chips\n");
-		return 0;
-	}
-
-	ret = spi_send_command(flash, sizeof(cmd), sizeof(readarr), cmd, readarr);
-	if (ret) {
-		msg_cdbg("RDCR failed!\n");
-		readarr[0] = 0x00;
-	}
-
-	return readarr[0];
-}
-
 int w25_range_to_status(const struct flashctx *flash,
                         unsigned int start, unsigned int len,
                         struct w25q_status *status)
@@ -1729,47 +1682,6 @@ static int w25q_wp_status(const struct flashctx *flash)
 	}
 
 	return ret;
-}
-
-/*
- * W25Q adds an optional byte to the standard WRSR opcode. If /CS is
- * de-asserted after the first byte, then it acts like a JEDEC-standard
- * WRSR command. if /CS is asserted, then the next data byte is written
- * into status register 2.
- */
-#define W25Q_WRSR_OUTSIZE	0x03
-static int w25q_write_status_register_WREN(const struct flashctx *flash, uint8_t s1, uint8_t s2)
-{
-	int result;
-	struct spi_command cmds[] = {
-	{
-	/* FIXME: WRSR requires either EWSR or WREN depending on chip type. */
-		.writecnt       = JEDEC_WREN_OUTSIZE,
-		.writearr       = (const unsigned char[]){ JEDEC_WREN },
-		.readcnt        = 0,
-		.readarr        = NULL,
-	}, {
-		.writecnt       = W25Q_WRSR_OUTSIZE,
-		.writearr       = (const unsigned char[]){ JEDEC_WRSR, s1, s2 },
-		.readcnt        = 0,
-		.readarr        = NULL,
-	}, {
-		.writecnt       = 0,
-		.writearr       = NULL,
-		.readcnt        = 0,
-		.readarr        = NULL,
-	}};
-
-	result = spi_send_multicommand(flash, cmds);
-	if (result) {
-	        msg_cerr("%s failed during command execution\n",
-	                __func__);
-	}
-
-	/* WRSR performs a self-timed erase before the changes take effect. */
-	programmer_delay(100 * 1000);
-
-	return result;
 }
 
 /*
