@@ -24,5 +24,7 @@ void expect_sr1_sr2_write(uint8_t expected_sr1, uint8_t expected_sr2);
 
 uint8_t expect_cr1_read(uint8_t mock_value);
 
+void test_wp_disable(void **state);
+void test_wp_enable(void **state);
 
 #endif

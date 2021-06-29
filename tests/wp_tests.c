@@ -107,8 +107,15 @@ int main(void)
 
 	cmocka_set_message_output(CM_OUTPUT_STDOUT);
 
-	const struct CMUnitTest writeprotect_tests[] = {};
-	ret |= cmocka_run_group_tests_name("writeprotect.c tests", writeprotect_tests, NULL, NULL);
+	const struct CMUnitTest disable_test[] = {
+		cmocka_unit_test(test_wp_disable),
+	};
+	ret |= cmocka_run_group_tests_name("writeprotect.c wp_disable() tests", disable_test, NULL, NULL);
+
+	const struct CMUnitTest enable_test[] = {
+		cmocka_unit_test(test_wp_enable),
+	};
+	ret |= cmocka_run_group_tests_name("writeprotect.c wp_enable() tests", enable_test, NULL, NULL);
 
 	return ret;
 }
