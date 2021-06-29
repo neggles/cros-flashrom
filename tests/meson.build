@@ -56,3 +56,32 @@ flashrom_tests = executable('flashrom_unit_tests',
   dependencies : [cmocka_dep, flashrom_test_dep],
 )
 test('cmocka test flashrom', flashrom_tests)
+
+
+writeprotect_mocks = [
+  '-Wl,--wrap=spi_send_command',
+  '-Wl,--wrap=spi_read_status_register',
+  '-Wl,--wrap=spi_write_status_register',
+  '-Wl,--wrap=w25q_read_status_register_2',
+  '-Wl,--wrap=w25q_write_status_register_WREN',
+  '-Wl,--wrap=mx25l_read_config_register',
+  '-Wl,--gc-sections',
+]
+
+writeprotect_srcs = [
+  'wp_tests.c',
+]
+
+writeprotect_tests = executable('writeprotect_unit_tests',
+  writeprotect_srcs,
+  include_directories : root_includes,
+  c_args : [
+    cargs,
+    '-ffunction-sections',
+    '-fdata-sections',
+  ],
+  export_dynamic : true,
+  link_args : writeprotect_mocks,
+  dependencies : [cmocka_dep, writeprotect_test_dep],
+)
+test('cmocka test writeprotect', writeprotect_tests)
