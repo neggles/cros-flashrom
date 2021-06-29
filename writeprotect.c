@@ -43,19 +43,6 @@ enum bit_state {
 	ON	= 1,
 	X	= -1	/* don't care. Must be bigger than max # of bp. */
 };
-
-/*
- * Generic write-protection schema for 25-series SPI flash chips. This assumes
- * there is a status register that contains one or more consecutive bits which
- * determine which address range is protected.
- */
-
-struct status_register_layout {
-	int bp0_pos;	/* position of BP0 */
-	int bp_bits;	/* number of block protect bits */
-	int srp_pos;	/* position of status register protect enable bit */
-};
-
 /*
  * The following ranges and functions are useful for representing the
  * writeprotect schema in which there are typically 5 bits of
@@ -70,6 +57,51 @@ struct wp_range_descriptor {
 	unsigned int bp;		/* block protect bitfield */
 	struct wp_range range;
 };
+
+/*
+ * Generic write-protection schema for 25-series SPI flash chips. This assumes
+ * there is a status register that contains one or more consecutive bits which
+ * determine which address range is protected.
+ */
+
+struct status_register_layout {
+	int bp0_pos;	/* position of BP0 */
+	int bp_bits;	/* number of block protect bits */
+	int srp_pos;	/* position of status register protect enable bit */
+};
+
+static struct status_register_layout gd25q32_sr1 = {
+	/* TODO: map second status register */
+	.bp0_pos = 2, .bp_bits = 5, .srp_pos = 7
+};
+
+static struct status_register_layout gd25q128_sr1 = {
+	/* TODO: map second and third status registers */
+	.bp0_pos = 2, .bp_bits = 5, .srp_pos = 7
+};
+
+static struct status_register_layout mx25l6406e_sr1 = {
+	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
+};
+
+static struct status_register_layout mx25l6495f_sr1 = {
+	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
+};
+
+static struct status_register_layout mx25l25635f_sr1 = {
+	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
+};
+
+static struct status_register_layout s25fs128s_sr1 = {
+	.bp0_pos = 2, .bp_bits = 3, .srp_pos = 7
+};
+
+static struct status_register_layout s25fl256s_sr1 = {
+	.bp0_pos = 2, .bp_bits = 3, .srp_pos = 7
+};
+
+
+#define MX25U12835E_TB	(1 << 3)
 
 struct w25q_status {
 	/* this maps to register layout -- do not change ordering */
@@ -353,7 +385,6 @@ static struct wp_range_descriptor mx25u6435e_ranges[] = {
 	{ .m = { .sec = 0, .tb = 1 }, 0x7, {0x000000, 128 * 64 * 1024} },	/* blocks 0-127 */
 };
 
-#define MX25U12835E_TB	(1 << 3)
 static struct wp_range_descriptor mx25u12835e_tb0_ranges[] = {
 	{ .m = { .sec = X, .tb = X }, 0, {0, 0} },	/* none */
 	{ .m = { .sec = 0, .tb = 0 }, 0x1, {0xff0000,   1 * 64 * 1024} },	/* block 255 */
@@ -900,11 +931,6 @@ static struct wp_range_descriptor gd25q32_cmp1_ranges[] = {
 	{ { }, 0x1e, {0x080000, 4064 * 1024} },
 };
 
-static struct status_register_layout gd25q32_sr1 = {
-	/* TODO: map second status register */
-	.bp0_pos = 2, .bp_bits = 5, .srp_pos = 7
-};
-
 static struct wp_range_descriptor gd25q128_cmp0_ranges[] = {
 	/* none, bp4 and bp3 => don't care, others = 0 */
 	{ { .tb = 0  }, 0x00, {0, 0} },
@@ -988,11 +1014,6 @@ static struct wp_range_descriptor gd25q128_cmp1_ranges[] = {
 	{ { .tb = 1 }, 0x1e, {0x008000, 16352 * 1024} },
 };
 
-static struct status_register_layout gd25q128_sr1 = {
-	/* TODO: map second and third status registers */
-	.bp0_pos = 2, .bp_bits = 5, .srp_pos = 7
-};
-
 /* FIXME: MX25L6406 has same ID as MX25L6405D */
 static struct wp_range_descriptor mx25l6406e_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
@@ -1012,10 +1033,6 @@ static struct wp_range_descriptor mx25l6406e_ranges[] = {
 	{ { }, 0xd, {0x000000, 64 * 124 * 1024} },	/* blocks 0-123 */
 	{ { }, 0xe, {0x000000, 64 * 126 * 1024} },	/* blocks 0-125 */
 	{ { }, 0xf, {0x000000, 64 * 128 * 1024} },	/* all */
-};
-
-static struct status_register_layout mx25l6406e_sr1 = {
-	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
 };
 
 static struct wp_range_descriptor mx25l6495f_tb0_ranges[] = {
@@ -1057,10 +1074,6 @@ static struct wp_range_descriptor mx25l6495f_tb1_ranges[] = {
 	{ { }, 0xf, {0x000000, 64 * 128 * 1024} },	/* all */
 };
 
-static struct status_register_layout mx25l6495f_sr1 = {
-	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
-};
-
 static struct wp_range_descriptor mx25l25635f_tb0_ranges[] = {
 	{ { }, 0, {0, 0} },	/* none */
 	{ { }, 0x1, {0x1ff0000, 64 * 1 * 1024} },	/* block 511 */
@@ -1099,10 +1112,6 @@ static struct wp_range_descriptor mx25l25635f_tb1_ranges[] = {
 	{ { }, 0xf, {0x000000, 64 * 512 * 1024} },	/* all */
 };
 
-static struct status_register_layout mx25l25635f_sr1 = {
-	.bp0_pos = 2, .bp_bits = 4, .srp_pos = 7
-};
-
 static struct wp_range_descriptor s25fs128s_ranges[] = {
 	{ { .tb = 1 }, 0, {0, 0} },	/* none */
 	{ { .tb = 1 }, 0x1, {0x000000, 256 * 1024} },	/* lower 64th */
@@ -1121,10 +1130,6 @@ static struct wp_range_descriptor s25fs128s_ranges[] = {
 	{ { .tb = 0 }, 0x5, {0xc00000, 4096 * 1024} },	/* upper 4th */
 	{ { .tb = 0 }, 0x6, {0x800000, 8192 * 1024} },	/* upper half */
 	{ { .tb = 0 }, 0x7, {0x000000, 16384 * 1024} },	/* all */
-};
-
-static struct status_register_layout s25fs128s_sr1 = {
-	.bp0_pos = 2, .bp_bits = 3, .srp_pos = 7
 };
 
 
@@ -1146,10 +1151,6 @@ static struct wp_range_descriptor s25fl256s_ranges[] = {
 	{ { .tb = 0 }, 0x5, {0x1800000, 8192 * 1024} },		/* upper 4th */
 	{ { .tb = 0 }, 0x6, {0x1000000, 16384 * 1024} },	/* upper half */
 	{ { .tb = 0 }, 0x7, {0x000000, 32768 * 1024} },		/* all */
-};
-
-static struct status_register_layout s25fl256s_sr1 = {
-	.bp0_pos = 2, .bp_bits = 3, .srp_pos = 7
 };
 
 
