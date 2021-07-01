@@ -277,7 +277,7 @@ int internal_init(void)
 	 * The -p linux_spi still works because the programmer_init() would
 	 * call the linux_spi_init() in flashrom.c.
 	 */
-	if (!programmer_init(PROGRAMMER_LINUX_SPI, NULL)) {
+	if (!programmer_init(&programmer_linux_spi, NULL)) {
 		return 0;
 	} else /* if failed, fall through */
 #endif // if IS_ARM || IS_MIPS && CONFIG_LINUX_SPI == 1
