@@ -48,7 +48,6 @@
 #include <linux/ioctl.h>
 #include <linux/types.h>
 
-#include "file.h"
 #include "flash.h"
 #include "cros_ec_commands.h"
 #include "cros_ec.h"
