@@ -25,8 +25,11 @@
 /**
  * List of supported flash chips.
  *
- * Please keep the list sorted by vendor name and chip name, so that
- * the output of 'flashrom -L' is alphabetically sorted.
+ * Temporarily, this file is sorted alphabetically by vendor and name to
+ * assist with merging the Chromium fork of flashrom.
+ *
+ * The usual intention is that that this list is sorted by vendor, then chip
+ * family and chip density, which is useful for the output of 'flashrom -L'.
  */
 const struct flashchip flashchips[] = {
 
