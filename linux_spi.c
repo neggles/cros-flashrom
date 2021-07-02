@@ -124,13 +124,6 @@ static const struct spi_master spi_master_linux = {
 	.write_aai	= default_spi_write_aai,
 };
 
-static char *linux_spi_probe(void)
-{
-	// This is only needed to support Gale/Breeze, so just return the
-	// appropriate file for those devices.
-	return "/dev/spidev0.0";
-}
-
 /* Read max buffer size from sysfs, or use page size as fallback. */
 static size_t get_max_kernel_buf_size()
 {
@@ -200,10 +193,8 @@ static int linux_spi_init(void)
 	free(p);
 
 	dev = extract_programmer_param("dev");
-	if (!dev)
-		dev = linux_spi_probe();
 	if (!dev || !strlen(dev)) {
-		msg_perr("No SPI device found. Use flashrom -p "
+		msg_perr("No SPI device given. Use flashrom -p "
 			 "linux_spi:dev=/dev/spidevX.Y\n");
 		free(dev);
 		return 1;

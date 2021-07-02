@@ -264,23 +264,19 @@ int internal_init(void)
 	}
 #endif // if IS_X86
 
-#if IS_ARM || IS_MIPS && CONFIG_LINUX_SPI == 1
-	/* On the ARM platform, we prefer /dev/spidev if it is supported.
-	 * That means, if user specifies
+#if IS_ARM
+	/* TODO(b/190782852): delete this linux_spi initialization code.
 	 *
-	 *   1. -p internal programmer
-	 *   2. without -p (the default programmer, which is internal too)
-	 *
-	 * This code would try to auto-detect the /dev/spidevX.Y.
-	 * If failed, try processor_flash_enable() then.
-	 *
-	 * The -p linux_spi still works because the programmer_init() would
-	 * call the linux_spi_init() in flashrom.c.
+	 * Gale/Breeze devices may still expose the flash as a plain SPI device
+	 * rather than an MTD, so we may need to use linux_spi to access it.
 	 */
-	if (!programmer_init(&programmer_linux_spi, NULL)) {
+	const char dev[] = "dev=/dev/spidev0.0";
+	char dev_mut[sizeof(dev)];
+	memcpy(dev_mut, dev, sizeof(dev));
+	if (!programmer_init(&programmer_linux_spi, dev_mut)) {
 		return 0;
-	} else /* if failed, fall through */
-#endif // if IS_ARM || IS_MIPS && CONFIG_LINUX_SPI == 1
+	}
+#endif
 	if (processor_flash_enable()) {
 		msg_perr("Processor detection/init failed.\n"
 			 "Aborting.\n");
