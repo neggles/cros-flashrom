@@ -351,6 +351,7 @@ install_headers([
 srcs += 'power.c'
 srcs += 'file.c'
 srcs += 'action_descriptor.c'
+srcs += 'flashchips_crosbl.c'
 
 srcs += 'cros_alias.c'
 srcs += 'cros_ec.c'

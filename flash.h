@@ -339,6 +339,9 @@ char *strndup(const char *str, size_t size);
 size_t strnlen(const char *str, size_t n);
 #endif
 
+/* flashchips_crosbl.c */
+bool is_chipname_duplicate(const struct flashchip *chip);
+
 /* flashrom.c */
 extern const char flashrom_version[];
 extern const char *chip_to_probe;

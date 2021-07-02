@@ -820,6 +820,9 @@ int probe_flash(struct registered_master *mst, int startchip, struct flashctx *f
 	char *tmp;
 
 	for (chip = flashchips + startchip; chip && chip->name; chip++) {
+		if (is_chipname_duplicate(chip))
+			continue;
+
 		if (chip_to_probe && strcmp(chip->name, chip_to_probe) != 0)
 			continue;
 		buses_common = mst->buses_supported & chip->bustype;
