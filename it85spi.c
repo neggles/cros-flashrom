@@ -346,6 +346,7 @@ static const struct spi_master spi_master_it8518 = {
 	.multicommand = default_spi_send_multicommand,
 	.read = default_spi_read,
 	.write_256 = default_spi_write_256,
+	.shutdown = it85xx_shutdown,
 };
 
 static const struct spi_master spi_master_it85xx = {
@@ -355,6 +356,7 @@ static const struct spi_master spi_master_it85xx = {
 	.multicommand = default_spi_send_multicommand,
 	.read = default_spi_read,
 	.write_256 = default_spi_write_256,
+	.shutdown = it85xx_shutdown,
 };
 
 /* it8518-specific i/o initialization */
@@ -391,11 +393,6 @@ static int it85xx_spi_common_init(struct superio s, struct it85spi_data *data)
 
 	msg_pdbg("%s():%d superio.vendor=0x%02x\n", __func__, __LINE__,
 	         s.vendor);
-
-	if (register_shutdown(it85xx_shutdown, data)) {
-		free(data);
-		return 1;
-	}
 
 #ifdef LPC_IO
 	/* Get LPCPNP of SHM. That's big-endian. */
@@ -473,7 +470,7 @@ int it8518_spi_init(struct superio s)
 		/* Set this as SPI controller and add FWH | LPC to
 		 * supported buses. */
 		internal_buses_supported |= BUS_LPC | BUS_FWH;
-		register_spi_master(&spi_master_it8518, data);
+		return register_spi_master(&spi_master_it8518, data);
 	}
 	return ret;
 }
@@ -514,7 +511,7 @@ int it85xx_spi_init(struct superio s)
 		/* Set this as SPI controller and add FWH | LPC to
 		 * supported buses. */
 		internal_buses_supported |= BUS_LPC | BUS_FWH;
-		register_spi_master(&spi_master_it85xx, data);
+		return register_spi_master(&spi_master_it85xx, data);
 	}
 
 	return ret;
