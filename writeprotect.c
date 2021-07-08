@@ -1221,10 +1221,7 @@ struct wp *get_wp_for_flashchip(const struct flashchip *chip) {
 	case GIGADEVICE_ID:
 		switch(chip->model_id) {
 		case GIGADEVICE_GD25LQ32:
-		// GD25Q40 does not have a .wp field in flashchips.c, but
-		// it is in the w25 range table function, so note it here
-		// until the issue is resolved:
-		// case GIGADEVICE_GD25Q40:
+		case GIGADEVICE_GD25Q40:
 		case GIGADEVICE_GD25Q64:
 		case GIGADEVICE_GD25LQ64:
 		case GIGADEVICE_GD25Q128:
