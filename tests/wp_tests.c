@@ -95,7 +95,7 @@ void expect_sr1_sr2_write(uint8_t expected_sr1, uint8_t expected_sr2)
 	will_return(__wrap_w25q_write_status_register_WREN, expected_sr2);
 }
 
-uint8_t expect_cr1_read(uint8_t mock_value)
+void expect_cr1_read(uint8_t mock_value)
 {
 	expect_function_call(__wrap_mx25l_read_config_register);
 	will_return(__wrap_mx25l_read_config_register, mock_value);
