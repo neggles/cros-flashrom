@@ -34,6 +34,7 @@ const struct wp_chip_info chips_to_test[] = {
 	{ 0x9C, 0, "GD25Q127C/GD25Q128C" },
 	{ 0x9C, 1, "GD25Q256D" },
 	{ 0xFC, 0, "GD25Q32(B)" },
+	{ 0x9C, 0, "GD25Q40(B)" },
 	{ 0x9C, 0, "GD25Q64(B)" },
 	{ 0x9C, 0, "MX25L1005(C)/MX25L1006E" },
 	{ 0x9C, 0, "MX25L1605" },
@@ -49,6 +50,10 @@ const struct wp_chip_info chips_to_test[] = {
 	{ 0x9C, 0, "MX25U6435E/F" },
 	{ 0x9C, 0, "N25Q064..1E" },
 	{ 0x9C, 0, "N25Q064..3E" },
+	{ 0x9C, 0, "S25FL256S Large Sectors" },
+	{ 0x9C, 0, "S25FL256S Small Sectors" },
+	{ 0x9C, 0, "S25FS128S Large Sectors" },
+	{ 0x9C, 0, "S25FS128S Small Sectors" },
 	{ 0x9C, 1, "W25Q128.JW.DTR" },
 	{ 0x9C, 1, "W25Q128.V" },
 	{ 0x9C, 0, "W25Q128.V..M" },
@@ -66,10 +71,12 @@ const struct wp_chip_info chips_to_test[] = {
 	{ 0x9C, 0, "W25X20" },
 	{ 0x9C, 0, "W25X40" },
 	{ 0x9C, 0, "W25X80" },
+	{ 0x9C, 1, "XM25QH128C" },
 	{ 0x9C, 1, "XM25QH256C" },
 
-	// Not properly supported, see comment in get_wp_for_flashchip()
-	// { ????, ?, "W25Q64JW..IM" },
+	// Not testable:
+	// Opaque flash chip
+	// Variable Size SPI chip
 };
 
 const size_t chips_to_test_len = sizeof(chips_to_test) / sizeof(struct wp_chip_info);
