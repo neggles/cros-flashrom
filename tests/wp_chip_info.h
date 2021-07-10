@@ -24,6 +24,20 @@
 struct wp_chip_info {
 	uint8_t mask;
 	bool has_sr2;
+
+	// Some W25 chips have CMP bit in SR2
+	bool sr2_bit6_is_cmp;
+
+	// Some MX chips have TB bit in separate config register
+	bool mxcr_bit3_is_tb;
+
+	// S25F chips have TB bit stored in separate register
+	bool is_s25f;
+
+	// Bits in SR1 used to select protection range (BP, SEC, etc).
+	// Any bits not in this mask do not affect selected wp range.
+	uint8_t protect_mask;
+
 	const char *name;
 };
 
