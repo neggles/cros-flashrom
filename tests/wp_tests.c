@@ -15,6 +15,7 @@
 
 #include <include/test.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "flash.h"
 #include "wp_tests.h"
@@ -99,6 +100,16 @@ void expect_cr1_read(uint8_t mock_value)
 {
 	expect_function_call(__wrap_mx25l_read_config_register);
 	will_return(__wrap_mx25l_read_config_register, mock_value);
+}
+
+const struct flashchip *get_chip_by_name(const char *name)
+{
+	for(size_t i = 0; i < flashchips_size; i++) {
+		if(!strcmp(flashchips[i].name, name)) {
+			return &flashchips[i];
+		}
+	}
+	return NULL;
 }
 
 int main(void)

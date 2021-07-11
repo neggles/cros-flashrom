@@ -71,6 +71,7 @@ writeprotect_mocks = [
 writeprotect_srcs = [
   'wp_tests.c',
   'wp_enable_disable.c',
+  'wp_chip_info.c',
 ]
 
 writeprotect_tests = executable('writeprotect_unit_tests',

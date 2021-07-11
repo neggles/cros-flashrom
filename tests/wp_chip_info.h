@@ -13,20 +13,21 @@
  * GNU General Public License for more details.
  */
 
-#ifndef WP_TESTS_H
-#define WP_TESTS_H
+#ifndef WP_CHIP_INFO_H
+#define WP_CHIP_INFO_H
 
-void expect_sr1_read(uint8_t mock_value);
-void expect_sr1_write(uint8_t expected_value);
+#include <stdint.h>
+#include <stdbool.h>
+#include "flash.h"
 
-void expect_sr2_read(uint8_t mock_value);
-void expect_sr1_sr2_write(uint8_t expected_sr1, uint8_t expected_sr2);
+/* Stores all additional chip-specific information required for testing. */
+struct wp_chip_info {
+	uint8_t mask;
+	bool has_sr2;
+	const char *name;
+};
 
-void expect_cr1_read(uint8_t mock_value);
-
-const struct flashchip *get_chip_by_name(const char *name);
-
-void test_wp_disable(void **state);
-void test_wp_enable(void **state);
+extern const struct wp_chip_info chips_to_test[];
+extern const size_t chips_to_test_len;
 
 #endif
