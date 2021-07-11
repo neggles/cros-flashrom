@@ -1163,9 +1163,6 @@ struct wp *get_wp_for_flashchip(const struct flashchip *chip) {
 		case WINBOND_NEX_W25Q32JW_M:
 		case WINBOND_NEX_W25Q64_V:
                 case WINBOND_NEX_W25Q64_W:
-		// W25Q64JW does not have a range table entry, but the flashchip
-		// set .wp to wp_25q, so keep it here until the issue is resolved
-		case WINBOND_NEX_W25Q64JW_M:
 		case WINBOND_NEX_W25Q128_DTR:
 		case WINBOND_NEX_W25Q128_V:
 		case WINBOND_NEX_W25Q128_W:
@@ -1258,14 +1255,6 @@ struct wp *get_wp_for_flashchip(const struct flashchip *chip) {
 		case SPANSION_S25FS128S_S:
 		case SPANSION_S25FL256S_UL:
 		case SPANSION_S25FL256S_US:
-		// SPANSION_S25FL128S_UL does not have a range table entry,
-		// but its flashchip set .wp to wp_generic, so keep it here
-		// until the issue resolved
-		case SPANSION_S25FL128S_UL:
-		// SPANSION_S25FL128S_US does not have a range table entry,
-		// but its flashchip set .wp to wp_generic, so keep it here
-		// until the issue resolved
-		case SPANSION_S25FL128S_US:
 			return &wp_generic;
 		}
 		break;
