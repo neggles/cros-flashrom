@@ -1185,7 +1185,107 @@ static int write_flash(struct flashctx *flash, const uint8_t *buf,
 	return flash->chip->write(flash, buf, start, len);
 }
 
-static int read_by_layout(struct flashctx *, uint8_t *, bool);
+/*
+ * Gets the lowest erase granularity; it is used when
+ * deciding if the layout map needs to be adjusted such that erase boundaries
+ * match this granularity. Returns -1 if unsuccessful.
+ */
+static int get_required_erase_size(struct flashctx *flash)
+{
+	int i, erase_size_found = 0;
+	unsigned int required_erase_size;
+
+	/*
+	 * Find eraseable block size for read alignment.
+	 * FIXME: This assumes the smallest block erase size is useable
+	 * by erase_and_write_flash().
+	 */
+	required_erase_size = ~0;
+	for (i = 0; i < NUM_ERASEFUNCTIONS; i++) {
+		struct block_eraser eraser = flash->chip->block_erasers[i];
+		int j;
+
+		for (j = 0; j < NUM_ERASEREGIONS; j++) {
+			unsigned int size = eraser.eraseblocks[j].size;
+
+			if (size && (size < required_erase_size)) {
+				required_erase_size = size;
+				erase_size_found = 1;
+			}
+		}
+	}
+
+	/* likely an error in flashchips[] */
+	if (!erase_size_found) {
+		msg_cerr("%s: No usable erase size found.\n", __func__);
+		return -1;
+	}
+
+	return required_erase_size;
+}
+
+static int round_to_erasable_block_boundary(const int required_erase_size,
+					    const struct romentry *entry,
+					    chipoff_t *rounded_start,
+					    chipsize_t* rounded_len) {
+	unsigned int start_align, len_align;
+
+	if (required_erase_size < 0)
+		return 1;
+
+	/* round down to nearest eraseable block boundary */
+	start_align = entry->start % required_erase_size;
+	*rounded_start = entry->start - start_align;
+
+	/* round up to nearest eraseable block boundary */
+	*rounded_len = entry->end - *rounded_start + 1;
+	len_align = *rounded_len % required_erase_size;
+	if (len_align)
+		*rounded_len = *rounded_len + required_erase_size - len_align;
+
+	if (start_align || len_align) {
+		msg_gdbg("\n%s: Re-aligned partial read due to eraseable "
+			 "block size requirement:\n\tstart: 0x%06x, "
+			 "len: 0x%06x, aligned start: 0x%06x, len: 0x%06x\n",
+			 __func__, entry->start, entry->end - entry->start + 1,
+			 *rounded_start, *rounded_len);
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Reads the included layout regions into a buffer.
+ *
+ * If there is no layout set in the given flash context, the whole chip will
+ * be read.
+ *
+ * @param flashctx Flash context to be used.
+ * @param buffer   Buffer of full chip size to read into.
+ * @return 0 on success,
+ *	   1 if any read fails.
+ */
+static int read_by_layout(struct flashctx *const flashctx, uint8_t *const buffer,
+			  bool align_to_erasable_block_boundary)
+{
+	const struct flashrom_layout *const layout = get_layout(flashctx);
+	const struct romentry *entry = NULL;
+	int required_erase_size = get_required_erase_size(flashctx);
+
+	while ((entry = layout_next_included(layout, entry))) {
+		chipoff_t region_start	= entry->start;
+		chipsize_t region_len	= entry->end - entry->start + 1;
+
+		if (align_to_erasable_block_boundary &&
+		    round_to_erasable_block_boundary(required_erase_size, entry,
+						     &region_start, &region_len))
+			return 1;
+		if (read_flash(flashctx, buffer + region_start, region_start, region_len))
+			return 1;
+	}
+	return 0;
+}
+
 int read_flash_to_file(struct flashctx *flash, const char *filename)
 {
 	unsigned long size = flash->chip->total_size * 1024;
@@ -1290,107 +1390,6 @@ static int selfcheck_eraseblocks(const struct flashchip *chip)
 		}
 	}
 	return ret;
-}
-
-/*
- * Gets the lowest erase granularity; it is used when
- * deciding if the layout map needs to be adjusted such that erase boundaries
- * match this granularity. Returns -1 if unsuccessful.
- */
-static int get_required_erase_size(struct flashctx *flash)
-{
-	int i, erase_size_found = 0;
-	unsigned int required_erase_size;
-
-	/*
-	 * Find eraseable block size for read alignment.
-	 * FIXME: This assumes the smallest block erase size is useable
-	 * by erase_and_write_flash().
-	 */
-	required_erase_size = ~0;
-	for (i = 0; i < NUM_ERASEFUNCTIONS; i++) {
-		struct block_eraser eraser = flash->chip->block_erasers[i];
-		int j;
-
-		for (j = 0; j < NUM_ERASEREGIONS; j++) {
-			unsigned int size = eraser.eraseblocks[j].size;
-
-			if (size && (size < required_erase_size)) {
-				required_erase_size = size;
-				erase_size_found = 1;
-			}
-		}
-	}
-
-	/* likely an error in flashchips[] */
-	if (!erase_size_found) {
-		msg_cerr("%s: No usable erase size found.\n", __func__);
-		return -1;
-	}
-
-	return required_erase_size;
-}
-
-static int round_to_erasable_block_boundary(const int required_erase_size,
-					    const struct romentry *entry,
-					    chipoff_t *rounded_start,
-					    chipsize_t* rounded_len) {
-	unsigned int start_align, len_align;
-
-	if (required_erase_size < 0)
-		return 1;
-
-	/* round down to nearest eraseable block boundary */
-	start_align = entry->start % required_erase_size;
-	*rounded_start = entry->start - start_align;
-
-	/* round up to nearest eraseable block boundary */
-	*rounded_len = entry->end - *rounded_start + 1;
-	len_align = *rounded_len % required_erase_size;
-	if (len_align)
-		*rounded_len = *rounded_len + required_erase_size - len_align;
-
-	if (start_align || len_align) {
-		msg_gdbg("\n%s: Re-aligned partial read due to eraseable "
-			 "block size requirement:\n\tstart: 0x%06x, "
-			 "len: 0x%06x, aligned start: 0x%06x, len: 0x%06x\n",
-			 __func__, entry->start, entry->end - entry->start + 1,
-			 *rounded_start, *rounded_len);
-	}
-
-	return 0;
-}
-
-/**
- * @brief Reads the included layout regions into a buffer.
- *
- * If there is no layout set in the given flash context, the whole chip will
- * be read.
- *
- * @param flashctx Flash context to be used.
- * @param buffer   Buffer of full chip size to read into.
- * @return 0 on success,
- *	   1 if any read fails.
- */
-static int read_by_layout(struct flashctx *const flashctx, uint8_t *const buffer,
-			  bool align_to_erasable_block_boundary)
-{
-	const struct flashrom_layout *const layout = get_layout(flashctx);
-	const struct romentry *entry = NULL;
-	int required_erase_size = get_required_erase_size(flashctx);
-
-	while ((entry = layout_next_included(layout, entry))) {
-		chipoff_t region_start	= entry->start;
-		chipsize_t region_len	= entry->end - entry->start + 1;
-
-		if (align_to_erasable_block_boundary &&
-		    round_to_erasable_block_boundary(required_erase_size, entry,
-						     &region_start, &region_len))
-			return 1;
-		if (read_flash(flashctx, buffer + region_start, region_start, region_len))
-			return 1;
-	}
-	return 0;
 }
 
 typedef int (*erasefn_t)(struct flashctx *, unsigned int addr, unsigned int len);
