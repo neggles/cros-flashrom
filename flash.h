@@ -352,7 +352,6 @@ int read_memmapped(struct flashctx *flash, uint8_t *buf, unsigned int start, uns
 int erase_flash(struct flashctx *flash);
 int probe_flash(struct registered_master *mst, int startchip, struct flashctx *fill_flash, int force);
 int read_flash_to_file(struct flashctx *flash, const char *filename);
-char *extract_param(const char *const *haystack, const char *needle, const char *delim);
 int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int start, unsigned int len);
 void print_version(void);
 void print_buildinfo(void);
