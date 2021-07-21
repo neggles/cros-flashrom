@@ -233,7 +233,7 @@ FLASHROM_CFLAGS += -D__USE_MINGW_ANSI_STDIO=1
 # For now we disable all PCI-based programmers on Windows/MinGW (no libpci).
 $(call mark_unsupported,$(DEPENDS_ON_LIBPCI))
 # And programmers that need raw access.
-$(call mark_unsupported,CONFIG_MEC1308 CONFIG_RAYER_SPI)
+$(call mark_unsupported,CONFIG_RAYER_SPI)
 
 else # No MinGW
 
@@ -255,8 +255,6 @@ $(call mark_unsupported,CONFIG_ATAPROMISE)
 $(call mark_unsupported,CONFIG_BUSPIRATE_SPI CONFIG_SERPROG CONFIG_PONY_SPI)
 # Dediprog, Developerbox, USB-Blaster, PICkit2, CH341A and FT2232 are not supported with libpayload (missing libusb support).
 $(call mark_unsupported,$(DEPENDS_ON_LIBUSB1) $(DEPENDS_ON_LIBFTDI) $(DEPENDS_ON_LIBJAYLINK))
-# Odd ones. (FIXME: why?)
-$(call mark_unsupported,CONFIG_MEC1308)
 # Cros-specific programmer
 $(call mark_unsupported,CONFIG_GOOGLE_EC)
 endif
@@ -294,7 +292,7 @@ override ENDIAN := $(strip $(call debug_shell,$(CC) $(CPPFLAGS) -E endiantest.c 
 ifneq ($(ARCH), x86)
 $(call mark_unsupported,CONFIG_NIC3COM CONFIG_NICREALTEK CONFIG_NICNATSEMI)
 $(call mark_unsupported,CONFIG_RAYER_SPI CONFIG_ATAHPT CONFIG_ATAPROMISE)
-$(call mark_unsupported,CONFIG_SATAMV CONFIG_MEC1308)
+$(call mark_unsupported,CONFIG_SATAMV)
 endif
 
 # Additionally disable all drivers needing raw access (memory, PCI, port I/O)
@@ -381,9 +379,6 @@ CONFIG_ATAPROMISE ?= no
 
 # Always enable FT2232 SPI dongles for now.
 CONFIG_FT2232_SPI ?= yes
-
-# Microchip MEC1308 Embedded Controller
-CONFIG_MEC1308 ?= yes
 
 # MSTAR DDC support needs more tests/reviews/cleanups.
 CONFIG_MSTARDDC_SPI ?= no
@@ -512,12 +507,6 @@ endif
 
 # TODO(quasisec): Remove when flashrom.c isn't poisoned with cros_ec fn calls.
 PROGRAMMER_OBJS += cros_ec_dev.o
-
-ifeq ($(CONFIG_MEC1308), yes)
-FEATURE_CFLAGS += -D'CONFIG_MEC1308=1'
-PROGRAMMER_OBJS += mec1308.o
-NEED_RAW_ACCESS += CONFIG_MEC1308
-endif
 
 ifeq ($(CONFIG_SERPROG), yes)
 FEATURE_CFLAGS += -D'CONFIG_SERPROG=1'
