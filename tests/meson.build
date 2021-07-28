@@ -85,4 +85,4 @@ writeprotect_tests = executable('writeprotect_unit_tests',
   link_args : writeprotect_mocks,
   dependencies : [cmocka_dep, writeprotect_test_dep],
 )
-test('cmocka test writeprotect', writeprotect_tests)
+test('cmocka test writeprotect', writeprotect_tests, timeout: 180)
