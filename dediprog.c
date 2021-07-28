@@ -283,7 +283,7 @@ static int dediprog_set_leds(int leds)
 	return 0;
 }
 
-static int dediprog_set_spi_flash_voltage_manual(int millivolt)
+static int dediprog_set_spi_voltage(int millivolt)
 {
 	int ret;
 	uint16_t voltage_selector;
@@ -823,147 +823,6 @@ static int dediprog_check_devicestring(void)
 
 	return 0;
 }
-
-static int dediprog_supply_voltages[] = {
-	0, 1800, 2500, 3500,
-};
-
-static int compar(const void *_x, const void *_y)
-{
-	const struct voltage_range *x = _x;
-	const struct voltage_range *y = _y;
-
-	/*
-	 * qsort() places entries in ascending order. We will sort by minimum
-	 * voltage primarily and max voltage secondarily, and move empty sets
-	 * to the end of array.
-	 */
-	if (x->min == 0)
-		return 1;
-	if (y->min == 0)
-		return -1;
-
-	if (x->min < y->min)
-		return -1;
-	if (x->min > y->min)
-		return 1;
-
-	if (x->min == y->min) {
-		if (x->max < y->max)
-			return -1;
-		if (x->max > y->max)
-			return 1;
-	}
-
-	return 0;
-}
-
-#define NUM_VOLTAGE_RANGES	16
-static struct voltage_range voltage_ranges[NUM_VOLTAGE_RANGES];
-
-/* returns number of unique voltage ranges, or <0 to indicate failure */
-static int flash_supported_voltage_ranges(enum chipbustype bus)
-{
-	unsigned i;
-	int unique_ranges = 0;
-
-	/* clear array in case user calls this function multiple times */
-	memset(voltage_ranges, 0, sizeof(voltage_ranges));
-
-	for (i = 0; i < flashchips_size; i++) {
-		int j;
-		int match_found = 0;
-
-		if (unique_ranges >= NUM_VOLTAGE_RANGES) {
-			msg_cerr("Increase NUM_VOLTAGE_RANGES.\n");
-			return -1;
-		}
-
-		if (!(flashchips[i].bustype & bus))
-			continue;
-
-		for (j = 0; j < NUM_VOLTAGE_RANGES; j++) {
-			if ((flashchips[i].voltage.min == voltage_ranges[j].min) &&
-				(flashchips[i].voltage.max == voltage_ranges[j].max))
-				match_found |= 1;
-
-			if (!voltage_ranges[j].min && !voltage_ranges[j].max)
-				break;
-		}
-
-		if (!match_found) {
-			voltage_ranges[j] = flashchips[i].voltage;
-			unique_ranges++;
-		}
-	}
-
-	qsort(&voltage_ranges[0], NUM_VOLTAGE_RANGES,
-			sizeof(voltage_ranges[0]), compar);
-
-	for (i = 0; i < NUM_VOLTAGE_RANGES; i++) {
-		msg_cspew("%s: voltage_range[%d]: { %u, %u }\n",
-			__func__, i, voltage_ranges[i].min, voltage_ranges[i].max);
-	}
-
-	return unique_ranges;
-}
-
-static struct spi_master spi_master_dediprog;
-static int dediprog_set_spi_flash_voltage_auto(void)
-{
-	int spi_flash_ranges;
-
-	spi_flash_ranges = flash_supported_voltage_ranges(BUS_SPI);
-	if (spi_flash_ranges < 0)
-		return -1;
-
-	for (unsigned i = 0; i < ARRAY_SIZE(dediprog_supply_voltages); i++) {
-		int j;
-		int v = dediprog_supply_voltages[i];	/* shorthand */
-
-		for (j = 0; j < spi_flash_ranges; j++) {
-			/* Dediprog can supply a voltage in this range. */
-			if ((v >= voltage_ranges[j].min) && (v <= voltage_ranges[j].max)) {
-				struct flashctx dummy;
-
-				msg_cdbg("%s: trying %d\n", __func__, v);
-				if (dediprog_set_spi_flash_voltage_manual(v)) {
-					msg_cerr("%s: Failed to set SPI voltage\n", __func__);
-					return 1;
-				}
-
-				clear_spi_id_cache();
-				struct registered_master rmst = {
-					.buses_supported = BUS_SPI,
-					.spi = spi_master_dediprog,
-				};
-				if (probe_flash(&rmst, 0, &dummy, 0) < 0) {
-					/* No dice, try next voltage supported by Dediprog. */
-					break;
-				}
-
-				if ((dummy.chip->manufacture_id == GENERIC_MANUF_ID) ||
-					(dummy.chip->model_id == GENERIC_DEVICE_ID)) {
-					break;
-				}
-
-				return 0;
-			}
-		}
-	}
-
-	return 1;
-}
-
-/* FIXME: ugly function signature */
-static int dediprog_set_spi_voltage(int millivolt, int probe)
-{
-	if (probe)
-		return dediprog_set_spi_flash_voltage_auto();
-	else
-		return dediprog_set_spi_flash_voltage_manual(millivolt);
-}
-
 /*
  * Read the id from the dediprog. This should return the numeric part of the
  * serial number found on a sticker on the back of the dediprog. Note this
@@ -1144,6 +1003,36 @@ static struct spi_master spi_master_dediprog = {
 	.write_aai	= dediprog_spi_write_aai,
 };
 
+static int dediprog_set_spi_voltage_auto(void)
+{
+	// Try probing with each supported voltage in increasing order, until a
+	// chip is found or there are no more voltages to try.
+	static int voltages[] = { 1800, 2500, 3500 };
+
+	for (size_t i = 0; i < ARRAY_SIZE(voltages); i++) {
+		msg_cdbg("%s: trying %d\n", __func__, voltages[i]);
+		if (dediprog_set_spi_voltage(voltages[i])) {
+			msg_cerr("%s: Failed to set SPI voltage\n", __func__);
+			return 1;
+		}
+
+		clear_spi_id_cache();
+		struct flashctx flash;
+		struct registered_master rmst = {
+			.buses_supported = BUS_SPI,
+			.spi = spi_master_dediprog,
+		};
+
+		if (probe_flash(&rmst, 0, &flash, 0) < 0) continue;
+		if (flash.chip->manufacture_id == GENERIC_MANUF_ID) continue;
+		if (flash.chip->model_id == GENERIC_DEVICE_ID) continue;
+
+		return 0;
+	}
+
+	return 1;
+}
+
 /*
  * Open a dediprog_handle with the USB device at the given index.
  * @index   index of the USB device
@@ -1183,7 +1072,7 @@ static int dediprog_shutdown(void *data)
 	dediprog_devicetype = DEV_UNKNOWN;
 
 	/* URB 28. Command Set SPI Voltage to 0. */
-	if (dediprog_set_spi_voltage(0x0, 0))
+	if (dediprog_set_spi_voltage(0))
 		return 1;
 
 	if (libusb_release_interface(dediprog_handle, 0)) {
@@ -1400,7 +1289,8 @@ static int dediprog_init(void)
 	/* Select target/socket, frequency and VCC. */
 	if (set_target_flash(target) ||
 	    dediprog_set_spi_speed(spispeed_idx) ||
-	    dediprog_set_spi_voltage(millivolt, voltage ? 0 : 1)) {
+	    (voltage ? dediprog_set_spi_voltage(millivolt) :
+		       dediprog_set_spi_voltage_auto())) {
 		dediprog_set_leds(LED_ERROR);
 		return 1;
 	}
