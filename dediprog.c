@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <libusb.h>
 #include "flash.h"
-#include "flashchips.h"
 #include "chipdrivers.h"
 #include "programmer.h"
 #include "spi.h"
@@ -823,6 +822,7 @@ static int dediprog_check_devicestring(void)
 
 	return 0;
 }
+
 /*
  * Read the id from the dediprog. This should return the numeric part of the
  * serial number found on a sticker on the back of the dediprog. Note this
@@ -1003,36 +1003,6 @@ static struct spi_master spi_master_dediprog = {
 	.write_aai	= dediprog_spi_write_aai,
 };
 
-static int dediprog_set_spi_voltage_auto(void)
-{
-	// Try probing with each supported voltage in increasing order, until a
-	// chip is found or there are no more voltages to try.
-	static int voltages[] = { 1800, 2500, 3500 };
-
-	for (size_t i = 0; i < ARRAY_SIZE(voltages); i++) {
-		msg_cdbg("%s: trying %d\n", __func__, voltages[i]);
-		if (dediprog_set_spi_voltage(voltages[i])) {
-			msg_cerr("%s: Failed to set SPI voltage\n", __func__);
-			return 1;
-		}
-
-		clear_spi_id_cache();
-		struct flashctx flash;
-		struct registered_master rmst = {
-			.buses_supported = BUS_SPI,
-			.spi = spi_master_dediprog,
-		};
-
-		if (probe_flash(&rmst, 0, &flash, 0) < 0) continue;
-		if (flash.chip->manufacture_id == GENERIC_MANUF_ID) continue;
-		if (flash.chip->model_id == GENERIC_DEVICE_ID) continue;
-
-		return 0;
-	}
-
-	return 1;
-}
-
 /*
  * Open a dediprog_handle with the USB device at the given index.
  * @index   index of the USB device
@@ -1072,7 +1042,7 @@ static int dediprog_shutdown(void *data)
 	dediprog_devicetype = DEV_UNKNOWN;
 
 	/* URB 28. Command Set SPI Voltage to 0. */
-	if (dediprog_set_spi_voltage(0))
+	if (dediprog_set_spi_voltage(0x0))
 		return 1;
 
 	if (libusb_release_interface(dediprog_handle, 0)) {
@@ -1089,7 +1059,7 @@ static int dediprog_init(void)
 {
 	char *voltage, *id_str, *device, *spispeed, *target_str;
 	int spispeed_idx = 1;
-	int millivolt = 0;
+	int millivolt = 3500;
 	int id = -1; /* -1 defaults to enumeration order */
 	int found_id;
 	long usedevice = 0;
@@ -1286,8 +1256,7 @@ static int dediprog_init(void)
 	/* Select target/socket, frequency and VCC. */
 	if (set_target_flash(target) ||
 	    dediprog_set_spi_speed(spispeed_idx) ||
-	    (voltage ? dediprog_set_spi_voltage(millivolt) :
-		       dediprog_set_spi_voltage_auto())) {
+	    dediprog_set_spi_voltage(millivolt)) {
 		dediprog_set_leds(LED_ERROR);
 		goto init_err_cleanup_exit;
 	}
