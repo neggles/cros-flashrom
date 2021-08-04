@@ -39,6 +39,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "flashchips.h"
+#include "flash.h"
 #include "fmap.h"
 #include "cros_ec.h"
 #include "cros_ec_commands.h"
