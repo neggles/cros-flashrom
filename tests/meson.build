@@ -85,4 +85,8 @@ writeprotect_tests = executable('writeprotect_unit_tests',
   link_args : writeprotect_mocks,
   dependencies : [cmocka_dep, writeprotect_test_dep],
 )
-test('cmocka test writeprotect', writeprotect_tests, timeout: 180)
+# b/195978970: writeprotect tests can cause presubmit
+# timeouts, disable them for now.
+if false
+  test('cmocka test writeprotect', writeprotect_tests, timeout: 180)
+endif
