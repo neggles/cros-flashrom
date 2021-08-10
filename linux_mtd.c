@@ -540,7 +540,8 @@ static int mtd_wp_disable_writeprotect(const struct flashctx *flash)
 	return 0;
 }
 
-static int mtd_wp_status(const struct flashctx *flash)
+static int mtd_wp_status(const struct flashctx *flash,
+		uint32_t *_start, uint32_t *_len, bool *_wp_en)
 {
 	struct linux_mtd_data *data = flash->mst->opaque.data;
 	uint32_t start = 0, len = 0;

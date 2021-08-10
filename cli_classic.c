@@ -896,7 +896,9 @@ int main(int argc, char *argv[])
 
 	if (wp_status) {
 		if (wp && wp->wp_status) {
-			ret |= wp->wp_status(fill_flash);
+			uint32_t s, l;
+			bool en;
+			ret |= wp->wp_status(fill_flash, &s, &l, &en);
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;

@@ -34,7 +34,8 @@ struct wp {
 			 unsigned int start, unsigned int len);
 	int (*enable)(const struct flashctx *flash, enum wp_mode mode);
 	int (*disable)(const struct flashctx *flash);
-	int (*wp_status)(const struct flashctx *flash);
+	int (*wp_status)(const struct flashctx *flash,
+			uint32_t *start, uint32_t *len, bool *wp_en);
 };
 
 /* winbond w25-series */

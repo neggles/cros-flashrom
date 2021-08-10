@@ -938,7 +938,8 @@ static int cros_ec_disable_writeprotect(const struct flashctx *flash)
 }
 
 
-static int cros_ec_wp_status(const struct flashctx *flash)
+static int cros_ec_wp_status(const struct flashctx *flash,
+		uint32_t *_start, uint32_t *_len, bool *_wp_en)
 {
 	struct ec_params_flash_protect p;
 	struct ec_response_flash_protect r;

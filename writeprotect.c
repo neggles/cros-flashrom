@@ -1384,11 +1384,11 @@ static int w25_set_range(const struct flashctx *flash,
 }
 
 /* Print out the current status register value with human-readable text. */
-static int w25_wp_status(const struct flashctx *flash)
+static int w25_wp_status(const struct flashctx *flash,
+		uint32_t *start, uint32_t *len, bool *wp_en)
 {
 	struct w25q_status status;
 	int tmp;
-	unsigned int start, len;
 	int ret = 0;
 
 	memset(&status, 0, sizeof(status));
@@ -1398,13 +1398,14 @@ static int w25_wp_status(const struct flashctx *flash)
 	msg_cinfo("WP: status.srp0: %x\n", status.srp0);
 	msg_cinfo("WP: write protect is %s.\n",
 	          status.srp0 ? "enabled" : "disabled");
+	*wp_en = status.srp0;
 
 	msg_cinfo("WP: write protect range: ");
-	if (w25_status_to_range(flash, &status, &start, &len)) {
+	if (w25_status_to_range(flash, &status, start, len)) {
 		msg_cinfo("(cannot resolve the range)\n");
 		ret = -1;
 	} else {
-		msg_cinfo("start=0x%08x, len=0x%08x\n", start, len);
+		msg_cinfo("start=0x%08x, len=0x%08x\n", *start, *len);
 	}
 
 	return ret;
@@ -1535,12 +1536,12 @@ static int w25q_large_set_range(const struct flashctx *flash,
 	return 0;
 }
 
-static int w25q_large_wp_status(const struct flashctx *flash)
+static int w25q_large_wp_status(const struct flashctx *flash,
+		uint32_t *start, uint32_t *len, bool *wp_en)
 {
 	struct w25q_status_large sr1;
 	struct w25q_status_2 sr2;
 	uint8_t tmp[2];
-	unsigned int start, len;
 	int ret = 0;
 
 	memset(&sr1, 0, sizeof(sr1));
@@ -1551,18 +1552,20 @@ static int w25q_large_wp_status(const struct flashctx *flash)
 	tmp[1] = w25q_read_status_register_2(flash);
 	memcpy(&sr2, &tmp[1], 1);
 
+	*wp_en = (sr1.srp0 || sr2.srp1);
+
 	msg_cinfo("WP: status: 0x%02x%02x\n", tmp[1], tmp[0]);
 	msg_cinfo("WP: status.srp0: %x\n", sr1.srp0);
 	msg_cinfo("WP: status.srp1: %x\n", sr2.srp1);
 	msg_cinfo("WP: write protect is %s.\n",
-	          (sr1.srp0 || sr2.srp1) ? "enabled" : "disabled");
+	          *wp_en ? "enabled" : "disabled");
 
 	msg_cinfo("WP: write protect range: ");
-	if (w25_large_status_to_range(flash, &sr1, &start, &len)) {
+	if (w25_large_status_to_range(flash, &sr1, start, len)) {
 		msg_cinfo("(cannot resolve the range)\n");
 		ret = -1;
 	} else {
-		msg_cinfo("start=0x%08x, len=0x%08x\n", start, len);
+		msg_cinfo("start=0x%08x, len=0x%08x\n", *start, *len);
 	}
 
 	return ret;
@@ -1637,12 +1640,12 @@ static int list_ranges(const struct flashctx *flash)
 	return 0;
 }
 
-static int w25q_wp_status(const struct flashctx *flash)
+static int w25q_wp_status(const struct flashctx *flash,
+		uint32_t *start, uint32_t *len, bool *wp_en)
 {
 	struct w25q_status sr1;
 	struct w25q_status_2 sr2;
 	uint8_t tmp[2];
-	unsigned int start, len;
 	int ret = 0;
 
 	memset(&sr1, 0, sizeof(sr1));
@@ -1653,18 +1656,20 @@ static int w25q_wp_status(const struct flashctx *flash)
 	tmp[1] = w25q_read_status_register_2(flash);
 	memcpy(&sr2, &tmp[1], 1);
 
+	*wp_en = (sr1.srp0 || sr2.srp1);
+
 	msg_cinfo("WP: status: 0x%02x%02x\n", tmp[1], tmp[0]);
 	msg_cinfo("WP: status.srp0: %x\n", sr1.srp0);
 	msg_cinfo("WP: status.srp1: %x\n", sr2.srp1);
 	msg_cinfo("WP: write protect is %s.\n",
-	          (sr1.srp0 || sr2.srp1) ? "enabled" : "disabled");
+	          *wp_en ? "enabled" : "disabled");
 
 	msg_cinfo("WP: write protect range: ");
-	if (w25_status_to_range(flash, &sr1, &start, &len)) {
+	if (w25_status_to_range(flash, &sr1, start, len)) {
 		msg_cinfo("(cannot resolve the range)\n");
 		ret = -1;
 	} else {
-		msg_cinfo("start=0x%08x, len=0x%08x\n", start, len);
+		msg_cinfo("start=0x%08x, len=0x%08x\n", *start, *len);
 	}
 
 	return ret;
@@ -2489,34 +2494,33 @@ static int generic_disable_writeprotect(const struct flashctx *flash)
 	return ret;
 }
 
-static int wp_context_status(const struct flashctx *flash)
+static int wp_context_status(const struct flashctx *flash,
+		uint32_t *start, uint32_t *len, bool *wp_en)
 {
 	uint8_t sr1;
-	unsigned int start, len;
 	int ret = 0;
 	struct status_register_layout sr1_layout;
-	int wp_en;
 
 	if (get_sr1_layout(flash, &sr1_layout))
 		return -1;
 
 	sr1 = spi_read_status_register(flash);
-	wp_en = (sr1 >> sr1_layout.srp_pos) & 1;
+	*wp_en = (sr1 >> sr1_layout.srp_pos) & 1;
 
 	msg_cinfo("WP: status: 0x%04x\n", sr1);
-	msg_cinfo("WP: status.srp0: %x\n", wp_en);
+	msg_cinfo("WP: status.srp0: %x\n", *wp_en);
 	/* FIXME: SRP1 is not really generic, but we probably should print
 	 * it anyway to have consistent output. #legacycruft */
 	msg_cinfo("WP: status.srp1: %x\n", 0);
 	msg_cinfo("WP: write protect is %s.\n",
-		          wp_en ? "enabled" : "disabled");
+		          *wp_en ? "enabled" : "disabled");
 
 	msg_cinfo("WP: write protect range: ");
-	if (generic_status_to_range(flash, sr1, &start, &len)) {
+	if (generic_status_to_range(flash, sr1, start, len)) {
 		msg_cinfo("(cannot resolve the range)\n");
 		ret = -1;
 	} else {
-		msg_cinfo("start=0x%08x, len=0x%08x\n", start, len);
+		msg_cinfo("start=0x%08x, len=0x%08x\n", *start, *len);
 	}
 
 	return ret;
