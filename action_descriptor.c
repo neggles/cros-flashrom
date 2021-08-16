@@ -643,7 +643,6 @@ static void fill_action_descriptor(struct action_descriptor *descriptor,
 static size_t top_section_offset(const struct flashrom_layout *layout)
 {
 	size_t top = 0;
-	size_t i;
 
 	const struct romentry *entry = NULL;
 	while ((entry = layout_next(layout, entry))) {
