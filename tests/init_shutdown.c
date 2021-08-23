@@ -41,8 +41,6 @@ void dummy_init_and_shutdown_test_success(void **state)
 #endif
 }
 
-// FIXME(b/190335277): Temporarily disable tests on unused code paths.
-#if 0
 struct mec1308_io_state {
 	unsigned char outb_val;
 };
@@ -149,7 +147,6 @@ void ene_lpc_init_and_shutdown_test_success(void **state)
 	skip();
 #endif
 }
-#endif
 
 void linux_spi_init_and_shutdown_test_success(void **state)
 {
