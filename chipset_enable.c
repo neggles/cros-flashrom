@@ -2020,7 +2020,6 @@ const struct penable chipset_enables[] = {
 	/*
 	 * TODO(b/173164205): Merged with upstream.
 	 */
-	{0x8086, 0x31f0, B_FS,    OK, "Intel", "Geminilake",			enable_flash_apl},
 	{0x8086, 0x9da4, B_FS,    OK, "Intel", "Cannonlake",			enable_flash_pch100},
 	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_pch100},
 	{0x8086, 0x4da4, B_FS,    OK, "Intel", "Jasperlake",			enable_flash_pch100},
