@@ -367,9 +367,9 @@ static int cros_ec_command_dev(int command, int version,
 			   void *indata, int insize)
 {
 	int ret = EC_RES_ERROR;
-	int try;
+	int attempt;
 
-	for (try = 0; try < CROS_EC_DEV_RETRY; try++) {
+	for (attempt = 0; attempt < CROS_EC_DEV_RETRY; attempt++) {
 		ret = __cros_ec_command_dev_fn(command, version, outdata,
 					       outsize, indata, insize);
 		if (ret >= 0)
