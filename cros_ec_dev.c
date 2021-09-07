@@ -517,11 +517,15 @@ static int cros_ec_test(struct cros_ec_priv *priv)
 	return 0;
 }
 
-
 static struct cros_ec_priv cros_ec_dev_priv = {
-	.detected	= 0,
-	.ec_command	= cros_ec_command_dev,
+	.detected = 0,
+	.current_image = EC_IMAGE_UNKNOWN,
+	.region = NULL,
+	.ec_command = cros_ec_command_dev,
 	.dev = "ec",
+	.ideal_write_size = 0,
+	.erase_block_size = 0,
+	.max_response_size = 0
 };
 
 static struct opaque_master opaque_master_cros_ec_dev = {
@@ -531,6 +535,7 @@ static struct opaque_master opaque_master_cros_ec_dev = {
 	.read		= cros_ec_read,
 	.write		= cros_ec_write,
 	.erase		= cros_ec_block_erase,
+	.data 		= NULL
 };
 
 static int cros_ec_dev_shutdown(void *data)
