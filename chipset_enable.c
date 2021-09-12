@@ -2015,7 +2015,6 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x9cc7, B_FS,   NT,  "Intel", "Broadwell Y Premium",		enable_flash_pch9_lp},
 	{0x8086, 0x9cc9, B_FS,   NT,  "Intel", "Broadwell Y Base",		enable_flash_pch9_lp},
 	{0x8086, 0x9ccb, B_FS,   NT,  "Intel", "Broadwell H",			enable_flash_pch9},
-	{0x8086, 0x9d24, B_FS,   OK, "Intel", "Skylake",			enable_flash_pch100},
 	{0x8086, 0xa224, B_FS,   OK, "Intel", "Lewisburg",			enable_flash_pch100},
 	/*
 	 * TODO(b/173164205): Merged with upstream.
