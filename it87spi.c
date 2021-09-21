@@ -19,8 +19,6 @@
  * Contains the ITE IT87* SPI specific routines
  */
 
-#if defined(__i386__) || defined(__x86_64__)
-
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -482,5 +480,3 @@ int init_superio_ite(void)
 	}
 	return ret;
 }
-
-#endif /* defined(__i386__) || defined(__x86_64__) */

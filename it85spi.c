@@ -24,8 +24,6 @@
  * management daemons, which can interact with the EC during firmware update.
  */
 
-#if defined(__i386__) || defined(__x86_64__)
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -516,5 +514,3 @@ int it85xx_spi_init(struct superio s)
 
 	return ret;
 }
-
-#endif
