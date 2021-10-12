@@ -18,7 +18,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "flash.h"
-#include "platform.h"
 #include "programmer.h"
 #include "hwaccess.h"
 
@@ -256,7 +255,7 @@ int internal_init(void)
 		goto internal_init_exit;
 	}
 
-#if IS_X86
+#if (defined (__i386__) || defined (__x86_64__) || defined(__amd64__))
 	/* Initialize PCI access for flash enables */
 	if (pci_init_common() != 0) {
 		ret = 1;
