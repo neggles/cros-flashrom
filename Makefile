@@ -239,7 +239,7 @@ $(call mark_unsupported,CONFIG_GOOGLE_EC)
 endif
 
 # Android is handled internally as separate OS, but it supports about the same drivers as Linux.
-ifeq ($(filter $(TARGET_OS),Linux Android), )
+ifneq ($(TARGET_OS), $(filter $(TARGET_OS), Linux Android))
 $(call mark_unsupported,CONFIG_LINUX_MTD CONFIG_LINUX_SPI)
 $(call mark_unsupported,CONFIG_MSTARDDC_SPI CONFIG_LSPCON_I2C_SPI CONFIG_REALTEK_MST_I2C_SPI)
 endif
@@ -271,7 +271,7 @@ endif
 # Additionally disable all drivers needing raw access (memory, PCI, port I/O)
 # on architectures with unknown raw access properties.
 # Right now those architectures are alpha hppa m68k sh s390
-ifneq ($(ARCH),$(filter $(ARCH),x86 mips ppc arm sparc arc))
+ifneq ($(ARCH), $(filter $(ARCH), x86 mips ppc arm sparc arc))
 $(call mark_unsupported,CONFIG_GFXNVIDIA CONFIG_SATASII CONFIG_ATAVIA)
 $(call mark_unsupported,CONFIG_DRKAISER CONFIG_NICINTEL CONFIG_NICINTEL_SPI)
 $(call mark_unsupported,CONFIG_NICINTEL_EEPROM CONFIG_OGP_SPI CONFIG_IT8212)
@@ -800,7 +800,7 @@ CHECK_LIBUSB1 = yes
 FEATURE_CFLAGS += -D'NEED_LIBUSB1=1'
 PROGRAMMER_OBJS += usbdev.o usb_device.o
 # FreeBSD and DragonflyBSD use a reimplementation of libusb-1.0 that is simply called libusb
-ifeq ($(TARGET_OS),$(filter $(TARGET_OS),FreeBSD DragonFlyBSD))
+ifeq ($(TARGET_OS), $(filter $(TARGET_OS), FreeBSD DragonFlyBSD))
 USB1LIBS += -lusb
 else
 ifeq ($(TARGET_OS),NetBSD)
