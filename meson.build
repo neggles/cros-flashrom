@@ -446,6 +446,7 @@ srcs += 'w39.c'
 srcs += 'dep_writeprotect.c'
 srcs += 'dep_wp_statusreg.c'
 srcs += 'writeprotect.c'
+srcs += 'writeprotect_ranges.c'
 
 mapfile = 'libflashrom.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
