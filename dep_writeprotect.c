@@ -510,7 +510,7 @@ static int w25_set_range(const struct flashctx *flash,
 	msg_cdbg("status.srp0: %x\n", status.srp0);
 
 	memcpy(&expected, &status, sizeof(status));
-	spi_write_status_register(flash, expected);
+	spi_write_register(flash, STATUS1, expected);
 
 	tmp = spi_read_status_register(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
@@ -656,7 +656,7 @@ static int w25q_large_set_range(const struct flashctx *flash,
 	msg_cdbg("status.srp0: %x\n", status.srp0);
 
 	memcpy(&expected, &status, sizeof(status));
-	spi_write_status_register(flash, expected);
+	spi_write_register(flash, STATUS1, expected);
 
 	tmp = spi_read_status_register(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
@@ -719,7 +719,7 @@ static int w25_set_srp0(const struct flashctx *flash, int enable)
 
 	status.srp0 = enable ? 1 : 0;
 	memcpy(&expected, &status, sizeof(status));
-	spi_write_status_register(flash, expected);
+	spi_write_register(flash, STATUS1, expected);
 
 	tmp = spi_read_status_register(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);

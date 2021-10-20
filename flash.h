@@ -171,6 +171,13 @@ enum test_state {
 
 typedef int (erasefunc_t)(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 
+enum flash_reg {
+	INVALID_REG = 0,
+	STATUS1,
+	STATUS2,
+	MAX_REGISTERS
+};
+
 struct flashchip {
 	const char *vendor;
 	const char *name;
