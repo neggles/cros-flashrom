@@ -132,7 +132,11 @@ int spi_write_register(const struct flashctx *flash, enum flash_reg reg, uint8_t
 	}
 
 	for (; delay_ms > 0; delay_ms -= 10) {
-		if ((spi_read_status_register(flash) & SPI_SR_WIP) == 0)
+		uint8_t status;
+		result = spi_read_register(flash, STATUS1, &status);
+		if (result)
+			return result;
+		if ((status & SPI_SR_WIP) == 0)
 			return 0;
 		programmer_delay(10 * 1000);
 	}
@@ -187,14 +191,6 @@ int spi_read_register(const struct flashctx *flash, enum flash_reg reg, uint8_t 
 	return 0;
 }
 
-uint8_t spi_read_status_register(const struct flashctx *flash)
-{
-	uint8_t status = 0;
-	/* FIXME: We should propagate the error. */
-	spi_read_register(flash, STATUS1, &status);
-	return status;
-}
-
 static int spi_restore_status(struct flashctx *flash, uint8_t status)
 {
 	msg_cdbg("restoring chip status (0x%02x)\n", status);
@@ -226,7 +222,10 @@ static int spi_disable_blockprotect_generic(struct flashctx *flash, uint8_t bp_m
 	uint8_t status;
 	int result;
 
-	status = spi_read_status_register(flash);
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
+
 	if ((status & bp_mask) == 0) {
 		msg_cdbg2("Block protection is disabled.\n");
 		return 0;
@@ -248,7 +247,11 @@ static int spi_disable_blockprotect_generic(struct flashctx *flash, uint8_t bp_m
 			msg_cerr("Could not write status register 1.\n");
 			return result;
 		}
-		status = spi_read_status_register(flash);
+
+		ret = spi_read_register(flash, STATUS1, &status);
+		if (ret)
+			return ret;
+
 		if ((status & lock_mask) != 0) {
 			msg_cerr("Unsetting lock bit(s) failed.\n");
 			return 1;
@@ -261,7 +264,11 @@ static int spi_disable_blockprotect_generic(struct flashctx *flash, uint8_t bp_m
 		msg_cerr("Could not write status register 1.\n");
 		return result;
 	}
-	status = spi_read_status_register(flash);
+
+	ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
+
 	if ((status & bp_mask) != 0) {
 		msg_cerr("Block protection could not be disabled!\n");
 		if (flash->chip->printlock)
@@ -382,7 +389,10 @@ void spi_prettyprint_status_register_bit(uint8_t status, int bit)
 
 int spi_prettyprint_status_register_plain(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 	return 0;
 }
@@ -390,7 +400,10 @@ int spi_prettyprint_status_register_plain(struct flashctx *flash)
 /* Print the plain hex value and the welwip bits only. */
 int spi_prettyprint_status_register_default_welwip(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_welwip(status);
@@ -403,7 +416,10 @@ int spi_prettyprint_status_register_default_welwip(struct flashctx *flash)
  */
 int spi_prettyprint_status_register_bp1_srwd(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -421,7 +437,10 @@ int spi_prettyprint_status_register_bp1_srwd(struct flashctx *flash)
  */
 int spi_prettyprint_status_register_bp2_srwd(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -438,7 +457,10 @@ int spi_prettyprint_status_register_bp2_srwd(struct flashctx *flash)
  */
 int spi_prettyprint_status_register_bp3_srwd(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -450,7 +472,10 @@ int spi_prettyprint_status_register_bp3_srwd(struct flashctx *flash)
 
 int spi_prettyprint_status_register_bp4_srwd(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -461,7 +486,10 @@ int spi_prettyprint_status_register_bp4_srwd(struct flashctx *flash)
 
 int spi_prettyprint_status_register_bp2_bpl(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_bpl(status);
@@ -474,7 +502,10 @@ int spi_prettyprint_status_register_bp2_bpl(struct flashctx *flash)
 
 int spi_prettyprint_status_register_bp2_tb_bpl(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_bpl(status);
@@ -496,7 +527,10 @@ int spi_prettyprint_status_register_bp2_tb_bpl(struct flashctx *flash)
 
 int spi_prettyprint_status_register_amic_a25l032(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -552,7 +586,11 @@ static void spi_prettyprint_status_register_atmel_at25_swp(uint8_t status)
 
 int spi_prettyprint_status_register_at25df(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
+
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_srpl(status);
@@ -575,8 +613,10 @@ int spi_prettyprint_status_register_at25df_sec(struct flashctx *flash)
 int spi_prettyprint_status_register_at25f(struct flashctx *flash)
 {
 	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 
-	status = spi_read_status_register(flash);
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_wpen(status);
@@ -591,8 +631,10 @@ int spi_prettyprint_status_register_at25f(struct flashctx *flash)
 int spi_prettyprint_status_register_at25f512a(struct flashctx *flash)
 {
 	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 
-	status = spi_read_status_register(flash);
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_wpen(status);
@@ -607,7 +649,10 @@ int spi_prettyprint_status_register_at25f512a(struct flashctx *flash)
 
 int spi_prettyprint_status_register_at25f512b(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_srpl(status);
@@ -623,7 +668,10 @@ int spi_prettyprint_status_register_at25f4096(struct flashctx *flash)
 {
 	uint8_t status;
 
-	status = spi_read_status_register(flash);
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
+
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_wpen(status);
@@ -636,7 +684,10 @@ int spi_prettyprint_status_register_at25f4096(struct flashctx *flash)
 
 int spi_prettyprint_status_register_at25fs010(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_wpen(status);
@@ -656,7 +707,10 @@ int spi_prettyprint_status_register_at25fs010(struct flashctx *flash)
 
 int spi_prettyprint_status_register_at25fs040(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_wpen(status);
@@ -668,7 +722,10 @@ int spi_prettyprint_status_register_at25fs040(struct flashctx *flash)
 
 int spi_prettyprint_status_register_at26df081a(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_atmel_at25_srpl(status);
@@ -726,7 +783,10 @@ int spi_disable_blockprotect_at25fs040(struct flashctx *flash)
 
 int spi_prettyprint_status_register_en25s_wp(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -745,7 +805,10 @@ int spi_disable_blockprotect_n25q(struct flashctx *flash)
 
 int spi_prettyprint_status_register_n25q(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -770,7 +833,10 @@ int spi_disable_blockprotect_bp2_ep_srwd(struct flashctx *flash)
 /* Used by Intel/Numonyx S33 and Spansion S25FL-S chips */
 int spi_prettyprint_status_register_bp2_ep_srwd(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_hex(status);
 
 	spi_prettyprint_status_register_srwd(status);
@@ -798,7 +864,10 @@ static void spi_prettyprint_status_register_sst25_common(uint8_t status)
 
 int spi_prettyprint_status_register_sst25(struct flashctx *flash)
 {
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_sst25_common(status);
 	return 0;
 }
@@ -814,7 +883,10 @@ int spi_prettyprint_status_register_sst25vf016(struct flashctx *flash)
 		"100000H-1FFFFFH",
 		"all", "all"
 	};
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_sst25_common(status);
 	msg_cdbg("Resulting block protection : %s\n", bpt[(status & 0x1c) >> 2]);
 	return 0;
@@ -829,7 +901,10 @@ int spi_prettyprint_status_register_sst25vf040b(struct flashctx *flash)
 		"0x40000-0x7ffff",
 		"all blocks", "all blocks", "all blocks", "all blocks"
 	};
-	uint8_t status = spi_read_status_register(flash);
+	uint8_t status;
+	int ret = spi_read_register(flash, STATUS1, &status);
+	if (ret)
+		return ret;
 	spi_prettyprint_status_register_sst25_common(status);
 	msg_cdbg("Resulting block protection : %s\n", bpt[(status & 0x1c) >> 2]);
 	return 0;

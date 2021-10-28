@@ -329,6 +329,18 @@ static struct wp_range_descriptor gd25q64_ranges[] = {
 	{ .m = { .sec = 1, .tb = 1 }, 0x6, {0x000000, 32 * 1024} },
 };
 
+/*
+ * Hack to call the new spi_read_register() function since this file will be
+ * deleted soon anyway and adding a wrapper function is less error prone than
+ * converting every call site in this file.
+ */
+static uint8_t spi_read_status_register(const struct flashctx *flash)
+{
+	uint8_t tmp = 0;
+	spi_read_register(flash, STATUS1, &tmp);
+	return tmp;
+}
+
 static int range_table(const struct flashctx *flash,
                            struct wp_range_descriptor **descrs,
                            int *num_entries);
