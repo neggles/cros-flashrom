@@ -437,6 +437,13 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 	if (!len)
 		return -1;
 
+	if (start + len > flash->chip->total_size * 1024) {
+		msg_gerr("Error: %s called with start 0x%x + len 0x%x >"
+			" total_size 0x%x\n", __func__, start, len,
+			flash->chip->total_size * 1024);
+		return -1;
+	}
+
 	if (!flash->chip->read) {
 		msg_cerr("ERROR: flashrom has no read function for this flash chip.\n");
 		return -1;
@@ -449,13 +456,6 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 	}
 	int ret = 0, failcount = 0;
 
-	if (start + len > flash->chip->total_size * 1024) {
-		msg_gerr("Error: %s called with start 0x%x + len 0x%x >"
-			" total_size 0x%x\n", __func__, start, len,
-			flash->chip->total_size * 1024);
-		ret = -1;
-		goto out_free;
-	}
 	msg_gdbg("%#06x..%#06x ", start, start + len -1);
 	if (programmer->paranoid) {
 		unsigned int i, chunksize;
