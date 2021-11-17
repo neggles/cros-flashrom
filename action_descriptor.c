@@ -714,7 +714,7 @@ struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 	block_size = flash->chip->block_erasers
 		[sorted_erasers[0].eraser_index].eraseblocks
 		[sorted_erasers[0].region_index].size;
-	max_units = chip_size / (2 * block_size) + 1;
+	max_units = max( chip_size / (2 * block_size), 1 ) + 1;
 	descriptor = malloc(sizeof(struct action_descriptor) +
 			    sizeof(struct processing_unit) * max_units);
 	if (!descriptor) {
