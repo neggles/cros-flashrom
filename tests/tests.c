@@ -309,6 +309,18 @@ int __wrap_ferror(FILE *fp)
 	return 0;
 }
 
+int __wrap_flock(int fd, int operation)
+{
+	LOG_ME;
+	return 0;
+}
+
+int __wrap_ftruncate(int fd, off_t length)
+{
+	LOG_ME;
+	return 0;
+}
+
 void __wrap_clearerr(FILE *fp)
 {
 	/* LOG_ME; */
@@ -404,6 +416,7 @@ int main(void)
 
 	const struct CMUnitTest lifecycle_tests[] = {
 		cmocka_unit_test(dummy_basic_lifecycle_test_success),
+		cmocka_unit_test(dummy_probe_lifecycle_test_success),
 		cmocka_unit_test(nicrealtek_basic_lifecycle_test_success),
 		cmocka_unit_test(raiden_debug_basic_lifecycle_test_success),
 		cmocka_unit_test(dediprog_basic_lifecycle_test_success),
