@@ -32,48 +32,36 @@
  * Returns the path to a lock file in which flashrom's PID should be written to
  * instruct powerd not to suspend or shut down.
  *
- * powerd now checks for arbitrary lock files within /run/lock/power_override,
- * but flashrom needs to keep support for falling back to the old file at
- * /run/lock/flashrom_power.lock indefinitely to support the case where a new
- * version of flashrom is running against an old version of the OS during a
- * system update.
+ * powerd checks for arbitrary lock files within /run/lock/power_override.
  */
-static const char *get_powerd_lock_file_path(void)
-{
-	return access("/run/lock/power_override/", F_OK) == 0 ?
-		"/run/lock/power_override/flashrom.lock" :
-		"/run/lock/flashrom_powerd.lock";
-}
+#define POWERD_LOCK_FILE_PATH "/run/lock/power_override/flashrom.lock"
 
 int disable_power_management(void)
 {
 	FILE *lock_file = NULL;
-	const char *path = NULL;
 	int rc = 0;
 	mode_t old_umask;
 
 	msg_pdbg("%s: Disabling power management.\n", __func__);
 
-	path = get_powerd_lock_file_path();
-
 	old_umask = umask(022);
-	lock_file = fopen(path, "w");
+	lock_file = fopen(POWERD_LOCK_FILE_PATH, "w");
 	umask(old_umask);
 	if (!lock_file) {
 		msg_perr("%s: Failed to open %s for writing: %s\n",
-			__func__, path, strerror(errno));
+			__func__, POWERD_LOCK_FILE_PATH, strerror(errno));
 		return 1;
 	}
 
 	if (fprintf(lock_file, "%ld", (long)getpid()) < 0) {
 		msg_perr("%s: Failed to write PID to %s: %s\n",
-			__func__, path, strerror(errno));
+			__func__, POWERD_LOCK_FILE_PATH, strerror(errno));
 		rc = 1;
 	}
 
 	if (fclose(lock_file) != 0) {
 		msg_perr("%s: Failed to close %s: %s\n",
-			__func__, path, strerror(errno));
+			__func__, POWERD_LOCK_FILE_PATH, strerror(errno));
 	}
 	return rc;
 
@@ -81,17 +69,14 @@ int disable_power_management(void)
 
 int restore_power_management(void)
 {
-	const char *path = NULL;
 	int result = 0;
 
 	msg_pdbg("%s: Re-enabling power management.\n", __func__);
 
-	path = get_powerd_lock_file_path();
-
-	result = unlink(path);
+	result = unlink(POWERD_LOCK_FILE_PATH);
 	if (result != 0 && errno != ENOENT)  {
 		msg_perr("%s: Failed to unlink %s: %s\n",
-			__func__, path, strerror(errno));
+			__func__, POWERD_LOCK_FILE_PATH, strerror(errno));
 		return 1;
 	}
 	return 0;
