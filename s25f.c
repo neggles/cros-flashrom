@@ -25,7 +25,6 @@
 
 #include "chipdrivers.h"
 #include "spi.h"
-#include "writeprotect.h"
 
 /*
  * RDAR and WRAR are supported on chips which have more than one set of status
@@ -188,21 +187,6 @@ static int s25fs_read_cr(const struct flashctx *flash, uint32_t addr)
 	return cfg;
 }
 
-static int s25f_read_cr1(const struct flashctx *flash)
-{
-	int result;
-	uint8_t cfg;
-	unsigned char read_cr_cmd[] = { CMD_RDCR };
-
-	result = spi_send_command(flash, sizeof(read_cr_cmd), 1, read_cr_cmd, &cfg);
-	if (result) {
-		msg_cerr("%s failed during command execution\n", __func__);
-		return -1;
-	}
-
-	return cfg;
-}
-
 /* "Write Any Register" instruction only supported on S25FS */
 static int s25fs_write_cr(const struct flashctx *flash,
 			  uint32_t addr, uint8_t data)
@@ -242,41 +226,6 @@ static int s25fs_write_cr(const struct flashctx *flash,
 	return s25f_poll_status(flash);
 }
 
-static int s25f_write_cr1(const struct flashctx *flash, uint8_t data)
-{
-	int result;
-	struct spi_command cmds[] = {
-	{
-		.writecnt	= JEDEC_WREN_OUTSIZE,
-		.writearr	= (const unsigned char[]){ JEDEC_WREN },
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}, {
-		.writecnt	= CMD_WRR_LEN,
-		.writearr	= (const unsigned char[]){
-					CMD_WRR,
-					spi_read_status_register(flash),
-					data,
-				},
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}, {
-		.writecnt	= 0,
-		.writearr	= NULL,
-		.readcnt	= 0,
-		.readarr	= NULL,
-	}};
-
-	result = spi_send_multicommand(flash, cmds);
-	if (result) {
-		msg_cerr("%s failed during command execution\n", __func__);
-		return -1;
-	}
-
-	programmer_delay(T_W);
-	return s25f_poll_status(flash);
-}
-
 static int s25fs_restore_cr3nv(struct flashctx *flash, uint8_t cfg)
 {
 	int ret = 0;
@@ -287,75 +236,7 @@ static int s25fs_restore_cr3nv(struct flashctx *flash, uint8_t cfg)
 	return ret;
 }
 
-/* returns state of top/bottom block protection, or <0 to indicate error */
-static int s25f_get_tbprot_o(const struct flashctx *flash)
-{
-	int cr1 = s25f_read_cr1(flash);
-
-	if (cr1 < 0)
-		return -1;
-
-	/*
-	 * 1 = BP starts at bottom (low address)
-	 * 0 = BP start at top (high address)
-	 */
-	return cr1 & CR1_TBPROT_O ? 1 : 0;
-}
-
-/* fills modifier_bits struct, returns 0 to indicate success */
-int s25f_get_modifier_bits(const struct flashctx *flash,
-					struct modifier_bits *m)
-{
-	int tmp;
-
-	memset(m, 0, sizeof(*m));
-
-	tmp = s25f_get_tbprot_o(flash);
-	if (tmp < 0)
-		return -1;
-	m->tb = tmp;
-
-	return 0;
-}
-
-int s25f_set_modifier_bits(const struct flashctx *flash,
-					struct modifier_bits *m)
-{
-	int cr1, cr1_orig;
-
-	cr1 = cr1_orig = s25f_read_cr1(flash);
-	if (cr1 < 0)
-		return -1;
-
-	/*
-	 * Clear BPNV so that setting BP2-0 in status register gets
-	 * written to non-volatile memory.
-	 *
-	 * For TBPROT:
-	 * 1 = BP starts at bottom (low address)
-	 * 0 = BP start at top (high address)
-	 */
-	cr1 &= ~(CR1_BPNV_O | CR1_TBPROT_O);
-	cr1 |= m->tb ? CR1_TBPROT_O : 0;
-
-	if (cr1 != cr1_orig) {
-		msg_cdbg("%s: setting cr1 bits to 0x%02x\n", __func__, cr1);
-		if (s25f_write_cr1(flash, cr1) < 0)
-			return -1;
-		if (s25f_read_cr1(flash) != cr1) {
-			msg_cerr("%s: failed to set CR1 value\n", __func__);
-			return -1;
-		}
-	} else {
-		msg_cdbg("%s: cr1 bits already match desired value: "
-				"0x%02x\n", __func__, cr1);
-	}
-
-	return 0;
-}
-
-int s25fs_block_erase_d8(struct flashctx *flash,
-			 uint32_t addr, uint32_t blocklen)
+int s25fs_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
 {
 	static int cr3nv_checked = 0;
 
@@ -418,8 +299,7 @@ int s25fs_block_erase_d8(struct flashctx *flash,
 	return s25f_poll_status(flash);
 }
 
-int s25fl_block_erase(struct flashctx *flash,
-		      uint32_t addr, uint32_t blocklen)
+int s25fl_block_erase(struct flashctx *flash, unsigned int addr, unsigned int blocklen)
 {
 	struct spi_command erase_cmds[] = {
 		{

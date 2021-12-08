@@ -20,8 +20,7 @@
 #ifndef __CHIPDRIVERS_H__
 #define __CHIPDRIVERS_H__ 1
 
-#include "flash.h"		/* for chipaddr and flashctx */
-#include "writeprotect.h"	/* for modifier_bits */
+#include "flash.h"	/* for chipaddr and flashctx */
 
 /* spi.c */
 int spi_aai_write(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
@@ -177,8 +176,6 @@ int unlock_sst_fwhub(struct flashctx *flash);
 /* s25f.c */
 int probe_spi_big_spansion(struct flashctx *flash);
 int s25fl_block_erase(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
-int s25f_get_modifier_bits(const struct flashctx *flash, struct modifier_bits *m);
-int s25f_set_modifier_bits(const struct flashctx *flash, struct modifier_bits *m);
 int s25fs_block_erase_d8(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 
 /* w39.c */
