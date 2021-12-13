@@ -363,10 +363,6 @@ int write_buf_to_file(const unsigned char *buf, unsigned long size, const char *
 int write_buf_to_include_args(const struct flashctx *const flash, unsigned char *buf);
 int prepare_flash_access(struct flashctx *, bool read_it, bool write_it, bool erase_it, bool verify_it);
 void finalize_flash_access(struct flashctx *);
-int do_read(struct flashctx *, const char *filename);
-int do_extract(struct flashctx *);
-int do_write(struct flashctx *, const char *const filename, const char *const referencefile);
-int do_verify(struct flashctx *, const char *const filename);
 
 /* what to do in case of an error */
 enum error_action {
