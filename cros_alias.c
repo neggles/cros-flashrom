@@ -15,6 +15,7 @@
  */
 
 #include "programmer.h"
+#include "hwaccess_physmap.h"
 
 /* ugly singleton to work around cros layering violations in action_descriptor.c */
 static int ec_alias_path = 0;

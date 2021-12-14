@@ -31,6 +31,7 @@
 #include "spi.h"
 #include "programmer.h"
 #include "hwaccess_x86_io.h"
+#include "hwaccess_physmap.h"
 
 /* Supported ECs, ITE_LAST should always be LAST member */
 enum ite_chip_id {
