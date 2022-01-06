@@ -44,8 +44,8 @@ const struct programmer_entry programmer_google_ec_alias = {
 	.type			= OTHER,
 	.devs.note		= "Google EC alias mechanism.\n",
 	.init			= cros_ec_alias_init,
-	.map_flash_region	= physmap, /* TODO(b/171934191) */
-	.unmap_flash_region	= physunmap, /* TODO(b/171934191) */
+	.map_flash_region	= fallback_map,
+	.unmap_flash_region	= fallback_unmap,
 	.delay			= internal_delay,
 
 	/*
