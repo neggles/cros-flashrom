@@ -40,7 +40,6 @@
 #include "flashchips.h"
 #include "programmer.h"
 #include "spi.h"
-#include "hwaccess.h"
 #include "hwaccess_physmap.h"
 #include "chipdrivers.h"
 
