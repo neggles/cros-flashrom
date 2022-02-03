@@ -1079,7 +1079,7 @@ int main(int argc, char *argv[])
 out_release:
 	flashrom_layout_release(layout);
 out_shutdown:
-	programmer_shutdown();
+	flashrom_programmer_shutdown(NULL);
 out:
 
 #if USE_BIG_LOCK == 1
