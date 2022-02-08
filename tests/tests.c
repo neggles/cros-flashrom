@@ -212,12 +212,6 @@ size_t __wrap_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *fp)
 	return nmemb;
 }
 
-int __wrap_fprintf(int fd, const char *fmt, ...)
-{
-       LOG_ME;
-       return 0;
-}
-
 int __wrap_fflush(FILE *fp)
 {
 	LOG_ME;
@@ -239,6 +233,20 @@ int __wrap_fsync(int fd)
 int __wrap_setvbuf(FILE *fp, char *buf, int type, size_t size)
 {
 	LOG_ME;
+	return 0;
+}
+
+int __wrap_fprintf(FILE *fp, const char *fmt, ...)
+{
+	LOG_ME;
+	if (get_io() && get_io()->fprintf) {
+		va_list args;
+		int out;
+		va_start(args, fmt);
+		out = get_io()->fprintf(get_io()->state, fp, fmt, args);
+		va_end(args);
+		return out;
+	}
 	return 0;
 }
 
