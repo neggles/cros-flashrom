@@ -554,21 +554,6 @@ flashrom_test_dep = declare_dependency(
   ],
 )
 
-writeprotect_test_dep = declare_dependency(
-  include_directories : include_directories('.'),
-  sources : [
-    srcs,
-  ],
-  compile_args : [
-    '-includestdlib.h',
-    '-includeunittest_env.h',
-  ],
-  dependencies : [
-    deps,
-  ],
-)
-
-
 if cmocka_dep.found()
   subdir('tests')
 endif
