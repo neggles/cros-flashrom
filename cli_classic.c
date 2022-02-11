@@ -161,6 +161,80 @@ static int parse_wp_range(unsigned int *start, unsigned int *len)
 	return 0;
 }
 
+static int dep_wp_cli(
+		struct flashctx *flash,
+		bool enable_wp,
+		bool disable_wp,
+		bool print_wp_status,
+		bool print_available_ranges,
+		bool set_wp_range,
+		uint32_t wp_start,
+		uint32_t wp_len)
+{
+	int ret = 0;
+
+	struct wp *wp = get_wp_for_flashchip(flash->chip);
+	if (set_wp_range) {
+		if (!wp || !wp->set_range) {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
+			ret = 1;
+			goto out;
+		}
+	}
+
+	if (print_wp_status) {
+		if (wp && wp->wp_status) {
+			uint32_t s, l;
+			bool en;
+			ret |= wp->wp_status(flash, &s, &l, &en);
+		} else {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
+			ret = 1;
+		}
+		goto out;
+	}
+
+	/* Note: disable_wp should be done before setting the range */
+	if (disable_wp) {
+		if (wp && wp->disable) {
+			ret |= wp->disable(flash);
+		} else {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
+			ret = 1;
+			goto out;
+		}
+	}
+
+	/* Note: set_wp_range must happen before enable_wp */
+	if (set_wp_range) {
+		ret |= wp->set_range(flash, wp_start, wp_len);
+	}
+
+	if (!ret && enable_wp) {
+		if (wp && wp->enable) {
+			ret |= wp->enable(flash, WP_MODE_HARDWARE);
+		} else {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
+			ret = 1;
+			goto out;
+		}
+	}
+
+	if (print_available_ranges) {
+		msg_ginfo("Valid write protection ranges:\n");
+		if (wp && wp->list_ranges) {
+			ret |= wp->list_ranges(flash);
+		} else {
+			msg_gerr("Error: write protect is not supported on this flash chip.\n");
+			ret = 1;
+		}
+		goto out;
+	}
+
+out:
+	return ret;
+}
+
 static char *get_optional_filename(char *argv[])
 {
 	char *filename = NULL;
@@ -317,8 +391,8 @@ int main(int argc, char *argv[])
 	int list_supported_wiki = 0;
 #endif
 	int flash_name = 0, flash_size = 0;
-	int set_wp_enable = 0, set_wp_disable = 0, wp_status = 0;
-	int set_wp_range = 0, set_wp_region = 0, wp_list = 0;
+	int enable_wp = 0, disable_wp = 0, print_wp_status = 0;
+	int set_wp_range = 0, set_wp_region = 0, print_available_ranges = 0;
 	int read_it = 0, extract_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
 	int do_not_diff = 0;
@@ -522,10 +596,10 @@ int main(int argc, char *argv[])
 			flash_size = 1;
 			break;
 		case OPTION_WP_STATUS:
-			wp_status = 1;
+			print_wp_status = 1;
 			break;
 		case OPTION_WP_LIST:
-			wp_list = 1;
+			print_available_ranges = 1;
 			break;
 		case OPTION_WP_SET_RANGE:
 			if (parse_wp_range(&wp_start, &wp_len) < 0)
@@ -534,10 +608,10 @@ int main(int argc, char *argv[])
 			set_wp_range = 1;
 			break;
 		case OPTION_WP_ENABLE:
-			set_wp_enable = 1;
+			enable_wp = 1;
 			break;
 		case OPTION_WP_DISABLE:
-			set_wp_disable = 1;
+			disable_wp = 1;
 			break;
 		case 'L':
 			cli_classic_validate_singleop(&operation_specified);
@@ -849,10 +923,26 @@ int main(int argc, char *argv[])
 		goto out_shutdown;
 	}
 
-	if (!(read_it | write_it | verify_it | erase_it | flash_name | flash_size
-	      | set_wp_range | set_wp_region | set_wp_enable |
-	      set_wp_disable | wp_status | wp_list | extract_it)) {
+	const bool any_wp_op =
+		set_wp_range || set_wp_region || enable_wp ||
+		disable_wp || print_wp_status || print_available_ranges;
+
+	const bool any_op = read_it || write_it || verify_it || erase_it ||
+		flash_name || flash_size || extract_it || any_wp_op;
+
+	if (!any_op) {
 		msg_ginfo("No operations were specified.\n");
+		goto out_shutdown;
+	}
+
+	if (enable_wp && disable_wp) {
+		msg_ginfo("Error: --wp-enable and --wp-disable are mutually exclusive\n");
+		ret = 1;
+		goto out_shutdown;
+	}
+	if (set_wp_range && set_wp_region) {
+		msg_gerr("Error: Cannot use both --wp-range and --wp-region simultaneously.\n");
+		ret = 1;
 		goto out_shutdown;
 	}
 
@@ -899,26 +989,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (set_wp_enable && set_wp_disable) {
-		msg_ginfo("Error: --wp-enable and --wp-disable are mutually exclusive\n");
-		ret = 1;
-		goto out_shutdown;
-	}
-	if (set_wp_range && set_wp_region) {
-		msg_gerr("Error: Cannot use both --wp-range and --wp-region simultaneously.\n");
-		ret = 1;
-		goto out_shutdown;
-	}
-
-	struct wp *wp = get_wp_for_flashchip(fill_flash->chip);
-	if (set_wp_range || set_wp_region) {
-		if (!wp || !wp->set_range) {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-			goto out_shutdown;
-		}
-	}
-
 	if (flash_name) {
 		if (fill_flash->chip->vendor && fill_flash->chip->name) {
 			printf("vendor=\"%s\" name=\"%s\"\n",
@@ -954,62 +1024,25 @@ int main(int argc, char *argv[])
 	}
 	flashrom_layout_set(fill_flash, layout);
 
-	if (wp_status) {
-		if (wp && wp->wp_status) {
-			uint32_t s, l;
-			bool en;
-			ret |= wp->wp_status(fill_flash, &s, &l, &en);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
+	if (any_wp_op) {
+		if (set_wp_region && wp_region) {
+			ret = flashrom_layout_get_region_range(layout, wp_region, &wp_start, &wp_len);
+			if (ret)
+				goto out_release;
+			set_wp_range = true;
 		}
-		goto out_release;
-	}
-
-	/* Note: set_wp_disable should be done before setting the range */
-	if (set_wp_disable) {
-		if (wp && wp->disable) {
-			ret |= wp->disable(fill_flash);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
+		ret = dep_wp_cli(
+			fill_flash,
+			enable_wp,
+			disable_wp,
+			print_wp_status,
+			print_available_ranges,
+			set_wp_range,
+			wp_start,
+			wp_len
+		);
+		if (ret)
 			goto out_release;
-		}
-	}
-
-	/* Note: set_wp_range must happen before set_wp_enable */
-	if (set_wp_range) {
-		ret |= wp->set_range(fill_flash, wp_start, wp_len);
-	}
-
-	if (set_wp_region && wp_region) {
-		if (flashrom_layout_get_region_range(layout, wp_region, &wp_start, &wp_len)) {
-			ret = 1;
-			goto out_release;
-		}
-		ret |= wp->set_range(fill_flash, wp_start, wp_len);
-		free(wp_region);
-	}
-
-	if (!ret && set_wp_enable) {
-		if (wp && wp->enable) {
-			ret |= wp->enable(fill_flash, WP_MODE_HARDWARE);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-			goto out_release;
-		}
-	}
-
-	if (wp_list) {
-		msg_ginfo("Valid write protection ranges:\n");
-		if (wp && wp->list_ranges) {
-			ret |= wp->list_ranges(fill_flash);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-		}
-		goto out_release;
 	}
 
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
