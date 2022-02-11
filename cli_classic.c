@@ -366,7 +366,7 @@ int main(int argc, char *argv[])
 		{"wp-status", 		0, 0, OPTION_WP_STATUS},
 		{"wp-range", 		required_argument, NULL, OPTION_WP_SET_RANGE},
 		{"wp-region",		1, 0, OPTION_WP_SET_REGION},
-		{"wp-enable", 		optional_argument, 0, OPTION_WP_ENABLE},
+		{"wp-enable", 		0, 0, OPTION_WP_ENABLE},
 		{"wp-disable", 		0, 0, OPTION_WP_DISABLE},
 		{"wp-list", 		0, 0, OPTION_WP_LIST},
 		{"list-supported",	0, NULL, 'L'},
@@ -389,7 +389,6 @@ int main(int argc, char *argv[])
 	char *tempstr = NULL;
 	char *pparam = NULL;
 	struct layout_include_args *include_args = NULL;
-	char *wp_mode_opt = NULL;
 	char *wp_region = NULL;
 
 	/*
@@ -536,8 +535,6 @@ int main(int argc, char *argv[])
 			break;
 		case OPTION_WP_ENABLE:
 			set_wp_enable = 1;
-			if (optarg)
-				wp_mode_opt = strdup(optarg);
 			break;
 		case OPTION_WP_DISABLE:
 			set_wp_disable = 1;
@@ -995,21 +992,8 @@ int main(int argc, char *argv[])
 	}
 
 	if (!ret && set_wp_enable) {
-		enum wp_mode wp_mode;
-
-		if (wp_mode_opt)
-			wp_mode = get_wp_mode(wp_mode_opt);
-		else
-			wp_mode = WP_MODE_HARDWARE;	/* default */
-
-		if (wp_mode == WP_MODE_UNKNOWN) {
-			msg_gerr("Error: Invalid WP mode: \"%s\"\n", wp_mode_opt);
-			ret = 1;
-			goto out_release;
-		}
-
 		if (wp && wp->enable) {
-			ret |= wp->enable(fill_flash, wp_mode);
+			ret |= wp->enable(fill_flash, WP_MODE_HARDWARE);
 		} else {
 			msg_gerr("Error: write protect is not supported on this flash chip.\n");
 			ret = 1;
