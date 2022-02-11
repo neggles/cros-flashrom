@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef __WRITEPROTECT_H__
-#define __WRITEPROTECT_H__ 1
+#ifndef __DEP_WRITEPROTECT_H__
+#define __DEP_WRITEPROTECT_H__ 1
 
 #include "flash.h"
 
@@ -63,4 +63,4 @@ uint8_t w25q_read_status_register_2(const struct flashctx *flash);
 uint8_t mx25l_read_config_register(const struct flashctx *flash);
 int w25q_write_status_register_WREN(const struct flashctx *flash, uint8_t s1, uint8_t s2);
 
-#endif /* !__WRITEPROTECT_H__ */
+#endif /* !__DEP_WRITEPROTECT_H__ */

@@ -23,7 +23,7 @@
 #include "flashchips.h"
 #include "chipdrivers.h"
 #include "spi.h"
-#include "writeprotect.h"
+#include "dep_writeprotect.h"
 
 /*
  * The following procedures rely on look-up tables to match the user-specified

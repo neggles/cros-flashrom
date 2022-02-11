@@ -45,7 +45,7 @@
 #include "cros_ec_commands.h"
 #include "programmer.h"
 #include "spi.h"
-#include "writeprotect.h"
+#include "dep_writeprotect.h"
 
 /* FIXME: used for wp hacks */
 #include <sys/types.h>

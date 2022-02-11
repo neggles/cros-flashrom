@@ -31,7 +31,7 @@
 #include "fmap.h"
 #include "power.h"
 #include "programmer.h"
-#include "writeprotect.h"
+#include "dep_writeprotect.h"
 
 #define LOCK_TIMEOUT_SECS	180
 

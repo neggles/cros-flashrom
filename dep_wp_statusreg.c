@@ -23,7 +23,7 @@
 #include "flashchips.h"
 #include "chipdrivers.h"
 #include "spi.h"
-#include "writeprotect.h"
+#include "dep_writeprotect.h"
 
 /* FIXME: Move to spi25.c if it's a JEDEC standard opcode */
 uint8_t w25q_read_status_register_2(const struct flashctx *flash)
@@ -55,7 +55,7 @@ uint8_t w25q_read_status_register_2(const struct flashctx *flash)
 uint8_t mx25l_read_config_register(const struct flashctx *flash)
 {
 	static const unsigned char cmd[JEDEC_RDSR_OUTSIZE] = { 0x15 };
-	unsigned char readarr[2];	/* leave room for dummy byte */
+	unsigned char readarr[2];
 	int ret;
 
 	if (flash->chip->read_status) {

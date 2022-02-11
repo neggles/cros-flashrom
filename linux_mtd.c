@@ -30,7 +30,7 @@
 
 #include "flash.h"
 #include "programmer.h"
-#include "writeprotect.h"
+#include "dep_writeprotect.h"
 
 #define LINUX_DEV_ROOT			"/dev"
 #define LINUX_MTD_SYSFS_ROOT		"/sys/class/mtd"
