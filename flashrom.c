@@ -1561,7 +1561,7 @@ static int erase_and_write_flash(struct flashctx *flash,
 	if (ret) {
 		msg_cerr("FAILED!\n");
 	} else {
-		msg_cdbg("SUCCESS.\n");
+		msg_cinfo("SUCCESS.\n");
 	}
 
 	free(descriptor);
