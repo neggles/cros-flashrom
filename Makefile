@@ -419,9 +419,6 @@ SCMDEF := -D'FLASHROM_VERSION="$(VERSION)"'
 # No spaces in release names unless set explicitly
 RELEASENAME ?= $(shell echo "$(VERSION)" | sed -e 's/ /_/')
 
-# Inform user of the version string
-$(info Replacing all version templates with $(VERSION).)
-
 # If a VCS is found then try to install hooks.
 # TODO(quasisec): turn this into a make target with a upstream patch.
 #$(shell ./util/getrevision.sh -c 2>/dev/null && ./util/git-hooks/install.sh)
@@ -912,6 +909,7 @@ ifeq ($(ARCH), x86)
 endif
 
 config:
+	@echo Building flashrom version $(VERSION)
 	@echo -n "C compiler found: "
 	@if [ $(CC_WORKING) = yes ]; \
 		then $(CC) --version 2>/dev/null | head -1; \
