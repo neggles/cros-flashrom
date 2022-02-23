@@ -2160,6 +2160,7 @@ static void init_chipset_properties(struct swseq_data *swseq, struct hwseq_data 
 	case CHIPSET_METEOR_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
 	case CHIPSET_ELKHART_LAKE:
 		*num_pr			= 6;	/* Includes GPR0 */
 		*reg_pr0		= PCH100_REG_FPR0;
@@ -2198,6 +2199,7 @@ static void init_chipset_properties(struct swseq_data *swseq, struct hwseq_data 
 	case CHIPSET_METEOR_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
 	case CHIPSET_ELKHART_LAKE:
 		*num_freg = 16;
 		break;
@@ -2259,6 +2261,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	case CHIPSET_METEOR_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
 	case CHIPSET_ELKHART_LAKE:
 		tmp = mmio_readl(spibar + PCH100_REG_DLOCK);
 		msg_pdbg("0x0c: 0x%08x (DLOCK)\n", tmp);
@@ -2338,6 +2341,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 		case CHIPSET_METEOR_LAKE:
 		case CHIPSET_APOLLO_LAKE:
 		case CHIPSET_GEMINI_LAKE:
+		case CHIPSET_JASPER_LAKE:
 		case CHIPSET_BAYTRAIL:
 		case CHIPSET_ELKHART_LAKE:
 			break;
@@ -2376,6 +2380,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 		case CHIPSET_METEOR_LAKE:
 		case CHIPSET_APOLLO_LAKE:
 		case CHIPSET_GEMINI_LAKE:
+		case CHIPSET_JASPER_LAKE:
 		case CHIPSET_ELKHART_LAKE:
 			break;
 		default:
@@ -2411,7 +2416,8 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	     ich_gen == CHIPSET_500_SERIES_TIGER_POINT ||
 	     ich_gen == CHIPSET_600_SERIES_ALDER_POINT ||
 	     ich_gen == CHIPSET_APOLLO_LAKE ||
-	     ich_gen == CHIPSET_GEMINI_LAKE)) {
+	     ich_gen == CHIPSET_GEMINI_LAKE ||
+	     ich_gen == CHIPSET_JASPER_LAKE)) {
 		msg_pdbg("Enabling hardware sequencing by default for 100+ series PCH.\n");
 		ich_spi_mode = ich_hwseq;
 	}
@@ -2419,6 +2425,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	switch(ich_gen) {
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
 	case CHIPSET_ELKHART_LAKE:
 	case CHIPSET_METEOR_LAKE:
 		num_fd_regions = APL_GLK_NUM_FD_REGIONS;

@@ -610,6 +610,7 @@ static enum chipbustype enable_flash_ich_report_gcs(
 	case CHIPSET_ELKHART_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
 		reg_name = "BIOS_SPI_BC";
 		gcs = pci_read_long(dev, 0xdc);
 		bild = (gcs >> 7) & 1;
@@ -717,6 +718,7 @@ static enum chipbustype enable_flash_ich_report_gcs(
 		break;
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
 	case CHIPSET_ELKHART_LAKE:
 		boot_straps = boot_straps_apl;
 		break;
@@ -749,6 +751,7 @@ static enum chipbustype enable_flash_ich_report_gcs(
 	case CHIPSET_METEOR_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
 	case CHIPSET_ELKHART_LAKE:
 		bbs = (gcs >> 6) & 0x1;
 		break;
@@ -1013,6 +1016,11 @@ static int enable_flash_mtl(struct pci_dev *const dev, const char *const name)
 static int enable_flash_mcc(struct pci_dev *const dev, const char *const name)
 {
 	return enable_flash_pch100_or_c620(dev, name, 0x1f, 5, CHIPSET_ELKHART_LAKE);
+}
+
+static int enable_flash_jsl(struct pci_dev *const dev, const char *const name)
+{
+	return enable_flash_pch100_or_c620(dev, name, 0x1f, 5, CHIPSET_JASPER_LAKE);
 }
 
 static int enable_flash_apl(struct pci_dev *const dev, const char *const name)
@@ -2061,7 +2069,6 @@ const struct penable chipset_enables[] = {
 	 * TODO(b/173164205): Merged with upstream.
 	 */
 	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_pch100},
-	{0x8086, 0x4da4, B_FS,    OK, "Intel", "Jasperlake",			enable_flash_pch100},
 	{0x8086, 0xa0a4, B_FS,    OK, "Intel", "Tigerlake",			enable_flash_pch100},
 	{0x8086, 0x7aa4, B_FS,    OK, "Intel", "Alder Lake-S",			enable_flash_pch600},
 	{0x8086, 0x9d41, B_S,    NT,  "Intel", "Skylake / Kaby Lake Sample",	enable_flash_pch100},
@@ -2137,6 +2144,7 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x5af0, B_S,    DEP, "Intel", "Apollo Lake",			enable_flash_apl},
 	{0x8086, 0x3197, B_S,    NT,  "Intel", "Gemini Lake",			enable_flash_glk},
 	{0x8086, 0x31e8, B_S,    DEP, "Intel", "Gemini Lake",			enable_flash_glk},
+	{0x8086, 0x4da4, B_S,    DEP, "Intel", "Jasper Lake",			enable_flash_jsl},
 	{0x8086, 0x4b24, B_S,    DEP, "Intel", "Elkhart Lake",			enable_flash_mcc},
 	{0x8086, 0xa303, B_S,    NT,  "Intel", "H310",				enable_flash_pch300},
 	{0x8086, 0xa304, B_S,    NT,  "Intel", "H370",				enable_flash_pch300},
