@@ -35,8 +35,6 @@
 
 #define LOCK_TIMEOUT_SECS	180
 
-int set_ignore_lock = 0;
-
 #include "libflashrom.h"
 
 static void cli_classic_usage(const char *name)
@@ -84,7 +82,6 @@ static void cli_classic_usage(const char *name)
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
 	       "      --do-not-diff                 do not diff with chip contents\n"
 	       "                                    (should be used with erased chips only)\n"
-	       "      --ignore-lock                 do not acquire big lock\n"
 	       " -L | --list-supported              print supported devices\n"
 #if CONFIG_PRINT_WIKI == 1
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
@@ -341,7 +338,6 @@ int main(int argc, char *argv[])
 		OPTION_WP_DISABLE,
 		OPTION_WP_LIST,
 		OPTION_DO_NOT_DIFF,
-		OPTION_IGNORE_LOCK,
 	};
 	int ret = 0;
 	unsigned int wp_start = 0, wp_len = 0;
@@ -380,7 +376,6 @@ int main(int argc, char *argv[])
 		{"version",		0, NULL, 'R'},
 		{"output",		1, NULL, 'o'},
 		{"do-not-diff",		0, 0, OPTION_DO_NOT_DIFF},
-		{"ignore-lock",		0, 0, OPTION_IGNORE_LOCK},
 		{NULL,			0, NULL, 0},
 	};
 
@@ -639,9 +634,6 @@ int main(int argc, char *argv[])
 			set_wp_region = 1;
 			wp_region = strdup(optarg);
 			break;
-		case OPTION_IGNORE_LOCK:
-			set_ignore_lock = 1;
-			break;
 		default:
 			cli_classic_abort_usage(NULL);
 			break;
@@ -744,15 +736,13 @@ int main(int argc, char *argv[])
 
 #if USE_BIG_LOCK == 1
 	/* get lock before doing any work that touches hardware */
-	if (!set_ignore_lock) {
-		msg_gdbg("Acquiring lock (timeout=%d sec)...\n", LOCK_TIMEOUT_SECS);
-		if (acquire_big_lock(LOCK_TIMEOUT_SECS) < 0) {
-			msg_gerr("Could not acquire lock.\n");
-			ret = 1;
-			goto out;
-		}
-		msg_gdbg("Lock acquired.\n");
+	msg_gdbg("Acquiring lock (timeout=%d sec)...\n", LOCK_TIMEOUT_SECS);
+	if (acquire_big_lock(LOCK_TIMEOUT_SECS) < 0) {
+		msg_gerr("Could not acquire lock.\n");
+		ret = 1;
+		goto out;
 	}
+	msg_gdbg("Lock acquired.\n");
 #endif
 
 	if (programmer_init(prog, pparam)) {
@@ -1081,8 +1071,7 @@ out_shutdown:
 out:
 
 #if USE_BIG_LOCK == 1
-	if (!set_ignore_lock)
-		release_big_lock();
+	release_big_lock();
 #endif
 	if (restore_power_management()) {
 		msg_gerr("Unable to re-enable power management\n");
