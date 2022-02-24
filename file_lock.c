@@ -117,39 +117,43 @@ static int file_lock_open_or_create(struct ipc_lock *lock)
 
 static int file_lock_get(struct ipc_lock *lock, int timeout_msecs)
 {
-	int msecs_remaining = timeout_msecs;
-	struct timespec sleep_interval, rem;
-	int ret = -1;
+	int remaining_msecs;
+	struct timespec sleep_interval;
+	int ret;
 
 	if (timeout_msecs == 0)
 		return flock(lock->fd, LOCK_EX | LOCK_NB);
 
-	msecs_to_timespec(SLEEP_INTERVAL_MS, &sleep_interval);
+	if (timeout_msecs < 0)
+		remaining_msecs = SLEEP_INTERVAL_MS;
+	else
+		remaining_msecs = timeout_msecs;
 
 	while ((ret = flock(lock->fd, LOCK_EX | LOCK_NB)) != 0) {
+		struct timespec rem;
+
 		if (errno != EWOULDBLOCK) {
 			msg_gerr("Error obtaining lock");
 			return -1;
 		}
 
-		if (msecs_remaining < SLEEP_INTERVAL_MS)
-			msecs_to_timespec(msecs_remaining, &sleep_interval);
+		msecs_to_timespec(MIN(remaining_msecs, SLEEP_INTERVAL_MS),
+				  &sleep_interval);
 
 		while (nanosleep(&sleep_interval, &rem) != 0) {
 			if (errno == EINTR) {
 				sleep_interval = rem;
 				continue;
-			} else {
-				msg_gerr("nanosleep() failed");
-				return ret;
 			}
+			msg_gerr("nanosleep() failed");
+			return -1;
 		}
 
 		if (timeout_msecs < 0)
 			continue;
 
-		msecs_remaining -= SLEEP_INTERVAL_MS;
-		if (msecs_remaining < 0)
+		remaining_msecs -= SLEEP_INTERVAL_MS;
+		if (remaining_msecs < 0)
 			break;
 	}
 
