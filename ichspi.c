@@ -1702,6 +1702,11 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 	/* make sure FDONE, FCERR, AEL are cleared by writing 1 to them */
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
 
+	if (REGREAD8(ICH9_REG_HSFS) & HSFS_SCIP) {
+		msg_perr("Error: SCIP bit is unexpectedly set.\n");
+		return -1;
+	}
+
 	hsfc = REGREAD16(ICH9_REG_HSFC);
 	hsfc &= ~hwseq_data.hsfc_fcycle; /* clear operation */
 	hsfc |= (0x3 << HSFC_FCYCLE_OFF); /* set erase operation */
@@ -1753,6 +1758,12 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 			}
 		} else {
 			ich_hwseq_set_addr(addr);
+
+			if (REGREAD8(ICH9_REG_HSFS) & HSFS_SCIP) {
+				msg_perr("Error: SCIP bit is unexpectedly set.\n");
+				return -1;
+			}
+
 			hsfc = REGREAD16(ICH9_REG_HSFC);
 			hsfc &= ~hwseq_data.hsfc_fcycle; /* set read operation */
 			hsfc &= ~HSFC_FDBC; /* clear byte count */
@@ -1800,6 +1811,12 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		if (result)
 			return result;
 		ich_fill_data(buf, block_len, ICH9_REG_FDATA0);
+
+		if (REGREAD8(ICH9_REG_HSFS) & HSFS_SCIP) {
+			msg_perr("Error: SCIP bit is unexpectedly set.\n");
+			return -1;
+		}
+
 		hsfc = REGREAD16(ICH9_REG_HSFC);
 		hsfc &= ~hwseq_data.hsfc_fcycle; /* clear operation */
 		hsfc |= (0x2 << HSFC_FCYCLE_OFF); /* set write operation */
