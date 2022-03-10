@@ -2289,12 +2289,6 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		}
 	}
 
-	if (cros_ec_finish() < 0) {
-		msg_cerr("cros_ec_finish() failed. Stop.\n");
-		emergency_help_message();
-		goto _finalize_ret;
-	}
-
 	/* Verify only if we actually changed something. */
 	if (verify && !all_skipped) {
 		msg_cinfo("Verifying flash... ");
@@ -2305,12 +2299,20 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 		ret = verify_by_layout(flashctx, verify_layout, curcontents, newcontents);
 		/* If we tried to write, and verification now fails, we
 		   might have an emergency situation. */
-		if (ret)
+		if (ret) {
 			emergency_help_message();
+			goto _finalize_ret;
+		}
 		else
 			msg_cinfo("VERIFIED.\n");
 	} else {
 		ret = 0;
+	}
+
+	if (cros_ec_finish() < 0) {
+		msg_cerr("cros_ec_finish() failed. Stop.\n");
+		ret = 1;
+		emergency_help_message();
 	}
 
 _finalize_ret:
