@@ -1470,68 +1470,6 @@ static const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model
 	return NULL;
 }
 
-static uint8_t ich_hwseq_read_status(const struct flashctx *flash);
-static int ich_hwseq_write_status(const struct flashctx *flash, int status);
-
-static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_gen)
-{
-	uint32_t hsfsc, data, mfg_id, model_id;
-	const struct flashchip *entry;
-	const int len = sizeof(data);
-
-	/* make sure FDONE, FCERR, & AEL are cleared */
-	REGWRITE32(ICH9_REG_HSFS, REGREAD32(ICH9_REG_HSFS));
-
-	/* Set RDID as flash cycle and FGO */
-	hsfsc = REGREAD32(ICH9_REG_HSFS);
-	hsfsc &= ~HSFSC_FCYCLE;
-	hsfsc &= ~HSFSC_FDBC;
-	hsfsc |= ((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC;
-	hsfsc |= (0x6 << HSFSC_FCYCLE_OFF) | HSFSC_FGO;
-	REGWRITE32(ICH9_REG_HSFS, hsfsc);
-
-	if (ich_hwseq_wait_for_cycle_complete(DEFAULT_FAST_HWSEQ_OP_TIMEOUT_US, len, ich_gen)) {
-		msg_perr("Timed out waiting for RDID to complete.\n");
-		return 0;
-	}
-
-	/*
-	 * Data will appear in reverse order:
-	 * Byte 0: Manufacturer ID
-	 * Byte 1: Model ID (MSB)
-	 * Byte 2: Model ID (LSB)
-	 */
-	ich_read_data((uint8_t *)&data, len, ICH9_REG_FDATA0);
-	mfg_id = data & 0xff;
-	model_id = (data & 0xff00) | ((data >> 16) & 0xff);
-
-	entry = flash_id_to_entry(mfg_id, model_id);
-	if (entry == NULL) {
-		msg_perr("Unable to identify chip, mfg_id: 0x%02x, "
-				"model_id: 0x%02x\n", mfg_id, model_id);
-		return 0;
-	} else {
-		msg_pdbg("Chip identified: %s\n", entry->name);
-		/* Update informational flash chip entries only */
-		flash->chip->vendor = entry->vendor;
-		flash->chip->name = entry->name;
-		flash->chip->manufacture_id = entry->manufacture_id;
-		flash->chip->model_id = entry->model_id;
-		/* total_size read from flash descriptor */
-		flash->chip->page_size = entry->page_size;
-		flash->chip->feature_bits = entry->feature_bits;
-		flash->chip->tested = entry->tested;
-
-		/* Access to status register and access checking*/
-		flash->chip->check_access = ich_hwseq_check_access,
-		flash->chip->read_status = ich_hwseq_read_status,
-		flash->chip->write_status = ich_hwseq_write_status,
-		flash->chip->unlock = &spi_disable_blockprotect;
-	}
-
-	return 1;
-}
-
 static uint8_t ich_hwseq_read_status(const struct flashctx *flash)
 {
 	uint32_t hsfc;
@@ -1593,6 +1531,65 @@ static int ich_hwseq_write_status(const struct flashctx *flash, int status)
 		return -1;
 	}
 	return 0;
+}
+
+static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_gen)
+{
+	uint32_t hsfsc, data, mfg_id, model_id;
+	const struct flashchip *entry;
+	const int len = sizeof(data);
+
+	/* make sure FDONE, FCERR, & AEL are cleared */
+	REGWRITE32(ICH9_REG_HSFS, REGREAD32(ICH9_REG_HSFS));
+
+	/* Set RDID as flash cycle and FGO */
+	hsfsc = REGREAD32(ICH9_REG_HSFS);
+	hsfsc &= ~HSFSC_FCYCLE;
+	hsfsc &= ~HSFSC_FDBC;
+	hsfsc |= ((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC;
+	hsfsc |= (0x6 << HSFSC_FCYCLE_OFF) | HSFSC_FGO;
+	REGWRITE32(ICH9_REG_HSFS, hsfsc);
+
+	if (ich_hwseq_wait_for_cycle_complete(DEFAULT_FAST_HWSEQ_OP_TIMEOUT_US, len, ich_gen)) {
+		msg_perr("Timed out waiting for RDID to complete.\n");
+		return 0;
+	}
+
+	/*
+	 * Data will appear in reverse order:
+	 * Byte 0: Manufacturer ID
+	 * Byte 1: Model ID (MSB)
+	 * Byte 2: Model ID (LSB)
+	 */
+	ich_read_data((uint8_t *)&data, len, ICH9_REG_FDATA0);
+	mfg_id = data & 0xff;
+	model_id = (data & 0xff00) | ((data >> 16) & 0xff);
+
+	entry = flash_id_to_entry(mfg_id, model_id);
+	if (entry == NULL) {
+		msg_perr("Unable to identify chip, mfg_id: 0x%02x, "
+				"model_id: 0x%02x\n", mfg_id, model_id);
+		return 0;
+	} else {
+		msg_pdbg("Chip identified: %s\n", entry->name);
+		/* Update informational flash chip entries only */
+		flash->chip->vendor = entry->vendor;
+		flash->chip->name = entry->name;
+		flash->chip->manufacture_id = entry->manufacture_id;
+		flash->chip->model_id = entry->model_id;
+		/* total_size read from flash descriptor */
+		flash->chip->page_size = entry->page_size;
+		flash->chip->feature_bits = entry->feature_bits;
+		flash->chip->tested = entry->tested;
+
+		/* Access to status register and access checking*/
+		flash->chip->check_access = ich_hwseq_check_access,
+		flash->chip->read_status = ich_hwseq_read_status,
+		flash->chip->write_status = ich_hwseq_write_status,
+		flash->chip->unlock = &spi_disable_blockprotect;
+	}
+
+	return 1;
 }
 
 static int ich_hwseq_probe(struct flashctx *flash)
