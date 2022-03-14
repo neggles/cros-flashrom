@@ -2157,6 +2157,7 @@ static void init_chipset_properties(struct swseq_data *swseq, struct hwseq_data 
 	case CHIPSET_400_SERIES_COMET_POINT:
 	case CHIPSET_500_SERIES_TIGER_POINT:
 	case CHIPSET_600_SERIES_ALDER_POINT:
+	case CHIPSET_METEOR_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
 	case CHIPSET_ELKHART_LAKE:
@@ -2194,6 +2195,7 @@ static void init_chipset_properties(struct swseq_data *swseq, struct hwseq_data 
 	case CHIPSET_400_SERIES_COMET_POINT:
 	case CHIPSET_500_SERIES_TIGER_POINT:
 	case CHIPSET_600_SERIES_ALDER_POINT:
+	case CHIPSET_METEOR_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
 	case CHIPSET_ELKHART_LAKE:
@@ -2254,6 +2256,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	case CHIPSET_400_SERIES_COMET_POINT:
 	case CHIPSET_500_SERIES_TIGER_POINT:
 	case CHIPSET_600_SERIES_ALDER_POINT:
+	case CHIPSET_METEOR_LAKE:
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
 	case CHIPSET_ELKHART_LAKE:
@@ -2332,6 +2335,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 		case CHIPSET_400_SERIES_COMET_POINT:
 		case CHIPSET_500_SERIES_TIGER_POINT:
 		case CHIPSET_600_SERIES_ALDER_POINT:
+		case CHIPSET_METEOR_LAKE:
 		case CHIPSET_APOLLO_LAKE:
 		case CHIPSET_GEMINI_LAKE:
 		case CHIPSET_BAYTRAIL:
@@ -2369,6 +2373,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 		case CHIPSET_400_SERIES_COMET_POINT:
 		case CHIPSET_500_SERIES_TIGER_POINT:
 		case CHIPSET_600_SERIES_ALDER_POINT:
+		case CHIPSET_METEOR_LAKE:
 		case CHIPSET_APOLLO_LAKE:
 		case CHIPSET_GEMINI_LAKE:
 		case CHIPSET_ELKHART_LAKE:
@@ -2415,6 +2420,7 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	case CHIPSET_APOLLO_LAKE:
 	case CHIPSET_GEMINI_LAKE:
 	case CHIPSET_ELKHART_LAKE:
+	case CHIPSET_METEOR_LAKE:
 		num_fd_regions = APL_GLK_NUM_FD_REGIONS;
 		break;
 	case CHIPSET_100_SERIES_SUNRISE_POINT:
