@@ -73,7 +73,7 @@ enum chipbustype {
 
 /*
  * The following enum defines possible write granularities of flash chips. These tend to reflect the properties
- * of the actual hardware not necesserily the write function(s) defined by the respective struct flashchip.
+ * of the actual hardware not necessarily the write function(s) defined by the respective struct flashchip.
  * The latter might (and should) be more precisely specified, e.g. they might bail out early if their execution
  * would result in undefined chip contents.
  */
