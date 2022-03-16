@@ -29,9 +29,6 @@
 #include "action_descriptor.h"
 #include "chipdrivers.h"
 
-#define DEFAULT_FAST_HWSEQ_OP_TIMEOUT_US	1000000
-#define DEFAULT_SLOW_HWSEQ_OP_TIMEOUT_US	5000000
-
 /* Apollo Lake */
 #define APL_REG_FREG12		0xe0	/* 32 Bytes Flash Region 12 */
 
@@ -1416,22 +1413,24 @@ static uint32_t ich_hwseq_get_erase_block_size(unsigned int addr)
    Resets all error flags in HSFS.
    Returns 0 if the cycle completes successfully without errors within
    timeout us, 1 on errors. */
-static int ich_hwseq_wait_for_cycle_complete(unsigned int timeout,
-					     unsigned int len,
-					     enum ich_chipset ich_gen)
+static int ich_hwseq_wait_for_cycle_complete(unsigned int len, enum ich_chipset ich_gen)
 {
+	/*
+	 * The SPI bus may be busy due to performing operations from other masters, hence
+	 * introduce the long timeout of 30s to cover the worst case scenarios as well.
+	 */
+	unsigned int timeout_us = 30 * 1000 * 1000;
 	uint16_t hsfs;
 	uint32_t addr;
 
-	timeout /= 8; /* scale timeout duration to counter */
+	timeout_us /= 8; /* scale timeout duration to counter */
 	while ((((hsfs = REGREAD16(ICH9_REG_HSFS)) &
 		 (HSFS_FDONE | HSFS_FCERR)) == 0) &&
-	       --timeout) {
+	       --timeout_us) {
 		programmer_delay(8);
 	}
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
-
-	if (!timeout) {
+	if (!timeout_us) {
 		addr = REGREAD32(ICH9_REG_FADDR) & hwseq_data.addr_mask;
 		msg_perr("Timeout error between offset 0x%08x and "
 			 "0x%08x (= 0x%08x + %d)!\n",
@@ -1473,7 +1472,6 @@ static const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model
 static uint8_t ich_hwseq_read_status(const struct flashctx *flash)
 {
 	uint32_t hsfc;
-	uint32_t timeout = DEFAULT_SLOW_HWSEQ_OP_TIMEOUT_US;
 	int len = 1;
 	uint8_t buf;
 
@@ -1493,7 +1491,7 @@ static uint8_t ich_hwseq_read_status(const struct flashctx *flash)
 	hsfc |= (((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC);
 	hsfc |= HSFSC_FGO; /* start */
 	REGWRITE32(ICH9_REG_HSFS, hsfc);
-	if (ich_hwseq_wait_for_cycle_complete(timeout, len, ich_generation)) {
+	if (ich_hwseq_wait_for_cycle_complete(len, ich_generation)) {
 		msg_perr("Reading Status register failed\n!!");
 		return -1;
 	}
@@ -1504,7 +1502,6 @@ static uint8_t ich_hwseq_read_status(const struct flashctx *flash)
 static int ich_hwseq_write_status(const struct flashctx *flash, int status)
 {
 	uint32_t hsfc;
-	uint32_t timeout = DEFAULT_SLOW_HWSEQ_OP_TIMEOUT_US;
 	int len = 1;
 	uint8_t buf = status;
 
@@ -1526,7 +1523,7 @@ static int ich_hwseq_write_status(const struct flashctx *flash, int status)
 	hsfc |= HSFSC_FGO; /* start */
 	REGWRITE32(ICH9_REG_HSFS, hsfc);
 
-	if (ich_hwseq_wait_for_cycle_complete(timeout, len, ich_generation)) {
+	if (ich_hwseq_wait_for_cycle_complete(len, ich_generation)) {
 		msg_perr("Writing Status register failed\n!!");
 		return -1;
 	}
@@ -1550,7 +1547,7 @@ static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_g
 	hsfsc |= (0x6 << HSFSC_FCYCLE_OFF) | HSFSC_FGO;
 	REGWRITE32(ICH9_REG_HSFS, hsfsc);
 
-	if (ich_hwseq_wait_for_cycle_complete(DEFAULT_FAST_HWSEQ_OP_TIMEOUT_US, len, ich_gen)) {
+	if (ich_hwseq_wait_for_cycle_complete(len, ich_gen)) {
 		msg_perr("Timed out waiting for RDID to complete.\n");
 		return 0;
 	}
@@ -1657,7 +1654,6 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 {
 	uint32_t erase_block;
 	uint16_t hsfc;
-	uint32_t timeout = DEFAULT_SLOW_HWSEQ_OP_TIMEOUT_US;
 	int result = 0;
 
 	if (is_dry_run())
@@ -1710,7 +1706,7 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 	prettyprint_ich9_reg_hsfc(hsfc, ich_generation);
 	REGWRITE16(ICH9_REG_HSFC, hsfc);
 
-	if (ich_hwseq_wait_for_cycle_complete(timeout, len, ich_generation))
+	if (ich_hwseq_wait_for_cycle_complete(len, ich_generation))
 		return -1;
 
 	return result;
@@ -1720,7 +1716,6 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 			  unsigned int addr, unsigned int len)
 {
 	uint16_t hsfc;
-	uint32_t timeout = DEFAULT_FAST_HWSEQ_OP_TIMEOUT_US;
 	uint8_t block_len;
 	int result = 0, chunk_status = 0;
 
@@ -1767,7 +1762,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 			hsfc |= HSFC_FGO; /* start */
 			REGWRITE16(ICH9_REG_HSFC, hsfc);
 
-			if (ich_hwseq_wait_for_cycle_complete(timeout, block_len, ich_generation))
+			if (ich_hwseq_wait_for_cycle_complete(block_len, ich_generation))
 				return 1;
 			ich_read_data(buf, block_len, ICH9_REG_FDATA0);
 		}
@@ -1781,7 +1776,6 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr, unsigned int len)
 {
 	uint16_t hsfc;
-	uint32_t timeout = DEFAULT_FAST_HWSEQ_OP_TIMEOUT_US;
 	uint8_t block_len;
 	int result = 0;
 
@@ -1821,7 +1815,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		hsfc |= HSFC_FGO; /* start */
 		REGWRITE16(ICH9_REG_HSFC, hsfc);
 
-		if (ich_hwseq_wait_for_cycle_complete(timeout, block_len, ich_generation))
+		if (ich_hwseq_wait_for_cycle_complete(block_len, ich_generation))
 			return -1;
 		addr += block_len;
 		buf += block_len;
