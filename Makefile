@@ -386,7 +386,7 @@ CHIP_OBJS = jedec.o stm50.o w39.o w29ee011.o \
 LOCK_OBJS = big_lock.o file_lock.o
 LIB_OBJS += $(LOCK_OBJS)
 FEATURE_CFLAGS += -D'USE_BIG_LOCK=1'
-LIB_OBJS += libflashrom.o layout.o flashrom.o udelay.o programmer.o programmer_table.o helpers.o ich_descriptors.o fmap.o hwaccess_endian_$(ENDIAN).o
+LIB_OBJS += libflashrom.o layout.o flashrom.o udelay.o programmer.o programmer_table.o helpers.o ich_descriptors.o fmap.o platform/endian_$(ENDIAN).o
 LIB_OBJS += power.o action_descriptor.o flashchips_crosbl.o
 
 ###############################################################################
@@ -975,7 +975,8 @@ strip: $(PROGRAM)$(EXEC_SUFFIX)
 # This includes all frontends and libflashrom.
 # We don't use EXEC_SUFFIX here because we want to clean everything.
 clean:
-	rm -f $(PROGRAM) $(PROGRAM).exe libflashrom.a $(filter-out Makefile.d, $(wildcard *.d *.o)) $(PROGRAM).8 $(PROGRAM).8.html $(BUILD_DETAILS_FILE)
+	rm -f $(PROGRAM) $(PROGRAM).exe libflashrom.a $(filter-out Makefile.d, $(wildcard *.d *.o platform/*.d platform/*.o)) \
+		$(PROGRAM).8 $(PROGRAM).8.html $(BUILD_DETAILS_FILE)
 	@+$(MAKE) -C util/ich_descriptors_tool/ clean
 
 install: $(PROGRAM)$(EXEC_SUFFIX) $(PROGRAM).8
