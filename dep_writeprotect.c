@@ -33,7 +33,7 @@
  * be stupid and simple since clever arithmetic will not work for many chips.
  */
 
-struct wp_range {
+struct dep_wp_range {
 	unsigned int start;	/* starting address */
 	unsigned int len;	/* len */
 };
@@ -55,7 +55,7 @@ enum bit_state {
 struct wp_range_descriptor {
 	struct modifier_bits m;
 	unsigned int bp;		/* block protect bitfield */
-	struct wp_range range;
+	struct dep_wp_range range;
 };
 
 /*
@@ -416,7 +416,7 @@ int w25_range_to_status(const struct flashctx *flash,
 		return -1;
 
 	for (i = 0; i < num_entries; i++) {
-		struct wp_range *r = &descrs[i].range;
+		struct dep_wp_range *r = &descrs[i].range;
 
 		msg_cspew("comparing range 0x%x 0x%x / 0x%x 0x%x\n",
 			  start, len, r->start, r->len);
@@ -563,7 +563,7 @@ static int w25q_large_range_to_status(const struct flashctx *flash,
 		return -1;
 
 	for (i = 0; i < num_entries; i++) {
-		struct wp_range *r = &descrs[i].range;
+		struct dep_wp_range *r = &descrs[i].range;
 
 		msg_cspew("comparing range 0x%x 0x%x / 0x%x 0x%x\n",
 			  start, len, r->start, r->len);
