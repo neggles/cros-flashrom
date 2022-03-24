@@ -108,4 +108,4 @@ flashrom_tests = executable('flashrom_unit_tests',
   link_args : mocks,
   dependencies : [cmocka_dep, flashrom_test_dep],
 )
-test('cmocka test flashrom', flashrom_tests)
+test('cmocka test flashrom', flashrom_tests, timeout: 60)
