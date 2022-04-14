@@ -379,9 +379,10 @@ libdir = join_paths(prefix, get_option('libdir'))
 mandir = join_paths(prefix, get_option('mandir'))
 
 install_headers([
-    'libflashrom.h',
+    'include/libflashrom.h',
   ],
 )
+include_dir = include_directories('include')
 
 ### CrOS Tree
 srcs += 'power.c'
@@ -440,6 +441,7 @@ flashrom = library(
   sources : [
     srcs,
   ],
+  include_directories : include_dir,
   soversion : lt_current,
   version : lt_version,
   dependencies : [
@@ -481,6 +483,11 @@ configure_file(
   install_dir: join_paths(mandir, 'man8'),
 )
 
+flashrom_dep = declare_dependency(
+  link_with : flashrom,
+  include_directories : include_dir,
+  dependencies : deps
+)
 
 if config_print_wiki
   srcs += 'print_wiki.c'
@@ -505,6 +512,7 @@ executable(
     'cli_output.c',
     'flashrom.c',
   ],
+  include_directories : include_dir,
   dependencies : [
     deps,
   ],
@@ -524,7 +532,7 @@ cmocka_dep = dependency(
   required: false
 )
 flashrom_test_dep = declare_dependency(
-  include_directories : include_directories('.'),
+  include_directories : include_dir,
   sources : [
     srcs,
     'cli_common.c',
