@@ -86,7 +86,57 @@ config_default_programmer_args = get_option('default_programmer_args')
 
 cargs = []
 deps = []
-srcs = []
+srcs = files(
+  '82802ab.c',
+  'at45db.c',
+  'bitbang_spi.c',
+  'edi.c',
+  'en29lv640b.c',
+  'flashchips.c',
+  'flashrom.c',
+  'fmap.c',
+  'helpers.c',
+  'ich_descriptors.c',
+  'jedec.c',
+  'layout.c',
+  'libflashrom.c',
+  'opaque.c',
+  'print.c',
+  'programmer.c',
+  'programmer_table.c',
+  's25f.c',
+  'sfdp.c',
+  'spi25.c',
+  'spi25_statusreg.c',
+  'spi95.c',
+  'spi.c',
+  'sst28sf040.c',
+  'sst49lfxxxc.c',
+  'sst_fwhub.c',
+  'stm50.c',
+  'udelay.c',
+  'w29ee011.c',
+  'w39.c',
+  'writeprotect.c',
+  'writeprotect_ranges.c',
+)
+
+### CrOS Tree
+srcs += files(
+  'power.c',
+  'action_descriptor.c',
+  'flashchips_crosbl.c',
+  'cros_alias.c',
+  'cros_ec.c',
+  'cros_ec_dev.c',
+  'big_lock.c',
+  'file_lock.c',
+  'dep_writeprotect.c',
+  'dep_wp_statusreg.c',
+)
+cargs += '-DCONFIG_CROS_ALIAS=1'
+cargs += '-DUSE_BIG_LOCK=1'
+###
 
 host_is_x86 = ['x86', 'x86_64'].contains(host_machine.cpu_family())
 
@@ -390,56 +440,6 @@ install_headers([
   ],
 )
 include_dir = include_directories('include')
-
-### CrOS Tree
-srcs += 'power.c'
-srcs += 'action_descriptor.c'
-srcs += 'flashchips_crosbl.c'
-
-srcs += 'cros_alias.c'
-srcs += 'cros_ec.c'
-srcs += 'cros_ec_dev.c'
-cargs += '-DCONFIG_CROS_ALIAS=1'
-
-srcs += 'big_lock.c'
-srcs += 'file_lock.c'
-cargs += '-DUSE_BIG_LOCK=1'
-###
-
-# core modules needed by both the library and the CLI
-srcs += '82802ab.c'
-srcs += 'at45db.c'
-srcs += 'edi.c'
-srcs += 'en29lv640b.c'
-srcs += 'flashchips.c'
-srcs += 'flashrom.c'
-srcs += 'fmap.c'
-srcs += 'helpers.c'
-srcs += 'ich_descriptors.c'
-srcs += 'jedec.c'
-srcs += 'layout.c'
-srcs += 'libflashrom.c'
-srcs += 'opaque.c'
-srcs += 'print.c'
-srcs += 'programmer.c'
-srcs += 'programmer_table.c'
-srcs += 's25f.c'
-srcs += 'sfdp.c'
-srcs += 'spi25.c'
-srcs += 'spi25_statusreg.c'
-srcs += 'spi95.c'
-srcs += 'spi.c'
-srcs += 'sst28sf040.c'
-srcs += 'sst49lfxxxc.c'
-srcs += 'sst_fwhub.c'
-srcs += 'stm50.c'
-srcs += 'udelay.c'
-srcs += 'w29ee011.c'
-srcs += 'w39.c'
-srcs += 'dep_writeprotect.c'
-srcs += 'dep_wp_statusreg.c'
-srcs += 'writeprotect.c'
-srcs += 'writeprotect_ranges.c'
 
 mapfile = 'libflashrom.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
