@@ -364,19 +364,6 @@ const struct romentry *layout_next(
 	return iterator ? iterator->next : layout->head;
 }
 
-/**
- * @addtogroup flashrom-layout
- * @{
- */
-
-/**
- * @brief Create a new, empty layout.
- *
- * @param layout Pointer to returned layout reference.
- *
- * @return 0 on success,
- *         1 if out of memory.
- */
 int flashrom_layout_new(struct flashrom_layout **const layout)
 {
 	*layout = malloc(sizeof(**layout));
@@ -390,17 +377,6 @@ int flashrom_layout_new(struct flashrom_layout **const layout)
 	return 0;
 }
 
-/**
- * @brief Add another region to an existing layout.
- *
- * @param layout The existing layout.
- * @param start  Start address of the region.
- * @param end    End address (inclusive) of the region.
- * @param name   Name of the region.
- *
- * @return 0 on success,
- *         1 if out of memory.
- */
 int flashrom_layout_add_region(
 		struct flashrom_layout *const layout,
 		const size_t start, const size_t end, const char *const name)
@@ -431,31 +407,11 @@ _err_ret:
 	return 1;
 }
 
-/**
- * @brief Mark given region as included.
- *
- * @param layout The layout to alter.
- * @param name   The name of the region to include.
- *
- * @return 0 on success,
- *         1 if the given name can't be found.
- */
 int flashrom_layout_include_region(struct flashrom_layout *const layout, const char *name)
 {
 	return include_region(layout, name, NULL);
 }
 
-/**
- * @brief Get given region's offset and length.
- *
- * @param layout The layout to alter.
- * @param name   The name of the region.
- * @param start  The start address to be written.
- * @param len    The length of the region to be written.
- *
- * @return 0 on success,
- *         1 if the given name can't be found.
- */
 int flashrom_layout_get_region_range(struct flashrom_layout *const l, const char *name,
 			      unsigned int *start, unsigned int *len)
 {
@@ -468,11 +424,6 @@ int flashrom_layout_get_region_range(struct flashrom_layout *const l, const char
 	return 1;
 }
 
-/**
- * @brief Free a layout.
- *
- * @param layout Layout to free.
- */
 void flashrom_layout_release(struct flashrom_layout *const layout)
 {
 	if (!layout)
@@ -487,5 +438,3 @@ void flashrom_layout_release(struct flashrom_layout *const layout)
 	}
 	free(layout);
 }
-
-/** @} */ /* end flashrom-layout */
