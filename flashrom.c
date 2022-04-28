@@ -408,6 +408,63 @@ static int check_erased_range(struct flashctx *flash, unsigned int start, unsign
 	return ret;
 }
 
+static int read_checked_access(struct flashctx *flash,
+			uint8_t *readbuf, const uint8_t *cmpbuf,
+			unsigned int start, unsigned int len, int *failcount)
+{
+	unsigned int i, chunksize;
+	int ret = 0;
+
+	/* limit chunksize in order to catch errors early */
+	for (i = 0, chunksize = 0; i < len; i += chunksize) {
+		int tmp;
+		int chk_acc = 0;
+
+		/*
+		 * Let's work in chunks of at least 4096 bytes at a
+		 * time to balance reacting fast but still avoiding the
+		 * overhead of working at a smaller size if page_size is
+		 * something like 256 bytes.
+		 */
+		chunksize = max(flash->chip->page_size, 4096);
+		chunksize = min(chunksize, len - i);
+
+		/*
+		 * If we don't have access to some part of this chunk
+		 * then bring the size back down to page_size.
+		 */
+		if (flash->chip->check_access) {
+			chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
+			if (chk_acc) {
+				chunksize = min(chunksize, flash->chip->page_size);
+				chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
+			}
+		}
+
+		tmp = flash->chip->read(flash, readbuf + i, start + i, chunksize);
+		if (tmp) {
+			ret = tmp;
+			if (tmp == SPI_ACCESS_DENIED)
+				continue;
+			else
+				break;
+		}
+
+		/*
+		 * Check write access permission and do not compare chunks
+		 * where flashrom does not have write access to the region.
+		 */
+		if (chk_acc == SPI_ACCESS_DENIED)
+			continue;
+
+		*failcount = compare_range(cmpbuf + i, readbuf + i, start + i, chunksize);
+		if (*failcount > 0)
+			break;
+	}
+
+	return ret;
+}
+
 /*
  * @cmpbuf	buffer to compare against, cmpbuf[0] is expected to match the
  *		flash content at location start
@@ -441,54 +498,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 
 	msg_gdbg("%#06x..%#06x ", start, start + len -1);
 	if (programmer->paranoid) {
-		unsigned int i, chunksize;
-
-		/* limit chunksize in order to catch errors early */
-		for (i = 0, chunksize = 0; i < len; i += chunksize) {
-			int tmp;
-			int chk_acc = 0;
-
-			/*
-			 * Let's work in chunks of at least 4096 bytes at a
-			 * time to balance reacting fast but still avoiding the
-			 * overhead of working at a smaller size if page_size is
-			 * something like 256 bytes.
-			 */
-			chunksize = max(flash->chip->page_size, 4096);
-			chunksize = min(chunksize, len - i);
-
-			/*
-			 * If we don't have access to some part of this chunk
-			 * then bring the size back down to page_size.
-			 */
-			if (flash->chip->check_access) {
-				chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
-				if (chk_acc) {
-					chunksize = min(chunksize, flash->chip->page_size);
-					chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
-				}
-			}
-
-			tmp = flash->chip->read(flash, readbuf + i, start + i, chunksize);
-			if (tmp) {
-				ret = tmp;
-				if (tmp == SPI_ACCESS_DENIED)
-					continue;
-				else
-					goto out_free;
-			}
-
-			/*
-			 * Check write access permission and do not compare chunks
-			 * where flashrom does not have write access to the region.
-			 */
-			if (chk_acc == SPI_ACCESS_DENIED)
-				continue;
-
-			failcount = compare_range(cmpbuf + i, readbuf + i, start + i, chunksize);
-			if (failcount)
-				break;
-		}
+		ret = read_checked_access(flash, readbuf, cmpbuf, start, len, &failcount);
 	} else {
 		int tmp;
 
