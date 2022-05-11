@@ -299,40 +299,41 @@ static int it85xx_spi_send_command(const struct flashctx *flash, unsigned int wr
 	}
 
 	it85xx_enter_scratch_rom(data);
-	/* Exit scratch ROM ONLY when programmer shuts down. Otherwise, the
+	/*
+	 * Exit scratch ROM ONLY when programmer shuts down. Otherwise, the
 	 * temporary flash state may halt the EC.
 	 */
 
 #ifdef LPC_IO
-        INDIRECT_A1(data->shm_io_base, (((unsigned long int)data->ce_high) >> 8) & 0xff);
-        INDIRECT_WRITE(data->shm_io_base, 0xFF);  /* Write anything to this address.*/
-        INDIRECT_A1(data->shm_io_base, (((unsigned long int)data->ce_low) >> 8) & 0xff);
+	INDIRECT_A1(data->shm_io_base, (((unsigned long int)data->ce_high) >> 8) & 0xff);
+	INDIRECT_WRITE(data->shm_io_base, 0xFF);  /* Write anything to this address.*/
+	INDIRECT_A1(data->shm_io_base, (((unsigned long int)data->ce_low) >> 8) & 0xff);
 #endif
 #ifdef LPC_MEMORY
-        mmio_writeb(0, data->ce_high);
+	mmio_writeb(0, data->ce_high);
 #endif
 	for (i = 0; i < writecnt; ++i) {
 #ifdef LPC_IO
-                INDIRECT_WRITE(data->shm_io_base, writearr[i]);
+		INDIRECT_WRITE(data->shm_io_base, writearr[i]);
 #endif
 #ifdef LPC_MEMORY
-                mmio_writeb(writearr[i], data->ce_low);
+		mmio_writeb(writearr[i], data->ce_low);
 #endif
 	}
 	for (i = 0; i < readcnt; ++i) {
 #ifdef LPC_IO
-                readarr[i] = INDIRECT_READ(data->shm_io_base);
+		readarr[i] = INDIRECT_READ(data->shm_io_base);
 #endif
 #ifdef LPC_MEMORY
-                readarr[i] = mmio_readb(data->ce_low);
+		readarr[i] = mmio_readb(data->ce_low);
 #endif
 	}
 #ifdef LPC_IO
-        INDIRECT_A1(data->shm_io_base, (((unsigned long int)data->ce_high) >> 8) & 0xff);
-        INDIRECT_WRITE(data->shm_io_base, 0xFF);  /* Write anything to this address.*/
+	INDIRECT_A1(data->shm_io_base, (((unsigned long int)data->ce_high) >> 8) & 0xff);
+	INDIRECT_WRITE(data->shm_io_base, 0xFF);  /* Write anything to this address.*/
 #endif
 #ifdef LPC_MEMORY
-        mmio_writeb(0, data->ce_high);
+	mmio_writeb(0, data->ce_high);
 #endif
 
 	return 0;
