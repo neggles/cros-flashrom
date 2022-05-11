@@ -454,6 +454,7 @@ int init_superio_ite(void)
 			if (!it8705f_write_enable(superios[i].port))
 				chips_found++;
 			break;
+		case 0x8686:
 		case 0x8716:
 		case 0x8718:
 		case 0x8720:
