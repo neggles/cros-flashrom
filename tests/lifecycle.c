@@ -229,6 +229,7 @@ void raiden_debug_basic_lifecycle_test_success(void **state)
 #endif
 }
 
+#if CONFIG_DEDIPROG == 1
 static int dediprog_libusb_init(void *state, libusb_context **ctx)
 {
 	*ctx = not_null();
@@ -251,6 +252,7 @@ static int dediprog_libusb_control_transfer(void *state,
 	}
 	return wLength;
 }
+#endif /* CONFIG_DEDIPROG == 1 */
 
 void dediprog_basic_lifecycle_test_success(void **state)
 {
