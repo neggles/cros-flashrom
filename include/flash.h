@@ -42,8 +42,6 @@
 /* Assumes `n` and `a` are at most 64-bit wide (to avoid typeof() operator). */
 #define ALIGN_DOWN(n, a) ((n) & ~((uint64_t)(a) - 1))
 
-struct flashrom_flashctx;
-#define flashctx flashrom_flashctx /* TODO: Agree on a name and convert all occurences. */
 #define ERROR_PTR ((void*)-1)
 
 /* Error codes */
@@ -149,10 +147,6 @@ enum write_granularity {
 #define ERASED_VALUE(flash)	(((flash)->chip->feature_bits & FEATURE_ERASED_ZERO) ? 0x00 : 0xff)
 #define UNERASED_VALUE(flash)	(((flash)->chip->feature_bits & FEATURE_ERASED_ZERO) ? 0xff : 0x00)
 
-struct voltage_range {
-	uint16_t min, max;
-};
-
 enum test_state {
 	OK = 0,
 	NT = 1,	/* Not tested */
@@ -173,6 +167,8 @@ enum test_state {
 #define TEST_BAD_PRE	(struct tested){ .probe = BAD, .read = BAD, .erase = BAD, .write = NT }
 #define TEST_BAD_PREW	(struct tested){ .probe = BAD, .read = BAD, .erase = BAD, .write = BAD }
 
+struct flashrom_flashctx;
+#define flashctx flashrom_flashctx /* TODO: Agree on a name and convert all occurrences. */
 typedef int (erasefunc_t)(struct flashctx *flash, unsigned int addr, unsigned int blocklen);
 
 enum flash_reg {
@@ -274,7 +270,10 @@ struct flashchip {
 	uint8_t (*read_status) (const struct flashctx *flash);
 	int (*write_status) (const struct flashctx *flash, int status);
 	int (*check_access) (const struct flashctx *flash, unsigned int start, unsigned int len, int read);
-	struct voltage_range voltage;
+	struct voltage {
+		uint16_t min;
+		uint16_t max;
+	} voltage;
 	enum write_granularity gran;
 
 	/* SPI specific options (TODO: Make it a union in case other bustypes get specific options.) */
