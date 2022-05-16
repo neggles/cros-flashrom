@@ -113,9 +113,6 @@ int probe_opaque(struct flashctx *flash);
 int read_opaque(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len);
 int write_opaque(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len);
 int erase_opaque(struct flashctx *flash, unsigned int blockaddr, unsigned int blocklen);
-uint8_t read_status_opaque(const struct flashctx *flash);
-int write_status_opaque(const struct flashctx *flash, int status);
-int check_access_opaque(const struct flashctx *flash, unsigned int start, unsigned int len, int read);
 
 /* at45db.c */
 int probe_spi_at45db(struct flashctx *flash);
