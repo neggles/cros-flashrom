@@ -433,11 +433,11 @@ static int read_checked_access(struct flashctx *flash,
 		 * If we don't have access to some part of this chunk
 		 * then bring the size back down to page_size.
 		 */
-		if (flash->chip->check_access) {
-			chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
+		if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.check_access) {
+			chk_acc = flash->mst->opaque.check_access(flash, start + i, chunksize, 0);
 			if (chk_acc) {
 				chunksize = min(chunksize, flash->chip->page_size);
-				chk_acc = flash->chip->check_access(flash, start + i, chunksize, 0);
+				chk_acc = flash->mst->opaque.check_access(flash, start + i, chunksize, 0);
 			}
 		}
 

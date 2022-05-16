@@ -1628,7 +1628,6 @@ static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_g
 		flash->chip->tested = entry->tested;
 
 		/* Access to status register and access checking*/
-		flash->chip->check_access = ich_hwseq_check_access,
 		flash->chip->unlock = &spi_disable_blockprotect;
 	}
 
@@ -2135,6 +2134,7 @@ static struct opaque_master opaque_master_ich_hwseq = {
 	.erase = ich_hwseq_block_erase,
 	.read_status = ich_hwseq_read_status,
 	.write_status = ich_hwseq_write_status,
+	.check_access = ich_hwseq_check_access,
 };
 
 static int init_ich7_spi(void *spibar, enum ich_chipset ich_gen)
