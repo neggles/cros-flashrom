@@ -20,6 +20,7 @@
 #include "flash.h"
 #include "chipdrivers.h"
 #include "spi.h"
+#include "programmer.h"
 
 /* === Generic functions === */
 int spi_write_register(const struct flashctx *flash, enum flash_reg reg, uint8_t value)
@@ -40,8 +41,8 @@ int spi_write_register(const struct flashctx *flash, enum flash_reg reg, uint8_t
 		 * exposes status register access via `write_status` in `struct
 		 * flashchip`.
 		 */
-		if (flash->chip->write_status)
-			return flash->chip->write_status(flash, value);
+		if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.write_status)
+			return flash->mst->opaque.write_status(flash, value);
 
 		write_cmd[0] = JEDEC_WRSR;
 		write_cmd[1] = value;
@@ -163,8 +164,8 @@ int spi_read_register(const struct flashctx *flash, enum flash_reg reg, uint8_t 
 		 * exposes status register access via `read_status` in `struct
 		 * flashchip`.
 		 */
-		if (flash->chip->read_status) {
-			*value = flash->chip->read_status(flash);
+		if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_status) {
+			*value = flash->mst->opaque.read_status(flash);
 			return 0;
 		}
 

@@ -24,6 +24,7 @@
 #include "chipdrivers.h"
 #include "spi.h"
 #include "dep_writeprotect.h"
+#include "programmer.h"
 
 /* FIXME: Move to spi25.c if it's a JEDEC standard opcode */
 uint8_t w25q_read_status_register_2(const struct flashctx *flash)
@@ -32,7 +33,7 @@ uint8_t w25q_read_status_register_2(const struct flashctx *flash)
 	unsigned char readarr[2];
 	int ret;
 
-	if (flash->chip->read_status) {
+	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_status) {
 		msg_cdbg("RDSR2 failed! cmd=0x35 unimpl for opaque chips\n");
 		return 0;
 	}
@@ -58,7 +59,7 @@ uint8_t mx25l_read_config_register(const struct flashctx *flash)
 	unsigned char readarr[2];
 	int ret;
 
-	if (flash->chip->read_status) {
+	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_status) {
 		msg_cdbg("RDCR failed! cmd=0x15 unimpl for opaque chips\n");
 		return 0;
 	}
