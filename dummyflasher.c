@@ -119,6 +119,66 @@ static int dummy_spi_write_256(struct flashctx *flash, const uint8_t *buf, unsig
 				 emu_data->spi_write_256_chunksize);
 }
 
+static int probe_variable_size(struct flashctx *flash)
+{
+	const struct emu_data *emu_data = flash->mst->opaque.data;
+
+	flash->chip->total_size = emu_data->emu_chip_size / 1024;
+	msg_cdbg("%s: set flash->total_size to %dK bytes.\n", __func__,
+	         flash->chip->total_size);
+
+	flash->chip->feature_bits = FEATURE_4BA_READ | FEATURE_4BA_WRITE;
+	flash->chip->tested = TEST_OK_PREW;
+
+	if (emu_data->erase_to_zero)
+		flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
+
+	/*
+	 * Update the first count of the block_eraser.
+	 * Opaque flash chip entry in flashchips.c has only one block eraser.
+	 */
+	struct block_eraser *eraser = &flash->chip->block_erasers[0];
+	if (!eraser->block_erase)
+		return 1;
+
+	eraser->eraseblocks[0].count = 1;
+	eraser->eraseblocks[0].size = emu_data->emu_chip_size;
+	msg_cdbg("%s: eraser.size=%d, .count=%d\n",
+		 __func__, eraser->eraseblocks[0].size,
+		 eraser->eraseblocks[0].count);
+
+	return 1;
+}
+
+static int dummy_opaque_read(struct flashctx *flash, uint8_t *buf, unsigned int start, unsigned int len)
+{
+	const struct emu_data *emu_data = flash->mst->opaque.data;
+
+	memcpy(buf, emu_data->flashchip_contents + start, len);
+
+	return 0;
+}
+
+static int dummy_opaque_write(struct flashctx *flash, const uint8_t *buf, unsigned int start, unsigned int len)
+{
+	struct emu_data *emu_data = flash->mst->opaque.data;
+
+	memcpy(emu_data->flashchip_contents + start, buf, len);
+	emu_data->emu_modified = 1;
+
+	return 0;
+}
+
+static int dummy_opaque_erase(struct flashctx *flash, unsigned int blockaddr, unsigned int blocklen)
+{
+	struct emu_data *emu_data = flash->mst->opaque.data;
+
+	memset(emu_data->flashchip_contents + blockaddr, emu_data->erase_to_zero ? 0x00 : 0xff, blocklen);
+	emu_data->emu_modified = 1;
+
+	return 0;
+}
+
 static void dummy_chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr)
 {
 	msg_pspew("%s: addr=0x%" PRIxPTR ", val=0x%02x\n", __func__, addr, val);
@@ -814,6 +874,13 @@ static const struct par_master par_master_dummyflasher = {
 		.chip_writen		= dummy_chip_writen,
 };
 
+static const struct opaque_master opaque_master_dummyflasher = {
+	.probe          = probe_variable_size,
+	.read           = dummy_opaque_read,
+	.write          = dummy_opaque_write,
+	.erase          = dummy_opaque_erase,
+};
+
 static int init_data(struct emu_data *data, enum chipbustype *dummy_buses_supported)
 {
 
@@ -1241,57 +1308,19 @@ dummy_init_out:
 		free(data);
 		return 1;
 	}
-	if (dummy_buses_supported & BUS_NONSPI)
-		register_par_master(&par_master_dummyflasher,
-				    dummy_buses_supported & BUS_NONSPI,
-				    data);
-	if (dummy_buses_supported & BUS_SPI)
-		register_spi_master(&spi_master_dummyflasher, data);
 
-	return 0;
-}
-
-int probe_variable_size(struct flashctx *flash)
-{
-	unsigned int i;
-	const struct emu_data *emu_data = flash->mst->spi.data;
-
-	/* Skip the probing if we don't emulate this chip. */
-	if (!emu_data || emu_data->emu_chip != EMULATE_VARIABLE_SIZE)
-		return 0;
-
-	/*
-	 * This will break if one day flashctx becomes read-only.
-	 * Once that happens, we need to have special hacks in functions:
-	 *
-	 *     erase_and_write_flash() in flashrom.c
-	 *     do_read()
-	 *     handle_romentries()
-	 *     ...
-	 *
-	 * Search "total_size * 1024" in code.
-	 */
-	flash->chip->total_size = emu_data->emu_chip_size / 1024;
-	msg_cdbg("%s: set flash->total_size to %dK bytes.\n", __func__,
-	         flash->chip->total_size);
-
-	if (emu_data->erase_to_zero)
-		flash->chip->feature_bits |= FEATURE_ERASED_ZERO;
-
-	/* Update the first count of each of the block_erasers. */
-	for (i = 0; i < NUM_ERASEFUNCTIONS; i++) {
-		struct block_eraser *eraser = &flash->chip->block_erasers[i];
-		if (!eraser->block_erase)
-			break;
-
-		eraser->eraseblocks[0].count = 1;
-		eraser->eraseblocks[0].size = emu_data->emu_chip_size;
-		msg_cdbg("%s: eraser.size=%d, .count=%d\n",
-		         __func__, eraser->eraseblocks[0].size,
-		         eraser->eraseblocks[0].count);
+	if (data->emu_chip == EMULATE_VARIABLE_SIZE) {
+		register_opaque_master(&opaque_master_dummyflasher, data);
+	} else {
+		if (dummy_buses_supported & BUS_NONSPI)
+			register_par_master(&par_master_dummyflasher,
+					    dummy_buses_supported & BUS_NONSPI,
+					    data);
+		if (dummy_buses_supported & BUS_SPI)
+			register_spi_master(&spi_master_dummyflasher, data);
 	}
 
-	return 1;
+	return 0;
 }
 
 const struct programmer_entry programmer_dummy = {
