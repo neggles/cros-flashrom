@@ -123,11 +123,14 @@ static int probe_variable_size(struct flashctx *flash)
 {
 	const struct emu_data *emu_data = flash->mst->opaque.data;
 
+	/* Skip the probing if we don't emulate "variable size" chip. */
+	if (!emu_data || emu_data->emu_chip != EMULATE_VARIABLE_SIZE)
+		return 0;
+
 	flash->chip->total_size = emu_data->emu_chip_size / 1024;
 	msg_cdbg("%s: set flash->total_size to %dK bytes.\n", __func__,
 	         flash->chip->total_size);
 
-	flash->chip->feature_bits = FEATURE_4BA_READ | FEATURE_4BA_WRITE;
 	flash->chip->tested = TEST_OK_PREW;
 
 	if (emu_data->erase_to_zero)
@@ -136,6 +139,9 @@ static int probe_variable_size(struct flashctx *flash)
 	/*
 	 * Update the first count of the block_eraser.
 	 * Opaque flash chip entry in flashchips.c has only one block eraser.
+	 *
+	 * If this changes in future, the code below needs to be adjusted
+	 * to update all block erasers.
 	 */
 	struct block_eraser *eraser = &flash->chip->block_erasers[0];
 	if (!eraser->block_erase)
@@ -330,7 +336,7 @@ static int erase_flash_data(struct emu_data *data, uint32_t start, uint32_t len)
 		return 1;
 	}
 
-	/* FIXME: take data->erase_to_zero into account. */
+	/* FIXME: Maybe use ERASED_VALUE(flash) instead of 0xff ? */
 	memset(data->flashchip_contents + start, 0xff, len);
 	data->emu_modified = 1;
 	return 0;
@@ -894,7 +900,7 @@ static int init_data(struct emu_data *data, enum chipbustype *dummy_buses_suppor
 	bustext = extract_programmer_param("bus");
 	msg_pdbg("Requested buses are: %s\n", bustext ? bustext : "default");
 	if (!bustext)
-		bustext = strdup("parallel+lpc+fwh+spi");
+		bustext = strdup("parallel+lpc+fwh+spi+prog");
 	/* Convert the parameters to lowercase. */
 	tolower_string(bustext);
 
@@ -914,6 +920,10 @@ static int init_data(struct emu_data *data, enum chipbustype *dummy_buses_suppor
 	if (strstr(bustext, "spi")) {
 		*dummy_buses_supported |= BUS_SPI;
 		msg_pdbg("Enabling support for %s flash.\n", "SPI");
+	}
+	if (strstr(bustext, "prog")) {
+		*dummy_buses_supported |= BUS_PROG;
+		msg_pdbg("Enabling support for %s flash.\n", "PROG");
 	}
 	if (*dummy_buses_supported == BUS_NONE)
 		msg_pdbg("Support for all flash bus types disabled.\n");
@@ -1077,6 +1087,10 @@ static int init_data(struct emu_data *data, enum chipbustype *dummy_buses_suppor
 
 	tmp = extract_programmer_param("emulate");
 	if (!tmp) {
+		if (size != -1) {
+			msg_perr("%s: size parameter is only valid for VARIABLE_SIZE chip.\n", __func__);
+			return 1;
+		}
 		msg_pdbg("Not emulating any flash chip.\n");
 		/* Nothing else to do. */
 		return 0;
@@ -1174,6 +1188,10 @@ static int init_data(struct emu_data *data, enum chipbustype *dummy_buses_suppor
 		data->emu_jedec_ce_c7_size = data->emu_chip_size;
 		msg_pdbg("Emulating generic SPI flash chip (size=%d bytes)\n",
 		         data->emu_chip_size);
+	} else if (size != -1) {
+		msg_perr("%s: size parameter is only valid for VARIABLE_SIZE chip.\n", __func__);
+		free(tmp);
+		return 1;
 	}
 
 	if (data->emu_chip == EMULATE_NONE) {
@@ -1186,6 +1204,11 @@ static int init_data(struct emu_data *data, enum chipbustype *dummy_buses_suppor
 	/* Should emulated flash erase to zero (yes/no)? */
 	tmp = extract_programmer_param("erase_to_zero");
 	if (tmp) {
+		if (data->emu_chip != EMULATE_VARIABLE_SIZE) {
+			msg_perr("%s: erase_to_zero parameter is not valid for real chip.\n", __func__);
+			free(tmp);
+			return 1;
+		}
 		if (!strcmp(tmp, "yes")) {
 			msg_pdbg("Emulated chip will erase to 0x00\n");
 			data->erase_to_zero = 1;
@@ -1309,16 +1332,14 @@ dummy_init_out:
 		return 1;
 	}
 
-	if (data->emu_chip == EMULATE_VARIABLE_SIZE) {
+	if (dummy_buses_supported & BUS_PROG)
 		register_opaque_master(&opaque_master_dummyflasher, data);
-	} else {
-		if (dummy_buses_supported & BUS_NONSPI)
-			register_par_master(&par_master_dummyflasher,
-					    dummy_buses_supported & BUS_NONSPI,
-					    data);
-		if (dummy_buses_supported & BUS_SPI)
-			register_spi_master(&spi_master_dummyflasher, data);
-	}
+	if (dummy_buses_supported & BUS_NONSPI)
+		register_par_master(&par_master_dummyflasher,
+				    dummy_buses_supported & BUS_NONSPI,
+				    data);
+	if (dummy_buses_supported & BUS_SPI)
+		register_spi_master(&spi_master_dummyflasher, data);
 
 	return 0;
 }
