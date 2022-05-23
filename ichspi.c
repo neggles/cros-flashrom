@@ -89,14 +89,6 @@
 #define DLOCK_SSEQ_LOCKDN_OFF	16
 #define DLOCK_SSEQ_LOCKDN	(0x1 << DLOCK_SSEQ_LOCKDN_OFF)
 
-/* Control bits */
-#define HSFSC_FGO_OFF		16	/* 0: Flash Cycle Go */
-#define HSFSC_FGO		(0x1 << HSFSC_FGO_OFF)
-#define HSFSC_FCYCLE_OFF	17	/* 17-20: FLASH Cycle */
-#define HSFSC_FCYCLE		(0xf << HSFSC_FCYCLE_OFF)
-#define HSFSC_FDBC_OFF		24	/* 24-29 : Flash Data Byte Count */
-#define HSFSC_FDBC		(0x3f << HSFSC_FDBC_OFF)
-
 #define PCH100_REG_FPR0		0x84	/* 32 Bits Protected Range 0 */
 #define PCH100_REG_GPR0		0x98	/* 32 Bits Global Protected Range 0 */
 
@@ -141,6 +133,7 @@
 #define HSFC_CYCLE_READ		HSFC_FCYCLE_MASK(0)
 #define HSFC_CYCLE_WRITE	HSFC_FCYCLE_MASK(2)
 #define HSFC_CYCLE_BLOCK_ERASE	HSFC_FCYCLE_MASK(3)
+#define HSFC_CYCLE_RDID		HSFC_FCYCLE_MASK(6)
 #define HSFC_CYCLE_WR_STATUS	HSFC_FCYCLE_MASK(7)
 #define HSFC_CYCLE_RD_STATUS	HSFC_FCYCLE_MASK(8)
 					/* 3-7: reserved */
@@ -1590,20 +1583,21 @@ static int ich_hwseq_write_status(const struct flashctx *flash, enum flash_reg r
 
 static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_gen)
 {
-	uint32_t hsfsc, data, mfg_id, model_id;
+	uint16_t hsfc;
+	uint32_t data, mfg_id, model_id;
 	const struct flashchip *entry;
 	const int len = sizeof(data);
 
 	/* make sure FDONE, FCERR, & AEL are cleared */
-	REGWRITE32(ICH9_REG_HSFS, REGREAD32(ICH9_REG_HSFS));
+	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
 
 	/* Set RDID as flash cycle and FGO */
-	hsfsc = REGREAD32(ICH9_REG_HSFS);
-	hsfsc &= ~HSFSC_FCYCLE;
-	hsfsc &= ~HSFSC_FDBC;
-	hsfsc |= ((len - 1) << HSFSC_FDBC_OFF) & HSFSC_FDBC;
-	hsfsc |= (0x6 << HSFSC_FCYCLE_OFF) | HSFSC_FGO;
-	REGWRITE32(ICH9_REG_HSFS, hsfsc);
+	hsfc = REGREAD16(ICH9_REG_HSFC);
+	hsfc &= ~hwseq_data.hsfc_fcycle;
+	hsfc &= ~HSFC_FDBC;
+	hsfc |= HSFC_FDBC_VAL(len - 1);
+	hsfc |= HSFC_CYCLE_RDID | HSFC_FGO;
+	REGWRITE16(ICH9_REG_HSFC, hsfc);
 
 	if (ich_hwseq_wait_for_cycle_complete(len, ich_gen)) {
 		msg_perr("Timed out waiting for RDID to complete.\n");
