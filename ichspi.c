@@ -2431,11 +2431,18 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	     ich_gen == CHIPSET_300_SERIES_CANNON_POINT ||
 	     ich_gen == CHIPSET_400_SERIES_COMET_POINT ||
 	     ich_gen == CHIPSET_500_SERIES_TIGER_POINT ||
-	     ich_gen == CHIPSET_600_SERIES_ALDER_POINT ||
-	     ich_gen == CHIPSET_APOLLO_LAKE ||
-	     ich_gen == CHIPSET_GEMINI_LAKE ||
-	     ich_gen == CHIPSET_JASPER_LAKE)) {
+	     ich_gen == CHIPSET_600_SERIES_ALDER_POINT)) {
 		msg_pdbg("Enabling hardware sequencing by default for 100+ series PCH.\n");
+		ich_spi_mode = ich_hwseq;
+	}
+
+	if (ich_spi_mode == ich_auto &&
+	    (ich_gen == CHIPSET_APOLLO_LAKE ||
+	     ich_gen == CHIPSET_GEMINI_LAKE ||
+	     ich_gen == CHIPSET_JASPER_LAKE ||
+	     ich_gen == CHIPSET_ELKHART_LAKE ||
+	     ich_gen == CHIPSET_METEOR_LAKE)) {
+		msg_pdbg("Enabling hardware sequencing by default for Apollo/Gemini/Jasper/Elkhart/Meteor Lake.\n");
 		ich_spi_mode = ich_hwseq;
 	}
 
