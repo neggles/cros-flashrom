@@ -2497,7 +2497,7 @@ int ich_init_spi(void *spibar, enum ich_chipset ich_gen)
 	case CHIPSET_CENTERTON:
 		return init_ich7_spi(spibar, ich_gen);
 	case CHIPSET_ICH8:
-	default:		/* Future version might behave the same */
+	default:	/* Future version might behave the same */
 		return init_ich_default(spibar, ich_gen);
 	}
 }
