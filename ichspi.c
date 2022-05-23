@@ -1352,11 +1352,9 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 		}
 		addr += addr_offset;
 
-		if (num_fd_regions > 0) {
-			result = check_fd_permissions(opcode, 0, addr, count);
-			if (result)
-				return result;
-		}
+		result = check_fd_permissions(opcode, 0, addr, count);
+		if (result)
+			return result;
 	}
 
 	result = run_opcode(flash, *opcode, addr, count, data);
