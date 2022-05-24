@@ -1150,8 +1150,6 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 
 #define EMBEDDED_CONTROLLER_REGION	8
 
-static int num_fd_regions;
-
 enum fd_access_level {
 	FD_REGION_LOCKED,
 	FD_REGION_READ_ONLY,
@@ -1215,8 +1213,34 @@ static int check_opcode_access(OPCODE *opcode, int type, enum fd_access_level le
 	return ret;
 }
 
+static int get_num_fd_regions(enum ich_chipset ich_gen)
+{
+	int num_fd_regions;
+
+	switch(ich_gen) {
+	case CHIPSET_APOLLO_LAKE:
+	case CHIPSET_GEMINI_LAKE:
+	case CHIPSET_JASPER_LAKE:
+	case CHIPSET_ELKHART_LAKE:
+	case CHIPSET_METEOR_LAKE:
+		num_fd_regions = APL_GLK_NUM_FD_REGIONS;
+		break;
+	case CHIPSET_100_SERIES_SUNRISE_POINT:
+	case CHIPSET_300_SERIES_CANNON_POINT:
+	case CHIPSET_400_SERIES_COMET_POINT:
+		num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
+		break;
+	default:
+		num_fd_regions = DEFAULT_NUM_FD_REGIONS;
+		break;
+	}
+
+	return num_fd_regions;
+}
+
 static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int count)
 {
+	const int num_fd_regions = get_num_fd_regions(ich_generation);
 	int i;
 	int ret = 0;
 
@@ -2257,7 +2281,6 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	ich_init_opcodes(ich_gen);
 
 	if (desc_valid) {
-		num_fd_regions = DEFAULT_NUM_FD_REGIONS;
 		tmp2 = mmio_readw(spibar + ICH9_REG_HSFC);
 		msg_pdbg("0x06: 0x%04x (HSFC)\n", tmp2);
 		prettyprint_ich9_reg_hsfc(tmp2, ich_gen);
@@ -2442,24 +2465,6 @@ static int init_ich_default(void *spibar, enum ich_chipset ich_gen)
 	     ich_gen == CHIPSET_METEOR_LAKE)) {
 		msg_pdbg("Enabling hardware sequencing by default for Apollo/Gemini/Jasper/Elkhart/Meteor Lake.\n");
 		ich_spi_mode = ich_hwseq;
-	}
-
-	switch(ich_gen) {
-	case CHIPSET_APOLLO_LAKE:
-	case CHIPSET_GEMINI_LAKE:
-	case CHIPSET_JASPER_LAKE:
-	case CHIPSET_ELKHART_LAKE:
-	case CHIPSET_METEOR_LAKE:
-		num_fd_regions = APL_GLK_NUM_FD_REGIONS;
-		break;
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-	case CHIPSET_400_SERIES_COMET_POINT:
-		num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
-		break;
-	default:
-		num_fd_regions = DEFAULT_NUM_FD_REGIONS;
-		break;
 	}
 
 	if (ich_spi_mode == ich_hwseq) {
