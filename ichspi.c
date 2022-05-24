@@ -1942,33 +1942,9 @@ static const char *const access_names[] = {
 	"locked", "read-only", "write-only", "read-write"
 };
 
-static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i)
+static int ec_region_rwperms(unsigned int i, uint32_t freg)
 {
-	const int rwperms_unknown = ARRAY_SIZE(access_names);
-	static const char *const region_names[] = {
-		"Flash Descriptor", "BIOS", "Management Engine",
-		"Gigabit Ethernet", "Platform Data", "Device Expansion",
-		"BIOS2", "unknown", "EC/BMC",
-	};
-	const char *const region_name = i < ARRAY_SIZE(region_names) ? region_names[i] : "unknown";
-
-	uint32_t base, limit;
-	int rwperms;
-	const int offset = i < 12
-		? ICH9_REG_FREG0 + i * 4
-		: APL_REG_FREG12 + (i - 12) * 4;
-	uint32_t freg = mmio_readl(ich_spibar + offset);
-
-	if (i < 8) {
-		rwperms = (((ICH_BRWA(frap) >> i) & 1) << 1) |
-			  (((ICH_BRRA(frap) >> i) & 1) << 0);
-	} else {
-		/* Datasheets don't define any access bits for regions > 7. We
-		   can't rely on the actual descriptor settings either as there
-		   are several overrides for them (those by other masters are
-		   not even readable by us, *shrug*). */
-		rwperms = rwperms_unknown;
-	}
+	int rwperms = 0;
 
 	/*
 	 * Get Region 0 - 7 Permission bits, region 8 and above don't have
@@ -2004,6 +1980,39 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 					rwperms = FD_REGION_LOCKED;
 			}
 		}
+	}
+
+	return rwperms;
+}
+
+static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i)
+{
+	const int rwperms_unknown = ARRAY_SIZE(access_names);
+	static const char *const region_names[] = {
+		"Flash Descriptor", "BIOS", "Management Engine",
+		"Gigabit Ethernet", "Platform Data", "Device Expansion",
+		"BIOS2", "unknown", "EC/BMC",
+	};
+	const char *const region_name = i < ARRAY_SIZE(region_names) ? region_names[i] : "unknown";
+
+	uint32_t base, limit;
+	int rwperms;
+	const int offset = i < 12
+		? ICH9_REG_FREG0 + i * 4
+		: APL_REG_FREG12 + (i - 12) * 4;
+	uint32_t freg = mmio_readl(ich_spibar + offset);
+
+	rwperms = ec_region_rwperms(i, freg); /* i >= 8. */
+
+	if (i < 8) {
+		rwperms = (((ICH_BRWA(frap) >> i) & 1) << 1) |
+			  (((ICH_BRRA(frap) >> i) & 1) << 0);
+	} else {
+		/* Datasheets don't define any access bits for regions > 7. We
+		   can't rely on the actual descriptor settings either as there
+		   are several overrides for them (those by other masters are
+		   not even readable by us, *shrug*). */
+		rwperms = rwperms_unknown;
 	}
 
 	base  = ICH_FREG_BASE(freg);
