@@ -1195,18 +1195,34 @@ struct fd_region {
 	{ .name = "unknown" },
 };
 
+static int check_opcode_access(OPCODE *opcode, int type, enum fd_access_level level)
+{
+	const uint8_t op_type = opcode ? opcode->spi_type : type;
+	const int op_type_r = opcode ? SPI_OPCODE_TYPE_READ_WITH_ADDRESS : SPI_OPCODE_TYPE_READ_NO_ADDRESS;
+	const int op_type_w = opcode ? SPI_OPCODE_TYPE_WRITE_WITH_ADDRESS : SPI_OPCODE_TYPE_WRITE_NO_ADDRESS;
+	int ret = 0;
+
+	if (op_type == op_type_r) {
+		if (level != FD_REGION_READ_ONLY && level != FD_REGION_READ_WRITE) {
+			ret = SPI_ACCESS_DENIED;
+		}
+	} else if (op_type == op_type_w) {
+		if (level != FD_REGION_WRITE_ONLY && level != FD_REGION_READ_WRITE) {
+			ret = SPI_ACCESS_DENIED;
+		}
+	}
+
+	return ret;
+}
+
 static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int count)
 {
 	int i;
-	uint8_t op_type = opcode ? opcode->spi_type : type;
-	int op_type_r = opcode ? SPI_OPCODE_TYPE_READ_WITH_ADDRESS : SPI_OPCODE_TYPE_READ_NO_ADDRESS;
-	int op_type_w = opcode ? SPI_OPCODE_TYPE_WRITE_WITH_ADDRESS : SPI_OPCODE_TYPE_WRITE_NO_ADDRESS;
 	int ret = 0;
 
 	/* check flash descriptor permissions (if present) */
 	for (i = 0; i < num_fd_regions; i++) {
 		const char *name = fd_regions[i].name;
-		enum fd_access_level level;
 		uint32_t base = fd_regions[i].base;
 		uint32_t limit = fd_regions[i].limit;
 
@@ -1217,22 +1233,10 @@ static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int cou
 			msg_perr("No permissions set for flash region %s\n", name);
 			break;
 		}
-		level = fd_regions[i].permission->level;
-
-		if (op_type == op_type_r) {
-			if (level != FD_REGION_READ_ONLY &&
-			    level != FD_REGION_READ_WRITE) {
-				msg_pspew("%s: Cannot read address 0x%08x in "
-				          "region %s\n", __func__,addr,name);
-				ret = SPI_ACCESS_DENIED;
-			}
-		} else if (op_type == op_type_w) {
-			if (level != FD_REGION_WRITE_ONLY &&
-			    level != FD_REGION_READ_WRITE) {
-				msg_pspew("%s: Cannot write to address 0x%08x in"
-				          "region %s\n", __func__,addr,name);
-				ret = SPI_ACCESS_DENIED;
-			}
+		ret = check_opcode_access(opcode, type, fd_regions[i].permission->level);
+		if (ret) {
+			msg_pspew("%s: Cannot issue read/write address 0x%08x in "
+			          "region %s\n", __func__, addr, name);
 		}
 		break;
 	}
