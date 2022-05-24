@@ -1985,6 +1985,13 @@ static int ec_region_rwperms(unsigned int i, uint32_t freg)
 	return rwperms;
 }
 
+static void set_fd_regions_rwperms(int region, uint32_t base, uint32_t limit, int rwperms)
+{
+	fd_regions[region].base  = base;
+	fd_regions[region].limit = limit | 0x0fff;
+	fd_regions[region].permission = &fd_region_permissions[rwperms];
+}
+
 static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i)
 {
 	const int rwperms_unknown = ARRAY_SIZE(access_names);
@@ -2019,9 +2026,7 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 	limit = ICH_FREG_LIMIT(freg);
 
 	/* HACK to support check_fd_permissions() */
-	fd_regions[i].base  = base;
-	fd_regions[i].limit = limit | 0x0fff;
-	fd_regions[i].permission = &fd_region_permissions[rwperms];
+	set_fd_regions_rwperms(i, base, limit, rwperms);
 
 	if (base > limit || (freg == 0 && i > 0)) {
 		/* this FREG is disabled */
