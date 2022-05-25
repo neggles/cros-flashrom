@@ -1676,7 +1676,6 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 {
 	uint32_t erase_block;
 	uint16_t hsfc;
-	int result = 0;
 
 	if (is_dry_run())
 		return 0;
@@ -1705,7 +1704,7 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 	}
 
 	/* Check flash region permissions before erasing */
-	result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, len);
+	int result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, len);
 	if (result)
 		return result;
 
@@ -1730,8 +1729,7 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 
 	if (ich_hwseq_wait_for_cycle_complete(len, ich_generation))
 		return -1;
-
-	return result;
+	return 0;
 }
 
 static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
@@ -1800,7 +1798,6 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 {
 	uint16_t hsfc;
 	uint8_t block_len;
-	int result = 0;
 
 	if (addr + len > flash->chip->total_size * 1024) {
 		msg_perr("Request to write to an inaccessible memory address "
@@ -1819,7 +1816,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		/* as well as flash chip page borders as demanded in the Intel datasheets. */
 		block_len = min(block_len, 256 - (addr & 0xFF));
 		/* Check flash region permissions before writing */
-		result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, block_len);
+		int result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, block_len);
 		if (result)
 			return result;
 		ich_fill_data(buf, block_len, ICH9_REG_FDATA0);
@@ -1844,8 +1841,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		buf += block_len;
 		len -= block_len;
 	}
-
-	return result;
+	return 0;
 }
 
 static int ich_spi_send_multicommand(const struct flashctx *flash,
