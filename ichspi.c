@@ -1784,7 +1784,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 		/* Check flash region permissions before reading */
 		chunk_status = check_fd_permissions(NULL, SPI_OPCODE_TYPE_READ_NO_ADDRESS, addr, block_len);
 		if (chunk_status) {
-			if (ignore_error(chunk_status)) {
+			if (chunk_status == SPI_ACCESS_DENIED) {
 				/* fill this chunk with 0xff bytes and
 				 * inform the caller about the error */
 				memset(buf, 0xff, block_len);

@@ -679,7 +679,7 @@ int spi_read_chunked(struct flashctx *flash, uint8_t *buf, unsigned int start,
 	for (; len; len -= to_read, buf += to_read, start += to_read) {
 		to_read = min(chunksize, len);
 		ret = spi_nbyte_read(flash, start, buf, to_read);
-		if (ignore_error(ret)) {
+		if (ret == SPI_ACCESS_DENIED) {
 			/* fill this chunk with 0xff bytes and
 			   let caller know about the error */
 			memset(buf, 0xff, to_read);

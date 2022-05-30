@@ -46,11 +46,6 @@
 const char flashrom_version[] = FLASHROM_VERSION;
 const char *chip_to_probe = NULL;
 
-int ignore_error(int err)
-{
-	return (err == SPI_ACCESS_DENIED);
-}
-
 static const struct programmer_entry *programmer = NULL;
 static const char *programmer_param = NULL;
 
@@ -477,7 +472,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 			tmp = flash->chip->read(flash, readbuf + i, start + i, chunksize);
 			if (tmp) {
 				ret = tmp;
-				if (ignore_error(tmp))
+				if (tmp == SPI_ACCESS_DENIED)
 					continue;
 				else
 					goto out_free;
@@ -487,7 +482,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 			 * Check write access permission and do not compare chunks
 			 * where flashrom does not have write access to the region.
 			 */
-			if (chk_acc && ignore_error(chk_acc))
+			if (chk_acc == SPI_ACCESS_DENIED)
 				continue;
 
 			failcount = compare_range(cmpbuf + i, readbuf + i, start + i, chunksize);
@@ -499,7 +494,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 
 		/* read as much as we can to reduce transaction overhead */
 		tmp = flash->chip->read(flash, readbuf, start, len);
-		if (tmp && !ignore_error(tmp)) {
+		if (tmp && (tmp != SPI_ACCESS_DENIED)) {
 			ret = tmp;
 			goto out_free;
 		}
@@ -1140,7 +1135,7 @@ static int read_flash(struct flashctx *flash, uint8_t *buf,
 
 	ret = flash->chip->read(flash, buf, start, len);
 	if (ret) {
-		if (ignore_error(ret)) {
+		if (ret == SPI_ACCESS_DENIED) {
 			msg_gdbg("ignoring error when reading 0x%x-0x%x\n",
 					start, start + len - 1);
 			ret = 0;
@@ -1408,7 +1403,7 @@ static int walk_eraseregions(struct flashctx *flash,
 			rc = per_blockfn(flash, &info, eraser->block_erase);
 
 			if (rc) {
-				if (ignore_error(rc))
+				if (rc == SPI_ACCESS_DENIED)
 					rc = 0;
 				else
 					return rc;
@@ -1550,7 +1545,7 @@ static int verify_by_layout(
 
 	if (ret) {
 		msg_gdbg("Could not fully verify due to error, ");
-		if (ignore_error(ret)) {
+		if (ret == SPI_ACCESS_DENIED) {
 			msg_gdbg("ignoring\n");
 			ret = 0;
 		} else {

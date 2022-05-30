@@ -452,9 +452,6 @@ int register_chip_restore(chip_restore_fn_cb_t func, struct flashctx *flash, uin
  */
 #define ERROR_FLASHROM_LIMIT -201
 
-/* convenience function for checking return codes */
-extern int ignore_error(int x);
-
 /* cli_common.c */
 void print_chip_support_status(const struct flashchip *chip);
 
