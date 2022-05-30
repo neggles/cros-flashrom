@@ -437,11 +437,6 @@ int write_buf_to_include_args(const struct flashctx *const flash, unsigned char 
 int prepare_flash_access(struct flashctx *, bool read_it, bool write_it, bool erase_it, bool verify_it);
 void finalize_flash_access(struct flashctx *);
 
-/* what to do in case of an error */
-enum error_action {
-	error_fail,	/* fail immediately */
-	error_ignore,	/* non-fatal error; continue */
-};
 int register_chip_restore(chip_restore_fn_cb_t func, struct flashctx *flash, uint8_t status);
 
 /* Something happened that shouldn't happen, but we can go on. */

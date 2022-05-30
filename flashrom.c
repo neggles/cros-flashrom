@@ -46,22 +46,9 @@
 const char flashrom_version[] = FLASHROM_VERSION;
 const char *chip_to_probe = NULL;
 
-/* error handling stuff */
-static enum error_action access_denied_action = error_ignore;
-
-int ignore_error(int err) {
-	int rc = 0;
-
-	switch(err) {
-	case SPI_ACCESS_DENIED:
-		if (access_denied_action == error_ignore)
-			rc = 1;
-		break;
-	default:
-		break;
-	}
-
-	return rc;
+int ignore_error(int err)
+{
+	return (err == SPI_ACCESS_DENIED);
 }
 
 static const struct programmer_entry *programmer = NULL;
