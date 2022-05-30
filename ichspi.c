@@ -1238,9 +1238,9 @@ static int get_num_fd_regions(enum ich_chipset ich_gen)
 	return num_fd_regions;
 }
 
-static int check_fd_permissions(OPCODE *opcode, int type, uint32_t addr, int count)
+static int check_fd_permissions(enum ich_chipset ich_gen, OPCODE *opcode, int type, uint32_t addr, int count)
 {
-	const int num_fd_regions = get_num_fd_regions(ich_generation);
+	const int num_fd_regions = get_num_fd_regions(ich_gen);
 	int i;
 	int ret = 0;
 
@@ -1380,7 +1380,7 @@ static int ich_spi_send_command(const struct flashctx *flash, unsigned int write
 		}
 		addr += addr_offset;
 
-		result = check_fd_permissions(opcode, 0, addr, count);
+		result = check_fd_permissions(ich_generation, opcode, 0, addr, count);
 		if (result)
 			return result;
 	}
@@ -1428,7 +1428,7 @@ static void ich_hwseq_set_addr(uint32_t addr)
 static int ich_hwseq_check_access(const struct flashctx *flash, unsigned int start,
 			      unsigned int len, int read)
 {
-	return check_fd_permissions(NULL, read ? SPI_OPCODE_TYPE_READ_NO_ADDRESS: SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, start, len);
+	return check_fd_permissions(ich_generation, NULL, read ? SPI_OPCODE_TYPE_READ_NO_ADDRESS: SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, start, len);
 }
 
 /* Sets FADDR.FLA to 'addr' and returns the erase block size in bytes
@@ -1730,7 +1730,7 @@ static int ich_hwseq_block_erase(struct flashctx *flash, unsigned int addr,
 	}
 
 	/* Check flash region permissions before erasing */
-	int result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, len);
+	int result = check_fd_permissions(ich_generation, NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, len);
 	if (result)
 		return result;
 
@@ -1782,7 +1782,7 @@ static int ich_hwseq_read(struct flashctx *flash, uint8_t *buf,
 		block_len = min(block_len, 256 - (addr & 0xFF));
 
 		/* Check flash region permissions before reading */
-		chunk_status = check_fd_permissions(NULL, SPI_OPCODE_TYPE_READ_NO_ADDRESS, addr, block_len);
+		chunk_status = check_fd_permissions(ich_generation, NULL, SPI_OPCODE_TYPE_READ_NO_ADDRESS, addr, block_len);
 		if (chunk_status) {
 			if (chunk_status == SPI_ACCESS_DENIED) {
 				/* fill this chunk with 0xff bytes and
@@ -1842,7 +1842,7 @@ static int ich_hwseq_write(struct flashctx *flash, const uint8_t *buf, unsigned 
 		/* as well as flash chip page borders as demanded in the Intel datasheets. */
 		block_len = min(block_len, 256 - (addr & 0xFF));
 		/* Check flash region permissions before writing */
-		int result = check_fd_permissions(NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, block_len);
+		int result = check_fd_permissions(ich_generation, NULL, SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, addr, block_len);
 		if (result)
 			return result;
 		ich_fill_data(buf, block_len, ICH9_REG_FDATA0);
