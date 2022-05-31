@@ -1950,35 +1950,38 @@ static int ec_region_rwperms(unsigned int i, uint32_t freg)
 	 * Get Region 0 - 7 Permission bits, region 8 and above don't have
 	 * bits to indicate permissions in Flash Region Access Permissions
 	 * register.
+	 * i.e, if ( i >= EMBEDDED_CONTROLLER_REGION ).
 	 */
-	if ( i >= EMBEDDED_CONTROLLER_REGION ) {
-		/*
-		 * Use Flash Descriptor Observe register to determine if
-		 * the EC region can be written by the BIOS master.
-		 */
-		rwperms = FD_REGION_READ_WRITE;
-		if (i == EMBEDDED_CONTROLLER_REGION &&
-		    ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
-			struct ich_descriptors desc;
-			memset(&desc, 0, sizeof(desc));
-			/* Region is RW if flash descriptor override is set */
-			freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
-			if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS))
-				rwperms = FD_REGION_READ_WRITE;
-			else if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
-				const struct ich_desc_master *const mstr = &desc.master;
+	if (i < EMBEDDED_CONTROLLER_REGION)
+		return rwperms;
+
+	/*
+	 * Use Flash Descriptor Observe register to determine if
+	 * the EC region can be written by the BIOS master.
+	 */
+	rwperms = FD_REGION_READ_WRITE;
+
+	if (i == EMBEDDED_CONTROLLER_REGION && ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
+		struct ich_descriptors desc;
+		memset(&desc, 0, sizeof(desc));
+
+		/* Region is RW if flash descriptor override is set */
+		freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
+		if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS)) {
+			rwperms = FD_REGION_READ_WRITE;
+		} else if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
+			const struct ich_desc_master *const mstr = &desc.master;
 #define BIT(x) (1<<(x))
-				int bios_ec_r = mstr->mstr[i].read  & BIT(16); /* BIOS_EC_r in PCH100+ */
-				int bios_ec_w = mstr->mstr[i].write & BIT(28); /* BIOS_EC_w in PCH100+ */
-				if (bios_ec_r && bios_ec_w)
-					rwperms = FD_REGION_READ_WRITE;
-				else if (bios_ec_r && !bios_ec_w)
-					rwperms = FD_REGION_READ_ONLY;
-				else if (!bios_ec_r && bios_ec_w)
-					rwperms = FD_REGION_WRITE_ONLY;
-				else
-					rwperms = FD_REGION_LOCKED;
-			}
+			int bios_ec_r = mstr->mstr[i].read  & BIT(16); /* BIOS_EC_r in PCH100+ */
+			int bios_ec_w = mstr->mstr[i].write & BIT(28); /* BIOS_EC_w in PCH100+ */
+			if (bios_ec_r && bios_ec_w)
+				rwperms = FD_REGION_READ_WRITE;
+			else if (bios_ec_r && !bios_ec_w)
+				rwperms = FD_REGION_READ_ONLY;
+			else if (!bios_ec_r && bios_ec_w)
+				rwperms = FD_REGION_WRITE_ONLY;
+			else
+				rwperms = FD_REGION_LOCKED;
 		}
 	}
 
