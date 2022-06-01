@@ -20,7 +20,6 @@
 #include "flash.h"
 #include "chipdrivers.h"
 #include "spi.h"
-#include "programmer.h"
 
 /* === Generic functions === */
 int spi_write_register(const struct flashctx *flash, enum flash_reg reg, uint8_t value)
@@ -36,18 +35,9 @@ int spi_write_register(const struct flashctx *flash, enum flash_reg reg, uint8_t
 	 */
 	switch (reg) {
 	case STATUS1:
-		/*
-		 * FIXME: This is a cros flashrom hack for ichspi because it
-		 * exposes status register access via `write_status` in `struct
-		 * flashchip`.
-		 */
-		if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.write_status)
-			return flash->mst->opaque.write_status(flash, value);
-
 		write_cmd[0] = JEDEC_WRSR;
 		write_cmd[1] = value;
 		write_cmd_len = JEDEC_WRSR_OUTSIZE;
-
 		break;
 	case STATUS2:
 		if (feature_bits & FEATURE_WRSR2) {
@@ -159,16 +149,6 @@ int spi_read_register(const struct flashctx *flash, enum flash_reg reg, uint8_t 
 
 	switch (reg) {
 	case STATUS1:
-		/*
-		 * FIXME: This is a cros flashrom hack for ichspi because it
-		 * exposes status register access via `read_status` in `struct
-		 * flashchip`.
-		 */
-		if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_status) {
-			*value = flash->mst->opaque.read_status(flash);
-			return 0;
-		}
-
 		read_cmd = JEDEC_RDSR;
 		break;
 	case STATUS2:

@@ -29,6 +29,7 @@
 #include "chipdrivers.h"
 #include "spi.h"
 #include "dep_writeprotect.h"
+#include "programmer.h"
 
 /*
  * The following procedures rely on look-up tables to match the user-specified
@@ -315,15 +316,28 @@ static struct wp_range_descriptor gd25q64_ranges[] = {
 };
 
 /*
- * Hack to call the new spi_read_register() function since this file will be
- * deleted soon anyway and adding a wrapper function is less error prone than
- * converting every call site in this file.
+ * Hack to call the new spi_{read,write}_register() functions. Since this file will
+ * be deleted soon anyway so add wrapper functions that support reg:=STATUS1.
  */
 static uint8_t spi_read_status_register(const struct flashctx *flash)
 {
 	uint8_t tmp = 0;
-	spi_read_register(flash, STATUS1, &tmp);
+
+	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_status) {
+		tmp = flash->mst->opaque.read_status(flash);
+	} else {
+		spi_read_register(flash, STATUS1, &tmp);
+	}
+
 	return tmp;
+}
+static int spi_write_status_register(const struct flashctx *flash, uint8_t value)
+{
+	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.write_status) {
+		return flash->mst->opaque.write_status(flash, value);
+	}
+
+	return spi_write_register(flash, STATUS1, value);
 }
 
 static int range_table(const struct flashctx *flash,
@@ -501,7 +515,7 @@ static int w25_set_range(const struct flashctx *flash,
 	msg_cdbg("status.srp0: %x\n", status.srp0);
 
 	memcpy(&expected, &status, sizeof(status));
-	spi_write_register(flash, STATUS1, expected);
+	spi_write_status_register(flash, expected);
 
 	tmp = spi_read_status_register(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
@@ -647,7 +661,7 @@ static int w25q_large_set_range(const struct flashctx *flash,
 	msg_cdbg("status.srp0: %x\n", status.srp0);
 
 	memcpy(&expected, &status, sizeof(status));
-	spi_write_register(flash, STATUS1, expected);
+	spi_write_status_register(flash, expected);
 
 	tmp = spi_read_status_register(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
@@ -710,7 +724,7 @@ static int w25_set_srp0(const struct flashctx *flash, int enable)
 
 	status.srp0 = enable ? 1 : 0;
 	memcpy(&expected, &status, sizeof(status));
-	spi_write_register(flash, STATUS1, expected);
+	spi_write_status_register(flash, expected);
 
 	tmp = spi_read_status_register(flash);
 	msg_cdbg("%s: new status: 0x%02x\n", __func__, tmp);
