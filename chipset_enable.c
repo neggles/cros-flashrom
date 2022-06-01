@@ -2064,13 +2064,6 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x9cc7, B_FS,   NT,  "Intel", "Broadwell Y Premium",		enable_flash_pch9_lp},
 	{0x8086, 0x9cc9, B_FS,   NT,  "Intel", "Broadwell Y Base",		enable_flash_pch9_lp},
 	{0x8086, 0x9ccb, B_FS,   NT,  "Intel", "Broadwell H",			enable_flash_pch9},
-	{0x8086, 0xa224, B_FS,   OK, "Intel", "Lewisburg",			enable_flash_pch100},
-	/*
-	 * TODO(b/173164205): Merged with upstream.
-	 */
-	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_pch100},
-	{0x8086, 0xa0a4, B_FS,    OK, "Intel", "Tigerlake",			enable_flash_pch100},
-	{0x8086, 0x7aa4, B_FS,    OK, "Intel", "Alder Lake-S",			enable_flash_pch600},
 	{0x8086, 0x9d41, B_S,    NT,  "Intel", "Skylake / Kaby Lake Sample",	enable_flash_pch100},
 	{0x8086, 0x9d43, B_S,    NT,  "Intel", "Skylake U Base",		enable_flash_pch100},
 	{0x8086, 0x9d46, B_S,    NT,  "Intel", "Skylake Y Premium",		enable_flash_pch100},
@@ -2185,6 +2178,12 @@ const struct penable chipset_enables[] = {
 	{0x8086, 0x7a8d, B_S,    NT,  "Intel", "WM690",				enable_flash_pch600},
 	{0x8086, 0x7a8c, B_S,    NT,  "Intel", "HM670",				enable_flash_pch600},
 	{0x8086, 0x7e23, B_S,    DEP, "Intel", "Meteor Lake-P/M",		enable_flash_mtl},
+	/** TODO(b/173164205): Merged with upstream. **/
+	{0x8086, 0xa224, B_FS,   OK, "Intel", "Lewisburg",			enable_flash_pch100},
+	{0x8086, 0x34a4, B_FS,    OK, "Intel", "Icelake",			enable_flash_pch100},
+	{0x8086, 0xa0a4, B_FS,    OK, "Intel", "Tigerlake",			enable_flash_pch100},
+	{0x8086, 0x7aa4, B_FS,    OK, "Intel", "Alder Lake-S",			enable_flash_pch600},
+	/**/
 #endif
 	{0},
 };
