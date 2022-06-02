@@ -2,6 +2,7 @@
  * This file is part of the flashrom project.
  *
  * Copyright (C) 2010 Google Inc.
+ * Copyright 2018-present Facebook, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +19,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <mtd/mtd-user.h>
+#include <sys/ioctl.h>
+#include <errno.h>
 
 #include "flash.h"
+#include "programmer.h"
 #include "flashchips.h"
 #include "chipdrivers.h"
 #include "spi.h"
@@ -1150,3 +1155,170 @@ static int range_table(const struct flashctx *flash,
 
 	return 0;
 }
+
+/*
+ * Legacy Linux MTD Write-protect functions.
+ */
+
+
+/* Duplicates definition in linux_mtd.c */
+struct linux_mtd_data {
+	FILE *dev_fp;
+	int device_is_writeable;
+	int no_erase;
+	/* Size info is presented in bytes in sysfs. */
+	unsigned long int total_size;
+	unsigned long int numeraseregions;
+	/* only valid if numeraseregions is 0 */
+	unsigned long int erasesize;
+};
+
+static int mtd_wp_list_ranges(const struct flashctx *flash)
+{
+	/* TODO: implement this */
+	msg_perr("--wp-list is not currently implemented for MTD.\n");
+	return 1;
+}
+
+/*
+ * We only have MEMLOCK to enable write-protection for a particular block,
+ * so we need to do force the user to use --wp-range and --wp-enable
+ * command-line arguments simultaneously. (Fortunately, CrOS factory
+ * installer does this already).
+ *
+ * The --wp-range argument is processed first and will set these variables
+ * which --wp-enable will use afterward.
+ */
+static unsigned int wp_range_start;
+static unsigned int wp_range_len;
+static int wp_set_range_called = 0;
+
+static int mtd_wp_set_range(const struct flashctx *flash,
+			unsigned int start, unsigned int len)
+{
+	wp_range_start = start;
+	wp_range_len = len;
+
+	wp_set_range_called = 1;
+	return 0;
+}
+
+static int mtd_wp_enable_writeprotect(const struct flashctx *flash, enum wp_mode mode)
+{
+	struct linux_mtd_data *data = flash->mst->opaque.data;
+
+	struct erase_info_user entire_chip = {
+		.start = 0,
+		.length = data->total_size,
+	};
+	struct erase_info_user desired_range = {
+		.start = wp_range_start,
+		.length = wp_range_len,
+	};
+
+	if (!wp_set_range_called) {
+		msg_perr("For MTD, --wp-range and --wp-enable must be "
+			"used simultaneously.\n");
+		return 1;
+	}
+
+	/*
+	 * MTD handles write-protection additively, so whatever new range is
+	 * specified is added to the range which is currently protected. To be
+	 * consistent with flashrom behavior with other programmer interfaces,
+	 * we need to disable the current write protection and then enable
+	 * it for the desired range.
+	 */
+	int ret = ioctl(fileno(data->dev_fp), MEMUNLOCK, &entire_chip);
+	if (ret < 0) {
+		msg_perr("%s: Failed to disable write-protection, MEMUNLOCK ioctl "
+			 "returned %d, error: %s\n", __func__, ret, strerror(errno));
+		msg_perr("Did you disable WP#?\n");
+		return 1;
+	}
+
+	ret = ioctl(fileno(data->dev_fp), MEMLOCK, &desired_range);
+	if (ret < 0) {
+		msg_perr("%s: Failed to enable write-protection, MEMLOCK ioctl "
+			 "returned %d, error: %s\n", __func__, ret, strerror(errno));
+		return 1;
+	}
+
+	return 0;
+}
+
+static int mtd_wp_disable_writeprotect(const struct flashctx *flash)
+{
+	struct linux_mtd_data *data = flash->mst->opaque.data;
+	struct erase_info_user erase_info;
+
+	if (wp_set_range_called) {
+		erase_info.start = wp_range_start;
+		erase_info.length = wp_range_len;
+	} else {
+		erase_info.start = 0;
+		erase_info.length = data->total_size;
+	}
+
+	int ret = ioctl(fileno(data->dev_fp), MEMUNLOCK, &erase_info);
+	if (ret < 0) {
+		msg_perr("%s: Failed to disable write-protection, MEMUNLOCK ioctl "
+			 "returned %d, error: %s\n", __func__, ret, strerror(errno));
+		msg_perr("Did you disable WP#?\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+static int mtd_wp_status(const struct flashctx *flash,
+		uint32_t *_start, uint32_t *_len, bool *_wp_en)
+{
+	struct linux_mtd_data *data = flash->mst->opaque.data;
+	uint32_t start = 0, len = 0;
+	int start_found = 0;
+	unsigned int u;
+
+	/* For now, assume only one contiguous region can be locked (NOR) */
+	/* FIXME: use flash struct members instead of raw MTD values here */
+	for (u = 0; u < data->total_size; u += data->erasesize) {
+		int rc;
+		struct erase_info_user erase_info = {
+			.start = u,
+			.length = data->erasesize,
+		};
+
+		rc = ioctl(fileno(data->dev_fp), MEMISLOCKED, &erase_info);
+		if (rc < 0) {
+			msg_perr("%s: ioctl: %s\n", __func__, strerror(errno));
+			return 1;
+		} else if (rc == 1) {
+			if (!start_found) {
+				start = erase_info.start;
+				start_found = 1;
+			}
+			len += data->erasesize;
+		} else if (rc == 0) {
+			if (start_found) {
+				/* TODO: changes required for supporting non-contiguous locked regions */
+				break;
+			}
+		}
+
+	}
+
+	msg_cinfo("WP: write protect is %s.\n",
+			start_found ? "enabled": "disabled");
+	msg_pinfo("WP: write protect range: start=0x%08x, "
+			"len=0x%08x\n", start, len);
+
+	return 0;
+}
+
+struct wp wp_mtd = {
+	.list_ranges	= mtd_wp_list_ranges,
+	.set_range	= mtd_wp_set_range,
+	.enable		= mtd_wp_enable_writeprotect,
+	.disable	= mtd_wp_disable_writeprotect,
+	.wp_status	= mtd_wp_status,
+};

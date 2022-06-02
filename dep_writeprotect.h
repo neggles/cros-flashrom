@@ -46,6 +46,10 @@ extern struct wp wp_w25q_large; /* large winbond chips (>= 32MB) */
 extern struct wp wp_generic;
 extern struct wp wp_wpce775x;
 
+/* Linux MTD legacy WP */
+extern struct wp wp_mtd;
+
+
 struct wp *get_wp_for_flashchip(const struct flashchip *chip);
 enum wp_mode get_wp_mode(const char *mode_str);
 
