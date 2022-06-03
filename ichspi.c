@@ -1626,9 +1626,6 @@ static int ich_hwseq_get_flash_id(struct flashctx *flash, enum ich_chipset ich_g
 		flash->chip->page_size = entry->page_size;
 		flash->chip->feature_bits = entry->feature_bits;
 		flash->chip->tested = entry->tested;
-
-		/* Access to status register and access checking*/
-		flash->chip->unlock = &spi_disable_blockprotect;
 	}
 
 	return 1;
