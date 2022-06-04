@@ -422,8 +422,8 @@ struct opaque_master {
 	enum flashrom_wp_result (*wp_write_cfg)(struct flashctx *, const struct flashrom_wp_cfg *);
 	enum flashrom_wp_result (*wp_read_cfg)(struct flashrom_wp_cfg *, struct flashctx *);
 	enum flashrom_wp_result (*wp_get_ranges)(struct flashrom_wp_ranges **, struct flashctx *);
-	uint8_t (*read_status) (const struct flashctx *flash);
-	int (*write_status) (const struct flashctx *flash, int status);
+	int (*read_register)(const struct flashctx *flash, enum flash_reg reg, uint8_t *value);
+	int (*write_register)(const struct flashctx *flash, enum flash_reg reg, uint8_t value);
 	int (*check_access) (const struct flashctx *flash, unsigned int start, unsigned int len, int read);
 	int (*shutdown)(void *data);
 	void *data;

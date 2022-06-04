@@ -1517,11 +1517,10 @@ static const struct flashchip *flash_id_to_entry(uint32_t mfg_id, uint32_t model
 	return NULL;
 }
 
-static uint8_t ich_hwseq_read_status(const struct flashctx *flash)
+static int ich_hwseq_read_status(const struct flashctx *flash, enum flash_reg _reg, uint8_t *status)
 {
 	uint32_t hsfc;
 	int len = 1;
-	uint8_t buf;
 
 	msg_pdbg("Reading Status register\n");
 
@@ -1543,11 +1542,12 @@ static uint8_t ich_hwseq_read_status(const struct flashctx *flash)
 		msg_perr("Reading Status register failed\n!!");
 		return -1;
 	}
-	ich_read_data(&buf, len, ICH9_REG_FDATA0);
-	return buf;
+	ich_read_data(status, len, ICH9_REG_FDATA0);
+
+	return 0;
 }
 
-static int ich_hwseq_write_status(const struct flashctx *flash, int status)
+static int ich_hwseq_write_status(const struct flashctx *flash, enum flash_reg _reg, uint8_t status)
 {
 	uint32_t hsfc;
 	int len = 1;
@@ -2132,8 +2132,8 @@ static struct opaque_master opaque_master_ich_hwseq = {
 	.read = ich_hwseq_read,
 	.write = ich_hwseq_write,
 	.erase = ich_hwseq_block_erase,
-	.read_status = ich_hwseq_read_status,
-	.write_status = ich_hwseq_write_status,
+	.read_register = ich_hwseq_read_status,
+	.write_register = ich_hwseq_write_status,
 	.check_access = ich_hwseq_check_access,
 };
 

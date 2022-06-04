@@ -323,8 +323,8 @@ static uint8_t spi_read_status_register(const struct flashctx *flash)
 {
 	uint8_t tmp = 0;
 
-	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_status) {
-		tmp = flash->mst->opaque.read_status(flash);
+	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_register) {
+		flash->mst->opaque.read_register(flash, STATUS1, &tmp);
 	} else {
 		spi_read_register(flash, STATUS1, &tmp);
 	}
@@ -333,8 +333,8 @@ static uint8_t spi_read_status_register(const struct flashctx *flash)
 }
 static int spi_write_status_register(const struct flashctx *flash, uint8_t value)
 {
-	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.write_status) {
-		return flash->mst->opaque.write_status(flash, value);
+	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.write_register) {
+		return flash->mst->opaque.write_register(flash, STATUS1, value);
 	}
 
 	return spi_write_register(flash, STATUS1, value);
