@@ -1139,27 +1139,9 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 #define APL_GLK_NUM_FD_REGIONS		6
 #define SUNRISEPOINT_NUM_FD_REGIONS	9
 
-enum fd_access_level {
-	FD_REGION_LOCKED,
-	FD_REGION_READ_ONLY,
-	FD_REGION_WRITE_ONLY,
-	FD_REGION_READ_WRITE,
-};
-
-struct fd_region_permission {
-	enum fd_access_level level;
-	const char *name;
-} fd_region_permissions[] = {
-	/* order corresponds to FRAP bitfield */
-	{ FD_REGION_LOCKED, "locked" },
-	{ FD_REGION_READ_ONLY, "read-only" },
-	{ FD_REGION_WRITE_ONLY, "write-only" },
-	{ FD_REGION_READ_WRITE, "read-write" },
-};
-
 struct fd_region {
 	const char *name;
-	struct fd_region_permission *permission;
+	enum ich_access_protection level;
 	uint32_t base;
 	uint32_t limit;
 } fd_regions[] = {
@@ -1182,14 +1164,14 @@ struct fd_region {
 	{ .name = "unknown" },
 };
 
-static void set_fd_regions_rwperms(int region, uint32_t base, uint32_t limit, int rwperms)
+static void set_fd_regions_rwperms(int region, uint32_t base, uint32_t limit, enum ich_access_protection level)
 {
 	fd_regions[region].base  = base;
 	fd_regions[region].limit = limit | 0x0fff;
-	fd_regions[region].permission = &fd_region_permissions[rwperms];
+	fd_regions[region].level = level;
 }
 
-static int check_opcode_access(OPCODE *opcode, int type, enum fd_access_level level)
+static int check_opcode_access(OPCODE *opcode, int type, enum ich_access_protection level)
 {
 	const uint8_t op_type = opcode ? opcode->spi_type : type;
 	const int op_type_r = opcode ? SPI_OPCODE_TYPE_READ_WITH_ADDRESS : SPI_OPCODE_TYPE_READ_NO_ADDRESS;
@@ -1197,13 +1179,11 @@ static int check_opcode_access(OPCODE *opcode, int type, enum fd_access_level le
 	int ret = 0;
 
 	if (op_type == op_type_r) {
-		if (level != FD_REGION_READ_ONLY && level != FD_REGION_READ_WRITE) {
-			ret = SPI_ACCESS_DENIED;
-		}
+		if (level == READ_PROT || level == LOCKED)
+			return SPI_ACCESS_DENIED;
 	} else if (op_type == op_type_w) {
-		if (level != FD_REGION_WRITE_ONLY && level != FD_REGION_READ_WRITE) {
-			ret = SPI_ACCESS_DENIED;
-		}
+		if (level == WRITE_PROT || level == LOCKED)
+			return SPI_ACCESS_DENIED;
 	}
 
 	return ret;
@@ -1249,11 +1229,7 @@ static int check_fd_permissions(enum ich_chipset ich_gen, OPCODE *opcode, int ty
 		if ((addr + count - 1 < base) || (addr > limit))
 			continue;
 
-		if (!fd_regions[i].permission) {
-			msg_perr("No permissions set for flash region %s\n", name);
-			break;
-		}
-		ret = check_opcode_access(opcode, type, fd_regions[i].permission->level);
+		ret = check_opcode_access(opcode, type, fd_regions[i].level);
 		if (ret) {
 			msg_pspew("%s: Cannot issue read/write address 0x%08x in "
 			          "region %s\n", __func__, addr, name);
@@ -1947,13 +1923,13 @@ static const char *const access_names[] = {
 
 #define EMBEDDED_CONTROLLER_REGION	8
 
-static int ec_region_rwperms(unsigned int i)
+static enum ich_access_protection ec_region_rwperms(unsigned int i)
 {
 	/*
 	 * Use Flash Descriptor Observe register to determine if
 	 * the EC region can be written by the BIOS master.
 	 */
-	int rwperms = FD_REGION_READ_WRITE;
+	int rwperms = NO_PROT;
 
 	struct ich_descriptors desc;
 	memset(&desc, 0, sizeof(desc));
@@ -1961,20 +1937,19 @@ static int ec_region_rwperms(unsigned int i)
 	/* Region is RW if flash descriptor override is set */
 	uint16_t freg = REGREAD16(ICH9_REG_HSFS);
 	if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS)) {
-		rwperms = FD_REGION_READ_WRITE;
+		rwperms = NO_PROT;
 	} else if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
 		const struct ich_desc_master *const mstr = &desc.master;
-#define BIT(x) (1<<(x))
 		int bios_ec_r = mstr->mstr[i].read  & BIT(16); /* BIOS_EC_r in PCH100+ */
 		int bios_ec_w = mstr->mstr[i].write & BIT(28); /* BIOS_EC_w in PCH100+ */
 		if (bios_ec_r && bios_ec_w)
-			rwperms = FD_REGION_READ_WRITE;
+			rwperms = NO_PROT;
 		else if (bios_ec_r && !bios_ec_w)
-			rwperms = FD_REGION_READ_ONLY;
+			rwperms = WRITE_PROT;
 		else if (!bios_ec_r && bios_ec_w)
-			rwperms = FD_REGION_WRITE_ONLY;
+			rwperms = READ_PROT;
 		else
-			rwperms = FD_REGION_LOCKED;
+			rwperms = LOCKED;
 	}
 
 	return rwperms;
@@ -2013,8 +1988,7 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 			      (((ICH_BRRA(frap) >> i) & 1) << 0);
 		rwperms = access_perms_to_protection[rwperms_idx];
 	} else if (i == EMBEDDED_CONTROLLER_REGION && ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
-		rwperms_idx = ec_region_rwperms(i);
-		rwperms = access_perms_to_protection[rwperms_idx];
+		rwperms = ec_region_rwperms(i);
 	} else {
 		/* Datasheets don't define any access bits for regions > 7. We
 		   can't rely on the actual descriptor settings either as there
@@ -2028,7 +2002,7 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 		  region_name, base, limit, access_names[rwperms]);
 
 	/* HACK to support check_fd_permissions() */
-	set_fd_regions_rwperms(i, base, limit, rwperms_idx);
+	set_fd_regions_rwperms(i, base, limit, rwperms);
 
 	return rwperms;
 }
