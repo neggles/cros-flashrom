@@ -1941,45 +1941,32 @@ static const char *const access_names[] = {
 
 static int ec_region_rwperms(unsigned int i, uint32_t freg)
 {
-	int rwperms = 0;
-
-	/*
-	 * Get Region 0 - 7 Permission bits, region 8 and above don't have
-	 * bits to indicate permissions in Flash Region Access Permissions
-	 * register.
-	 * i.e, if ( i >= EMBEDDED_CONTROLLER_REGION ).
-	 */
-	if (i < EMBEDDED_CONTROLLER_REGION)
-		return rwperms;
-
 	/*
 	 * Use Flash Descriptor Observe register to determine if
 	 * the EC region can be written by the BIOS master.
 	 */
-	rwperms = FD_REGION_READ_WRITE;
+	int rwperms = FD_REGION_READ_WRITE;
 
-	if (i == EMBEDDED_CONTROLLER_REGION && ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
-		struct ich_descriptors desc;
-		memset(&desc, 0, sizeof(desc));
+	struct ich_descriptors desc;
+	memset(&desc, 0, sizeof(desc));
 
-		/* Region is RW if flash descriptor override is set */
-		freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
-		if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS)) {
-			rwperms = FD_REGION_READ_WRITE;
-		} else if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
-			const struct ich_desc_master *const mstr = &desc.master;
+	/* Region is RW if flash descriptor override is set */
+	freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
+	if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS)) {
+		rwperms = FD_REGION_READ_WRITE;
+	} else if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
+		const struct ich_desc_master *const mstr = &desc.master;
 #define BIT(x) (1<<(x))
-			int bios_ec_r = mstr->mstr[i].read  & BIT(16); /* BIOS_EC_r in PCH100+ */
-			int bios_ec_w = mstr->mstr[i].write & BIT(28); /* BIOS_EC_w in PCH100+ */
-			if (bios_ec_r && bios_ec_w)
-				rwperms = FD_REGION_READ_WRITE;
-			else if (bios_ec_r && !bios_ec_w)
-				rwperms = FD_REGION_READ_ONLY;
-			else if (!bios_ec_r && bios_ec_w)
-				rwperms = FD_REGION_WRITE_ONLY;
-			else
-				rwperms = FD_REGION_LOCKED;
-		}
+		int bios_ec_r = mstr->mstr[i].read  & BIT(16); /* BIOS_EC_r in PCH100+ */
+		int bios_ec_w = mstr->mstr[i].write & BIT(28); /* BIOS_EC_w in PCH100+ */
+		if (bios_ec_r && bios_ec_w)
+			rwperms = FD_REGION_READ_WRITE;
+		else if (bios_ec_r && !bios_ec_w)
+			rwperms = FD_REGION_READ_ONLY;
+		else if (!bios_ec_r && bios_ec_w)
+			rwperms = FD_REGION_WRITE_ONLY;
+		else
+			rwperms = FD_REGION_LOCKED;
 	}
 
 	return rwperms;
@@ -2009,11 +1996,12 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 		: APL_REG_FREG12 + (i - 12) * 4;
 	uint32_t freg = mmio_readl(ich_spibar + offset);
 
-	rwperms = ec_region_rwperms(i, freg); /* i >= 8. */
-
 	if (i < 8) {
 		rwperms = (((ICH_BRWA(frap) >> i) & 1) << 1) |
 			  (((ICH_BRRA(frap) >> i) & 1) << 0);
+
+	} else if (i == EMBEDDED_CONTROLLER_REGION && ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
+		rwperms = ec_region_rwperms(i, freg); /* i >= 8. */
 	} else {
 		/* Datasheets don't define any access bits for regions > 7. We
 		   can't rely on the actual descriptor settings either as there
@@ -2026,7 +2014,8 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 	limit = ICH_FREG_LIMIT(freg);
 
 	/* HACK to support check_fd_permissions() */
-	set_fd_regions_rwperms(i, base, limit, rwperms);
+	if (rwperms != rwperms_unknown)
+		set_fd_regions_rwperms(i, base, limit, rwperms);
 
 	if (base > limit || (freg == 0 && i > 0)) {
 		/* this FREG is disabled */
