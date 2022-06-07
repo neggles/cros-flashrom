@@ -99,7 +99,6 @@
 
 #define PCH100_REG_FPR0		0x84	/* 32 Bits Protected Range 0 */
 #define PCH100_REG_GPR0		0x98	/* 32 Bits Global Protected Range 0 */
-#define PCH100_REG_HSFSC	0x04
 
 #define PCH100_REG_SSFSC	0xA0	/* 32 Bits Status (8) + Control (24) */
 #define PCH100_REG_PREOP	0xA4	/* 16 Bits */
@@ -1936,7 +1935,7 @@ static const char *const access_names[] = {
 
 #define EMBEDDED_CONTROLLER_REGION	8
 
-static int ec_region_rwperms(unsigned int i, uint32_t freg)
+static int ec_region_rwperms(unsigned int i)
 {
 	/*
 	 * Use Flash Descriptor Observe register to determine if
@@ -1948,7 +1947,7 @@ static int ec_region_rwperms(unsigned int i, uint32_t freg)
 	memset(&desc, 0, sizeof(desc));
 
 	/* Region is RW if flash descriptor override is set */
-	freg = mmio_readl(ich_spibar + PCH100_REG_HSFSC);
+	uint16_t freg = REGREAD16(ICH9_REG_HSFS);
 	if ((freg & HSFS_FDV) && !(freg & HSFS_FDOPSS)) {
 		rwperms = FD_REGION_READ_WRITE;
 	} else if (read_ich_descriptors_via_fdo(ich_generation, ich_spibar, &desc) == ICH_RET_OK) {
@@ -1998,7 +1997,7 @@ static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i
 			  (((ICH_BRRA(frap) >> i) & 1) << 0);
 
 	} else if (i == EMBEDDED_CONTROLLER_REGION && ich_generation >= CHIPSET_100_SERIES_SUNRISE_POINT) {
-		rwperms = ec_region_rwperms(i, freg); /* i >= 8. */
+		rwperms = ec_region_rwperms(i); /* i >= 8. */
 	} else {
 		/* Datasheets don't define any access bits for regions > 7. We
 		   can't rely on the actual descriptor settings either as there
