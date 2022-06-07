@@ -1134,21 +1134,16 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 	}
 }
 
-#define DEFAULT_NUM_FD_REGIONS 5
-
 /*
- * APL/GLK have the Device Expansion region as well. Hence, the number of
- * regions is 6.
- */
-#define APL_GLK_NUM_FD_REGIONS	6
-
-/*
+ * APL/GLK have the Device Expansion region as well.
+ * Hence, the number of regions is 6.
+ *
  * Sunrisepoint have reserved regions and a region for Embedded Controller.
  * Hence, the number of regions is 9.
  */
+#define DEFAULT_NUM_FD_REGIONS		5
+#define APL_GLK_NUM_FD_REGIONS		6
 #define SUNRISEPOINT_NUM_FD_REGIONS	9
-
-#define EMBEDDED_CONTROLLER_REGION	8
 
 enum fd_access_level {
 	FD_REGION_LOCKED,
@@ -1938,6 +1933,8 @@ static const enum ich_access_protection access_perms_to_protection[] = {
 static const char *const access_names[] = {
 	"locked", "read-only", "write-only", "read-write"
 };
+
+#define EMBEDDED_CONTROLLER_REGION	8
 
 static int ec_region_rwperms(unsigned int i, uint32_t freg)
 {
