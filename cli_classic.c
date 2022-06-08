@@ -81,8 +81,6 @@ static void cli_classic_usage(const char *name)
 	       "                                    (optionally with data from <file>)\n"
 	       " -o | --output <logfile>            log output to <logfile>\n"
 	       "      --flash-contents <ref-file>   assume flash contents to be <ref-file>\n"
-	       "      --do-not-diff                 do not diff with chip contents\n"
-	       "                                    (should be used with erased chips only)\n"
 	       " -L | --list-supported              print supported devices\n"
 #if CONFIG_PRINT_WIKI == 1
 	       " -z | --list-supported-wiki         print supported devices in wiki syntax\n"
@@ -600,7 +598,6 @@ int main(int argc, char *argv[])
 	uint32_t wp_start = 0, wp_len = 0;
 	int read_it = 0, extract_it = 0, write_it = 0, erase_it = 0, verify_it = 0;
 	int dont_verify_it = 0, dont_verify_all = 0, list_supported = 0, operation_specified = 0;
-	int do_not_diff = 0;
 	int show_progress = 0;
 	struct flashrom_layout *layout = NULL;
 	static const struct programmer_entry *prog = NULL;
@@ -655,7 +652,6 @@ int main(int argc, char *argv[])
 		{"help",		0, NULL, 'h'},
 		{"version",		0, NULL, 'R'},
 		{"output",		1, NULL, 'o'},
-		{"do-not-diff",		0, 0, OPTION_DO_NOT_DIFF},
 		{"progress",		0, NULL, OPTION_PROGRESS},
 		{NULL,			0, NULL, 0},
 	};
@@ -787,9 +783,6 @@ int main(int argc, char *argv[])
 			if (referencefile)
 				cli_classic_abort_usage("Error: --flash-contents specified more than once."
 							"Aborting.\n");
-			if (do_not_diff)
-				cli_classic_abort_usage("Error: --flash-contents and --do-not-diff both "
-							"specified. Aborting.\n");
 			referencefile = strdup(optarg);
 			break;
 		case OPTION_FLASH_NAME:
@@ -899,12 +892,6 @@ int main(int argc, char *argv[])
 			if (logfile[0] == '\0') {
 				cli_classic_abort_usage("No log filename specified.\n");
 			}
-			break;
-		case OPTION_DO_NOT_DIFF:
-			if (referencefile)
-				cli_classic_abort_usage("Error: --flash-contents and --do-not-diff both "
-							"specified. Aborting.\n");
-			do_not_diff = 1;
 			break;
 		case OPTION_PROGRESS:
 			show_progress = 1;
@@ -1251,7 +1238,6 @@ int main(int argc, char *argv[])
 	}
 
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE, !!force);
-	fill_flash->flags.do_not_diff = do_not_diff;
 #if CONFIG_INTERNAL == 1
 	flashrom_flag_set(fill_flash, FLASHROM_FLAG_FORCE_BOARDMISMATCH, !!force_boardmismatch);
 #endif

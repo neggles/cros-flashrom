@@ -40,8 +40,7 @@ struct flashrom_flashctx;
  */
 struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 						    void *oldcontents,
-						    void *newcontents,
-						    int do_diff);
+						    void *newcontents);
 
 /*
  * Returns if the op should be consider a dry-run and return early or not.

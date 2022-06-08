@@ -635,26 +635,6 @@ static void fill_action_descriptor(struct action_descriptor *descriptor,
 	descriptor->processing_units[pu_index].num_blocks = 0;
 }
 
-/*
- * In case layout is used, return the largest offset of the end of all
- * included sections. If layout is not used, return zero.
- */
-static size_t top_section_offset(const struct flashrom_layout *layout)
-{
-	size_t top = 0;
-
-	const struct romentry *entry = NULL;
-	while ((entry = layout_next(layout, entry))) {
-		if (!entry->included)
-			continue;
-
-		if (entry->end > top)
-			top = entry->end;
-	}
-
-	return top;
-}
-
 bool is_dry_run(void)
 {
 	return dry_run;
@@ -662,8 +642,7 @@ bool is_dry_run(void)
 
 struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 						    void *oldcontents,
-						    void *newcontents,
-						    int do_diff)
+						    void *newcontents)
 {
 	struct eraser sorted_erasers[NUM_ERASEFUNCTIONS];
 	size_t i;
@@ -680,29 +659,14 @@ struct action_descriptor *prepare_action_descriptor(struct flashctx *flash,
 	 * operate only on part of the chip starting at offset zero.
 	 *
 	 * Not an efficient way to do it, but this is acceptable on the host.
+	 *
+	 * Look for the largest offset where the difference is, this is the
+	 * highest offset which might need to be erased.
 	 */
-	if (do_diff) {
-		/*
-		 * If we are doing diffs, look for the largest offset where
-		 * the difference is, this is the highest offset which might
-		 * need to be erased.
-		 */
-		for (i = 0; i < chip_size; i++)
-			if (((uint8_t *)newcontents)[i] !=
-			    ((uint8_t *)oldcontents)[i])
-				block_size = i + 1;
-	} else {
-		/*
-		 * We are not doing diffs, if user specified sections to
-		 * program - use the highest offset of the highest section as
-		 * the limit.
-		 */
-		block_size = top_section_offset(get_layout(flash));
-
-		if (!block_size)
-			/* User did not specify any sections. */
-			block_size = chip_size;
-	}
+	for (i = 0; i < chip_size; i++)
+		if (((uint8_t *)newcontents)[i] !=
+		    ((uint8_t *)oldcontents)[i])
+			block_size = i + 1;
 
 	num_erasers = fill_sorted_erasers(flash, block_size, sorted_erasers);
 

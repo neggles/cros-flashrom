@@ -1502,8 +1502,7 @@ static int erase_and_write_flash(struct flashctx *flash,
 {
 	int ret = 1;
 	struct action_descriptor *descriptor =
-		prepare_action_descriptor(flash, curcontents, newcontents,
-					  !flash->flags.do_not_diff);
+		prepare_action_descriptor(flash, curcontents, newcontents);
 
 	msg_cinfo("Erasing and writing flash chip... ");
 
@@ -1968,37 +1967,33 @@ static int setup_curcontents(struct flashctx *flashctx, void *curcontents,
 	const bool verify_all = flashctx->flags.verify_whole_chip;
 
 	memset(curcontents, UNERASED_VALUE(flashctx), flash_size);
-	if (!flashctx->flags.do_not_diff) {
-		/* If given, assume flash chip contains same data as `refcontents`. */
-		if (refcontents) {
-			msg_cinfo("Assuming old flash chip contents as ref-file...\n");
-			memcpy(curcontents, refcontents, flash_size);
-		} else {
-			/*
-			 * Read the whole chip to be able to check whether regions need to be
-			 * erased and to give better diagnostics in case write fails.
-			 * The alternative is to read only the regions which are to be
-			 * preserved, but in that case we might perform unneeded erase which
-			 * takes time as well.
-			 */
-			msg_cinfo("Reading old flash chip contents... ");
-			if (verify_all) {
-				if (read_flash(flashctx, curcontents, 0, flash_size)) {
-					msg_cinfo("FAILED.\n");
-					return 1;
-				}
-			} else {
-				/* WARNING: See FIXME on get_required_erase_size() */
-				if (read_by_layout(flashctx, curcontents, true)) {
-					msg_cinfo("FAILED.\n");
-					return 1;
-				}
+
+	/* If given, assume flash chip contains same data as `refcontents`. */
+	if (refcontents) {
+		msg_cinfo("Assuming old flash chip contents as ref-file...\n");
+		memcpy(curcontents, refcontents, flash_size);
+	} else {
+		/*
+		 * Read the whole chip to be able to check whether regions need to be
+		 * erased and to give better diagnostics in case write fails.
+		 * The alternative is to read only the regions which are to be
+		 * preserved, but in that case we might perform unneeded erase which
+		 * takes time as well.
+		 */
+		msg_cinfo("Reading old flash chip contents... ");
+		if (verify_all) {
+			if (read_flash(flashctx, curcontents, 0, flash_size)) {
+				msg_cinfo("FAILED.\n");
+				return 1;
 			}
-			msg_cinfo("done.\n");
+		} else {
+			/* WARNING: See FIXME on get_required_erase_size() */
+			if (read_by_layout(flashctx, curcontents, true)) {
+				msg_cinfo("FAILED.\n");
+				return 1;
+			}
 		}
-	} else if (!erase_it) {
-		msg_pinfo("No diff performed, considering the chip erased.\n");
-		memset(curcontents, ERASED_VALUE(flashctx), flash_size);
+		msg_cinfo("done.\n");
 	}
 	return 0;
 }
