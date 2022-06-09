@@ -67,4 +67,10 @@ int cros_ec_read(struct flashctx *flash, uint8_t *readarr,
 int cros_ec_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
                     unsigned int nbytes);
 
+/* used in cros_ec_wp_dep.c */
+int cros_ec_get_region_info(enum ec_flash_region region, struct ec_response_flash_region_info *info);
+int cros_ec_cold_reboot(int flags);
+/* used from cros_ec_wp_dep.c in cros_ec.c */
+int set_wp(int enable);
+
 #endif	/* __CROS_EC_H_ */

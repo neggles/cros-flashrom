@@ -123,6 +123,7 @@ srcs += files(
   'cros_alias.c',
   'cros_ec.c',
   'cros_ec_dev.c',
+  'cros_ec_wp_dep.c',
   'big_lock.c',
   'file_lock.c',
   'dep_writeprotect.c',

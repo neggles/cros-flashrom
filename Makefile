@@ -669,7 +669,7 @@ endif
 
 ifeq ($(CONFIG_GOOGLE_EC), yes)
 FEATURE_CFLAGS += -D'CONFIG_GOOGLE_EC=1'
-PROGRAMMER_OBJS += cros_ec.o #cros_ec_dev.o
+PROGRAMMER_OBJS += cros_ec.o cros_ec_wp_dep.o
 endif
 
 ifeq ($(CONFIG_CROS_ALIAS), yes)
