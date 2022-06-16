@@ -109,7 +109,7 @@ extern const struct programmer_entry programmer_satasii;
 extern const struct programmer_entry programmer_serprog;
 extern const struct programmer_entry programmer_stlinkv3_spi;
 extern const struct programmer_entry programmer_usbblaster_spi;
-extern const struct programmer_entry programmer_google_ec_alias;
+extern const struct programmer_entry programmer_cros_ec;
 extern const struct programmer_entry programmer_google_host_alias;
 
 int programmer_init(const struct programmer_entry *prog, const char *param);
@@ -481,17 +481,13 @@ typedef int fdtype;
 #define SER_INV_FD	-1
 #endif
 
+/* cros_ec_dev.c */
 /**
  * Probe the Google Chrome OS EC device
  *
  * @return 0 if found correct, non-zero if not found or error
  */
 int cros_ec_probe_dev(void);
-/* cros_ec_dev.c */
-#if CONFIG_GOOGLE_EC == 1
-extern const struct programmer_entry programmer_google_ec;
-#endif
-
 int cros_ec_need_2nd_pass(void);
 int cros_ec_finish(void);
 int cros_ec_prepare(uint8_t *image, int size);

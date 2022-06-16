@@ -262,7 +262,7 @@ override LDFLAGS += -lgetopt
 # Missing serial support.
 $(call mark_unsupported,$(DEPENDS_ON_SERIAL))
 # Cros programmers not available for DOS
-$(call mark_unsupported,CONFIG_GOOGLE_EC CONFIG_CROS_ALIAS)
+$(call mark_unsupported,CONFIG_CROS_EC CONFIG_CROS_ALIAS)
 endif
 
 ifeq ($(TARGET_OS), $(filter $(TARGET_OS), MinGW Cygwin))
@@ -302,7 +302,7 @@ $(call mark_unsupported,CONFIG_ATAPROMISE)
 # Dediprog, Developerbox, USB-Blaster, PICkit2, CH341A and FT2232 are not supported with libpayload (missing libusb support).
 $(call mark_unsupported,$(DEPENDS_ON_LIBUSB1) $(DEPENDS_ON_LIBFTDI) $(DEPENDS_ON_LIBJAYLINK))
 # Cros-specific programmer
-$(call mark_unsupported,CONFIG_GOOGLE_EC)
+$(call mark_unsupported,CONFIG_CROS_EC)
 endif
 
 ifeq ($(HAS_LINUX_MTD), no)
@@ -460,7 +460,7 @@ CONFIG_MEDIATEK_I2C_SPI ?= no
 CONFIG_REALTEK_MST_I2C_SPI ?= no
 
 # Enable Google EC by default.
-CONFIG_GOOGLE_EC ?= yes
+CONFIG_CROS_EC ?= yes
 
 # Enable Google CROS EC-HOST ALIAS mechanism by default.
 CONFIG_CROS_ALIAS ?= yes
@@ -667,8 +667,8 @@ FEATURE_FLAGS += -D'CONFIG_REALTEK_MST_I2C_SPI=1'
 PROGRAMMER_OBJS += realtek_mst_i2c_spi.o
 endif
 
-ifeq ($(CONFIG_GOOGLE_EC), yes)
-FEATURE_CFLAGS += -D'CONFIG_GOOGLE_EC=1'
+ifeq ($(CONFIG_CROS_EC), yes)
+FEATURE_CFLAGS += -D'CONFIG_CROS_EC=1'
 PROGRAMMER_OBJS += cros_ec.o cros_ec_wp_dep.o
 endif
 

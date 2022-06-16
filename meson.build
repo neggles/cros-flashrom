@@ -131,6 +131,7 @@ srcs += files(
   'opaque_statusreg.c'
 )
 cargs += '-DCONFIG_CROS_ALIAS=1'
+cargs += '-DCONFIG_CROS_EC=1'
 cargs += '-DUSE_BIG_LOCK=1'
 ###
 

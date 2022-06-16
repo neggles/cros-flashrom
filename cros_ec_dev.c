@@ -544,6 +544,14 @@ static int cros_ec_dev_shutdown(void *data)
 	return 0;
 }
 
+/* ugly singleton to work around cros layering violations in action_descriptor.c */
+static int ec_alias_path = 0;
+
+int programming_ec(void)
+{
+	return ec_alias_path;
+}
+
 int cros_ec_probe_dev(void)
 {
 	char dev_path[32];
@@ -567,6 +575,9 @@ int cros_ec_probe_dev(void)
 	if (cros_ec_test(&cros_ec_dev_priv))
 		return 1;
 
+	/* Programmer is EC so toggle ec-alias path detection on. */
+	ec_alias_path = 1;
+
 	cros_ec_set_max_size(&cros_ec_dev_priv, &opaque_master_cros_ec_dev);
 
 	internal_buses_supported &= ~(BUS_LPC|BUS_SPI);
@@ -580,12 +591,19 @@ int cros_ec_probe_dev(void)
 	return 0;
 }
 
-const struct programmer_entry programmer_google_ec = {
-	.name			= "google_ec",
+const struct programmer_entry programmer_cros_ec = {
+	.name			= "ec",
 	.type			= OTHER,
 	.devs.note		= "Google EC.\n",
 	.init			= cros_ec_probe_dev,
 	.map_flash_region	= fallback_map,
 	.unmap_flash_region	= fallback_unmap,
 	.delay			= internal_delay,
+
+	/*
+	 * "ec" implies in-system programming on a live system, so
+	 * handle with paranoia to catch errors early. If something goes
+	 * wrong then hopefully the system will still be recoverable.
+	 */
+	.paranoid		= 1,
 };

@@ -168,12 +168,11 @@ const struct programmer_entry *const programmer_table[] = {
     &programmer_stlinkv3_spi,
 #endif
 
-#if CONFIG_GOOGLE_EC == 1
-    &programmer_google_ec,
+#if CONFIG_CROS_EC == 1
+    &programmer_cros_ec,
 #endif
 
 #if CONFIG_CROS_ALIAS == 1
-    &programmer_google_ec_alias,
     &programmer_google_host_alias,
 #endif
 };
