@@ -335,6 +335,14 @@ static int wp_cli(
 		mode = flashrom_wp_get_mode(cfg);
 		flashrom_wp_cfg_release(cfg);
 
+		/*
+		 * FIXME(b/236085601): Resync with upstream. The new output
+		 * format for --wp-status cannot be used yet because it would
+		 * break applications that subprocess flashrom and parse its
+		 * outout. This can be resynced once users have migrated to
+		 * libflashrom.
+		 */
+#if 0
 		msg_ginfo("Protection range: ");
 		print_wp_range(flash, start, len);
 		msg_ginfo("\n");
@@ -358,6 +366,11 @@ static int wp_cli(
 			break;
 		}
 		msg_ginfo("\n");
+#else
+		msg_ginfo("WP: write protect is %s.\n", (mode == FLASHROM_WP_MODE_DISABLED) ?
+                          "disabled" : "enabled");
+		msg_ginfo("WP: write protect range: start=0x%08zx, len=0x%08zx\n", start, len);
+#endif
 	}
 
 	return 0;
