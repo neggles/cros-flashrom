@@ -363,6 +363,21 @@ static int wp_cli(
 	return 0;
 }
 
+/* TODO: Switch over to new wp and delete old. */
+static bool use_dep_wp(const char *programmer_name)
+{
+	bool use_old_wp;
+
+	if (!strcmp(programmer_name, "host") || !strcmp(programmer_name, "internal"))
+		use_old_wp = true;
+	else if (!strcmp(programmer_name, "ec"))
+		use_old_wp = true;
+	else /* not EC || AP. */
+		use_old_wp = true;
+
+	return use_old_wp;
+}
+
 static int dep_wp_cli(
 		struct flashctx *flash,
 		bool enable_wp,
@@ -1220,10 +1235,7 @@ int main(int argc, char *argv[])
 			set_wp_range = true;
 		}
 
-		/* TODO: Switch over to new wp and delete old. */
-		bool use_old_wp = true;
-
-		ret = (use_old_wp ? dep_wp_cli : wp_cli)(
+		ret = (use_dep_wp(name) ? dep_wp_cli : wp_cli)(
 			fill_flash,
 			enable_wp,
 			disable_wp,
