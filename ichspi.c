@@ -1189,6 +1189,13 @@ struct fd_region {
 	{ .name = "unknown" },
 };
 
+static void set_fd_regions_rwperms(int region, uint32_t base, uint32_t limit, int rwperms)
+{
+	fd_regions[region].base  = base;
+	fd_regions[region].limit = limit | 0x0fff;
+	fd_regions[region].permission = &fd_region_permissions[rwperms];
+}
+
 static int check_opcode_access(OPCODE *opcode, int type, enum fd_access_level level)
 {
 	const uint8_t op_type = opcode ? opcode->spi_type : type;
@@ -1268,6 +1275,11 @@ static int check_fd_permissions(enum ich_chipset ich_gen, OPCODE *opcode, int ty
 	}
 
 	return ret;
+}
+
+static int ich_hwseq_check_access(const struct flashctx *flash, unsigned int start, unsigned int len, int read)
+{
+	return check_fd_permissions(ich_generation, NULL, read ? SPI_OPCODE_TYPE_READ_NO_ADDRESS: SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, start, len);
 }
 
 static int ich_spi_send_command(const struct flashctx *flash, unsigned int writecnt,
@@ -1419,12 +1431,6 @@ static void ich_hwseq_set_addr(uint32_t addr)
 {
 	uint32_t addr_old = REGREAD32(ICH9_REG_FADDR) & ~hwseq_data.addr_mask;
 	REGWRITE32(ICH9_REG_FADDR, (addr & hwseq_data.addr_mask) | addr_old);
-}
-
-static int ich_hwseq_check_access(const struct flashctx *flash, unsigned int start,
-			      unsigned int len, int read)
-{
-	return check_fd_permissions(ich_generation, NULL, read ? SPI_OPCODE_TYPE_READ_NO_ADDRESS: SPI_OPCODE_TYPE_WRITE_NO_ADDRESS, start, len);
 }
 
 /* Sets FADDR.FLA to 'addr' and returns the erase block size in bytes
@@ -1978,13 +1984,6 @@ static int ec_region_rwperms(unsigned int i)
 	}
 
 	return rwperms;
-}
-
-static void set_fd_regions_rwperms(int region, uint32_t base, uint32_t limit, int rwperms)
-{
-	fd_regions[region].base  = base;
-	fd_regions[region].limit = limit | 0x0fff;
-	fd_regions[region].permission = &fd_region_permissions[rwperms];
 }
 
 static enum ich_access_protection ich9_handle_frap(uint32_t frap, unsigned int i)
