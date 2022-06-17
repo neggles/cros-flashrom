@@ -575,7 +575,7 @@ FEATURE_FLAGS += -D'CONFIG_INTERNAL_DMI=1'
 endif
 
 # TODO(quasisec): Remove when flashrom.c isn't poisoned with cros_ec fn calls.
-PROGRAMMER_OBJS += cros_ec_dev.o
+PROGRAMMER_OBJS += cros_ec_dev.o cros_ec_wp.o
 
 ifeq ($(CONFIG_SERPROG), yes)
 FEATURE_FLAGS += -D'CONFIG_SERPROG=1'

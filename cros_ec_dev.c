@@ -535,6 +535,9 @@ static struct opaque_master opaque_master_cros_ec_dev = {
 	.read		= cros_ec_read,
 	.write		= cros_ec_write,
 	.erase		= cros_ec_block_erase,
+	.wp_read_cfg    = cros_ec_wp_read_cfg,
+	.wp_write_cfg   = cros_ec_wp_write_cfg,
+	.wp_get_ranges  = cros_ec_wp_get_available_ranges,
 	.data 		= NULL
 };
 

@@ -73,4 +73,9 @@ int cros_ec_cold_reboot(int flags);
 /* used from cros_ec_wp_dep.c in cros_ec.c */
 int set_wp(int enable);
 
+/* cros_ec_wp.c */
+enum flashrom_wp_result cros_ec_wp_read_cfg(struct flashrom_wp_cfg *cfg, struct flashctx *flash);
+enum flashrom_wp_result cros_ec_wp_write_cfg(struct flashctx *flash, const struct flashrom_wp_cfg *cfg);
+enum flashrom_wp_result cros_ec_wp_get_available_ranges(struct flashrom_wp_ranges **list, struct flashctx *flash);
+
 #endif	/* __CROS_EC_H_ */
