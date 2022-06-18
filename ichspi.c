@@ -1128,17 +1128,6 @@ static int run_opcode(const struct flashctx *flash, OPCODE op, uint32_t offset,
 	}
 }
 
-/*
- * APL/GLK have the Device Expansion region as well.
- * Hence, the number of regions is 6.
- *
- * Sunrisepoint have reserved regions and a region for Embedded Controller.
- * Hence, the number of regions is 9.
- */
-#define DEFAULT_NUM_FD_REGIONS		5
-#define APL_GLK_NUM_FD_REGIONS		6
-#define SUNRISEPOINT_NUM_FD_REGIONS	9
-
 struct fd_region {
 	const char *name;
 	enum ich_access_protection level;
@@ -1189,39 +1178,15 @@ static int check_opcode_access(OPCODE *opcode, int type, enum ich_access_protect
 	return ret;
 }
 
-static int get_num_fd_regions(enum ich_chipset ich_gen)
+static int check_fd_permissions(enum ich_chipset cs, OPCODE *opcode, int type, uint32_t addr, int count)
 {
-	int num_fd_regions;
-
-	switch(ich_gen) {
-	case CHIPSET_APOLLO_LAKE:
-	case CHIPSET_GEMINI_LAKE:
-	case CHIPSET_JASPER_LAKE:
-	case CHIPSET_ELKHART_LAKE:
-	case CHIPSET_METEOR_LAKE:
-		num_fd_regions = APL_GLK_NUM_FD_REGIONS;
-		break;
-	case CHIPSET_100_SERIES_SUNRISE_POINT:
-	case CHIPSET_300_SERIES_CANNON_POINT:
-	case CHIPSET_400_SERIES_COMET_POINT:
-		num_fd_regions = SUNRISEPOINT_NUM_FD_REGIONS;
-		break;
-	default:
-		num_fd_regions = DEFAULT_NUM_FD_REGIONS;
-		break;
-	}
-
-	return num_fd_regions;
-}
-
-static int check_fd_permissions(enum ich_chipset ich_gen, OPCODE *opcode, int type, uint32_t addr, int count)
-{
-	const int num_fd_regions = get_num_fd_regions(ich_gen);
+	struct ich_descriptors desc;
+	const ssize_t nr = MIN(ich_number_of_regions(cs, &desc.content), (ssize_t)ARRAY_SIZE(fd_regions));
 	int i;
 	int ret = 0;
 
 	/* check flash descriptor permissions (if present) */
-	for (i = 0; i < num_fd_regions; i++) {
+	for (i = 0; i < nr; i++) {
 		const char *name = fd_regions[i].name;
 		uint32_t base = fd_regions[i].base;
 		uint32_t limit = fd_regions[i].limit;
@@ -1237,7 +1202,7 @@ static int check_fd_permissions(enum ich_chipset ich_gen, OPCODE *opcode, int ty
 		break;
 	}
 
-	if ((i == num_fd_regions) && !opcode) { // FIXME(b/171892105).
+	if ((i == nr) && !opcode) { // FIXME(b/171892105).
 		msg_pspew("%s: Address not covered by any descriptor 0x%06x\n",
 			  __func__, addr);
 		ret = SPI_ACCESS_DENIED;
