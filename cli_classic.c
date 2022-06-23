@@ -368,12 +368,14 @@ static bool use_dep_wp(const char *programmer_name)
 {
 	bool use_old_wp;
 
+	/* TODO(b/236214660): enable new writeprotect for internal/host */
 	if (!strcmp(programmer_name, "host") || !strcmp(programmer_name, "internal"))
 		use_old_wp = true;
+	/* TODO(b/236214918): enable new writeprotect for EC */
 	else if (!strcmp(programmer_name, "ec"))
 		use_old_wp = true;
 	else /* not EC || AP. */
-		use_old_wp = true;
+		use_old_wp = false;
 
 	return use_old_wp;
 }
@@ -1235,7 +1237,7 @@ int main(int argc, char *argv[])
 			set_wp_range = true;
 		}
 
-		ret = (use_dep_wp(name) ? dep_wp_cli : wp_cli)(
+		ret = (use_dep_wp(prog->name) ? dep_wp_cli : wp_cli)(
 			fill_flash,
 			enable_wp,
 			disable_wp,
