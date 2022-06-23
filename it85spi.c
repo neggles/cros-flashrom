@@ -340,23 +340,23 @@ static int it85xx_spi_send_command(const struct flashctx *flash, unsigned int wr
 }
 
 static const struct spi_master spi_master_it8518 = {
-	.max_data_read = 256,
-	.max_data_write = 256,
-	.command = it85xx_spi_send_command,
-	.multicommand = default_spi_send_multicommand,
-	.read = default_spi_read,
-	.write_256 = default_spi_write_256,
-	.shutdown = it85xx_shutdown,
+	.max_data_read	= 256,
+	.max_data_write	= 256,
+	.command	= it85xx_spi_send_command,
+	.multicommand	= default_spi_send_multicommand,
+	.read		= default_spi_read,
+	.write_256	= default_spi_write_256,
+	.shutdown	= it85xx_shutdown,
 };
 
 static const struct spi_master spi_master_it85xx = {
-	.max_data_read = 1,
-	.max_data_write = 1,
-	.command = it85xx_spi_send_command,
-	.multicommand = default_spi_send_multicommand,
-	.read = default_spi_read,
-	.write_256 = default_spi_write_256,
-	.shutdown = it85xx_shutdown,
+	.max_data_read	= 1,
+	.max_data_write	= 1,
+	.command	= it85xx_spi_send_command,
+	.multicommand	= default_spi_send_multicommand,
+	.read		= default_spi_read,
+	.write_256	= default_spi_write_256,
+	.shutdown	= it85xx_shutdown,
 };
 
 /* it8518-specific i/o initialization */
