@@ -377,7 +377,7 @@ static int check_params(void)
 	int ret = 0;
 	char *p = NULL;
 
-	p = extract_programmer_param("type");
+	p = extract_programmer_param_str("type");
 	if (p && strcmp(p, "ec")) {
 		msg_pdbg("it85xx only supports \"ec\" type devices\n");
 		ret = 1;

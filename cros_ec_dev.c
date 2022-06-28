@@ -425,7 +425,7 @@ static int cros_ec_parse_param(struct cros_ec_priv *priv)
 {
 	char *p;
 
-	p = extract_programmer_param("type");
+	p = extract_programmer_param_str("type");
 	if (p) {
 		unsigned int index;
 		for (index = 0; index < ARRAY_SIZE(ec_type); index++)
@@ -441,7 +441,7 @@ static int cros_ec_parse_param(struct cros_ec_priv *priv)
 	}
 	free(p);
 
-	p = extract_programmer_param("block");
+	p = extract_programmer_param_str("block");
 	if (p) {
 		unsigned int block;
 		char *endptr = NULL;
@@ -465,7 +465,7 @@ static int cros_ec_parse_param(struct cros_ec_priv *priv)
 	}
 	free(p);
 
-	p = extract_programmer_param("max_response_size");
+	p = extract_programmer_param_str("max_response_size");
 	if (p) {
 		unsigned int max_response_size;
 		char *endptr = NULL;
