@@ -1462,6 +1462,7 @@ static int ich_hwseq_read_status(const struct flashctx *flash, enum flash_reg re
 		return WRITEPROTECT_INVALID_REGISTER;
 	}
 	msg_pdbg("Reading Status register\n");
+	ich_hwseq_set_addr(0);
 
 	/* clear FDONE, FCERR, AEL by writing 1 to them (if they are set) */
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
@@ -1497,6 +1498,7 @@ static int ich_hwseq_write_status(const struct flashctx *flash, enum flash_reg r
 		return WRITEPROTECT_INVALID_REGISTER;
 	}
 	msg_pdbg("Writing status register\n");
+	ich_hwseq_set_addr(0);
 
 	/* clear FDONE, FCERR, AEL by writing 1 to them (if they are set) */
 	REGWRITE16(ICH9_REG_HSFS, REGREAD16(ICH9_REG_HSFS));
