@@ -1876,6 +1876,11 @@ static int ich_spi_send_multicommand(const struct flashctx *flash,
 	return ret;
 }
 
+static bool ich_spi_probe_opcode(struct flashctx *flash, uint8_t opcode)
+{
+	return find_opcode(curopcodes, opcode) >= 0;
+}
+
 #define ICH_BMWAG(x) ((x >> 24) & 0xff)
 #define ICH_BMRAG(x) ((x >> 16) & 0xff)
 #define ICH_BRWA(x)  ((x >>  8) & 0xff)
@@ -2048,6 +2053,7 @@ static const struct spi_master spi_master_ich9 = {
 	.read		= default_spi_read,
 	.write_256	= default_spi_write_256,
 	.write_aai	= default_spi_write_aai,
+	.probe_opcode	= ich_spi_probe_opcode,
 };
 
 static const struct opaque_master opaque_master_ich_hwseq = {
@@ -2462,6 +2468,7 @@ static const struct spi_master spi_master_via = {
 	.read		= default_spi_read,
 	.write_256	= default_spi_write_256,
 	.write_aai	= default_spi_write_aai,
+	.probe_opcode	= ich_spi_probe_opcode,
 };
 
 int via_init_spi(uint32_t mmio_base)
