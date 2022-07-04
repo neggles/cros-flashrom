@@ -410,7 +410,7 @@ static int check_erased_range(struct flashctx *flash, unsigned int start, unsign
 
 static int read_checked_access(struct flashctx *flash,
 			uint8_t *readbuf, const uint8_t *cmpbuf,
-			unsigned int start, unsigned int len, int *failcount)
+			unsigned int start, unsigned int len)
 {
 	unsigned int i, chunksize;
 	int ret = 0;
@@ -457,14 +457,8 @@ static int read_checked_access(struct flashctx *flash,
 		if (chk_acc == SPI_ACCESS_DENIED)
 			continue;
 
-		/*
-		 * FIXME: compare_range() does not return the number of failing
-		 * bytes, it returns -1 if any bytes fail. `failcount` needs to
-		 * be deleted and replaced with an accurately named variable.
-		 */
-		*failcount = compare_range(cmpbuf + i, readbuf + i, start + i,
-				chunksize);
-		if (*failcount)
+		ret = compare_range(cmpbuf + i, readbuf + i, start + i, chunksize);
+		if (ret < 0)
 			break;
 	}
 
@@ -501,16 +495,11 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 		return -1;
 	}
 
-	/*
-	 * FIXME: compare_range() does not return the number of failing
-	 * bytes, it returns -1 if any bytes fail. `failcount` needs to
-	 * be deleted and replaced with an accurately named variable.
-	 */
-	int ret = 0, failcount = 0;
+	int ret = 0;
 
 	msg_gdbg("%#06x..%#06x ", start, start + len -1);
 	if (programmer->paranoid) {
-		ret = read_checked_access(flash, readbuf, cmpbuf, start, len, &failcount);
+		ret = read_checked_access(flash, readbuf, cmpbuf, start, len);
 	} else {
 		int tmp;
 
@@ -521,13 +510,7 @@ int verify_range(struct flashctx *flash, const uint8_t *cmpbuf, unsigned int sta
 			goto out_free;
 		}
 
-		failcount = compare_range(cmpbuf, readbuf, start, len);
-	}
-
-	if (failcount) {
-		msg_cerr(" failed byte count from 0x%08x-0x%08x: 0x%x\n",
-			 start, start + len - 1, failcount);
-		ret = 3;
+		ret = compare_range(cmpbuf, readbuf, start, len);
 	}
 
 out_free:
@@ -1571,9 +1554,6 @@ static int verify_by_layout(
 					region_start, region_len)))
 			break;
 	}
-
-	if (ret == 3)
-		return ret;
 
 	if (ret) {
 		msg_gdbg("Could not fully verify due to error, ");
