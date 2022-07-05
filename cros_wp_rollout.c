@@ -44,7 +44,7 @@ bool use_dep_wp(const char *programmer_name)
 		use_old_wp = use_dep_wp_host();
 	/* TODO(b/236214918): enable new writeprotect for EC */
 	else if (!strcmp(programmer_name, "ec"))
-		use_old_wp = true;
+		use_old_wp = false;
 	else /* not EC || AP. */
 		use_old_wp = false;
 
