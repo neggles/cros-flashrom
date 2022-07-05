@@ -46,8 +46,6 @@
 #include "cros_ec_commands.h"
 #include "programmer.h"
 #include "spi.h"
-#include "dep_writeprotect.h"
-#include "cros_wp_rollout.h"
 
 struct cros_ec_priv *cros_ec_priv;
 
@@ -332,11 +330,6 @@ static int cros_ec_restore_wp(void *data)
 {
 	msg_pdbg("Restoring EC soft WP.\n");
 
-	/* FIXME: delete old WP code path */
-	if (use_dep_wp("ec")) {
-		return set_wp(1);
-	}
-
 	struct flashctx *flash = data;
 
 	struct flashrom_wp_cfg *cfg = NULL;
@@ -413,35 +406,23 @@ int cros_ec_prepare(struct flashctx *flash, uint8_t *image, int size)
 	} else if (wp_status == 1) {
 		msg_pdbg("Attempting to disable EC soft WP.\n");
 
-		/* FIXME: delete old WP code path */
-		if (use_dep_wp("ec")) {
-			if (set_wp(0)) {
-				msg_pdbg("EC soft WP disabled successfully.\n");
-				if (register_shutdown(cros_ec_restore_wp, flash))
-					return 1;
-			} else {
-				msg_pdbg("Failed. Hardware WP might in effect or EC "
-					"needs to be rebooted first.\n");
-			}
+		struct flashrom_wp_cfg *cfg = NULL;
+		enum flashrom_wp_result ret = flashrom_wp_cfg_new(&cfg);
+
+		if (ret == FLASHROM_WP_OK) {
+			flashrom_wp_set_mode(cfg, FLASHROM_WP_MODE_HARDWARE);
+
+			ret = flashrom_wp_write_cfg(flash, cfg);
+			flashrom_wp_cfg_release(cfg);
+		}
+
+		if (ret == FLASHROM_WP_OK) {
+			msg_pdbg("EC soft WP disabled successfully.\n");
+			if (register_shutdown(cros_ec_restore_wp, flash))
+				return 1;
 		} else {
-			struct flashrom_wp_cfg *cfg = NULL;
-			enum flashrom_wp_result ret = flashrom_wp_cfg_new(&cfg);
-
-			if (ret == FLASHROM_WP_OK) {
-				flashrom_wp_set_mode(cfg, FLASHROM_WP_MODE_HARDWARE);
-
-				ret = flashrom_wp_write_cfg(flash, cfg);
-				flashrom_wp_cfg_release(cfg);
-			}
-
-			if (ret == FLASHROM_WP_OK) {
-				msg_pdbg("EC soft WP disabled successfully.\n");
-				if (register_shutdown(cros_ec_restore_wp, flash))
-					return 1;
-			} else {
-				msg_pdbg("Failed. Hardware WP might in effect or EC "
-					"needs to be rebooted first.\n");
-			}
+			msg_pdbg("Failed. Hardware WP might in effect or EC "
+				"needs to be rebooted first.\n");
 		}
 	} else {
 		msg_pdbg("EC soft WP is already disabled.\n");
@@ -747,8 +728,6 @@ int cros_ec_write(struct flashctx *flash, const uint8_t *buf, unsigned int addr,
 	return rc;
 }
 
-extern struct wp cros_ec_wp;
-
 int cros_ec_probe_size(struct flashctx *flash)
 {
 	int rc = 0, cmd_version;
@@ -774,7 +753,6 @@ int cros_ec_probe_size(struct flashctx *flash)
 	cmd_version = 31 - __builtin_clz(mask);
 
 	eraser = &flash->chip->block_erasers[0];
-	flash->chip->wp = &cros_ec_wp;
 	flash->chip->page_size = flash->mst->opaque.max_data_read;
 
 	if (cmd_version < 2) {

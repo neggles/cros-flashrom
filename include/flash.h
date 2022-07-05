@@ -280,9 +280,6 @@ struct flashchip {
 	} voltage;
 	enum write_granularity gran;
 
- 	/* NOTE: This is for deprecated WP, it will be removed soon. */
-	struct wp *wp;
-
 	struct reg_bit_map {
 		/* Status register protection bit (SRP) */
 		struct reg_bit_info srp;

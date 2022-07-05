@@ -31,8 +31,6 @@
 #include "fmap.h"
 #include "power.h"
 #include "programmer.h"
-#include "dep_writeprotect.h"
-#include "cros_wp_rollout.h"
 
 #define LOCK_TIMEOUT_SECS	180
 
@@ -375,80 +373,6 @@ static int wp_cli(
 	}
 
 	return 0;
-}
-
-static int dep_wp_cli(
-		struct flashctx *flash,
-		bool enable_wp,
-		bool disable_wp,
-		bool print_wp_status,
-		bool print_available_ranges,
-		bool set_wp_range,
-		uint32_t wp_start,
-		uint32_t wp_len)
-{
-	int ret = 0;
-
-	struct wp *wp = get_wp_for_flashchip(flash->chip);
-	if (set_wp_range) {
-		if (!wp || !wp->set_range) {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-			goto out;
-		}
-	}
-
-	if (print_wp_status) {
-		if (wp && wp->wp_status) {
-			uint32_t s, l;
-			bool en;
-			ret |= wp->wp_status(flash, &s, &l, &en);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-		}
-		goto out;
-	}
-
-	/* Note: disable_wp should be done before setting the range */
-	if (disable_wp) {
-		if (wp && wp->disable) {
-			ret |= wp->disable(flash);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-			goto out;
-		}
-	}
-
-	/* Note: set_wp_range must happen before enable_wp */
-	if (set_wp_range) {
-		ret |= wp->set_range(flash, wp_start, wp_len);
-	}
-
-	if (!ret && enable_wp) {
-		if (wp && wp->enable) {
-			ret |= wp->enable(flash, WP_MODE_HARDWARE);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-			goto out;
-		}
-	}
-
-	if (print_available_ranges) {
-		msg_ginfo("Valid write protection ranges:\n");
-		if (wp && wp->list_ranges) {
-			ret |= wp->list_ranges(flash);
-		} else {
-			msg_gerr("Error: write protect is not supported on this flash chip.\n");
-			ret = 1;
-		}
-		goto out;
-	}
-
-out:
-	return ret;
 }
 
 static char *get_optional_filename(char *argv[])
@@ -1248,8 +1172,7 @@ int main(int argc, char *argv[])
 				goto out_release;
 			set_wp_range = true;
 		}
-
-		ret = (use_dep_wp(prog->name) ? dep_wp_cli : wp_cli)(
+		ret = wp_cli(
 			fill_flash,
 			enable_wp,
 			disable_wp,

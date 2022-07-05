@@ -124,14 +124,10 @@ srcs += files(
   'cros_alias.c',
   'cros_ec.c',
   'cros_ec_dev.c',
-  'cros_ec_wp_dep.c',
   'cros_ec_wp.c',
   'big_lock.c',
   'file_lock.c',
-  'dep_writeprotect.c',
-  'dep_wp_statusreg.c',
   'opaque_statusreg.c',
-  'cros_wp_rollout.c',
 )
 cargs += '-DCONFIG_CROS_ALIAS=1'
 cargs += '-DCONFIG_CROS_EC=1'

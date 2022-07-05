@@ -30,7 +30,6 @@
 
 #include "flash.h"
 #include "programmer.h"
-#include "dep_writeprotect.h"
 
 #define LINUX_DEV_ROOT			"/dev"
 #define LINUX_MTD_SYSFS_ROOT		"/sys/class/mtd"
@@ -180,7 +179,6 @@ static int linux_mtd_probe(struct flashctx *flash)
 {
 	struct linux_mtd_data *data = flash->mst->opaque.data;
 
-	flash->chip->wp = &wp_mtd;
 	if (data->no_erase)
 		flash->chip->feature_bits |= FEATURE_NO_ERASE;
 	flash->chip->tested = TEST_OK_PREW;
