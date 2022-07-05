@@ -1180,7 +1180,7 @@ static int check_opcode_access(OPCODE *opcode, int type, enum ich_access_protect
 
 static int check_fd_permissions(enum ich_chipset cs, OPCODE *opcode, int type, uint32_t addr, int count)
 {
-	struct ich_descriptors desc;
+	struct ich_descriptors desc = { 0 };
 	const ssize_t nr = MIN(ich_number_of_regions(cs, &desc.content), (ssize_t)ARRAY_SIZE(fd_regions));
 	int i;
 	int ret = 0;
