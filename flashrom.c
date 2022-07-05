@@ -2134,7 +2134,7 @@ int flashrom_image_write(struct flashctx *const flashctx, void *const buffer, co
 	combine_image_by_layout(flashctx, newcontents, curcontents);
 
 	// parse the new fmap and disable soft WP if necessary
-	if ((tmp = cros_ec_prepare(newcontents, flash_size))) {
+	if ((tmp = cros_ec_prepare(flashctx, newcontents, flash_size))) {
 		msg_cerr("CROS_EC prepare failed, ret=%d.\n", tmp);
 		goto _finalize_ret;
 	}

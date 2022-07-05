@@ -47,6 +47,7 @@
 #include "programmer.h"
 #include "spi.h"
 #include "dep_writeprotect.h"
+#include "cros_wp_rollout.h"
 
 struct cros_ec_priv *cros_ec_priv;
 
@@ -330,7 +331,23 @@ static int cros_ec_jump_copy(enum ec_current_image target)
 static int cros_ec_restore_wp(void *data)
 {
 	msg_pdbg("Restoring EC soft WP.\n");
-	return set_wp(1);
+
+	/* FIXME: delete old WP code path */
+	if (use_dep_wp("ec")) {
+		return set_wp(1);
+	}
+
+	struct flashctx *flash = data;
+
+	struct flashrom_wp_cfg *cfg = NULL;
+	if (flashrom_wp_cfg_new(&cfg) != FLASHROM_WP_OK)
+		return 1;
+	flashrom_wp_set_mode(cfg, FLASHROM_WP_MODE_HARDWARE);
+
+	enum flashrom_wp_result ret = flashrom_wp_write_cfg(flash, cfg);
+	flashrom_wp_cfg_release(cfg);
+
+	return (ret != FLASHROM_WP_OK);
 }
 
 static int cros_ec_wp_is_enabled(void)
@@ -364,7 +381,7 @@ static int cros_ec_wp_is_enabled(void)
  * - Parse flashmap.
  * - Jump to RO firmware.
  */
-int cros_ec_prepare(uint8_t *image, int size)
+int cros_ec_prepare(struct flashctx *flash, uint8_t *image, int size)
 {
 	struct fmap *fmap = NULL;
 	unsigned i, j;
@@ -395,13 +412,36 @@ int cros_ec_prepare(uint8_t *image, int size)
 		return 1;
 	} else if (wp_status == 1) {
 		msg_pdbg("Attempting to disable EC soft WP.\n");
-		if (!set_wp(0)) {
-			msg_pdbg("EC soft WP disabled successfully.\n");
-			if (register_shutdown(cros_ec_restore_wp, NULL))
-				return 1;
+
+		/* FIXME: delete old WP code path */
+		if (use_dep_wp("ec")) {
+			if (set_wp(0)) {
+				msg_pdbg("EC soft WP disabled successfully.\n");
+				if (register_shutdown(cros_ec_restore_wp, flash))
+					return 1;
+			} else {
+				msg_pdbg("Failed. Hardware WP might in effect or EC "
+					"needs to be rebooted first.\n");
+			}
 		} else {
-			msg_pdbg("Failed. Hardware WP might in effect or EC "
-				"needs to be rebooted first.\n");
+			struct flashrom_wp_cfg *cfg = NULL;
+			enum flashrom_wp_result ret = flashrom_wp_cfg_new(&cfg);
+
+			if (ret == FLASHROM_WP_OK) {
+				flashrom_wp_set_mode(cfg, FLASHROM_WP_MODE_HARDWARE);
+
+				ret = flashrom_wp_write_cfg(flash, cfg);
+				flashrom_wp_cfg_release(cfg);
+			}
+
+			if (ret == FLASHROM_WP_OK) {
+				msg_pdbg("EC soft WP disabled successfully.\n");
+				if (register_shutdown(cros_ec_restore_wp, flash))
+					return 1;
+			} else {
+				msg_pdbg("Failed. Hardware WP might in effect or EC "
+					"needs to be rebooted first.\n");
+			}
 		}
 	} else {
 		msg_pdbg("EC soft WP is already disabled.\n");
