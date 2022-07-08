@@ -26,7 +26,7 @@ static bool use_dep_wp_host()
 {
 #if (defined (__i386__) || defined (__x86_64__) || defined(__amd64__))
 	if (ich_generation == CHIPSET_ICH_UNKNOWN)
-		return true; /* AMD - sb600spi */
+		return false; /* AMD - sb600spi */
 	else
 		return true; /* Intel - ichspi */
 #else
