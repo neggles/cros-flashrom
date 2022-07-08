@@ -376,6 +376,22 @@ static int wp_cli(
 	return 0;
 }
 
+/* Global ICH generation variable used to determine what platform we're on and
+ * enable incremental switch over to upstream writeprotect. */
+extern enum ich_chipset ich_generation;
+
+static bool use_dep_wp_host()
+{
+#if (defined (__i386__) || defined (__x86_64__) || defined(__amd64__))
+	if (ich_generation == CHIPSET_ICH_UNKNOWN)
+		return true; /* AMD - sb600spi */
+	else
+		return true; /* Intel - ichspi */
+#else
+	return true; /* ARM - linux_mtd */
+#endif
+}
+
 /* TODO: Switch over to new wp and delete old. */
 static bool use_dep_wp(const char *programmer_name)
 {
@@ -383,7 +399,7 @@ static bool use_dep_wp(const char *programmer_name)
 
 	/* TODO(b/236214660): enable new writeprotect for internal/host */
 	if (!strcmp(programmer_name, "host") || !strcmp(programmer_name, "internal"))
-		use_old_wp = true;
+		use_old_wp = use_dep_wp_host();
 	/* TODO(b/236214918): enable new writeprotect for EC */
 	else if (!strcmp(programmer_name, "ec"))
 		use_old_wp = true;
