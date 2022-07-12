@@ -129,7 +129,8 @@ srcs += files(
   'file_lock.c',
   'dep_writeprotect.c',
   'dep_wp_statusreg.c',
-  'opaque_statusreg.c'
+  'opaque_statusreg.c',
+  'cros_wp_rollout.c',
 )
 cargs += '-DCONFIG_CROS_ALIAS=1'
 cargs += '-DCONFIG_CROS_EC=1'
