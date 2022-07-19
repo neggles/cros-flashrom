@@ -1458,8 +1458,8 @@ static int ich_hwseq_read_status(const struct flashctx *flash, enum flash_reg re
 	const int len = 1;
 
 	if (reg != STATUS1) {
-		msg_perr("%s: only supports STATUS1\n", __func__);
-		return -1;
+		msg_pdbg("%s: only supports STATUS1\n", __func__);
+		return WRITEPROTECT_INVALID_REGISTER;
 	}
 	msg_pdbg("Reading Status register\n");
 
@@ -1493,8 +1493,8 @@ static int ich_hwseq_write_status(const struct flashctx *flash, enum flash_reg r
 	const int len = 1;
 
 	if (reg != STATUS1) {
-		msg_perr("%s: only supports STATUS1\n", __func__);
-		return -1;
+		msg_pdbg("%s: only supports STATUS1\n", __func__);
+		return WRITEPROTECT_INVALID_REGISTER;
 	}
 	msg_pdbg("Writing status register\n");
 

@@ -31,7 +31,12 @@
 static int wp_write_register(const struct flashctx *flash, enum flash_reg reg, uint8_t value)
 {
 	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.write_register) {
-		return flash->mst->opaque.write_register(flash, reg, value);
+		int ret = flash->mst->opaque.write_register(flash, reg, value);
+		if (ret == WRITEPROTECT_INVALID_REGISTER) {
+			msg_pdbg("%s: write to register %d not supported by programmer, ignoring.\n", __func__, reg);
+			return FLASHROM_WP_OK;
+		}
+		return ret;
 	}
 	return spi_write_register(flash, reg, value);
 }
@@ -39,7 +44,16 @@ static int wp_write_register(const struct flashctx *flash, enum flash_reg reg, u
 static int wp_read_register(const struct flashctx *flash, enum flash_reg reg, uint8_t *value)
 {
 	if ((flash->mst->buses_supported & BUS_PROG) && flash->mst->opaque.read_register) {
-		return flash->mst->opaque.read_register(flash, reg, value);
+		int ret = flash->mst->opaque.read_register(flash, reg, value);
+		if (ret == WRITEPROTECT_INVALID_REGISTER) {
+			msg_pdbg("%s: read from register %d not is supported by programmer, "
+				  "writeprotect operations will assume it contains 0x00.\n", __func__, reg);
+			*value = 0;
+
+			return FLASHROM_WP_OK;
+		}
+		return ret;
+
 	}
 	return spi_read_register(flash, reg, value);
 }

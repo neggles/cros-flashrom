@@ -24,6 +24,8 @@
 
 #include "flash.h"	/* for chipaddr and flashctx */
 
+#define WRITEPROTECT_INVALID_REGISTER -5
+
 /*
  * This function returns 'true' if current flashrom invocation is programming
  * the EC.
