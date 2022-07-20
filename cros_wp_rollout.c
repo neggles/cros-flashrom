@@ -28,7 +28,7 @@ static bool use_dep_wp_host()
 	if (ich_generation == CHIPSET_ICH_UNKNOWN)
 		return false; /* AMD - sb600spi */
 	else
-		return true; /* Intel - ichspi */
+		return false; /* Intel - ichspi */
 #else
 	return false; /* ARM - linux_mtd */
 #endif
