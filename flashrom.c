@@ -417,6 +417,7 @@ static int read_checked_access(struct flashctx *flash,
 
 	/* limit chunksize in order to catch errors early */
 	for (i = 0, chunksize = 0; i < len; i += chunksize) {
+		int tmp;
 		int chk_acc = 0;
 
 		/*
@@ -440,16 +441,21 @@ static int read_checked_access(struct flashctx *flash,
 			}
 		}
 
+		tmp = flash->chip->read(flash, readbuf + i, start + i, chunksize);
+		if (tmp) {
+			ret = tmp;
+			if (tmp == SPI_ACCESS_DENIED)
+				continue;
+			else
+				break;
+		}
+
 		/*
 		 * Check write access permission and do not compare chunks
 		 * where flashrom does not have write access to the region.
 		 */
 		if (chk_acc == SPI_ACCESS_DENIED)
 			continue;
-
-		ret = flash->chip->read(flash, readbuf + i, start + i, chunksize);
-		if (ret)
-			break;
 
 		ret = compare_range(cmpbuf + i, readbuf + i, start + i, chunksize);
 		if (ret < 0)
