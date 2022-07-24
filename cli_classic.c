@@ -1149,6 +1149,21 @@ int main(int argc, char *argv[])
 	}
 
 	/*
+	 * FIXME(b/240080820): Some cros code just uses `--wp-disable` to
+	 * disable writeprotect, but linux_mtd WP code requires an empty range
+	 * to be specified as well (i.e. `--wp-range 0,0`). To avoid breaking
+	 * cros flashrom users for now, implicitly set an empty range if
+	 * --wp-disable is used without --wp-range/--wp-region.
+	 */
+#if !(defined (__i386__) || defined (__x86_64__) || defined(__amd64__))
+	if (disable_wp && !set_wp_range && !set_wp_region) {
+		wp_start = 0;
+		wp_len = 0;
+		set_wp_range = true;
+	}
+#endif
+
+	/*
 	 * Common rules for -r/-w/-v syntax parsing:
 	 * - If no filename is specified at all, quit.
 	 * - If no filename is specified for -r/-w/-v, but files are specified
