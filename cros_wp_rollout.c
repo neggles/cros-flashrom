@@ -30,7 +30,7 @@ static bool use_dep_wp_host()
 	else
 		return false; /* Intel - ichspi */
 #else
-	return true; /* ARM - linux_mtd */
+	return false; /* ARM - linux_mtd */
 #endif
 }
 
