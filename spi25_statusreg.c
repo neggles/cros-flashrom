@@ -19,6 +19,7 @@
 
 #include "flash.h"
 #include "chipdrivers.h"
+#include "programmer.h"
 #include "spi.h"
 
 /* === Generic functions === */
@@ -103,6 +104,16 @@ int spi_write_register(const struct flashctx *flash, enum flash_reg reg, uint8_t
 	default:
 		msg_cerr("Cannot write register: unknown register\n");
 		return 1;
+	}
+
+	/*
+	 * FIXME(b/240229722): This is a workaround for ICH7/ICH9 masters not
+	 * being able to read/write SR2. This needs to return a unique error
+	 * code and be upstreamed.
+	 */
+	if (!flash->mst->spi.probe_opcode((struct flashctx *) flash, write_cmd[0])) {
+		msg_pdbg("%s: write to register %d not supported by programmer, ignoring.\n", __func__, reg);
+		return 0;
 	}
 
 	uint8_t enable_cmd;
@@ -197,6 +208,17 @@ int spi_read_register(const struct flashctx *flash, enum flash_reg reg, uint8_t 
 	default:
 		msg_cerr("Cannot read register: unknown register\n");
 		return 1;
+	}
+
+	/*
+	 * FIXME(b/240229722): This is a workaround for ICH7/ICH9 masters not
+	 * being able to read/write SR2. This needs to return a unique error
+	 * code and be upstreamed.
+	 */
+	if (!flash->mst->spi.probe_opcode((struct flashctx *) flash, read_cmd)) {
+		msg_pdbg("%s: read from register %d not supported by programmer, ignoring.\n", __func__, reg);
+		*value = 0;
+		return 0;
 	}
 
 	/* FIXME: No workarounds for driver/hardware bugs in generic code. */
