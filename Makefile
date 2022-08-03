@@ -260,10 +260,6 @@ ifeq ($(TARGET_OS), DOS)
 # DJGPP has odd uint*_t definitions which cause lots of format string warnings.
 override CFLAGS += -Wno-format
 override LDFLAGS += -lgetopt
-# Missing serial support.
-$(call mark_unsupported,$(DEPENDS_ON_SERIAL))
-# Cros programmers not available for DOS
-$(call mark_unsupported,CONFIG_CROS_EC CONFIG_CROS_ALIAS)
 endif
 
 ifeq ($(TARGET_OS), $(filter $(TARGET_OS), MinGW Cygwin))
@@ -302,8 +298,6 @@ $(call mark_unsupported,CONFIG_DUMMY)
 $(call mark_unsupported,CONFIG_ATAPROMISE)
 # Dediprog, Developerbox, USB-Blaster, PICkit2, CH341A and FT2232 are not supported with libpayload (missing libusb support).
 $(call mark_unsupported,$(DEPENDS_ON_LIBUSB1) $(DEPENDS_ON_LIBFTDI) $(DEPENDS_ON_LIBJAYLINK))
-# Cros-specific programmer
-$(call mark_unsupported,CONFIG_CROS_EC)
 endif
 
 ifeq ($(HAS_LINUX_MTD), no)
@@ -379,19 +373,15 @@ endif
 CHIP_OBJS = jedec.o stm50.o w39.o w29ee011.o \
 	sst28sf040.o 82802ab.o \
 	sst49lfxxxc.o sst_fwhub.o edi.o flashchips.o spi.o spi25.o spi25_statusreg.o \
-	spi95.o opaque.o sfdp.o en29lv640b.o at45db.o dep_writeprotect.o s25f.o \
-	dep_wp_statusreg.o writeprotect.o writeprotect_ranges.o opaque_statusreg.o \
-	cros_wp_rollout.o
+	spi95.o opaque.o sfdp.o en29lv640b.o at45db.o s25f.o \
+	writeprotect.o writeprotect_ranges.o
 
 ###############################################################################
 # Library code.
 
-LOCK_OBJS = big_lock.o file_lock.o
-LIB_OBJS += $(LOCK_OBJS)
-FEATURE_CFLAGS += -D'USE_BIG_LOCK=1'
-LIB_OBJS += libflashrom.o layout.o flashrom.o udelay.o programmer.o programmer_table.o \
+LIB_OBJS = libflashrom.o layout.o flashrom.o udelay.o programmer.o programmer_table.o \
 	helpers.o ich_descriptors.o fmap.o platform/endian_$(ENDIAN).o platform/memaccess.o
-LIB_OBJS += power.o action_descriptor.o flashchips_crosbl.o
+
 
 ###############################################################################
 # Frontend related stuff.
@@ -411,8 +401,7 @@ SCMDEF := -D'FLASHROM_VERSION="$(VERSION)"'
 RELEASENAME ?= $(shell echo "$(VERSION)" | sed -e 's/ /_/')
 
 # If a VCS is found then try to install hooks.
-# TODO(quasisec): turn this into a make target with a upstream patch.
-#$(shell ./util/getrevision.sh -c 2>/dev/null && ./util/git-hooks/install.sh)
+$(shell ./util/getrevision.sh -c 2>/dev/null && ./util/git-hooks/install.sh)
 
 ###############################################################################
 # Default settings of CONFIG_* variables.
@@ -430,6 +419,9 @@ CONFIG_RAYER_SPI ?= yes
 # ChromiumOS servo DUT debug board hardware support
 CONFIG_RAIDEN_DEBUG_SPI ?= yes
 
+# PonyProg2000 SPI hardware support
+CONFIG_PONY_SPI ?= yes
+
 # Always enable 3Com NICs for now.
 CONFIG_NIC3COM ?= yes
 
@@ -443,14 +435,26 @@ CONFIG_SATASII ?= yes
 # IMPORTANT: This code is not yet working!
 CONFIG_ATAHPT ?= no
 
+# VIA VT6421A LPC memory support
+CONFIG_ATAVIA ?= yes
+
 # Promise ATA controller support.
 CONFIG_ATAPROMISE ?= no
 
 # Always enable FT2232 SPI dongles for now.
 CONFIG_FT2232_SPI ?= yes
 
+# Always enable Altera USB-Blaster dongles for now.
+CONFIG_USBBLASTER_SPI ?= yes
+
 # MSTAR DDC support needs more tests/reviews/cleanups.
 CONFIG_MSTARDDC_SPI ?= no
+
+# Always enable PICkit2 SPI dongles for now.
+CONFIG_PICKIT2_SPI ?= yes
+
+# Always enable STLink V3
+CONFIG_STLINKV3_SPI ?= yes
 
 # Disables Parade LSPCON support until the i2c helper supports multiple systems.
 CONFIG_PARADE_LSPCON ?= no
@@ -460,12 +464,6 @@ CONFIG_MEDIATEK_I2C_SPI ?= no
 
 # Disables REALTEK_MST support until the i2c helper supports multiple systems.
 CONFIG_REALTEK_MST_I2C_SPI ?= no
-
-# Enable Google EC by default.
-CONFIG_CROS_EC ?= yes
-
-# Enable Google CROS EC-HOST ALIAS mechanism by default.
-CONFIG_CROS_ALIAS ?= yes
 
 # Always enable dummy tracing for now.
 CONFIG_DUMMY ?= yes
@@ -485,6 +483,9 @@ CONFIG_NICINTEL ?= yes
 # Always enable SPI on Intel NICs for now.
 CONFIG_NICINTEL_SPI ?= yes
 
+# Always enable EEPROM on Intel NICs for now.
+CONFIG_NICINTEL_EEPROM ?= yes
+
 # Always enable SPI on OGP cards for now.
 CONFIG_OGP_SPI ?= yes
 
@@ -494,12 +495,24 @@ CONFIG_BUSPIRATE_SPI ?= yes
 # Always enable Dediprog SF100 for now.
 CONFIG_DEDIPROG ?= yes
 
+# Always enable Developerbox emergency recovery for now.
+CONFIG_DEVELOPERBOX_SPI ?= yes
+
 # Always enable Marvell SATA controllers for now.
 CONFIG_SATAMV ?= yes
 
 # Enable Linux spidev and MTD interfaces by default. We disable them on non-Linux targets.
 CONFIG_LINUX_MTD ?= yes
 CONFIG_LINUX_SPI ?= yes
+
+# Always enable ITE IT8212F PATA controllers for now.
+CONFIG_IT8212 ?= yes
+
+# Winchiphead CH341A
+CONFIG_CH341A_SPI ?= yes
+
+# Digilent Development board JTAG
+CONFIG_DIGILENT_SPI ?= yes
 
 # Disable J-Link for now.
 CONFIG_JLINK_SPI ?= no
@@ -575,9 +588,6 @@ endif
 ifeq ($(CONFIG_INTERNAL_DMI), yes)
 FEATURE_FLAGS += -D'CONFIG_INTERNAL_DMI=1'
 endif
-
-# TODO(quasisec): Remove when flashrom.c isn't poisoned with cros_ec fn calls.
-PROGRAMMER_OBJS += cros_ec_dev.o cros_ec_wp.o
 
 ifeq ($(CONFIG_SERPROG), yes)
 FEATURE_FLAGS += -D'CONFIG_SERPROG=1'
@@ -667,16 +677,6 @@ endif
 ifeq ($(CONFIG_REALTEK_MST_I2C_SPI), yes)
 FEATURE_FLAGS += -D'CONFIG_REALTEK_MST_I2C_SPI=1'
 PROGRAMMER_OBJS += realtek_mst_i2c_spi.o
-endif
-
-ifeq ($(CONFIG_CROS_EC), yes)
-FEATURE_CFLAGS += -D'CONFIG_CROS_EC=1'
-PROGRAMMER_OBJS += cros_ec.o cros_ec_wp_dep.o
-endif
-
-ifeq ($(CONFIG_CROS_ALIAS), yes)
-FEATURE_CFLAGS += -D'CONFIG_CROS_ALIAS=1'
-PROGRAMMER_OBJS += cros_alias.o
 endif
 
 ifeq ($(CONFIG_DUMMY), yes)
