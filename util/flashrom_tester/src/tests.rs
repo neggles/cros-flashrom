@@ -303,9 +303,8 @@ fn partial_lock_test(section: LayoutNames) -> impl Fn(&mut TestEnv) -> TestResul
             name_file: Some(wp_section_name),
         };
         if env.cmd.write_file_with_layout(&rws).is_ok() {
-            return Err(
-                "Section should be locked, should not have been overwritable with random data"
-                    .into(),
+            info!(
+                "Section should be locked but flashrom write returned Ok. This may be incorrect; verifying"
             );
         }
         if !env.is_golden() {
