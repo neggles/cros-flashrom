@@ -14,6 +14,14 @@
 #include "layout.h"
 #include "programmer.h"
 
+/**
+ * action_descriptor is DEPRECATED !
+ * Allow for easy toggling off for the eventual removal from the tree.
+ *
+ * TRUE  := action_descriptor is not used.
+ * FALSE := action_descriptor is used on Intel.
+ */
+static bool deprecate_ad = false;
 
 /*
  * This global variable is used to communicate the type of ICH found on the
@@ -118,6 +126,9 @@ static void fix_erasers_if_needed(struct flashchip *chip,
 				  struct flashctx *flash)
 {
 	int i;
+
+	if (deprecate_ad)
+		return;
 
 	/* Need to copy no matter what. */
 	*chip = *flash->chip;
