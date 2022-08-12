@@ -374,6 +374,7 @@ struct flashrom_flashctx {
 extern const struct flashchip flashchips[];
 extern const unsigned int flashchips_size;
 
+/* parallel.c */
 void chip_writeb(const struct flashctx *flash, uint8_t val, chipaddr addr);
 void chip_writew(const struct flashctx *flash, uint16_t val, chipaddr addr);
 void chip_writel(const struct flashctx *flash, uint32_t val, chipaddr addr);
