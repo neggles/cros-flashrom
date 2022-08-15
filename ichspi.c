@@ -1182,6 +1182,7 @@ static int check_fd_permissions(enum ich_chipset cs, OPCODE *opcode, int type, u
 {
 	struct ich_descriptors desc = { 0 };
 	const ssize_t nr = MIN(ich_number_of_regions(cs, &desc.content), (ssize_t)ARRAY_SIZE(fd_regions));
+	bool covered_by_descriptor = false;
 	int i;
 	int ret = 0;
 
@@ -1194,15 +1195,20 @@ static int check_fd_permissions(enum ich_chipset cs, OPCODE *opcode, int type, u
 		if ((addr + count - 1 < base) || (addr > limit))
 			continue;
 
+		// FIXME: This does not ensure that the range to be checked is
+		// fully covered by the descriptor, only that it partially
+		// overlaps a descriptor.
+		covered_by_descriptor = true;
+
 		ret = check_opcode_access(opcode, type, fd_regions[i].level);
 		if (ret) {
 			msg_pspew("%s: Cannot issue read/write address 0x%08x in "
 			          "region %s\n", __func__, addr, name);
+			return ret;
 		}
-		break;
 	}
 
-	if ((i == nr) && !opcode) { // FIXME(b/171892105).
+	if (!covered_by_descriptor && !opcode) { // FIXME(b/171892105).
 		msg_pspew("%s: Address not covered by any descriptor 0x%06x\n",
 			  __func__, addr);
 		ret = SPI_ACCESS_DENIED;
