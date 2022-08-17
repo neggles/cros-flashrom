@@ -1183,11 +1183,9 @@ static int check_fd_permissions(enum ich_chipset cs, OPCODE *opcode, int type, u
 	struct ich_descriptors desc = { 0 };
 	const ssize_t nr = MIN(ich_number_of_regions(cs, &desc.content), (ssize_t)ARRAY_SIZE(fd_regions));
 	bool covered_by_descriptor = false;
-	int i;
-	int ret = 0;
 
 	/* check flash descriptor permissions (if present) */
-	for (i = 0; i < nr; i++) {
+	for (ssize_t i = 0; i < nr; i++) {
 		const char *name = fd_regions[i].name;
 		uint32_t base = fd_regions[i].base;
 		uint32_t limit = fd_regions[i].limit;
@@ -1200,7 +1198,7 @@ static int check_fd_permissions(enum ich_chipset cs, OPCODE *opcode, int type, u
 		// overlaps a descriptor.
 		covered_by_descriptor = true;
 
-		ret = check_opcode_access(opcode, type, fd_regions[i].level);
+		int ret = check_opcode_access(opcode, type, fd_regions[i].level);
 		if (ret) {
 			msg_pspew("%s: Cannot issue read/write address 0x%08x in "
 			          "region %s\n", __func__, addr, name);
@@ -1211,10 +1209,10 @@ static int check_fd_permissions(enum ich_chipset cs, OPCODE *opcode, int type, u
 	if (!covered_by_descriptor && !opcode) { // FIXME(b/171892105).
 		msg_pspew("%s: Address not covered by any descriptor 0x%06x\n",
 			  __func__, addr);
-		ret = SPI_ACCESS_DENIED;
+		return SPI_ACCESS_DENIED;
 	}
 
-	return ret;
+	return 0;
 }
 
 static int ich_hwseq_check_access(const struct flashctx *flash, unsigned int start, unsigned int len, int read)
