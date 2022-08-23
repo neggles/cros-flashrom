@@ -48,5 +48,11 @@ bool is_chipname_duplicate(const struct flashchip *chip)
 	 */
 	if(!strcmp(chip->name, "W25Q256JV_Q")) return true;
 
+	/* Mark W25Q512NW-IM (64MB) as duplicate of W25Q512NW-IM32 (32MB).
+	 * This is a temporary workaround until we put 32MB part on Rex.
+	 * Refer b/242958619
+	 */
+	if(!strcmp(chip->name, "W25Q512NW-IM")) return true;
+
 	return false;
 }
