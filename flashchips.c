@@ -18191,59 +18191,6 @@ const struct flashchip flashchips[] = {
 	.voltage        = {1650, 1950},
 	},
 
-	 /* FIXME(b/243615601): Rex Proto 0. */
-	{
-	.vendor         = "Winbond",
-	.name           = "W25Q512NW-IM32",
-	.bustype        = BUS_SPI,
-	.manufacture_id = WINBOND_NEX_ID,
-	.model_id       = WINBOND_NEX_W25Q512NW_IM,
-	.total_size     = 32 * 1024,
-	.page_size      = 256,
-	.feature_bits   = FEATURE_WRSR_WREN | FEATURE_OTP | FEATURE_4BA | FEATURE_WRSR2,
-	.tested         = TEST_OK_PREW,
-	.probe          = probe_spi_rdid,
-	.probe_timing   = TIMING_ZERO,
-	.block_erasers  =
-	{
-		{
-			.eraseblocks = { {2 * 1024, 16384} },
-			.block_erase = spi_block_erase_21,
-		}, {
-			.eraseblocks = { {2 * 1024, 16384} },
-			.block_erase = spi_block_erase_20,
-		}, {
-			.eraseblocks = { {16 * 1024, 2048} },
-			.block_erase = spi_block_erase_52,
-		}, {
-			.eraseblocks = { {32 * 1024, 1024} },
-			.block_erase = spi_block_erase_dc,
-		}, {
-			.eraseblocks = { {32 * 1024, 1024} },
-			.block_erase = spi_block_erase_d8,
-		}, {
-			.eraseblocks = { {32 * 1024 * 1024, 1} },
-			.block_erase = spi_block_erase_60,
-		}, {
-			.eraseblocks = { {32 * 1024 * 1024, 1} },
-			.block_erase = spi_block_erase_c7,
-		}
-	},
-	.unlock		= spi_disable_blockprotect,
-	.write		= spi_chip_write_256,
-	.read		= spi_chip_read,
-	.voltage	= {1650, 1950},
-	.reg_bits	=
-	{
-		.srp	= {STATUS1, 7, RW},
-		.srl	= {STATUS2, 0, RW},
-		.bp	= {{STATUS1, 2, RW}, {STATUS1, 3, RW}, {STATUS1, 4, RW}, {STATUS1, 5, RW}},
-		.tb	= {STATUS1, 6, RW},
-		.cmp	= {STATUS2, 6, RW},
-	},
-	.decode_range	= decode_range_spi25,
-	},
-
 	{
 		.vendor		= "Winbond",
 		.name		= "W25Q64BV/W25Q64CV/W25Q64FV",
