@@ -306,8 +306,9 @@ static int __cros_ec_command_dev_v2(int command, int version,
 	if (s_cmd->result) {
 		msg_pdbg("%s(): Command 0x%02x returned result: %d\n",
 			 __func__, command, s_cmd->result);
+		ret = -s_cmd->result;
 		free(s_cmd);
-		return -s_cmd->result;
+		return ret;
 	}
 
 	memcpy(indata, s_cmd->data, min(ret, insize));
