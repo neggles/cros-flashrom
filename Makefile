@@ -426,24 +426,27 @@ CONFIG_RAYER_SPI ?= yes
 # ChromiumOS servo DUT debug board hardware support
 CONFIG_RAIDEN_DEBUG_SPI ?= yes
 
+# ChromiumOS EC hardware support
+CONFIG_CROS_EC ?= yes
+
 # PonyProg2000 SPI hardware support
-CONFIG_PONY_SPI ?= yes
+CONFIG_PONY_SPI ?= no
 
 # Always enable 3Com NICs for now.
-CONFIG_NIC3COM ?= yes
+CONFIG_NIC3COM ?= no
 
 # Enable NVIDIA graphics cards. Note: write and erase do not work properly.
 CONFIG_GFXNVIDIA ?= yes
 
 # Always enable SiI SATA controllers for now.
-CONFIG_SATASII ?= yes
+CONFIG_SATASII ?= no
 
 # Highpoint (HPT) ATA/RAID controller support.
 # IMPORTANT: This code is not yet working!
 CONFIG_ATAHPT ?= no
 
 # VIA VT6421A LPC memory support
-CONFIG_ATAVIA ?= yes
+CONFIG_ATAVIA ?= no
 
 # Promise ATA controller support.
 CONFIG_ATAPROMISE ?= no
@@ -476,25 +479,25 @@ CONFIG_REALTEK_MST_I2C_SPI ?= no
 CONFIG_DUMMY ?= yes
 
 # Always enable Dr. Kaiser for now.
-CONFIG_DRKAISER ?= yes
+CONFIG_DRKAISER ?= no
 
 # Always enable Realtek NICs for now.
-CONFIG_NICREALTEK ?= yes
+CONFIG_NICREALTEK ?= no
 
 # Disable National Semiconductor NICs until support is complete and tested.
 CONFIG_NICNATSEMI ?= no
 
 # Always enable Intel NICs for now.
-CONFIG_NICINTEL ?= yes
+CONFIG_NICINTEL ?= no
 
 # Always enable SPI on Intel NICs for now.
-CONFIG_NICINTEL_SPI ?= yes
+CONFIG_NICINTEL_SPI ?= no
 
 # Always enable EEPROM on Intel NICs for now.
-CONFIG_NICINTEL_EEPROM ?= yes
+CONFIG_NICINTEL_EEPROM ?= no
 
 # Always enable SPI on OGP cards for now.
-CONFIG_OGP_SPI ?= yes
+CONFIG_OGP_SPI ?= no
 
 # Always enable Bus Pirate SPI for now.
 CONFIG_BUSPIRATE_SPI ?= yes
@@ -503,17 +506,17 @@ CONFIG_BUSPIRATE_SPI ?= yes
 CONFIG_DEDIPROG ?= yes
 
 # Always enable Developerbox emergency recovery for now.
-CONFIG_DEVELOPERBOX_SPI ?= yes
+CONFIG_DEVELOPERBOX_SPI ?= no
 
 # Always enable Marvell SATA controllers for now.
-CONFIG_SATAMV ?= yes
+CONFIG_SATAMV ?= no
 
 # Enable Linux spidev and MTD interfaces by default. We disable them on non-Linux targets.
 CONFIG_LINUX_MTD ?= yes
 CONFIG_LINUX_SPI ?= yes
 
 # Always enable ITE IT8212F PATA controllers for now.
-CONFIG_IT8212 ?= yes
+CONFIG_IT8212 ?= no
 
 # Winchiphead CH341A
 CONFIG_CH341A_SPI ?= yes
@@ -609,6 +612,12 @@ endif
 ifeq ($(CONFIG_RAIDEN_DEBUG_SPI), yes)
 FEATURE_FLAGS += -D'CONFIG_RAIDEN_DEBUG_SPI=1'
 PROGRAMMER_OBJS += raiden_debug_spi.o
+endif
+
+ifeq ($(CONFIG_CROS_EC), yes)
+FEATURE_FLAGS += -D'CONFIG_CROS_EC=1'
+PROGRAMMER_OBJS += cros_ec.o cros_ec_wp.o cros_ec_dev.o flashchips_crosbl.o
+CROS_OBJS := action_descriptor.o opaque_statusreg.o power.o
 endif
 
 ifeq ($(CONFIG_PONY_SPI), yes)
@@ -887,10 +896,10 @@ override LDFLAGS += -lrt
 endif
 endif
 
-OBJS = $(CHIP_OBJS) $(PROGRAMMER_OBJS) $(LIB_OBJS)
+OBJS = $(CHIP_OBJS) $(PROGRAMMER_OBJS) $(LIB_OBJS) $(CROS_OBJS)
 
 
-all: $(PROGRAM)$(EXEC_SUFFIX) $(PROGRAM).8
+all: $(PROGRAM)$(EXEC_SUFFIX) $(PROGRAM).8 ccd
 ifeq ($(ARCH), x86)
 	@+$(MAKE) -C util/ich_descriptors_tool/ HOST_OS=$(HOST_OS) TARGET_OS=$(TARGET_OS)
 endif
@@ -1031,7 +1040,7 @@ tarball: _export
 libpayload: clean
 	make CC="CC=i386-elf-gcc lpgcc" AR=i386-elf-ar RANLIB=i386-elf-ranlib
 
-.PHONY: all install clean distclean config _export export tarball libpayload
+.PHONY: all install clean distclean config _export export tarball libpayload ccd
 
 # Disable implicit suffixes and built-in rules (for performance and profit)
 .SUFFIXES:
